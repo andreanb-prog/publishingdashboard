@@ -2,7 +2,7 @@
 // components/GoalSection.tsx
 // Collapsible per-page goal tracker with progress bars
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 
 type Goals = Record<string, number>
 
@@ -11,24 +11,24 @@ interface GoalField {
   label: string
   unit: 'dollar' | 'percent' | 'number'
   placeholder: string
+  hint?: string
 }
 
 const PAGE_GOALS: Record<string, GoalField[]> = {
   meta: [
-    { key: 'meta_ctr',         label: 'Target CTR',         unit: 'percent', placeholder: 'e.g. 15 (15%+ is strong for book ads)' },
-    { key: 'meta_cpc',         label: 'Target CPC',         unit: 'dollar',  placeholder: 'e.g. 0.15 (under $0.15 is great)' },
-    { key: 'meta_impressions', label: 'Target Impressions', unit: 'number',  placeholder: 'e.g. 10000 per month' },
-    { key: 'meta_spend',       label: 'Target Monthly Spend', unit: 'dollar', placeholder: 'e.g. 100 per month' },
+    { key: 'meta_ctr',   label: 'Target CTR',           unit: 'percent', placeholder: '15',  hint: '15%+ is strong for book ads' },
+    { key: 'meta_cpc',   label: 'Target CPC',           unit: 'dollar',  placeholder: '0.15', hint: 'Under $0.15 is great' },
+    { key: 'meta_spend', label: 'Target Monthly Spend',  unit: 'dollar',  placeholder: '100',  hint: 'Monthly budget' },
   ],
   kdp: [
-    { key: 'kdp_units',     label: 'Target Units/Month',    unit: 'number',  placeholder: 'e.g. 200 units/month' },
-    { key: 'kdp_kenp',      label: 'Target KENP/Month',     unit: 'number',  placeholder: 'e.g. 50000 KENP reads' },
-    { key: 'kdp_royalties', label: 'Target Royalties/Month', unit: 'dollar', placeholder: 'e.g. 500 per month' },
+    { key: 'kdp_units',     label: 'Target Units/Month',     unit: 'number', placeholder: '200',   hint: 'Monthly unit sales' },
+    { key: 'kdp_kenp',      label: 'Target KENP/Month',      unit: 'number', placeholder: '50000', hint: 'Kindle Unlimited reads' },
+    { key: 'kdp_royalties', label: 'Target Royalties/Month', unit: 'dollar', placeholder: '500',   hint: 'Monthly royalties' },
   ],
   mailerlite: [
-    { key: 'email_open_rate',   label: 'Target Open Rate',        unit: 'percent', placeholder: 'e.g. 24 (24%+ is above average)' },
-    { key: 'email_list_size',   label: 'Target List Size',        unit: 'number',  placeholder: 'e.g. 1000 subscribers' },
-    { key: 'email_new_subs',    label: 'Target New Subs/Month',   unit: 'number',  placeholder: 'e.g. 50 per month' },
+    { key: 'email_open_rate', label: 'Target Open Rate',       unit: 'percent', placeholder: '20', hint: 'Author avg: 20–25%' },
+    { key: 'email_list_size', label: 'Target List Size',       unit: 'number',  placeholder: '2000' },
+    { key: 'email_new_subs',  label: 'Target New Subs/Month', unit: 'number',  placeholder: '100' },
   ],
 }
 
@@ -39,17 +39,25 @@ function fmtVal(val: number, unit: GoalField['unit']): string {
 }
 
 function GoalBar({ current, goal, unit }: { current?: number; goal: number; unit: GoalField['unit'] }) {
-  const pct = goal > 0 && current != null ? Math.min((current / goal) * 100, 100) : 0
-  const color = pct >= 80 ? '#34d399' : pct >= 50 ? '#fbbf24' : '#fb7185'
+  const pct = goal > 0 && current != null ? Math.min((current / goal) * 100, 120) : 0
+  const displayPct = Math.min(pct, 100)
+  const isOver = pct >= 100
+  const color = isOver ? '#34d399' : pct >= 80 ? '#34d399' : pct >= 50 ? '#fbbf24' : '#fb7185'
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#292524' }}>
-        <div className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, background: color }} />
+    <div>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#F0E0C8' }}>
+          <div className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${displayPct}%`, background: color }} />
+        </div>
+        <span className="text-[10.5px] font-mono font-semibold" style={{ color, minWidth: 40, textAlign: 'right' }}>
+          {isOver ? '✓' : `${Math.round(pct)}%`}
+        </span>
       </div>
-      <span className="text-[10.5px] font-mono" style={{ color, minWidth: 36, textAlign: 'right' }}>
-        {Math.round(pct)}%
-      </span>
+      <div className="text-[10.5px] mt-1" style={{ color: '#6B7280' }}>
+        {current != null ? fmtVal(current, unit) : '—'} of {fmtVal(goal, unit)} goal
+        {isOver && <span className="ml-1 font-semibold" style={{ color: '#34d399' }}>Goal reached!</span>}
+      </div>
     </div>
   )
 }
@@ -120,57 +128,57 @@ export function GoalSection({
     .map(f => {
       const current = currentValues[f.key]
       const goal    = goals[f.key]!
-      const ok = current != null && current >= goal * 0.8
-      return `${f.label.replace('Target ', '')}: ${current != null ? fmtVal(current, f.unit) : '—'} / ${fmtVal(goal, f.unit)} ${ok ? '✅' : ''}`
+      const pct     = current != null && goal > 0 ? (current / goal) * 100 : 0
+      const ok      = pct >= 80
+      return `${f.label.replace('Target ', '')}: ${current != null ? fmtVal(current, f.unit) : '—'} of ${fmtVal(goal, f.unit)} ${ok ? '✓' : ''}`
     })
 
   const hasGoals = fields.some(f => goals[f.key] != null)
 
   return (
     <div className="rounded-xl mb-5 overflow-hidden"
-      style={{ background: '#1c1917', border: '1px solid #292524' }}>
+      style={{ background: 'white', border: '1px solid #F0E0C8' }}>
       {/* Header */}
       <button
         onClick={toggleCollapsed}
-        className="w-full flex items-center justify-between px-5 py-3.5 text-left"
-        style={{ background: 'transparent' }}
+        className="w-full flex items-center justify-between px-5 py-3.5 text-left bg-transparent border-none cursor-pointer"
       >
         <div className="flex items-center gap-2">
-          <span className="text-[14px]">🎯</span>
-          <span className="text-[12.5px] font-bold" style={{ color: '#d6d3d1' }}>My Goals</span>
+          <span className="text-[13px]">🎯</span>
+          <span className="text-[12.5px] font-bold" style={{ color: '#1E2D3D' }}>My Goals</span>
           {collapsed && hasGoals && summaryParts.length > 0 && (
-            <span className="text-[11px] ml-2" style={{ color: '#57534e' }}>
+            <span className="text-[11px] ml-2" style={{ color: '#6B7280' }}>
               {summaryParts.join(' · ')}
             </span>
           )}
           {collapsed && !hasGoals && (
-            <span className="text-[11px] ml-2 italic" style={{ color: '#44403c' }}>
+            <span className="text-[11px] ml-2 italic" style={{ color: '#9CA3AF' }}>
               Set your goals →
             </span>
           )}
         </div>
         <span className="text-[12px] transition-transform duration-200"
-          style={{ color: '#57534e', transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)', display: 'inline-block' }}>
+          style={{ color: '#9CA3AF', transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)', display: 'inline-block' }}>
           ▾
         </span>
       </button>
 
       {/* Expanded content */}
       {!collapsed && (
-        <div className="px-5 pb-5" style={{ borderTop: '1px solid #292524' }}>
-          <div className="grid grid-cols-2 gap-4 mt-4">
+        <div className="px-5 pb-5" style={{ borderTop: '1px solid #F0E0C8' }}>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4 mt-4">
             {fields.map(f => {
               const goal    = goals[f.key]
               const current = currentValues[f.key]
               return (
                 <div key={f.key}>
                   <label className="block text-[10.5px] font-bold uppercase tracking-[0.8px] mb-1.5"
-                    style={{ color: '#78716c' }}>
+                    style={{ color: '#6B7280' }}>
                     {f.label}
                   </label>
                   <div className="flex items-center gap-2 mb-1.5">
                     {f.unit === 'dollar' && (
-                      <span className="text-[13px]" style={{ color: '#57534e' }}>$</span>
+                      <span className="text-[13px]" style={{ color: '#9CA3AF' }}>$</span>
                     )}
                     <input
                       type="number"
@@ -179,19 +187,17 @@ export function GoalSection({
                       value={draft[f.key] ?? ''}
                       onChange={e => setDraft(d => ({ ...d, [f.key]: e.target.value }))}
                       className="flex-1 rounded-lg px-3 py-1.5 text-[13px] font-mono outline-none"
-                      style={{ background: '#292524', border: '1px solid #44403c', color: '#fafaf9' }}
+                      style={{ background: 'white', border: '1px solid #F0E0C8', color: '#1E2D3D' }}
                     />
                     {f.unit === 'percent' && (
-                      <span className="text-[13px]" style={{ color: '#57534e' }}>%</span>
+                      <span className="text-[13px]" style={{ color: '#9CA3AF' }}>%</span>
                     )}
                   </div>
-                  {goal != null && current != null && (
-                    <GoalBar current={current} goal={goal} unit={f.unit} />
+                  {f.hint && (
+                    <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>{f.hint}</div>
                   )}
-                  {goal != null && current != null && (
-                    <div className="text-[10.5px] mt-1" style={{ color: '#57534e' }}>
-                      {fmtVal(current, f.unit)} of {fmtVal(goal, f.unit)} goal
-                    </div>
+                  {goal != null && (
+                    <GoalBar current={current} goal={goal} unit={f.unit} />
                   )}
                 </div>
               )
@@ -202,13 +208,13 @@ export function GoalSection({
             <button
               onClick={save}
               disabled={saving}
-              className="px-4 py-1.5 rounded-lg text-[12.5px] font-semibold transition-all disabled:opacity-50"
+              className="px-4 py-1.5 rounded-lg text-[12.5px] font-semibold transition-all disabled:opacity-50 border-none cursor-pointer"
               style={{ background: '#e9a020', color: '#0d1f35' }}
             >
               {saving ? 'Saving…' : 'Save Goals'}
             </button>
             {saved && (
-              <span className="text-[12px]" style={{ color: '#34d399' }}>✓ Saved</span>
+              <span className="text-[12px] font-semibold" style={{ color: '#34d399' }}>✓ Saved</span>
             )}
           </div>
         </div>
