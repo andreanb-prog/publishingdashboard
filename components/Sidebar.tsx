@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 
 const NAV_ITEMS = [
-  { label: 'Morning Check-In', href: '/dashboard', icon: '📊' },
+  { label: 'My Dashboard', href: '/dashboard', icon: '📊' },
   { label: 'Upload & Analyze', href: '/dashboard/upload', icon: '⚡' },
 ]
 
