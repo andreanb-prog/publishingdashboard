@@ -127,11 +127,11 @@ export default function DataVaultPage() {
               </div>
               <div className="flex flex-wrap gap-3">
                 <div className="rounded-lg px-3 py-2" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
-                  <div className="text-[10px] font-bold uppercase tracking-[0.8px] mb-0.5" style={{ color: '#9CA3AF' }}>Files used</div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.8px] mb-0.5" style={{ color: '#6B7280' }}>Files used</div>
                   <div className="text-[12.5px] font-semibold" style={{ color: '#1E2D3D' }}>{getFilesUsed(active.data)}</div>
                 </div>
                 <div className="rounded-lg px-3 py-2" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
-                  <div className="text-[10px] font-bold uppercase tracking-[0.8px] mb-0.5" style={{ color: '#9CA3AF' }}>Records parsed</div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.8px] mb-0.5" style={{ color: '#6B7280' }}>Records parsed</div>
                   <div className="text-[12.5px] font-semibold" style={{ color: '#1E2D3D' }}>{getRecordsSummary(active.data)}</div>
                 </div>
               </div>
@@ -153,9 +153,9 @@ export default function DataVaultPage() {
           Upload History
         </div>
         {loading ? (
-          <div className="px-5 py-10 text-center text-[13px]" style={{ color: '#9CA3AF' }}>Loading…</div>
+          <div className="px-5 py-10 text-center text-[13px]" style={{ color: '#6B7280' }}>Loading…</div>
         ) : records.length === 0 ? (
-          <div className="px-5 py-10 text-center text-[13px]" style={{ color: '#9CA3AF' }}>
+          <div className="px-5 py-10 text-center text-[13px]" style={{ color: '#6B7280' }}>
             No analyses saved yet. Upload your first data set to get started.
           </div>
         ) : (
@@ -194,7 +194,7 @@ export default function DataVaultPage() {
                         </span>
                       ) : (
                         <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full"
-                          style={{ background: '#F5F5F4', color: '#9CA3AF' }}>
+                          style={{ background: '#F5F5F4', color: '#6B7280' }}>
                           Archived
                         </span>
                       )}
@@ -257,7 +257,7 @@ export default function DataVaultPage() {
           <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
             What does AuthorDash store?
           </span>
-          <span className="text-[16px]" style={{ color: '#9CA3AF' }}>{whatWeStore ? '▲' : '▼'}</span>
+          <span className="text-[16px]" style={{ color: '#6B7280' }}>{whatWeStore ? '▲' : '▼'}</span>
         </button>
         {whatWeStore && (
           <div className="px-5 pb-5" style={{ borderTop: '1px solid #EEEBE6' }}>

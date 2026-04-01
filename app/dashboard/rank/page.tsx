@@ -139,7 +139,7 @@ export default function RankPage() {
   if (loading) {
     return (
       <div className="p-8 max-w-[1200px]">
-        <div className="animate-pulse text-stone-400 text-[13px]">Loading your books…</div>
+        <div className="animate-pulse text-stone-500 text-[13px]">Loading your books…</div>
       </div>
     )
   }
@@ -149,7 +149,7 @@ export default function RankPage() {
       <div className="p-8 max-w-[1200px]">
         <div className="mb-6">
           <h1 className="font-serif text-[22px] text-[#0d1f35] mb-1">Sales Rank Tracker</h1>
-          <p className="text-[12.5px] text-stone-400">Track your Amazon BSR and subcategory ranks daily.</p>
+          <p className="text-[12.5px] text-stone-500">Track your Amazon BSR and subcategory ranks daily.</p>
         </div>
         <div className="card p-8 text-center">
           <div className="text-4xl mb-3">📚</div>
@@ -173,7 +173,7 @@ export default function RankPage() {
     <div className="p-8 max-w-[1200px]">
       <div className="mb-6">
         <h1 className="font-serif text-[22px] text-[#0d1f35] mb-1">Sales Rank Tracker</h1>
-        <p className="text-[12.5px] text-stone-400">
+        <p className="text-[12.5px] text-stone-500">
           Log your rank every morning — takes 10 seconds. Over time you'll see exactly which days move the needle.
         </p>
       </div>
@@ -209,7 +209,7 @@ export default function RankPage() {
                     )}
                   </div>
                   {book.asin && (
-                    <div className="text-[10.5px] text-stone-400 font-mono">{book.asin}</div>
+                    <div className="text-[10.5px] text-stone-500 font-mono">{book.asin}</div>
                   )}
                 </div>
                 {latestOverall !== null && (
@@ -227,7 +227,7 @@ export default function RankPage() {
 
               {/* No categories hint */}
               {book.categories.length === 0 && (
-                <div className="mb-4 text-[12px] text-stone-400 flex items-center gap-1.5">
+                <div className="mb-4 text-[12px] text-stone-500 flex items-center gap-1.5">
                   <span>💡 No subcategories set.</span>
                   <Link href="/dashboard/settings" className="text-amber-600 font-semibold hover:underline">
                     Add categories in Settings →

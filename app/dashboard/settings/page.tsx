@@ -82,12 +82,12 @@ function NotificationsSection() {
   return (
     <div className="card p-6 mb-6">
       <h3 className="font-serif text-[16px] text-[#0d1f35] mb-1">Notifications</h3>
-      <p className="text-[12px] text-stone-400 mb-4">Control your weekly digest email</p>
+      <p className="text-[12px] text-stone-500 mb-4">Control your weekly digest email</p>
 
       <div className="flex items-center justify-between mb-3">
         <div>
           <div className="text-[13px] font-semibold text-[#0d1f35]">Weekly digest email</div>
-          <div className="text-[11px] text-stone-400">A summary of what changed + what needs action</div>
+          <div className="text-[11px] text-stone-500">A summary of what changed + what needs action</div>
         </div>
         <button
           onClick={() => { setDigestEnabled(p => !p); setSaved(false) }}
@@ -302,14 +302,14 @@ export default function SettingsPage() {
             style={{ background: 'rgba(233,160,32,0.1)' }}>📚</div>
           <div className="flex-1">
             <div className="font-bold text-[#0d1f35] text-[14px]">My Books</div>
-            <div className="text-[11.5px] text-stone-400">Used by your coach to personalise recommendations</div>
+            <div className="text-[11.5px] text-stone-500">Used by your coach to personalise recommendations</div>
           </div>
         </div>
 
         {/* Book list */}
         <div className="space-y-3 mb-4">
           {books.length === 0 && (
-            <p className="text-[12.5px] text-stone-400 py-2">No books added yet. Click below to add your first.</p>
+            <p className="text-[12.5px] text-stone-500 py-2">No books added yet. Click below to add your first.</p>
           )}
           {books.map(book => (
             <div key={book.id} className="rounded-xl border border-stone-200 overflow-hidden">
@@ -318,7 +318,7 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-3 px-4 py-3">
                   <div className="flex-1 min-w-0">
                     <div className="text-[13.5px] font-semibold text-[#0d1f35] truncate">
-                      {book.title || <span className="text-stone-400 font-normal">Untitled book</span>}
+                      {book.title || <span className="text-stone-500 font-normal">Untitled book</span>}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       {book.categories?.map(cat => (
@@ -328,7 +328,7 @@ export default function SettingsPage() {
                         </span>
                       ))}
                       {book.series && (
-                        <span className="text-[11px] text-stone-400">
+                        <span className="text-[11px] text-stone-500">
                           {book.series}{book.bookNumber ? ` #${book.bookNumber}` : ''}
                         </span>
                       )}
@@ -339,7 +339,7 @@ export default function SettingsPage() {
                   </div>
                   <button
                     onClick={() => setEditingId(book.id)}
-                    className="text-[12px] text-stone-400 hover:text-[#0d1f35] px-2 py-1 rounded transition-colors"
+                    className="text-[12px] text-stone-500 hover:text-[#0d1f35] px-2 py-1 rounded transition-colors"
                   >
                     Edit
                   </button>
@@ -370,7 +370,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="col-span-2">
                       <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
-                        Categories <span className="normal-case font-normal text-stone-400">(up to 8)</span>
+                        Categories <span className="normal-case font-normal text-stone-500">(up to 8)</span>
                       </label>
                       <CategoryTagInput
                         value={book.categories ?? []}
@@ -379,7 +379,7 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
-                        Amazon ASIN <span className="normal-case font-normal text-stone-400">(optional)</span>
+                        Amazon ASIN <span className="normal-case font-normal text-stone-500">(optional)</span>
                       </label>
                       <input
                         type="text"
@@ -393,7 +393,7 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
-                        Book # in Series <span className="normal-case font-normal text-stone-400">(optional)</span>
+                        Book # in Series <span className="normal-case font-normal text-stone-500">(optional)</span>
                       </label>
                       <input
                         type="text"
@@ -407,7 +407,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="col-span-2">
                       <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
-                        Series Name <span className="normal-case font-normal text-stone-400">(optional)</span>
+                        Series Name <span className="normal-case font-normal text-stone-500">(optional)</span>
                       </label>
                       <input
                         type="text"
@@ -468,7 +468,7 @@ export default function SettingsPage() {
             style={{ background: 'rgba(233,160,32,0.1)' }}><IconStar size={22} /></div>
           <div className="flex-1">
             <div className="font-bold text-[#0d1f35] text-[14px]">My Benchmarks</div>
-            <div className="text-[11.5px] text-stone-400">Set your personal targets — shown on your Email and Meta pages</div>
+            <div className="text-[11.5px] text-stone-500">Set your personal targets — shown on your Email and Meta pages</div>
           </div>
         </div>
 
@@ -481,9 +481,9 @@ export default function SettingsPage() {
           ].map(f => (
             <div key={f.key}>
               <label className="block text-[12px] font-bold text-[#0d1f35] mb-1">{f.label}</label>
-              <p className="text-[11px] text-stone-400 mb-1.5">{f.hint}</p>
+              <p className="text-[11px] text-stone-500 mb-1.5">{f.hint}</p>
               <div className="flex items-center gap-1.5">
-                {f.unit === '$' && <span className="text-stone-400 text-[13px]">$</span>}
+                {f.unit === '$' && <span className="text-stone-500 text-[13px]">$</span>}
                 <input
                   type="number"
                   min="0"
@@ -493,7 +493,7 @@ export default function SettingsPage() {
                   className="w-full border border-stone-200 rounded-lg px-3 py-2 text-[13px] font-mono
                              text-[#0d1f35] bg-white outline-none focus:border-amber-brand transition-colors"
                 />
-                {f.unit === '%' && <span className="text-stone-400 text-[13px]">%</span>}
+                {f.unit === '%' && <span className="text-stone-500 text-[13px]">%</span>}
               </div>
             </div>
           ))}
@@ -519,7 +519,7 @@ export default function SettingsPage() {
             style={{ background: 'rgba(52,211,153,0.1)' }}>📧</div>
           <div>
             <div className="font-bold text-[#0d1f35] text-[14px]">MailerLite</div>
-            <div className="text-[11.5px] text-stone-400">Pulls your email stats automatically</div>
+            <div className="text-[11.5px] text-stone-500">Pulls your email stats automatically</div>
           </div>
         </div>
 
@@ -557,7 +557,7 @@ export default function SettingsPage() {
             style={{ background: 'rgba(233,160,32,0.1)' }}>🤖</div>
           <div>
             <div className="font-bold text-[#0d1f35] text-[14px]">Claude AI</div>
-            <div className="text-[11.5px] text-stone-400">Powers your monthly coaching session</div>
+            <div className="text-[11.5px] text-stone-500">Powers your monthly coaching session</div>
           </div>
         </div>
 
@@ -570,7 +570,7 @@ export default function SettingsPage() {
           saved={hasSavedClaude}
         />
 
-        <p className="text-[11.5px] text-stone-400 mt-3 leading-relaxed">
+        <p className="text-[11.5px] text-stone-500 mt-3 leading-relaxed">
           Each analysis costs roughly $0.05–$0.15 from your Anthropic account.
           You control your own usage — we never charge you directly.
         </p>
@@ -611,12 +611,12 @@ export default function SettingsPage() {
       {/* Legal links */}
       <div className="flex items-center gap-5 mt-8 pt-6 border-t border-stone-100">
         <Link href="/privacy"
-          className="text-[12px] text-stone-400 no-underline hover:underline hover:text-stone-600">
+          className="text-[12px] text-stone-500 no-underline hover:underline hover:text-stone-600">
           Privacy Policy
         </Link>
         <span className="text-stone-200">·</span>
         <Link href="/terms"
-          className="text-[12px] text-stone-400 no-underline hover:underline hover:text-stone-600">
+          className="text-[12px] text-stone-500 no-underline hover:underline hover:text-stone-600">
           Terms of Service
         </Link>
       </div>

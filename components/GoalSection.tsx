@@ -153,13 +153,13 @@ export function GoalSection({
             </span>
           )}
           {collapsed && !hasGoals && (
-            <span className="text-[11px] ml-2 italic" style={{ color: '#9CA3AF' }}>
+            <span className="text-[11px] ml-2 italic" style={{ color: '#6B7280' }}>
               Set your goals →
             </span>
           )}
         </div>
         <span className="text-[12px] transition-transform duration-200"
-          style={{ color: '#9CA3AF', transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)', display: 'inline-block' }}>
+          style={{ color: '#6B7280', transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)', display: 'inline-block' }}>
           ▾
         </span>
       </button>
@@ -179,7 +179,7 @@ export function GoalSection({
                   </label>
                   <div className="flex items-center gap-2 mb-1.5">
                     {f.unit === 'dollar' && (
-                      <span className="text-[13px]" style={{ color: '#9CA3AF' }}>$</span>
+                      <span className="text-[13px]" style={{ color: '#6B7280' }}>$</span>
                     )}
                     <input
                       type="number"
@@ -191,11 +191,11 @@ export function GoalSection({
                       style={{ background: 'white', border: '1px solid #EEEBE6', color: '#1E2D3D' }}
                     />
                     {f.unit === 'percent' && (
-                      <span className="text-[13px]" style={{ color: '#9CA3AF' }}>%</span>
+                      <span className="text-[13px]" style={{ color: '#6B7280' }}>%</span>
                     )}
                   </div>
                   {f.hint && (
-                    <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>{f.hint}</div>
+                    <div className="text-[10px] mb-1" style={{ color: '#6B7280' }}>{f.hint}</div>
                   )}
                   {goal != null && (
                     <GoalBar current={current} goal={goal} unit={f.unit} />

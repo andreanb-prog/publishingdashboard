@@ -146,7 +146,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
             <div className="mt-4">
               <button onClick={onSkip}
                 className="text-[13px] bg-transparent border-none cursor-pointer"
-                style={{ color: '#9CA3AF' }}>
+                style={{ color: '#6B7280' }}>
                 I&apos;ll do this later
               </button>
             </div>
@@ -159,7 +159,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
             <div className="flex items-center gap-2 mb-2">
               <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
                 style={{ background: '#e9a020', color: '#0d1f35' }}>1</span>
-              <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: '#9CA3AF' }}>
+              <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: '#6B7280' }}>
                 Step 1 of 3
               </span>
             </div>
@@ -227,7 +227,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                 <div className="text-[15px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
                   {uploading ? 'Reading your files...' : kdpFiles.length > 0 ? 'Add more KDP files' : 'Drop your KDP files here'}
                 </div>
-                <div className="text-[12px] mb-4" style={{ color: '#9CA3AF' }}>
+                <div className="text-[12px] mb-4" style={{ color: '#6B7280' }}>
                   {kdpFiles.length > 0 ? `${MAX_FILES - kdpFiles.length} more allowed` : 'Up to 10 files — click or drag & drop'}
                 </div>
                 <button className="px-5 py-2.5 rounded-lg text-[13px] font-bold border-none cursor-pointer"
@@ -239,13 +239,13 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
 
             <div className="flex items-center justify-between mt-5">
               <button onClick={() => setStep('welcome')}
-                className="text-[13px] bg-transparent border-none cursor-pointer" style={{ color: '#9CA3AF' }}>
+                className="text-[13px] bg-transparent border-none cursor-pointer" style={{ color: '#6B7280' }}>
                 ← Back
               </button>
               <button
                 onClick={() => setStep('meta')}
                 className="px-6 py-2.5 rounded-lg text-[13px] font-bold border-none cursor-pointer transition-all"
-                style={{ background: kdpFiles.length > 0 ? '#e9a020' : '#F5F5F4', color: kdpFiles.length > 0 ? '#0d1f35' : '#9CA3AF' }}
+                style={{ background: kdpFiles.length > 0 ? '#e9a020' : '#F5F5F4', color: kdpFiles.length > 0 ? '#0d1f35' : '#6B7280' }}
               >
                 {kdpFiles.length > 0 ? 'Next →' : 'Skip this step →'}
               </button>
@@ -259,7 +259,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
             <div className="flex items-center gap-2 mb-2">
               <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
                 style={{ background: '#38bdf8', color: 'white' }}>2</span>
-              <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: '#9CA3AF' }}>
+              <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: '#6B7280' }}>
                 Step 2 of 3
               </span>
             </div>
@@ -300,7 +300,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                 <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
                   {uploading ? 'Reading...' : metaFiles.length > 0 ? 'Add more files' : 'Yes, upload my ads'}
                 </div>
-                <div className="text-[11px] mt-1" style={{ color: '#9CA3AF' }}>
+                <div className="text-[11px] mt-1" style={{ color: '#6B7280' }}>
                   {metaFiles.length > 0 ? `${MAX_FILES - metaFiles.length} more allowed` : 'Export CSV from Ads Manager'}
                 </div>
               </div>
@@ -313,7 +313,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                 <div className="text-[13px] font-semibold" style={{ color: '#6B7280' }}>
                   {metaFiles.length > 0 ? 'Done' : 'Skip for now'}
                 </div>
-                <div className="text-[11px] mt-1" style={{ color: '#9CA3AF' }}>
+                <div className="text-[11px] mt-1" style={{ color: '#6B7280' }}>
                   {metaFiles.length > 0 ? 'Continue to next step' : 'I don\'t run ads yet'}
                 </div>
               </div>
@@ -321,7 +321,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
 
             <div className="flex items-center justify-between mt-3">
               <button onClick={() => setStep('kdp')}
-                className="text-[13px] bg-transparent border-none cursor-pointer" style={{ color: '#9CA3AF' }}>
+                className="text-[13px] bg-transparent border-none cursor-pointer" style={{ color: '#6B7280' }}>
                 ← Back
               </button>
               <button
@@ -341,7 +341,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
             <div className="flex items-center gap-2 mb-2">
               <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
                 style={{ background: '#34d399', color: 'white' }}>3</span>
-              <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: '#9CA3AF' }}>
+              <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: '#6B7280' }}>
                 Step 3 of 4
               </span>
             </div>
@@ -409,7 +409,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                   className="mt-3 px-5 py-2.5 rounded-lg text-[13px] font-bold border-none cursor-pointer transition-all"
                   style={{
                     background: mlKey.trim() ? '#34d399' : '#F5F5F4',
-                    color: mlKey.trim() ? 'white' : '#9CA3AF',
+                    color: mlKey.trim() ? 'white' : '#6B7280',
                     opacity: mlStatus === 'testing' ? 0.7 : 1,
                   }}
                 >
@@ -420,13 +420,13 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
 
             <div className="flex items-center justify-between mt-5">
               <button onClick={() => setStep('meta')}
-                className="text-[13px] bg-transparent border-none cursor-pointer" style={{ color: '#9CA3AF' }}>
+                className="text-[13px] bg-transparent border-none cursor-pointer" style={{ color: '#6B7280' }}>
                 ← Back
               </button>
               <button
                 onClick={() => setStep('done')}
                 className="px-6 py-2.5 rounded-lg text-[13px] font-bold border-none cursor-pointer transition-all"
-                style={{ background: mlStatus === 'connected' ? '#e9a020' : '#F5F5F4', color: mlStatus === 'connected' ? '#0d1f35' : '#9CA3AF' }}
+                style={{ background: mlStatus === 'connected' ? '#e9a020' : '#F5F5F4', color: mlStatus === 'connected' ? '#0d1f35' : '#6B7280' }}
               >
                 {mlStatus === 'connected' ? 'Next →' : 'Skip this step →'}
               </button>
@@ -475,7 +475,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                 <div className="flex items-center gap-2 mb-6 justify-center">
                   <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
                     style={{ background: '#34d399', color: 'white' }}>4</span>
-                  <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: '#9CA3AF' }}>
+                  <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: '#6B7280' }}>
                     Step 4 of 4
                   </span>
                 </div>

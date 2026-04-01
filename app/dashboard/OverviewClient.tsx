@@ -47,7 +47,7 @@ function fmt(n: number | undefined, prefix = '', decimals = 0) {
 }
 
 function Trend({ curr, prev }: { curr?: number; prev?: number }) {
-  if (curr == null || prev == null || prev === 0) return <span className="text-stone-400">—</span>
+  if (curr == null || prev == null || prev === 0) return <span className="text-stone-500">—</span>
   const pct = ((curr - prev) / prev) * 100
   const up  = pct >= 0
   return (
@@ -250,7 +250,7 @@ function buildChanges(current: Analysis, previous: Analysis) {
 const DIR_STYLE = {
   up:   { icon: '▲', color: '#34d399', bg: 'rgba(52,211,153,0.08)' },
   down: { icon: '▼', color: '#fb7185', bg: 'rgba(251,113,133,0.08)' },
-  flat: { icon: '—', color: '#9CA3AF', bg: 'rgba(0,0,0,0.03)' },
+  flat: { icon: '—', color: '#6B7280', bg: 'rgba(0,0,0,0.03)' },
 }
 
 function WhatHappenedCard({ current, previous, actionPlan }: { current: Analysis; previous: Analysis; actionPlan?: any[] }) {
@@ -278,14 +278,14 @@ function WhatHappenedCard({ current, previous, actionPlan }: { current: Analysis
         <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
           What happened this month
         </span>
-        <span className="text-[12px]" style={{ color: '#9CA3AF', transform: open ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.2s' }}>
+        <span className="text-[12px]" style={{ color: '#6B7280', transform: open ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.2s' }}>
           ▾
         </span>
       </button>
 
       {open && (
         <div className="px-5 pb-5" style={{ borderTop: '1px solid #EEEBE6' }}>
-          <div className="text-[10px] font-bold uppercase tracking-wider mt-3 mb-2" style={{ color: '#9CA3AF' }}>
+          <div className="text-[10px] font-bold uppercase tracking-wider mt-3 mb-2" style={{ color: '#6B7280' }}>
             What changed
           </div>
           <div className="space-y-1.5 mb-4">
@@ -303,7 +303,7 @@ function WhatHappenedCard({ current, previous, actionPlan }: { current: Analysis
 
           {topActions.length > 0 && (
             <>
-              <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#9CA3AF' }}>
+              <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#6B7280' }}>
                 What needs action
               </div>
               <div className="space-y-1.5">
@@ -428,7 +428,7 @@ export function OverviewClient() {
           ].map(stat => (
             <div key={stat.label}>
               <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-1"
-                style={{ color: '#9CA3AF' }}>
+                style={{ color: '#6B7280' }}>
                 {stat.label}
               </div>
               <div className="font-serif text-[48px] font-medium leading-none tracking-tight"
@@ -446,7 +446,7 @@ export function OverviewClient() {
         <h2 className="font-sans text-[22px] font-bold tracking-tight mb-1" style={{ color: '#1E2D3D' }}>
           Today&apos;s Priorities
         </h2>
-        <p className="text-[12.5px] mb-5" style={{ color: '#9CA3AF' }}>
+        <p className="text-[12.5px] mb-5" style={{ color: '#6B7280' }}>
           Highest impact actions based on your real performance data
         </p>
 
@@ -482,7 +482,7 @@ export function OverviewClient() {
                       {item.title}
                     </span>
                     <span className="text-[12px] flex-shrink-0 transition-transform duration-200"
-                      style={{ color: '#9CA3AF', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                      style={{ color: '#6B7280', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                       ▾
                     </span>
                   </button>
@@ -513,7 +513,7 @@ export function OverviewClient() {
         ) : analysis ? (
           <InsightCallouts analysis={analysis} page="overview" />
         ) : (
-          <div className="text-[13px] py-4" style={{ color: '#9CA3AF' }}>
+          <div className="text-[13px] py-4" style={{ color: '#6B7280' }}>
             Upload your files to see your priorities.
           </div>
         )}
@@ -541,7 +541,7 @@ export function OverviewClient() {
                   <div className="text-[11px] font-bold tracking-[1.5px] uppercase mb-0.5" style={{ color: '#6EBF8B' }}>
                     {t.label}
                   </div>
-                  <div className="text-[12px]" style={{ color: '#9CA3AF' }}>{t.sub}</div>
+                  <div className="text-[12px]" style={{ color: '#6B7280' }}>{t.sub}</div>
                 </div>
               ))
             })()}
@@ -593,7 +593,7 @@ export function OverviewClient() {
                   <h2 className="font-serif text-[18px] text-[#0d1f35] mb-1">
                     Your channels — click any for the full deep dive
                   </h2>
-                  <p className="text-[12px] text-stone-400 mb-4">
+                  <p className="text-[12px] text-stone-500 mb-4">
                     Each channel has a detailed analysis with your coach&apos;s recommendations
                   </p>
                 </div>
@@ -606,7 +606,7 @@ export function OverviewClient() {
                         className={`card p-4 cursor-pointer hover:-translate-y-0.5 transition-all
                                     border-t-[3px] ${card.colorClass} no-underline animate-fade-up`}>
                         <span className="mb-2.5 block"><card.icon size={28} color={card.iconColor} /></span>
-                        <div className="text-[10.5px] font-bold tracking-[0.8px] uppercase text-stone-400 mb-1">
+                        <div className="text-[10.5px] font-bold tracking-[0.8px] uppercase text-stone-500 mb-1">
                           {card.name}
                         </div>
                         <div className="font-serif text-[22px] text-[#0d1f35] tracking-tight leading-none mb-1.5">
@@ -631,7 +631,7 @@ export function OverviewClient() {
               <div>
                 <div className="flex items-baseline justify-between mb-4">
                   <h2 className="font-serif text-[18px] text-[#0d1f35]">Your action plan — do these in order</h2>
-                  <span className="text-[12px] text-stone-400">Based on your real data</span>
+                  <span className="text-[12px] text-stone-500">Based on your real data</span>
                 </div>
                 {loading ? (
                   <div className="card p-8 text-center">
@@ -658,7 +658,7 @@ export function OverviewClient() {
                       <div className="font-serif text-[16px]" style={{ color: '#1E2D3D' }}>
                         {coachTitle.replace(' says', '')} reviewed everything. Here&apos;s what to do next.
                       </div>
-                      <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>
+                      <div className="text-[11px] mt-0.5" style={{ color: '#6B7280' }}>
                         Ranked by priority · Based on your real numbers
                       </div>
                     </div>
@@ -675,7 +675,7 @@ export function OverviewClient() {
                       ))}
                       {analysis.confidenceNote && (
                         <div className="mt-4 px-4 py-2.5 rounded-lg text-[12px]"
-                          style={{ background: '#F5F5F4', color: '#9CA3AF' }}>
+                          style={{ background: '#F5F5F4', color: '#6B7280' }}>
                           {analysis.confidenceNote}
                         </div>
                       )}
@@ -724,7 +724,7 @@ export function OverviewClient() {
       <div className="mb-7">
         <div className="flex items-baseline justify-between mb-4">
           <h2 className="font-serif text-[18px] text-[#0d1f35]">Cross-Channel Action Plan</h2>
-          <span className="text-[12px] text-stone-400">AI-generated from your data</span>
+          <span className="text-[12px] text-stone-500">AI-generated from your data</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {[
@@ -752,7 +752,7 @@ export function OverviewClient() {
                     ))}
                   </ul>
                 ) : (
-                  <div className="text-[12px] leading-relaxed" style={{ color: '#9CA3AF' }}>
+                  <div className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>
                     Upload your files to unlock this insight
                   </div>
                 )}
@@ -767,7 +767,7 @@ export function OverviewClient() {
         <>
           <div className="flex items-baseline justify-between mb-4">
             <h2 className="font-serif text-[18px] text-[#0d1f35]">How you're tracking over time</h2>
-            <span className="text-[12px] text-stone-400">Last {analyses.length} months</span>
+            <span className="text-[12px] text-stone-500">Last {analyses.length} months</span>
           </div>
           <div className="card overflow-hidden mb-7">
             <table className="w-full text-[12.5px]">
@@ -869,7 +869,7 @@ export function OverviewClient() {
 
           {/* Quiet confirmation */}
           <div className={`mt-3 text-[12px] transition-opacity duration-500 ${copied ? 'opacity-100' : 'opacity-0'}`}
-            style={{ color: '#9CA3AF' }}>
+            style={{ color: '#6B7280' }}>
             Paste it into any AI and type your question at the end.
           </div>
 
@@ -886,9 +886,9 @@ export function OverviewClient() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[12.5px] no-underline transition-colors duration-150 hover:underline"
-                style={{ color: '#9CA3AF' }}
+                style={{ color: '#6B7280' }}
                 onMouseEnter={e => (e.currentTarget.style.color = '#1E2D3D')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#9CA3AF')}
+                onMouseLeave={e => (e.currentTarget.style.color = '#6B7280')}
               >
                 {label} →
               </a>

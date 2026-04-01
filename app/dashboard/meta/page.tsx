@@ -127,7 +127,7 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
       </div>
 
       <div className="mb-5">
-        <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#9CA3AF' }}>
+        <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
           Guided next steps
         </div>
         <div className="space-y-3">
@@ -156,7 +156,7 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
       </div>
 
       <div className="rounded-lg px-4 py-3" style={{ background: '#F9F9F9', border: '1px solid #EEEBE6' }}>
-        <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-2" style={{ color: '#9CA3AF' }}>
+        <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-2" style={{ color: '#6B7280' }}>
           Still stuck? Real humans who can help
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1">
@@ -196,7 +196,7 @@ function MissingCell({ colName }: { colName: string }) {
     <span
       title={`Add '${colName}' to your Ads Manager export columns to see this data.`}
       className="inline-flex items-center gap-1 text-[13px] cursor-help"
-      style={{ color: '#9CA3AF' }}
+      style={{ color: '#6B7280' }}
     >
       —
       <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="opacity-50">
@@ -277,7 +277,7 @@ function ColumnPicker({
               className="w-3.5 h-3.5 rounded"
               style={{ accentColor: '#e9a020' }}
             />
-            <span className="text-[12.5px]" style={{ color: isActive ? '#1E2D3D' : '#9CA3AF' }}>
+            <span className="text-[12.5px]" style={{ color: isActive ? '#1E2D3D' : '#6B7280' }}>
               {col.label}
             </span>
           </label>
@@ -445,7 +445,7 @@ export default function MetaPage() {
         )
       }
       default:
-        return <span style={{ color: '#9CA3AF' }}>—</span>
+        return <span style={{ color: '#6B7280' }}>—</span>
     }
   }
 
@@ -461,7 +461,7 @@ export default function MetaPage() {
     <DarkPage title="Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {!meta ? (
-        <div className="text-center py-16" style={{ color: '#9CA3AF' }}>
+        <div className="text-center py-16" style={{ color: '#6B7280' }}>
           <div className="text-4xl mb-4">📣</div>
           <div className="font-serif text-xl mb-2" style={{ color: '#1E2D3D' }}>No Meta data yet</div>
           <p className="text-sm mb-4">Upload your Meta Ads CSV to see your ad analysis</p>
@@ -686,7 +686,7 @@ export default function MetaPage() {
                     {/* Rescue panels */}
                     {rescueAds.length > 0 && (
                       <div className="mb-5">
-                        <div className="text-[11px] font-bold uppercase tracking-[1.5px] mb-3" style={{ color: '#9CA3AF' }}>
+                        <div className="text-[11px] font-bold uppercase tracking-[1.5px] mb-3" style={{ color: '#6B7280' }}>
                           Ads needing attention ({rescueAds.length})
                         </div>
                         <div className="space-y-4">

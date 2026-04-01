@@ -8,14 +8,14 @@ export default function TermsPage() {
 
         <Link href="/login"
           className="text-[12px] font-semibold no-underline hover:underline mb-10 inline-block"
-          style={{ color: '#9CA3AF' }}>
+          style={{ color: '#6B7280' }}>
           ← Back to login
         </Link>
 
         <h1 className="font-serif text-[32px] text-[#1E2D3D] leading-tight mb-3">
           Terms of Service
         </h1>
-        <p className="text-[13px] mb-10" style={{ color: '#9CA3AF' }}>
+        <p className="text-[13px] mb-10" style={{ color: '#6B7280' }}>
           Last updated: March 2025 · Plain English, no legal jargon
         </p>
 
@@ -91,10 +91,10 @@ export default function TermsPage() {
 
         <div className="mt-14 pt-8 flex gap-6 text-[12px]"
           style={{ borderTop: '1px solid #EEEBE6', color: '#D4D0CB' }}>
-          <Link href="/login" className="no-underline hover:underline" style={{ color: '#9CA3AF' }}>
+          <Link href="/login" className="no-underline hover:underline" style={{ color: '#6B7280' }}>
             ← Back to login
           </Link>
-          <Link href="/privacy" className="no-underline hover:underline" style={{ color: '#9CA3AF' }}>
+          <Link href="/privacy" className="no-underline hover:underline" style={{ color: '#6B7280' }}>
             Privacy Policy
           </Link>
         </div>

@@ -46,7 +46,7 @@ export function MetricCard({ label, value, sub, color = 'default', delay = 0 }: 
       <div className={`font-serif text-3xl tracking-tight leading-none mb-1.5 ${colorMap[color]}`}>
         {value}
       </div>
-      {sub && <div className="text-[11px] text-stone-400">{sub}</div>}
+      {sub && <div className="text-[11px] text-stone-500">{sub}</div>}
     </div>
   )
 }

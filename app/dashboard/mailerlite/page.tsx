@@ -68,7 +68,7 @@ export default function MailerLitePage() {
     <DarkPage title="📧 MailerLite — Email Marketing" subtitle="Open rates · List health · Subscriber trends">
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {!ml ? (
-        <div className="text-center py-16" style={{ color: '#9CA3AF' }}>
+        <div className="text-center py-16" style={{ color: '#6B7280' }}>
           <div className="text-4xl mb-4">📧</div>
           <div className="font-serif text-xl mb-2" style={{ color: '#1E2D3D' }}>MailerLite not connected</div>
           <p className="text-sm mb-4">Add your MailerLite API key in Settings to auto-pull your email stats</p>
@@ -110,7 +110,7 @@ export default function MailerLitePage() {
               ]
               return metrics.map((m, i) => (
                 <div key={i} className="rounded-xl p-4" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
-                  <div className="text-[10px] font-bold tracking-[1px] uppercase mb-1.5" style={{ color: '#9CA3AF' }}>{m.label}</div>
+                  <div className="text-[10px] font-bold tracking-[1px] uppercase mb-1.5" style={{ color: '#6B7280' }}>{m.label}</div>
                   <div className="text-[24px] font-semibold tracking-tight leading-none mb-1" style={{ color: m.color }}>{m.value}</div>
                   <div className="text-[11px]" style={{ color: '#6B7280' }}>{m.sub}</div>
                 </div>
@@ -225,7 +225,7 @@ export default function MailerLitePage() {
                       .slice(0, 5)
                     const max = sorted[0]?.unsubscribes || 1
                     if (sorted.length === 0) {
-                      return <div className="text-[12px]" style={{ color: '#9CA3AF' }}>No unsubscribe spikes detected. Keep it up!</div>
+                      return <div className="text-[12px]" style={{ color: '#6B7280' }}>No unsubscribe spikes detected. Keep it up!</div>
                     }
                     return (
                       <div className="space-y-2.5">
@@ -243,7 +243,7 @@ export default function MailerLitePage() {
                             </div>
                           </div>
                         ))}
-                        <div className="text-[11px] mt-3 pt-2" style={{ color: '#9CA3AF', borderTop: '1px solid #EEEBE6' }}>
+                        <div className="text-[11px] mt-3 pt-2" style={{ color: '#6B7280', borderTop: '1px solid #EEEBE6' }}>
                           High unsubscribes often correlate with subject line mismatches or send frequency.
                         </div>
                       </div>
@@ -326,14 +326,14 @@ export default function MailerLitePage() {
                           height: `${h}%`,
                           background: isGood ? 'linear-gradient(180deg, #6EBF8B, rgba(110,191,139,0.3))' : 'linear-gradient(180deg, #E9A020, rgba(233,160,32,0.3))',
                         }} />
-                        <span className="text-[8px] truncate w-full text-center" style={{ color: '#9CA3AF' }}>
+                        <span className="text-[8px] truncate w-full text-center" style={{ color: '#6B7280' }}>
                           {c.sentAt ? new Date(c.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
                         </span>
                       </div>
                     )
                   })}
                 </div>
-                <div className="mt-2 text-[10px] text-right" style={{ color: '#9CA3AF' }}>
+                <div className="mt-2 text-[10px] text-right" style={{ color: '#6B7280' }}>
                   Green = above your {openTarget}% target
                 </div>
               </div>

@@ -65,7 +65,7 @@ export default function LoginPage() {
               style={{ background: 'rgba(233,160,32,0.15)', color: '#e9a020' }}>
               BETA
             </span>
-            <span className="text-[12px]" style={{ color: '#9CA3AF' }}>
+            <span className="text-[12px]" style={{ color: '#6B7280' }}>
               Free during beta period
             </span>
           </div>
@@ -81,7 +81,7 @@ export default function LoginPage() {
             <div className="font-serif text-[28px]" style={{ color: '#1E2D3D' }}>
               Author<span style={{ color: '#e9a020' }}>Dash</span>
             </div>
-            <p className="text-[13px] mt-1" style={{ color: '#9CA3AF' }}>
+            <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
               Your indie author marketing coach
             </p>
           </div>
@@ -118,7 +118,7 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="flex items-center gap-3 my-6">
             <div className="flex-1 h-px" style={{ background: '#E7E5E4' }} />
-            <span className="text-[11px] font-semibold" style={{ color: '#9CA3AF' }}>HAVE A PROMO CODE?</span>
+            <span className="text-[11px] font-semibold" style={{ color: '#6B7280' }}>HAVE A PROMO CODE?</span>
             <div className="flex-1 h-px" style={{ background: '#E7E5E4' }} />
           </div>
 
@@ -152,7 +152,7 @@ export default function LoginPage() {
           )}
 
           {/* Footer */}
-          <p className="text-[11px] text-center mt-8 leading-relaxed" style={{ color: '#9CA3AF' }}>
+          <p className="text-[11px] text-center mt-8 leading-relaxed" style={{ color: '#6B7280' }}>
             By signing in, you agree to keep your API keys secure.
             We never share your data.
           </p>
@@ -160,13 +160,13 @@ export default function LoginPage() {
           <div className="flex items-center justify-center gap-5 mt-6">
             <Link href="/privacy"
               className="text-[11px] no-underline hover:underline"
-              style={{ color: '#9CA3AF' }}>
+              style={{ color: '#6B7280' }}>
               Privacy Policy
             </Link>
             <span style={{ color: '#E7E5E4' }}>·</span>
             <Link href="/terms"
               className="text-[11px] no-underline hover:underline"
-              style={{ color: '#9CA3AF' }}>
+              style={{ color: '#6B7280' }}>
               Terms of Service
             </Link>
           </div>

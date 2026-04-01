@@ -135,7 +135,7 @@ function ImportFromCloud({ onFile }: { onFile: (files: FileList | null) => void 
   return (
     <div className="mb-5">
       <div className="text-[11px] font-semibold uppercase tracking-wider mb-2.5"
-        style={{ color: '#9CA3AF' }}>
+        style={{ color: '#6B7280' }}>
         Or import from
       </div>
       <div className="flex flex-wrap gap-2 mb-2">
@@ -186,7 +186,7 @@ function ImportFromCloud({ onFile }: { onFile: (files: FileList | null) => void 
       {/* Having trouble? */}
       <details className="mt-3">
         <summary className="text-[11px] font-semibold cursor-pointer"
-          style={{ color: '#9CA3AF' }}>
+          style={{ color: '#6B7280' }}>
           Having trouble finding your files?
         </summary>
         <div className="mt-2 rounded-lg p-3 space-y-1.5 text-[11.5px] leading-relaxed"
@@ -442,7 +442,7 @@ export default function UploadPage() {
                   <div className="text-[18px] font-semibold mb-2" style={{ color: '#1E2D3D' }}>
                     Drop your files here
                   </div>
-                  <div className="text-[13px] mb-5" style={{ color: '#9CA3AF' }}>
+                  <div className="text-[13px] mb-5" style={{ color: '#6B7280' }}>
                     Click here to browse for your file · up to 10 files · KDP, Meta Ads, Pinterest
                   </div>
                   <button
@@ -458,7 +458,7 @@ export default function UploadPage() {
                   {/* Header */}
                   <div className="flex items-center justify-between mb-3 px-1">
                     <span className="text-[11px] font-semibold uppercase tracking-wider"
-                      style={{ color: '#9CA3AF' }}>
+                      style={{ color: '#6B7280' }}>
                       {files.length} file{files.length !== 1 ? 's' : ''} added
                     </span>
                     <div className="flex items-center gap-3">
@@ -524,7 +524,7 @@ export default function UploadPage() {
                               <div className="text-[11px] mt-0.5"
                                 style={{
                                   color: isReading || isReprocessing
-                                    ? '#9CA3AF'
+                                    ? '#6B7280'
                                     : isError
                                     ? '#f87171'
                                     : isUnknown
@@ -562,7 +562,7 @@ export default function UploadPage() {
                               }}
                               className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center
                                          text-[14px] transition-all hover:bg-white/10"
-                              style={{ color: '#9CA3AF' }}
+                              style={{ color: '#6B7280' }}
                               title="Remove file"
                             >
                               ×
@@ -588,7 +588,7 @@ export default function UploadPage() {
                                     <span className="text-[12px] font-semibold" style={{ color: '#1E2D3D' }}>
                                       {opt.label}
                                     </span>
-                                    <span className="text-[10px] mt-0.5" style={{ color: '#9CA3AF' }}>
+                                    <span className="text-[10px] mt-0.5" style={{ color: '#6B7280' }}>
                                       {opt.hint}
                                     </span>
                                   </button>
@@ -604,7 +604,7 @@ export default function UploadPage() {
                                   <span className="text-[12px] font-semibold" style={{ color: '#f87171' }}>
                                     Skip this file
                                   </span>
-                                  <span className="text-[10px] mt-0.5" style={{ color: '#9CA3AF' }}>
+                                  <span className="text-[10px] mt-0.5" style={{ color: '#6B7280' }}>
                                     Remove from queue
                                   </span>
                                 </button>
@@ -646,7 +646,7 @@ export default function UploadPage() {
               <button
                 onClick={() => setShowFileHelp(s => !s)}
                 className="flex items-center gap-2 text-[12px] font-semibold transition-colors"
-                style={{ color: '#9CA3AF', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                style={{ color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               >
                 <span style={{ transform: showFileHelp ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s' }}>▶</span>
                 What files do I need?
@@ -708,9 +708,33 @@ export default function UploadPage() {
               </>
             ) : (
               <>
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 text-3xl animate-pulse"
-                  style={{ background: 'rgba(233,160,32,0.15)' }}>
-                  ✨
+                {/* Flipping book animation */}
+                <div className="mx-auto mb-5" style={{ width: 64, height: 56, perspective: '200px' }}>
+                  <div className="relative" style={{ width: 64, height: 56 }}>
+                    {/* Spine */}
+                    <div className="absolute left-0 top-0 bottom-0" style={{ width: 6, background: '#1E2D3D', borderRadius: '2px 0 0 2px', zIndex: 10 }} />
+                    {/* Cover (bottom) */}
+                    <div className="absolute" style={{ left: 6, top: 0, right: 0, bottom: 0, background: '#E9A020', borderRadius: '0 3px 3px 0' }} />
+                    {/* Pages */}
+                    {[0, 1, 2, 3].map(p => (
+                      <div key={p} className="absolute" style={{
+                        left: 6, top: 2, right: 2, bottom: 2,
+                        background: '#FFF8F0',
+                        borderRadius: '0 2px 2px 0',
+                        boxShadow: 'inset 0 4px 0 rgba(30,45,61,0.04), inset 0 10px 0 rgba(30,45,61,0.03), inset 0 16px 0 rgba(30,45,61,0.02)',
+                        transformOrigin: 'left center',
+                        animation: `flipPage 2.4s ease-in-out ${p * 0.2}s infinite`,
+                        zIndex: 5 - p,
+                      }} />
+                    ))}
+                  </div>
+                  <style>{`
+                    @keyframes flipPage {
+                      0%, 20% { transform: rotateY(0deg); }
+                      40%, 60% { transform: rotateY(-160deg); }
+                      80%, 100% { transform: rotateY(0deg); }
+                    }
+                  `}</style>
                 </div>
                 <div className="text-[18px] font-semibold mb-6 transition-opacity duration-300"
                   style={{ color: '#1E2D3D', opacity: stepFade ? 1 : 0 }}>
@@ -721,7 +745,7 @@ export default function UploadPage() {
                   <div className="h-full rounded-full transition-all duration-1000 ease-out"
                     style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #e9a020, #f4c542)' }} />
                 </div>
-                <div className="text-[12px]" style={{ color: '#9CA3AF' }}>
+                <div className="text-[12px]" style={{ color: '#6B7280' }}>
                   This usually takes about 15 seconds
                 </div>
               </>

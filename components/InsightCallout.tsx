@@ -120,13 +120,13 @@ function InsightCard({ insight, index }: { insight: Insight; index: number }) {
             {isAlarm ? '⚠️ Watch this' : '🎉 Nice work'}
           </span>
           {collapsed && (
-            <span className="text-[11px] truncate max-w-[300px]" style={{ color: '#9CA3AF' }}>
+            <span className="text-[11px] truncate max-w-[300px]" style={{ color: '#6B7280' }}>
               {insight.text.replace(/\*\*/g, '').slice(0, 60)}…
             </span>
           )}
         </div>
         <span className="text-[11px] flex-shrink-0 ml-2 transition-transform duration-200"
-          style={{ color: '#9CA3AF', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+          style={{ color: '#6B7280', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
           ▼
         </span>
       </button>

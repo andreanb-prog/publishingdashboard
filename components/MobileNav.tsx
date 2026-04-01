@@ -115,7 +115,7 @@ export function MobileNav() {
                   <div key={item.href}>
                     {item.section && (
                       <div className={`text-[10px] font-bold tracking-[1.8px] uppercase px-3 pb-1.5 ${i > 0 ? 'pt-4' : 'pt-1'}`}
-                        style={{ color: '#9CA3AF' }}>
+                        style={{ color: '#6B7280' }}>
                         {item.section}
                       </div>
                     )}

@@ -203,7 +203,7 @@ export default function ROASPage() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="font-serif text-[22px] text-[#0d1f35] mb-1">Daily ROAS Log</h1>
-          <p className="text-[12.5px] text-stone-400">
+          <p className="text-[12.5px] text-stone-500">
             Log your ad spend and earnings every day. Takes 30 seconds.
             Builds a picture over time so you can spot trends before they cost you money.
           </p>
@@ -228,7 +228,7 @@ export default function ROASPage() {
           <div key={s.label} className="card p-4">
             <div className="metric-label mb-1">{s.label}</div>
             <div className="font-serif text-[26px] text-[#0d1f35] tracking-tight">{s.value}</div>
-            <div className="text-[11px] text-stone-400 mt-1">{s.sub}</div>
+            <div className="text-[11px] text-stone-500 mt-1">{s.sub}</div>
           </div>
         ))}
       </div>
@@ -248,7 +248,7 @@ export default function ROASPage() {
       {/* Log form */}
       <div className="card p-6 mb-5">
         <div className="text-[14px] font-bold text-[#0d1f35] mb-1">Log today&apos;s numbers</div>
-        <div className="text-[11.5px] text-stone-400 mb-4">
+        <div className="text-[11.5px] text-stone-500 mb-4">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </div>
 
@@ -257,7 +257,7 @@ export default function ROASPage() {
             {/* Spend */}
             <div>
               <label className="block text-[11px] font-semibold text-stone-500 mb-1.5">
-                What did you spend on ads today? <span className="font-normal text-stone-400">(from Meta)</span>
+                What did you spend on ads today? <span className="font-normal text-stone-500">(from Meta)</span>
               </label>
               <input
                 type="number"
@@ -281,7 +281,7 @@ export default function ROASPage() {
             {/* Earnings */}
             <div>
               <label className="block text-[11px] font-semibold text-stone-500 mb-1.5">
-                What did you earn today? <span className="font-normal text-stone-400">(from KDP royalties)</span>
+                What did you earn today? <span className="font-normal text-stone-500">(from KDP royalties)</span>
               </label>
               <input
                 type="number"
@@ -317,7 +317,7 @@ export default function ROASPage() {
           {/* Notes */}
           <div className="mb-4">
             <label className="block text-[11px] font-semibold text-stone-500 mb-1.5">
-              Notes <span className="font-normal text-stone-400">(optional — e.g. "paused video ads today")</span>
+              Notes <span className="font-normal text-stone-500">(optional — e.g. "paused video ads today")</span>
             </label>
             <input
               type="text"
@@ -352,7 +352,7 @@ export default function ROASPage() {
             <div className="text-[13.5px] font-semibold text-[#0d1f35]">Last 21 days</div>
             {sparkValues.length >= 2 && (
               <div className="flex items-center gap-3">
-                <div className="text-[10.5px] text-stone-400">ROAS trend</div>
+                <div className="text-[10.5px] text-stone-500">ROAS trend</div>
                 <Sparkline values={sparkValues} />
               </div>
             )}
@@ -361,7 +361,7 @@ export default function ROASPage() {
             <thead>
               <tr className="bg-cream">
                 {['Date', 'Spend', 'Earnings', 'ROAS', 'Notes'].map(h => (
-                  <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px] text-stone-400">{h}</th>
+                  <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px] text-stone-500">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -380,7 +380,7 @@ export default function ROASPage() {
                     <td className="px-4 py-2.5 font-mono font-bold" style={{ color }}>
                       {text}
                     </td>
-                    <td className="px-4 py-2.5 text-stone-400">{log.notes || '—'}</td>
+                    <td className="px-4 py-2.5 text-stone-500">{log.notes || '—'}</td>
                   </tr>
                 )
               })}
@@ -390,7 +390,7 @@ export default function ROASPage() {
       )}
 
       {logs.length === 0 && (
-        <div className="card p-8 text-center text-stone-400 text-[13px]">
+        <div className="card p-8 text-center text-stone-500 text-[13px]">
           No logs yet — start logging today&apos;s numbers above.
         </div>
       )}

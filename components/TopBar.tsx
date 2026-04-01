@@ -56,7 +56,7 @@ export function TopBar({ user }: TopBarProps) {
           <div className="font-serif text-[17px] tracking-tight leading-none" style={{ color: '#1E2D3D' }}>
             Good morning{user.name ? `, ${user.name.split(' ')[0]}` : ''}
           </div>
-          <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>
+          <div className="text-[11px] mt-0.5" style={{ color: '#6B7280' }}>
             {dateStr}
           </div>
         </div>
@@ -74,7 +74,7 @@ export function TopBar({ user }: TopBarProps) {
                 onClick={() => toggle(c.key)}
                 className="flex items-center gap-1.5 text-[11px] font-medium transition-all"
                 style={{
-                  color: checks[c.key] ? '#9CA3AF' : '#1E2D3D',
+                  color: checks[c.key] ? '#6B7280' : '#1E2D3D',
                   textDecoration: checks[c.key] ? 'line-through' : 'none',
                   background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                 }}

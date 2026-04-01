@@ -141,7 +141,7 @@ export function FeedbackButton() {
                 <div className="px-5 pb-3">
                   <div className="flex items-center gap-2 rounded-lg px-3 py-2"
                     style={{ background: '#F5F5F4', border: '1px solid #EEEBE6' }}>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.8px]" style={{ color: '#9CA3AF' }}>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.8px]" style={{ color: '#6B7280' }}>
                       Page
                     </span>
                     <span className="text-[11px] font-mono truncate" style={{ color: '#6B7280' }}>

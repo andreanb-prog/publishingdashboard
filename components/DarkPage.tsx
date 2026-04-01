@@ -86,7 +86,7 @@ export function DarkKPIStrip({ items, cols = 4 }: DarkKPIProps) {
             <div className="absolute bottom-0 left-0 right-0 h-[3px]"
               style={{ background: `linear-gradient(90deg, ${accent}40, ${accent})` }} />
             <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2"
-              style={{ color: '#9CA3AF' }}>
+              style={{ color: '#6B7280' }}>
               {item.label}
             </div>
             <div className="text-[32px] font-semibold leading-none tracking-tight mb-1.5"
@@ -153,7 +153,7 @@ export function DarkCoachBox({ children, color = '#E9A020', title }: { children:
           {resolvedTitle}
         </span>
         <span className="text-[11px] flex-shrink-0 ml-2 transition-transform duration-200"
-          style={{ color: '#9CA3AF', transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)' }}>
+          style={{ color: '#6B7280', transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)' }}>
           ▾
         </span>
       </button>
@@ -168,7 +168,7 @@ export function DarkCoachBox({ children, color = '#E9A020', title }: { children:
               {prompt}
             </div>
           )}
-          <div className="mt-3 pt-2.5 text-[10px]" style={{ color: '#9CA3AF', borderTop: '1px solid #EEEBE6' }}>
+          <div className="mt-3 pt-2.5 text-[10px]" style={{ color: '#6B7280', borderTop: '1px solid #EEEBE6' }}>
             AI-generated insight · Test everything · You&apos;re the expert on your readers
           </div>
         </div>

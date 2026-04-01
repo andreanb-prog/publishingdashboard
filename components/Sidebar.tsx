@@ -100,19 +100,19 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-2.5 py-3 overflow-y-auto">
         <div className="text-[10px] font-bold tracking-[1.8px] uppercase px-3 pt-3 pb-1.5"
-          style={{ color: '#9CA3AF' }}>
+          style={{ color: '#6B7280' }}>
           Overview
         </div>
         {NAV_ITEMS.map(item => <NavLink key={item.href} {...item} />)}
 
         <div className="text-[10px] font-bold tracking-[1.8px] uppercase px-3 pt-5 pb-1.5"
-          style={{ color: '#9CA3AF' }}>
+          style={{ color: '#6B7280' }}>
           Channel Deep Dives
         </div>
         {CHANNEL_ITEMS.map(item => <NavLink key={item.href} {...item} />)}
 
         <div className="text-[10px] font-bold tracking-[1.8px] uppercase px-3 pt-5 pb-1.5"
-          style={{ color: '#9CA3AF' }}>
+          style={{ color: '#6B7280' }}>
           Tools
         </div>
         {TOOL_ITEMS.map(item => <NavLink key={item.href} {...item} />)}
@@ -130,14 +130,14 @@ export function Sidebar() {
             <div className="text-[12.5px] font-semibold truncate" style={{ color: '#1E2D3D' }}>
               {session?.user?.name}
             </div>
-            <div className="text-[10px] truncate" style={{ color: '#9CA3AF' }}>
+            <div className="text-[10px] truncate" style={{ color: '#6B7280' }}>
               {session?.user?.email}
             </div>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
             className="p-1 rounded transition-all duration-150 bg-transparent border-none cursor-pointer"
-            style={{ color: '#9CA3AF' }}
+            style={{ color: '#6B7280' }}
             title="Sign out"
           >
             <SignOut size={14} />

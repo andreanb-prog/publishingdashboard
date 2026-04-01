@@ -110,7 +110,7 @@ export default function SwapsPage() {
             {/* Text field */}
             <div className="mb-4">
               <label className="block text-[11px] font-semibold uppercase tracking-wider mb-1.5"
-                style={{ color: '#9CA3AF' }}>
+                style={{ color: '#6B7280' }}>
                 Tell us more (optional)
               </label>
               <textarea

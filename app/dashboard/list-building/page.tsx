@@ -135,7 +135,7 @@ export default function ListBuildingPage() {
         <h1 className="font-serif text-[26px] text-[#0d1f35] leading-snug mb-1">
           List Building ROAS Tracker
         </h1>
-        <p className="text-[12.5px] text-stone-400 max-w-lg">
+        <p className="text-[12.5px] text-stone-500 max-w-lg">
           Track your email list growth campaigns. Enter your Meta ad spend and BookFunnel subscriber counts to see your true acquisition cost and list-building ROI.
         </p>
       </div>
@@ -145,7 +145,7 @@ export default function ListBuildingPage() {
         <div className="flex items-center gap-4 mb-5 flex-wrap">
           <div className="text-[12.5px] font-semibold text-stone-600">Subscriber lifetime value:</div>
           <div className="flex items-center gap-1.5">
-            <span className="text-stone-400 text-[13px]">$</span>
+            <span className="text-stone-500 text-[13px]">$</span>
             <input
               type="number"
               min="0.01"
@@ -156,7 +156,7 @@ export default function ListBuildingPage() {
               className="input-field w-24 text-[13px] font-mono"
             />
           </div>
-          <div className="text-[11px] text-stone-400">
+          <div className="text-[11px] text-stone-500">
             What each new subscriber is worth to you on average
           </div>
         </div>
@@ -170,7 +170,7 @@ export default function ListBuildingPage() {
             { label: 'Break-even Subs', value: breakEven > 0 ? Math.ceil(breakEven).toLocaleString() : '—', color: 'text-stone-500' },
           ].map(k => (
             <div key={k.label} className="text-center p-3 rounded-xl" style={{ background: '#fafaf9' }}>
-              <div className="text-[10px] font-bold uppercase tracking-[0.8px] text-stone-400 mb-1.5">{k.label}</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1.5">{k.label}</div>
               <div className={`font-serif text-[22px] tracking-tight ${k.color}`}>{k.value}</div>
             </div>
           ))}
@@ -274,7 +274,7 @@ export default function ListBuildingPage() {
               </div>
               <div className="col-span-2">
                 <label className="block text-[10.5px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
-                  Notes <span className="normal-case font-normal text-stone-400">(optional)</span>
+                  Notes <span className="normal-case font-normal text-stone-500">(optional)</span>
                 </label>
                 <input
                   type="text"
@@ -298,12 +298,12 @@ export default function ListBuildingPage() {
 
         {/* Table */}
         {loading ? (
-          <div className="px-5 py-8 text-[13px] text-stone-400 animate-pulse">Loading campaigns…</div>
+          <div className="px-5 py-8 text-[13px] text-stone-500 animate-pulse">Loading campaigns…</div>
         ) : campaigns.length === 0 ? (
           <div className="px-5 py-8 text-center">
             <div className="text-3xl mb-2">📋</div>
             <div className="text-[13px] font-semibold text-stone-500 mb-1">No campaigns yet</div>
-            <div className="text-[11.5px] text-stone-400">Click "+ Add Campaign" to log your first list-building campaign.</div>
+            <div className="text-[11.5px] text-stone-500">Click "+ Add Campaign" to log your first list-building campaign.</div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -311,7 +311,7 @@ export default function ListBuildingPage() {
               <thead>
                 <tr className="border-b border-stone-100">
                   {['Campaign', 'Dates', 'Spend', 'Subscribers', 'Cost/Sub', 'Sub ROAS', 'Status', ''].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.8px] text-stone-400">
+                    <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.8px] text-stone-500">
                       {h}
                     </th>
                   ))}
@@ -327,7 +327,7 @@ export default function ListBuildingPage() {
                     <tr key={c.id} className="border-b border-stone-50 hover:bg-stone-50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="text-[13px] font-semibold text-[#0d1f35]">{c.campaignName}</div>
-                        {c.notes && <div className="text-[11px] text-stone-400 mt-0.5">{c.notes}</div>}
+                        {c.notes && <div className="text-[11px] text-stone-500 mt-0.5">{c.notes}</div>}
                       </td>
                       <td className="px-4 py-3 text-[11.5px] text-stone-500 whitespace-nowrap">
                         {fmtDate(c.startDate)} – {fmtDate(c.endDate)}

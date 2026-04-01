@@ -57,7 +57,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </button>
             {this.state.error && (
               <div className="mt-4 text-[11px] font-mono px-3 py-2 rounded-lg text-left"
-                style={{ background: '#F5F5F4', color: '#9CA3AF' }}>
+                style={{ background: '#F5F5F4', color: '#6B7280' }}>
                 {this.state.error.message}
               </div>
             )}

@@ -81,7 +81,7 @@ export function HelpDrawer() {
                     className="w-full flex items-center justify-between px-4 py-3 text-left bg-transparent border-none cursor-pointer"
                   >
                     <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>{item.title}</span>
-                    <span className="text-[12px]" style={{ color: '#9CA3AF', transform: expandedIdx === i ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.2s' }}>▾</span>
+                    <span className="text-[12px]" style={{ color: '#6B7280', transform: expandedIdx === i ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.2s' }}>▾</span>
                   </button>
                   {expandedIdx === i && (
                     <div className="px-4 pb-4" style={{ borderTop: '1px solid #EEEBE6' }}>

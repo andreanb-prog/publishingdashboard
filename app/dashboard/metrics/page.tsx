@@ -29,7 +29,7 @@ function Sparkline({ data, color, width = 140, height = 32 }: {
   data: number[]; color: string; width?: number; height?: number
 }) {
   if (data.length < 2) {
-    return <span className="text-[11px]" style={{ color: '#9CA3AF' }}>Not enough data</span>
+    return <span className="text-[11px]" style={{ color: '#6B7280' }}>Not enough data</span>
   }
   const min   = Math.min(...data)
   const max   = Math.max(...data)
@@ -70,7 +70,7 @@ function FunnelBar({ label, pct, count, color, benchmark }: {
           style={{ width: `${Math.min(pct, 100)}%`, background: barColor }} />
       </div>
       {benchmark && (
-        <div className="text-[10.5px] mt-1" style={{ color: '#9CA3AF' }}>
+        <div className="text-[10.5px] mt-1" style={{ color: '#6B7280' }}>
           Benchmark: {benchmark}%+ is strong for romance
         </div>
       )}
@@ -175,7 +175,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {metrics.map(m => (
           <div key={m.label} className="rounded-xl p-4" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-            <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-1.5" style={{ color: '#9CA3AF' }}>{m.label}</div>
+            <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-1.5" style={{ color: '#6B7280' }}>{m.label}</div>
             <div className="text-[28px] font-semibold leading-none tracking-tight" style={{ color: m.color }}>{m.value}</div>
           </div>
         ))}
@@ -194,7 +194,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
               <div key={stage.label} className="flex items-center gap-4">
                 <div className="w-32 flex-shrink-0 text-right">
                   <div className="text-[12px] font-semibold" style={{ color: '#1E2D3D' }}>{stage.label}</div>
-                  {stage.source && <div className="text-[10px]" style={{ color: '#9CA3AF' }}>{stage.source}</div>}
+                  {stage.source && <div className="text-[10px]" style={{ color: '#6B7280' }}>{stage.source}</div>}
                 </div>
                 <div className="flex-1">
                   {hasData ? (
@@ -208,7 +208,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
                     </div>
                   ) : (
                     <div className="rounded-md flex items-center px-3" style={{ height: 32, background: '#F5F5F4', border: '1px dashed #D6D3D1' }}>
-                      <span className="text-[11px]" style={{ color: '#9CA3AF' }}>No data yet</span>
+                      <span className="text-[11px]" style={{ color: '#6B7280' }}>No data yet</span>
                     </div>
                   )}
                 </div>
@@ -270,7 +270,7 @@ export default function MetricsPage() {
   const readThrough = booksSorted.map((book, i) => ({
     book,
     pct:   i === 0 ? 100 : booksSorted[0].kenp > 0 ? (book.kenp / booksSorted[0].kenp) * 100 : 0,
-    color: BOOK_COLORS[i] || '#9CA3AF',
+    color: BOOK_COLORS[i] || '#6B7280',
   }))
 
   // ── Cross-channel correlation data ─────────────────────────────────────────
@@ -335,13 +335,13 @@ export default function MetricsPage() {
           </div>
           {spendHistory.filter(v => v > 0).length >= 2 && (
             <div className="mb-3">
-              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>Spend trend</div>
+              <div className="text-[10px] mb-1" style={{ color: '#6B7280' }}>Spend trend</div>
               <Sparkline data={spendHistory} color="#fb7185" />
             </div>
           )}
           {recentRankByMonth.filter((v): v is number => v != null).length >= 2 && (
             <div className="mb-3">
-              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>Best rank trend (lower = better)</div>
+              <div className="text-[10px] mb-1" style={{ color: '#6B7280' }}>Best rank trend (lower = better)</div>
               <Sparkline data={recentRankByMonth.map(v => v != null ? -v : 0)} color="#34d399" />
             </div>
           )}
@@ -362,13 +362,13 @@ export default function MetricsPage() {
           </div>
           {emailOpenHistory.filter(v => v > 0).length >= 2 && (
             <div className="mb-3">
-              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>Open rate trend</div>
+              <div className="text-[10px] mb-1" style={{ color: '#6B7280' }}>Open rate trend</div>
               <Sparkline data={emailOpenHistory} color="#34d399" />
             </div>
           )}
           {unitsHistory.filter(v => v > 0).length >= 2 && (
             <div className="mb-3">
-              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>Units sold trend</div>
+              <div className="text-[10px] mb-1" style={{ color: '#6B7280' }}>Units sold trend</div>
               <Sparkline data={unitsHistory} color="#e9a020" />
             </div>
           )}
@@ -389,7 +389,7 @@ export default function MetricsPage() {
           </div>
           {kenpHistory.filter(v => v > 0).length >= 2 && (
             <div className="mb-3">
-              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>KENP trend (monthly)</div>
+              <div className="text-[10px] mb-1" style={{ color: '#6B7280' }}>KENP trend (monthly)</div>
               <Sparkline data={kenpHistory} color="#a78bfa" width={200} />
             </div>
           )}
@@ -412,7 +412,7 @@ export default function MetricsPage() {
             <div className="text-[48px] font-semibold leading-none tracking-tight" style={{ color: seriesHealthColor }}>
               {seriesHealth}
             </div>
-            <div className="text-[11px] mt-1" style={{ color: '#9CA3AF' }}>out of 100</div>
+            <div className="text-[11px] mt-1" style={{ color: '#6B7280' }}>out of 100</div>
           </div>
           <div className="space-y-2 mb-3">
             {[
@@ -425,7 +425,7 @@ export default function MetricsPage() {
                 <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#EEEBE6' }}>
                   <div className="h-full rounded-full" style={{ width: `${item.score}%`, background: item.score >= 70 ? '#34d399' : item.score >= 40 ? '#fbbf24' : '#fb7185' }} />
                 </div>
-                <div className="text-[10px] w-28 text-right" style={{ color: '#9CA3AF' }}>{item.note}</div>
+                <div className="text-[10px] w-28 text-right" style={{ color: '#6B7280' }}>{item.note}</div>
               </div>
             ))}
           </div>
@@ -462,14 +462,14 @@ export default function MetricsPage() {
             </div>
           </>
         ) : (
-          <div className="text-[12.5px] py-6 text-center" style={{ color: '#9CA3AF' }}>
+          <div className="text-[12.5px] py-6 text-center" style={{ color: '#6B7280' }}>
             Upload KDP data with 2+ books to see your series read-through funnel.
           </div>
         )}
       </div>
 
       {/* ── 4. ARC CALCULATOR ──────────────────────────────────────────────── */}
-      <DarkSectionHeader title="ARC Conversion Calculator" badge="Tool" badgeColor="#9CA3AF" />
+      <DarkSectionHeader title="ARC Conversion Calculator" badge="Tool" badgeColor="#6B7280" />
 
       <div className="rounded-xl p-5 mb-7 max-w-md" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         <div className="flex gap-3 mb-4">

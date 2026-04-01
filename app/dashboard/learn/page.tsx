@@ -118,7 +118,7 @@ export default function LearnPage() {
               <span className="text-[22px] flex-shrink-0">{term.emoji}</span>
               <div className="flex-1">
                 <div className="text-[14.5px] font-bold text-[#0d1f35]">{term.term}</div>
-                <div className="text-[12px] text-stone-400 mt-0.5">{term.teaser}</div>
+                <div className="text-[12px] text-stone-500 mt-0.5">{term.teaser}</div>
               </div>
               <span
                 className="text-stone-300 text-[16px] transition-transform duration-200 flex-shrink-0"
@@ -145,7 +145,7 @@ export default function LearnPage() {
         ))}
       </div>
 
-      <div className="text-center mt-8 text-[12px] text-stone-400">
+      <div className="text-center mt-8 text-[12px] text-stone-500">
         Have a term you want explained? Drop it in the feedback form.
       </div>
     </div>

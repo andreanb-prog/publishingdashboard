@@ -166,7 +166,7 @@ function DailyBarsChart({
     ? Math.round(((avgWith - avgWithout) / avgWithout) * 100)
     : null
 
-  if (n === 0) return <div className="text-[12px] py-6 text-center" style={{ color: '#9CA3AF' }}>No data for this range</div>
+  if (n === 0) return <div className="text-[12px] py-6 text-center" style={{ color: '#6B7280' }}>No data for this range</div>
 
   return (
     <div>
@@ -230,7 +230,7 @@ function DailyBarsChart({
                       color: '#fafaf9',
                     }}
                   >
-                    <div className="font-semibold mb-1" style={{ color: '#9CA3AF' }}>
+                    <div className="font-semibold mb-1" style={{ color: '#6B7280' }}>
                       {formatShortDate(d.date)}
                     </div>
                     <div style={{ color }}>
@@ -240,10 +240,10 @@ function DailyBarsChart({
                       <div style={{ color: '#34d399' }}>${spend.toFixed(2)} ad spend</div>
                     )}
                     {showAdStrip && spend === 0 && (
-                      <div style={{ color: '#9CA3AF' }}>No ads running</div>
+                      <div style={{ color: '#6B7280' }}>No ads running</div>
                     )}
                     {compareMode && compareData?.[i] && (
-                      <div className="mt-1 pt-1" style={{ borderTop: '1px solid #374151', color: '#9CA3AF' }}>
+                      <div className="mt-1 pt-1" style={{ borderTop: '1px solid #374151', color: '#6B7280' }}>
                         Prev period: {compareData[i].value.toLocaleString()}
                       </div>
                     )}
@@ -279,7 +279,7 @@ function DailyBarsChart({
               style={{
                 minWidth: 2,
                 fontSize: '9.5px',
-                color: show ? '#9CA3AF' : 'transparent',
+                color: show ? '#6B7280' : 'transparent',
                 transform: 'rotate(-35deg)',
                 transformOrigin: 'center top',
                 whiteSpace: 'nowrap',
@@ -305,7 +305,7 @@ function DailyBarsChart({
           </span>
           <span style={{ color: '#6B7280' }}> than days without ads</span>
           {withAds.length > 0 && withoutAds.length > 0 && (
-            <span style={{ color: '#9CA3AF' }}> ({avgWith.toFixed(1)} avg vs {avgWithout.toFixed(1)} avg)</span>
+            <span style={{ color: '#6B7280' }}> ({avgWith.toFixed(1)} avg vs {avgWithout.toFixed(1)} avg)</span>
           )}
         </div>
       )}
@@ -442,7 +442,7 @@ export default function KDPPage() {
     <DarkPage title="KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties">
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {!kdp ? (
-        <div className="text-center py-16" style={{ color: '#9CA3AF' }}>
+        <div className="text-center py-16" style={{ color: '#6B7280' }}>
           <div className="text-4xl mb-4">📚</div>
           <div className="text-xl font-semibold mb-2" style={{ color: '#1E2D3D' }}>No KDP data yet</div>
           <p className="text-sm mb-4">Upload your KDP Excel report to see your analysis</p>
@@ -476,7 +476,7 @@ export default function KDPPage() {
                 <div className="absolute bottom-0 left-0 right-0 h-[3px]"
                   style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
                 <div className="text-[11px] font-bold tracking-[1.2px] uppercase mb-2"
-                  style={{ color: '#9CA3AF' }}>
+                  style={{ color: '#6B7280' }}>
                   {item.label}
                 </div>
                 <div className="text-[32px] font-semibold leading-none tracking-tight mb-1.5"
@@ -499,7 +499,7 @@ export default function KDPPage() {
                 {kdp.books.map((b, i) => {
                   const maxVal = Math.max(...kdp.books.map(x => x.units), 1)
                   const colors = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5']
-                  const color = colors[i] || '#9CA3AF'
+                  const color = colors[i] || '#6B7280'
                   return (
                     <div key={b.asin || i}>
                       <div className="flex items-center justify-between mb-1">
@@ -520,7 +520,7 @@ export default function KDPPage() {
                 {kdp.books.map((b, i) => {
                   const maxVal = Math.max(...kdp.books.map(x => x.kenp), 1)
                   const colors = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5']
-                  const color = colors[i] || '#9CA3AF'
+                  const color = colors[i] || '#6B7280'
                   return (
                     <div key={b.asin || i}>
                       <div className="flex items-center justify-between mb-1">
@@ -580,7 +580,7 @@ export default function KDPPage() {
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-[13.5px] font-semibold" style={{ color: '#1E2D3D' }}>Daily Units Sold</h3>
               {compareMode && prevPeriod && (
-                <span className="text-[10.5px]" style={{ color: '#9CA3AF' }}>
+                <span className="text-[10.5px]" style={{ color: '#6B7280' }}>
                   vs {formatDisplayRange(prevPeriod.start, prevPeriod.end)}
                 </span>
               )}
@@ -613,7 +613,7 @@ export default function KDPPage() {
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-[13.5px] font-semibold" style={{ color: '#1E2D3D' }}>Daily KENP Reads</h3>
                 {compareMode && prevPeriod && (
-                  <span className="text-[10.5px]" style={{ color: '#9CA3AF' }}>
+                  <span className="text-[10.5px]" style={{ color: '#6B7280' }}>
                     vs {formatDisplayRange(prevPeriod.start, prevPeriod.end)}
                   </span>
                 )}

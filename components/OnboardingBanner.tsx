@@ -52,7 +52,7 @@ export function OnboardingBanner({ analysesCount }: { analysesCount: number }) {
         <button
           onClick={dismiss}
           className="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center text-[16px]"
-          style={{ background: 'rgba(0,0,0,0.05)', color: '#9CA3AF' }}
+          style={{ background: 'rgba(0,0,0,0.05)', color: '#6B7280' }}
           aria-label="Dismiss"
         >
           ×
@@ -79,7 +79,7 @@ export function OnboardingBanner({ analysesCount }: { analysesCount: number }) {
           <button
             onClick={dismiss}
             className="text-[12px] font-medium"
-            style={{ color: '#9CA3AF' }}
+            style={{ color: '#6B7280' }}
           >
             Got it, dismiss
           </button>
