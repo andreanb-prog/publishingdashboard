@@ -177,20 +177,20 @@ export function CategoryTagInput({
 
   // Style tokens
   const tagBg      = dark ? 'rgba(233,160,32,0.18)' : 'rgba(233,160,32,0.12)'
-  const tagColor   = dark ? '#fbbf24'               : '#92400e'
-  const tagRemove  = dark ? 'rgba(255,255,255,0.4)' : '#a16207'
-  const inputBg    = dark ? 'rgba(255,255,255,0.06)' : '#fff'
-  const inputBorder = dark ? 'rgba(255,255,255,0.12)' : '#e7e5e4'
-  const inputColor  = dark ? '#d6d3d1'               : '#0d1f35'
-  const inputPlaceholder = dark ? 'rgba(255,255,255,0.3)' : undefined
-  const dropdownBg  = dark ? '#1c1917'               : '#fff'
-  const dropdownBorder = dark ? '#44403c'            : '#e7e5e4'
-  const groupHeaderBg  = dark ? '#292524'            : '#fafaf9'
-  const groupHeaderColor = dark ? '#57534e'          : '#a8a29e'
-  const itemColor   = dark ? '#d6d3d1'               : '#44403c'
-  const highlightBg = dark ? 'rgba(233,160,32,0.15)' : '#fef3c7'
-  const highlightColor = dark ? '#fbbf24'            : '#0d1f35'
-  const customColor = dark ? '#fbbf24'               : '#e9a020'
+  const tagColor   = '#92400e'
+  const tagRemove  = '#a16207'
+  const inputBg    = '#fff'
+  const inputBorder = '#e7e5e4'
+  const inputColor  = '#0d1f35'
+  const inputPlaceholder = undefined
+  const dropdownBg  = '#fff'
+  const dropdownBorder = '#e7e5e4'
+  const groupHeaderBg  = '#fafaf9'
+  const groupHeaderColor = '#a8a29e'
+  const itemColor   = '#44403c'
+  const highlightBg = '#fef3c7'
+  const highlightColor = '#0d1f35'
+  const customColor = '#e9a020'
 
   let globalIdx = 0
 

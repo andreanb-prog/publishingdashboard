@@ -66,8 +66,8 @@ export function CoachBox({ title, children, color = 'amber', dark = false }: Coa
       <div
         className="rounded-xl p-5 mb-5"
         style={{
-          background: 'linear-gradient(135deg, #1c1917, rgba(251,191,36,0.06))',
-          border: `1px solid #292524`,
+          background: '#FFF8F0',
+          border: `1px solid #EEEBE6`,
           borderLeft: `3px solid ${borderColor}`,
         }}
       >
@@ -75,7 +75,7 @@ export function CoachBox({ title, children, color = 'amber', dark = false }: Coa
           style={{ color: borderColor }}>
           {resolvedTitle}
         </div>
-        <div className="text-[13px] leading-[1.75]" style={{ color: '#d6d3d1' }}>
+        <div className="text-[13px] leading-[1.75]" style={{ color: '#374151' }}>
           {children}
         </div>
       </div>

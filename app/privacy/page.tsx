@@ -3,26 +3,26 @@ import Link from 'next/link'
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-[#0d1f35] px-6 py-16">
+    <div className="min-h-screen bg-cream px-6 py-16">
       <div className="max-w-2xl mx-auto">
 
         <Link href="/login"
           className="text-[12px] font-semibold no-underline hover:underline mb-10 inline-block"
-          style={{ color: 'rgba(255,255,255,0.35)' }}>
+          style={{ color: '#9CA3AF' }}>
           ← Back to login
         </Link>
 
-        <h1 className="font-serif text-[32px] text-white leading-tight mb-3">
+        <h1 className="font-serif text-[32px] text-[#1E2D3D] leading-tight mb-3">
           Privacy Policy
         </h1>
-        <p className="text-[13px] mb-10" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <p className="text-[13px] mb-10" style={{ color: '#9CA3AF' }}>
           Last updated: March 2025 · Plain English, no legal jargon
         </p>
 
-        <div className="space-y-8" style={{ color: 'rgba(255,255,255,0.7)' }}>
+        <div className="space-y-8" style={{ color: '#374151' }}>
 
           <section>
-            <h2 className="font-serif text-[20px] text-white mb-3">Your data is yours</h2>
+            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">Your data is yours</h2>
             <p className="text-[14px] leading-relaxed">
               No one at AuthorDash browses or reviews your business data. Your KDP numbers,
               ad spend, email stats — all of it belongs to you. We only store what you
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-white mb-3">What we collect</h2>
+            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">What we collect</h2>
             <ul className="text-[14px] leading-relaxed space-y-2 list-none">
               <li>→ Your email address and name (from Google login — that's it)</li>
               <li>→ The marketing files you upload (KDP reports, Meta exports, Pinterest CSVs)</li>
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-white mb-3">How your data is stored</h2>
+            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">How your data is stored</h2>
             <p className="text-[14px] leading-relaxed">
               Your files and numbers are stored privately in your account only. We use
               Neon (PostgreSQL) for storage with encryption at rest. No other user can
@@ -50,12 +50,12 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-white mb-3">Claude AI (Anthropic)</h2>
+            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">Claude AI (Anthropic)</h2>
             <p className="text-[14px] leading-relaxed">
               Your data is processed by Claude AI (Anthropic) to generate your coaching
               session. This means your numbers are sent to Anthropic's API in order to
               produce your analysis.{' '}
-              <strong className="text-white">
+              <strong className="text-[#1E2D3D]">
                 Anthropic does not train on API data.
               </strong>{' '}
               Your data is not used to train any AI model. You can read Anthropic's privacy
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-white mb-3">Google login</h2>
+            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">Google login</h2>
             <p className="text-[14px] leading-relaxed">
               We use Google login only for authentication — to confirm who you are. We do
               not access your Gmail, Google Drive, Calendar, or any other Google data.
@@ -73,7 +73,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-white mb-3">We never sell your data</h2>
+            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">We never sell your data</h2>
             <p className="text-[14px] leading-relaxed">
               We never sell your data to anyone, ever. We don't share it with advertisers,
               data brokers, or third parties. Full stop.
@@ -81,7 +81,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-white mb-3">Cookies</h2>
+            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">Cookies</h2>
             <p className="text-[14px] leading-relaxed">
               We use cookies for authentication only — to keep you logged in between
               sessions. We don't use tracking cookies or third-party analytics.
@@ -89,7 +89,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-white mb-3">Deleting your data</h2>
+            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">Deleting your data</h2>
             <p className="text-[14px] leading-relaxed">
               You can request deletion of all your data at any time by emailing us at{' '}
               <span style={{ color: '#e9a020' }}>support@authordash.com</span>.
@@ -98,7 +98,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-white mb-3">Questions?</h2>
+            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">Questions?</h2>
             <p className="text-[14px] leading-relaxed">
               Email us at{' '}
               <span style={{ color: '#e9a020' }}>support@authordash.com</span>.
@@ -109,11 +109,11 @@ export default function PrivacyPage() {
         </div>
 
         <div className="mt-14 pt-8 flex gap-6 text-[12px]"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.25)' }}>
-          <Link href="/login" className="no-underline hover:underline" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          style={{ borderTop: '1px solid #EEEBE6', color: 'rgba(255,255,255,0.25)' }}>
+          <Link href="/login" className="no-underline hover:underline" style={{ color: '#9CA3AF' }}>
             ← Back to login
           </Link>
-          <Link href="/terms" className="no-underline hover:underline" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <Link href="/terms" className="no-underline hover:underline" style={{ color: '#9CA3AF' }}>
             Terms of Service
           </Link>
         </div>

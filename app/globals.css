@@ -25,17 +25,6 @@
     @apply bg-cream text-[#0d1f35];
   }
 
-  /* Dark scrollbar for dark sections */
-  .dark-section::-webkit-scrollbar {
-    width: 6px;
-  }
-  .dark-section::-webkit-scrollbar-track {
-    background: #1c1917;
-  }
-  .dark-section::-webkit-scrollbar-thumb {
-    background: #44403c;
-    border-radius: 3px;
-  }
 }
 
 @layer components {

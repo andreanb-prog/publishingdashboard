@@ -71,16 +71,16 @@ export function FeedbackButton() {
         }}
       >
         <div className="rounded-xl shadow-2xl overflow-hidden"
-          style={{ background: '#1c1917', border: '1px solid #292524' }}>
+          style={{ background: 'white', border: '1px solid #EEEBE6' }}>
 
           {status === 'done' ? (
             /* ── Thank-you state ── */
             <div className="px-5 py-8 text-center">
               <div className="text-3xl mb-3">🙏</div>
-              <div className="font-serif text-[16px] mb-1.5" style={{ color: '#fafaf9' }}>
+              <div className="font-serif text-[16px] mb-1.5" style={{ color: '#1E2D3D' }}>
                 Got it! Thank you —
               </div>
-              <div className="text-[13px]" style={{ color: '#a8a29e' }}>
+              <div className="text-[13px]" style={{ color: '#6B7280' }}>
                 we read every single one.
               </div>
             </div>
@@ -88,10 +88,10 @@ export function FeedbackButton() {
             <>
               {/* Header */}
               <div className="px-5 pt-5 pb-3">
-                <div className="font-serif text-[16px] mb-1" style={{ color: '#fafaf9' }}>
+                <div className="font-serif text-[16px] mb-1" style={{ color: '#1E2D3D' }}>
                   What&apos;s on your mind?
                 </div>
-                <div className="text-[12px] leading-relaxed" style={{ color: '#78716c' }}>
+                <div className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>
                   Bug, idea, or just something that felt weird — we want to know.
                 </div>
               </div>
@@ -107,9 +107,9 @@ export function FeedbackButton() {
                     onClick={() => setTab(t.key)}
                     className="flex-1 text-[11.5px] font-semibold px-2 py-1.5 rounded-lg transition-all"
                     style={{
-                      background: tab === t.key ? 'rgba(233,160,32,0.15)' : 'rgba(255,255,255,0.04)',
-                      color:      tab === t.key ? '#e9a020' : '#78716c',
-                      border:     `1px solid ${tab === t.key ? 'rgba(233,160,32,0.3)' : 'transparent'}`,
+                      background: tab === t.key ? 'rgba(233,160,32,0.12)' : '#F5F5F4',
+                      color:      tab === t.key ? '#e9a020' : '#6B7280',
+                      border:     `1px solid ${tab === t.key ? 'rgba(233,160,32,0.3)' : '#EEEBE6'}`,
                     }}
                   >
                     {t.label}
@@ -129,9 +129,9 @@ export function FeedbackButton() {
                   className="w-full resize-none rounded-lg px-3 py-2.5 text-[13px] leading-relaxed
                              outline-none transition-colors"
                   style={{
-                    background: '#0c0a09',
-                    border: '1px solid #292524',
-                    color: '#d6d3d1',
+                    background: '#FAFAFA',
+                    border: '1px solid #EEEBE6',
+                    color: '#1E2D3D',
                   }}
                 />
               </div>
@@ -140,11 +140,11 @@ export function FeedbackButton() {
               {tab === 'bug' && (
                 <div className="px-5 pb-3">
                   <div className="flex items-center gap-2 rounded-lg px-3 py-2"
-                    style={{ background: '#0c0a09', border: '1px solid #292524' }}>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.8px]" style={{ color: '#44403c' }}>
+                    style={{ background: '#F5F5F4', border: '1px solid #EEEBE6' }}>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.8px]" style={{ color: '#9CA3AF' }}>
                       Page
                     </span>
-                    <span className="text-[11px] font-mono truncate" style={{ color: '#57534e' }}>
+                    <span className="text-[11px] font-mono truncate" style={{ color: '#6B7280' }}>
                       {pathname}
                     </span>
                   </div>

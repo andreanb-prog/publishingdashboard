@@ -212,7 +212,7 @@ export default function ROASPage() {
           href="/api/export/ad-tracker"
           download
           className="flex-shrink-0 px-4 py-2 rounded-lg text-[12.5px] font-semibold no-underline transition-all"
-          style={{ background: '#0d1f35', color: '#fff' }}
+          style={{ background: '#e9a020', color: '#0d1f35' }}
         >
           ⬇ Download Coaching Tracker
         </a>

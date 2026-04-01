@@ -135,7 +135,7 @@ function ImportFromCloud({ onFile }: { onFile: (files: FileList | null) => void 
   return (
     <div className="mb-5">
       <div className="text-[11px] font-semibold uppercase tracking-wider mb-2.5"
-        style={{ color: 'rgba(255,255,255,0.3)' }}>
+        style={{ color: '#9CA3AF' }}>
         Or import from
       </div>
       <div className="flex flex-wrap gap-2 mb-2">
@@ -144,11 +144,11 @@ function ImportFromCloud({ onFile }: { onFile: (files: FileList | null) => void 
             key={s.key}
             onClick={() => handleClick(s.key)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold
-                       transition-all hover:bg-white/[0.06]"
+                       transition-all hover:bg-stone-50"
             style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: 'rgba(255,255,255,0.6)',
+              background: '#F5F5F4',
+              border: '1px solid #EEEBE6',
+              color: '#374151',
             }}
           >
             <span className="text-[14px]">{s.icon}</span>
@@ -159,7 +159,7 @@ function ImportFromCloud({ onFile }: { onFile: (files: FileList | null) => void 
 
       {showTip === 'icloud' && (
         <div className="rounded-lg p-3 mb-2 text-[12px] leading-relaxed"
-          style={{ background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)', color: 'rgba(255,255,255,0.6)' }}>
+          style={{ background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)', color: '#374151' }}>
           <strong style={{ color: '#38bdf8' }}>iCloud Drive:</strong> Open the Files app on your Mac → iCloud Drive → find your file → drag it into the box above. Takes 10 seconds!
           <button onClick={() => setShowTip(null)} className="ml-2 text-[10px] opacity-50" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>dismiss</button>
         </div>
@@ -167,7 +167,7 @@ function ImportFromCloud({ onFile }: { onFile: (files: FileList | null) => void 
 
       {(showTip === 'gdrive' || showTip === 'dropbox' || showTip === 'onedrive') && (
         <div className="rounded-lg p-3 mb-2 text-[12px] leading-relaxed"
-          style={{ background: 'rgba(233,160,32,0.08)', border: '1px solid rgba(233,160,32,0.2)', color: 'rgba(255,255,255,0.6)' }}>
+          style={{ background: 'rgba(233,160,32,0.08)', border: '1px solid rgba(233,160,32,0.2)', color: '#374151' }}>
           <strong style={{ color: '#e9a020' }}>
             {showTip === 'gdrive' ? 'Google Drive' : showTip === 'dropbox' ? 'Dropbox' : 'OneDrive'}:
           </strong>{' '}
@@ -186,15 +186,15 @@ function ImportFromCloud({ onFile }: { onFile: (files: FileList | null) => void 
       {/* Having trouble? */}
       <details className="mt-3">
         <summary className="text-[11px] font-semibold cursor-pointer"
-          style={{ color: 'rgba(255,255,255,0.3)' }}>
+          style={{ color: '#9CA3AF' }}>
           Having trouble finding your files?
         </summary>
         <div className="mt-2 rounded-lg p-3 space-y-1.5 text-[11.5px] leading-relaxed"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.45)' }}>
-          <div><strong style={{ color: 'rgba(255,255,255,0.6)' }}>KDP report:</strong> kdp.amazon.com → Reports → Download a report → Month-end report</div>
-          <div><strong style={{ color: 'rgba(255,255,255,0.6)' }}>Meta ads:</strong> Ads Manager → Export → CSV (set your date range first)</div>
-          <div><strong style={{ color: 'rgba(255,255,255,0.6)' }}>Pinterest:</strong> analytics.pinterest.com → Export</div>
-          <div><strong style={{ color: 'rgba(255,255,255,0.6)' }}>Ad Tracker:</strong> Wherever you saved your coaching Excel file</div>
+          style={{ background: '#F5F5F4', border: '1px solid #EEEBE6', color: '#6B7280' }}>
+          <div><strong style={{ color: '#374151' }}>KDP report:</strong> kdp.amazon.com → Reports → Download a report → Month-end report</div>
+          <div><strong style={{ color: '#374151' }}>Meta ads:</strong> Ads Manager → Export → CSV (set your date range first)</div>
+          <div><strong style={{ color: '#374151' }}>Pinterest:</strong> analytics.pinterest.com → Export</div>
+          <div><strong style={{ color: '#374151' }}>Ad Tracker:</strong> Wherever you saved your coaching Excel file</div>
         </div>
       </details>
     </div>
@@ -334,12 +334,12 @@ export default function UploadPage() {
     : dragging
     ? '#e9a020'
     : files.length > 0
-    ? 'rgba(255,255,255,0.15)'
-    : 'rgba(255,255,255,0.2)'
+    ? '#EEEBE6'
+    : '#D4D0CB'
 
   const bgColor = dragging
-    ? 'rgba(233,160,32,0.08)'
-    : 'rgba(255,255,255,0.03)'
+    ? 'rgba(233,160,32,0.06)'
+    : 'white'
 
   async function runAnalysis() {
     setAnalyzing(true)
@@ -403,14 +403,14 @@ export default function UploadPage() {
 
   return (
     <div className="p-8 max-w-3xl">
-      <div className="rounded-xl p-8 mb-6" style={{ background: '#0d1f35' }}>
+      <div className="rounded-xl p-8 mb-6" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6', borderLeft: '4px solid #E9A020' }}>
         <div className="text-[10px] font-bold tracking-[2px] uppercase mb-2.5" style={{ color: '#e9a020' }}>
           Monthly Analysis
         </div>
-        <h1 className="font-serif text-[30px] text-white leading-snug mb-2">
-          Drop all your files.<br />We'll figure out the rest.
+        <h1 className="font-serif text-[30px] leading-snug mb-2" style={{ color: '#1E2D3D' }}>
+          Drop all your files.<br />We&apos;ll figure out the rest.
         </h1>
-        <p className="text-[13.5px] mb-7 leading-relaxed max-w-lg" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="text-[13.5px] mb-7 leading-relaxed max-w-lg" style={{ color: '#6B7280' }}>
           Drop up to 10 files at once — your KDP report, Meta export, Pinterest CSV.
           We automatically recognize each one. No labels needed.
         </p>
@@ -438,10 +438,10 @@ export default function UploadPage() {
               {files.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center px-6" style={{ minHeight: 300 }}>
                   <div className="text-5xl mb-4">📂</div>
-                  <div className="text-[18px] font-semibold mb-2" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                  <div className="text-[18px] font-semibold mb-2" style={{ color: '#1E2D3D' }}>
                     Drop your files here
                   </div>
-                  <div className="text-[13px] mb-5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  <div className="text-[13px] mb-5" style={{ color: '#9CA3AF' }}>
                     Click here to browse for your file · up to 10 files · KDP, Meta Ads, Pinterest
                   </div>
                   <button
@@ -457,7 +457,7 @@ export default function UploadPage() {
                   {/* Header */}
                   <div className="flex items-center justify-between mb-3 px-1">
                     <span className="text-[11px] font-semibold uppercase tracking-wider"
-                      style={{ color: 'rgba(255,255,255,0.3)' }}>
+                      style={{ color: '#9CA3AF' }}>
                       {files.length} file{files.length !== 1 ? 's' : ''} added
                     </span>
                     <div className="flex items-center gap-3">
@@ -499,7 +499,7 @@ export default function UploadPage() {
                                 ? 'rgba(52,211,153,0.07)'
                                 : isUnknown || isError
                                 ? 'rgba(251,191,36,0.07)'
-                                : 'rgba(255,255,255,0.05)',
+                                : '#F5F5F4',
                               border: isReady
                                 ? '1px solid rgba(52,211,153,0.2)'
                                 : isUnknown || isError
@@ -517,13 +517,13 @@ export default function UploadPage() {
 
                             <div className="flex-1 min-w-0">
                               <div className="text-[13px] font-semibold truncate"
-                                style={{ color: 'rgba(255,255,255,0.8)' }}>
+                                style={{ color: '#1E2D3D' }}>
                                 {f.filename}
                               </div>
                               <div className="text-[11px] mt-0.5"
                                 style={{
                                   color: isReading || isReprocessing
-                                    ? 'rgba(255,255,255,0.35)'
+                                    ? '#9CA3AF'
                                     : isError
                                     ? '#f87171'
                                     : isUnknown
@@ -561,7 +561,7 @@ export default function UploadPage() {
                               }}
                               className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center
                                          text-[14px] transition-all hover:bg-white/10"
-                              style={{ color: 'rgba(255,255,255,0.3)' }}
+                              style={{ color: '#9CA3AF' }}
                               title="Remove file"
                             >
                               ×
@@ -573,7 +573,7 @@ export default function UploadPage() {
                             <div className="mx-1 mt-1 mb-1 rounded-b-lg px-4 py-3"
                               style={{ background: 'rgba(233,160,32,0.06)', border: '1px solid rgba(251,191,36,0.2)', borderTop: 'none' }}>
                               <div className="text-[11px] font-bold uppercase tracking-[0.8px] mb-2.5"
-                                style={{ color: 'rgba(255,255,255,0.4)' }}>
+                                style={{ color: '#6B7280' }}>
                                 What is this file?
                               </div>
                               <div className="flex flex-wrap gap-2">
@@ -582,12 +582,12 @@ export default function UploadPage() {
                                     key={opt.type}
                                     onClick={() => reprocessAs(f.id, rawFiles.current.get(f.id) ?? null, opt.type)}
                                     className="flex flex-col items-start px-3 py-2 rounded-lg text-left transition-all hover:scale-[1.02]"
-                                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                    style={{ background: '#F5F5F4', border: '1px solid #EEEBE6' }}
                                   >
-                                    <span className="text-[12px] font-semibold" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                                    <span className="text-[12px] font-semibold" style={{ color: '#1E2D3D' }}>
                                       {opt.label}
                                     </span>
-                                    <span className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                                    <span className="text-[10px] mt-0.5" style={{ color: '#9CA3AF' }}>
                                       {opt.hint}
                                     </span>
                                   </button>
@@ -603,7 +603,7 @@ export default function UploadPage() {
                                   <span className="text-[12px] font-semibold" style={{ color: '#f87171' }}>
                                     Skip this file
                                   </span>
-                                  <span className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                                  <span className="text-[10px] mt-0.5" style={{ color: '#9CA3AF' }}>
                                     Remove from queue
                                   </span>
                                 </button>
@@ -615,7 +615,7 @@ export default function UploadPage() {
                     })}
                   </div>
 
-                  <div className="mt-3 text-center text-[11px]" style={{ color: 'rgba(255,255,255,0.18)' }}>
+                  <div className="mt-3 text-center text-[11px]" style={{ color: '#D4D0CB' }}>
                     Drop more files here or click "+ Add more"
                   </div>
                 </div>
@@ -624,11 +624,11 @@ export default function UploadPage() {
 
             {/* MailerLite auto row */}
             <div className="flex items-center gap-3 rounded-lg px-4 py-3 mb-4"
-              style={{ background: 'rgba(255,255,255,0.05)' }}>
+              style={{ background: '#F5F5F4', border: '1px solid #EEEBE6' }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base"
                 style={{ background: 'rgba(233,160,32,0.15)' }}>⚡</div>
               <div>
-                <div className="text-[13px] font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
                   Email stats pulled automatically
                 </div>
                 <div className="text-[11px] font-semibold" style={{ color: '#34d399' }}>
@@ -645,19 +645,19 @@ export default function UploadPage() {
               <button
                 onClick={() => setShowFileHelp(s => !s)}
                 className="flex items-center gap-2 text-[12px] font-semibold transition-colors"
-                style={{ color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                style={{ color: '#9CA3AF', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               >
                 <span style={{ transform: showFileHelp ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s' }}>▶</span>
                 What files do I need?
               </button>
               {showFileHelp && (
-                <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid #EEEBE6' }}>
                   {FILE_HELP.map((item, i) => (
                     <div key={i} className="flex items-start gap-3 px-4 py-3"
-                      style={{ borderBottom: i < FILE_HELP.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none', background: 'rgba(255,255,255,0.03)' }}>
+                      style={{ borderBottom: i < FILE_HELP.length - 1 ? '1px solid #EEEBE6' : 'none', background: '#FAFAFA' }}>
                       <div className="text-[13px] font-semibold w-36 flex-shrink-0"
-                        style={{ color: 'rgba(255,255,255,0.7)' }}>{item.label}</div>
-                      <div className="text-[12px]" style={{ color: 'rgba(255,255,255,0.35)' }}>{item.steps}</div>
+                        style={{ color: '#374151' }}>{item.label}</div>
+                      <div className="text-[12px]" style={{ color: '#6B7280' }}>{item.steps}</div>
                     </div>
                   ))}
                 </div>
@@ -678,7 +678,7 @@ export default function UploadPage() {
             )}
 
             {!hasAny && !allReading && files.length === 0 && (
-              <p className="text-[11.5px] mt-0" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              <p className="text-[11.5px] mt-0" style={{ color: '#D4D0CB' }}>
                 Drop at least one file above to get started.
               </p>
             )}
@@ -691,10 +691,10 @@ export default function UploadPage() {
                   style={{ background: 'rgba(52,211,153,0.15)' }}>
                   ✅
                 </div>
-                <div className="text-[24px] font-semibold text-white mb-2">
+                <div className="text-[24px] font-semibold mb-2" style={{ color: '#1E2D3D' }}>
                   Your dashboard is ready!
                 </div>
-                <p className="text-[14px] mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <p className="text-[14px] mb-6" style={{ color: '#6B7280' }}>
                   Everything&apos;s been analyzed. Opening now...
                 </p>
                 <button
@@ -711,16 +711,16 @@ export default function UploadPage() {
                   style={{ background: 'rgba(233,160,32,0.15)' }}>
                   ✨
                 </div>
-                <div className="text-[18px] font-semibold text-white mb-6 transition-opacity duration-300"
-                  style={{ opacity: stepFade ? 1 : 0 }}>
+                <div className="text-[18px] font-semibold mb-6 transition-opacity duration-300"
+                  style={{ color: '#1E2D3D', opacity: stepFade ? 1 : 0 }}>
                   {shuffledSteps[step]}<CyclingDots />
                 </div>
                 <div className="max-w-[300px] mx-auto h-2 rounded-full overflow-hidden mb-4"
-                  style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  style={{ background: 'rgba(233,160,32,0.1)' }}>
                   <div className="h-full rounded-full transition-all duration-1000 ease-out"
                     style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #e9a020, #f4c542)' }} />
                 </div>
-                <div className="text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <div className="text-[12px]" style={{ color: '#9CA3AF' }}>
                   This usually takes about 15 seconds
                 </div>
               </>

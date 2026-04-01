@@ -47,7 +47,7 @@ export function HelpDrawer() {
         onClick={() => setOpen(true)}
         className="fixed bottom-20 right-6 w-10 h-10 rounded-full flex items-center justify-center
                    shadow-lg z-40 border-none cursor-pointer transition-all hover:scale-105"
-        style={{ background: '#1E2D3D', color: 'white' }}
+        style={{ background: 'white', color: '#1E2D3D', border: '1px solid #EEEBE6' }}
         aria-label="Help"
       >
         <Question size={20} weight="bold" />

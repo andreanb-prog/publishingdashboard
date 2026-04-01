@@ -95,9 +95,9 @@ export default function LearnPage() {
   return (
     <div className="p-8 max-w-3xl">
       {/* Header */}
-      <div className="card p-6 mb-6" style={{ background: '#0d1f35', border: 'none' }}>
-        <h1 className="font-serif text-[22px] text-white mb-2">Every term explained like a friend</h1>
-        <p className="text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
+      <div className="card p-6 mb-6" style={{ background: '#FFF8F0', borderLeft: '4px solid #E9A020' }}>
+        <h1 className="font-serif text-[22px] mb-2" style={{ color: '#1E2D3D' }}>Every term explained like a friend</h1>
+        <p className="text-[13px] leading-relaxed" style={{ color: '#6B7280' }}>
           No jargon. No textbooks. Just plain explanations of what these words actually mean
           and whether your numbers are good. Tap any term to read more.
         </p>

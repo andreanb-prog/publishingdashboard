@@ -159,8 +159,8 @@ export default function RankPage() {
           </p>
           <Link
             href="/dashboard/settings"
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-[13px] font-bold text-white"
-            style={{ background: '#0d1f35' }}
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-[13px] font-bold"
+            style={{ background: '#e9a020', color: '#0d1f35' }}
           >
             Go to Settings →
           </Link>
@@ -266,8 +266,8 @@ export default function RankPage() {
                       <button
                         onClick={() => logRank(book, category)}
                         disabled={isSaving || !inputs[iKey]}
-                        className="px-3.5 py-2 rounded-lg text-[12.5px] font-bold text-white transition-all disabled:opacity-40"
-                        style={{ background: '#0d1f35', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        className="px-3.5 py-2 rounded-lg text-[12.5px] font-bold transition-all disabled:opacity-40"
+                        style={{ background: '#e9a020', color: '#0d1f35', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
                       >
                         {isSaving ? '…' : 'Log It'}
                       </button>

@@ -432,17 +432,17 @@ export function OverviewClient() {
 
       {/* Verdict banner */}
       <div className="rounded-xl mb-6 px-6 py-4 flex items-center justify-between"
-        style={{ background: '#0d1f35' }}>
+        style={{ background: '#FFF8F0', borderLeft: '4px solid #E9A020', border: '1px solid #EEEBE6', borderLeftWidth: '4px', borderLeftColor: '#E9A020' }}>
         <div>
           <div className="text-[10px] font-bold tracking-[2px] uppercase mb-1.5" style={{ color: '#e9a020' }}>
             {monthLabel}
           </div>
-          <div className="font-serif text-[16px] text-white leading-snug">
+          <div className="font-serif text-[16px] leading-snug" style={{ color: '#1E2D3D' }}>
             {analysis?.overallVerdict || 'Upload your files to get your first analysis.'}
           </div>
         </div>
         <div className="text-right flex-shrink-0 ml-6">
-          <div className="text-[11.5px] mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <div className="text-[11.5px] mb-1" style={{ color: '#9CA3AF' }}>
             {analysis
               ? `Analyzed ${new Date(analysis.generatedAt).toLocaleDateString()}`
               : 'No analysis yet'}
@@ -527,11 +527,11 @@ export function OverviewClient() {
                   </div>
                 ) : (
                   <div className="card overflow-hidden mb-7">
-                    <div className="px-5 py-3.5" style={{ background: '#0d1f35' }}>
-                      <div className="font-serif text-[16px] text-white">
+                    <div className="px-5 py-3.5" style={{ background: '#FFF8F0', borderBottom: '1px solid #EEEBE6' }}>
+                      <div className="font-serif text-[16px]" style={{ color: '#1E2D3D' }}>
                         {coachTitle.replace(' says', '')} reviewed everything. Here&apos;s what to do next.
                       </div>
-                      <div className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                      <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>
                         Ranked by priority · Based on your real numbers
                       </div>
                     </div>
@@ -571,11 +571,11 @@ export function OverviewClient() {
           <div className="card overflow-hidden mb-7">
             <table className="w-full text-[12.5px]">
               <thead>
-                <tr style={{ background: '#0d1f35' }}>
+                <tr style={{ background: '#FFF8F0', borderBottom: '1px solid #EEEBE6' }}>
                   {['Month', 'Royalties', 'Units', 'KENP', 'Ad Spend', 'Subscribers'].map((h, i) => (
                     <th key={h}
                       className={`py-3 font-semibold ${i === 0 ? 'text-left px-5' : 'text-right px-4'}`}
-                      style={{ color: 'rgba(255,255,255,0.5)' }}>
+                      style={{ color: '#6B7280' }}>
                       {h}
                     </th>
                   ))}
@@ -627,24 +627,24 @@ export function OverviewClient() {
         </>
       )}
 
-      {/* ── AI Coach panel — full-width, dark, editorial ── */}
-      <div className="-mx-8 -mb-8 mt-2" style={{ background: '#0d1f35' }}>
+      {/* ── AI Coach panel — full-width, editorial ── */}
+      <div className="-mx-8 -mb-8 mt-2" style={{ background: '#FFF8F0', borderTop: '1px solid #EEEBE6' }}>
         <div className="max-w-2xl mx-auto px-8 py-14 text-center">
 
           {/* Eyebrow */}
           <div className="text-[10px] font-bold tracking-[2.5px] uppercase mb-5"
-            style={{ color: 'rgba(233,160,32,0.7)' }}>
+            style={{ color: '#e9a020' }}>
             Go deeper
           </div>
 
           {/* Headline */}
-          <h2 className="font-serif text-[28px] leading-snug text-white mb-4">
+          <h2 className="font-serif text-[28px] leading-snug mb-4" style={{ color: '#1E2D3D' }}>
             Want to go deeper? Bring your data to any AI.
           </h2>
 
           {/* Subtext */}
           <p className="text-[14px] leading-relaxed mb-8 max-w-lg mx-auto"
-            style={{ color: 'rgba(255,255,255,0.45)' }}>
+            style={{ color: '#6B7280' }}>
             Your numbers, insights, and action plan — formatted and ready to paste into
             Claude, ChatGPT, Gemini, or any AI you use.
           </p>
@@ -668,7 +668,7 @@ export function OverviewClient() {
 
           {/* Quiet confirmation */}
           <div className={`mt-3 text-[12px] transition-opacity duration-500 ${copied ? 'opacity-100' : 'opacity-0'}`}
-            style={{ color: 'rgba(255,255,255,0.35)' }}>
+            style={{ color: '#9CA3AF' }}>
             Paste it into any AI and type your question at the end.
           </div>
 
@@ -685,9 +685,9 @@ export function OverviewClient() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[12.5px] no-underline transition-colors duration-150 hover:underline"
-                style={{ color: 'rgba(255,255,255,0.35)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
+                style={{ color: '#9CA3AF' }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#1E2D3D')}
+                onMouseLeave={e => (e.currentTarget.style.color = '#9CA3AF')}
               >
                 {label} →
               </a>

@@ -194,7 +194,7 @@ export default function ListBuildingPage() {
             <button
               onClick={() => setShowForm(s => !s)}
               className="px-4 py-2 rounded-lg text-[12.5px] font-bold transition-all"
-              style={{ background: '#0d1f35', color: 'white', border: 'none', cursor: 'pointer' }}
+              style={{ background: '#e9a020', color: '#0d1f35', border: 'none', cursor: 'pointer' }}
             >
               {showForm ? 'Cancel' : '+ Add Campaign'}
             </button>
