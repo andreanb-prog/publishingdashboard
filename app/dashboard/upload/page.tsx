@@ -49,34 +49,46 @@ function CyclingDots() {
 }
 
 const ANALYSIS_STEPS = [
-  // What's actually happening — crunching
-  'Crunching your KDP numbers',
-  'Tallying up your royalties',
-  'Counting every single page read',
-  'Adding up your ad spend',
-  'Cross-referencing your clicks',
-  'Calculating your cost per reader',
-  'Measuring your rank trajectory',
   // Magical / enchanting
-  'Enchanting your spreadsheets into wisdom',
-  'Conjuring insights from your royalty data',
-  'Weaving your ad numbers into a story',
-  'Summoning your best performing tropes',
-  'Sprinkling dashboard magic on your KENP reads',
-  // Fun / personality
-  'Schlepping through your Meta export with great enthusiasm',
-  'Perusing every last click with enormous curiosity',
-  'Interrogating your underperforming ads',
-  'Having a stern word with your bounce rate',
-  'Convincing your data to tell the truth',
-  'Doing the math so you can do the writing',
+  'Enchanting your data with a little dashboard magic',
+  'Summoning insights from the numbers realm',
+  'Weaving your spreadsheets into wisdom',
+  'Conjuring your coaching session',
+  'Sprinkling some magic dust on your royalties',
+  // Fun / relatable author vibes
+  'Schlepping through your spreadsheets so you don\'t have to',
+  'Perusing your KDP report like a very dedicated fan',
+  'Imagining what your numbers are trying to tell you',
+  'Reading between the lines of your ad data',
+  'Decoding the ancient mysteries of Meta Ads Manager',
+  // Book / writing themed
+  'Writing the first draft of your marketing story',
+  'Editing your data for clarity and impact',
+  'Plotting your path to more royalties',
+  'Turning your spreadsheet into a page-turner',
+  'Finding the protagonist hiding in your ad performance',
+  'Every number tells a story. Finding yours',
+  // Coaching themed
+  'Your coach is putting on her reading glasses',
+  'Consulting the publishing oracle',
+  'Cross-referencing your data with the Book of Royalties',
+  'Calculating your KENP karma',
+  'Having a stern word with your underperforming ads',
+  'Interrogating your click-through rates',
   // Warm / encouraging
   'Finding the good news hiding in your numbers',
-  'Spotting the pattern your future self will thank you for',
+  'Spotting patterns your future self will thank you for',
+  'Translating spreadsheet chaos into clear next steps',
   'Building your personalized action plan',
   'Almost there — good things take a moment',
-  'Your coach is putting on her reading glasses',
-  'Translating spreadsheet chaos into clear next steps',
+  'Your data is full of stories. Reading them now',
+  // Playful
+  'Doing the math so you can do the writing',
+  'Teaching the dashboard about tropes and KENP reads',
+  'Convincing your data to tell the truth',
+  'Running your numbers through the AuthorDash whisperer',
+  'Schlepping through Meta exports with great enthusiasm',
+  'Perusing every last click with enormous curiosity',
 ]
 
 const FILE_HELP = [
