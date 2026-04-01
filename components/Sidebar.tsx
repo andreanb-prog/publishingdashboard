@@ -3,46 +3,43 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
+import { House, UploadSimple, GraduationCap, Gear, SignOut } from '@phosphor-icons/react'
 import {
-  House,
-  UploadSimple,
-  BookOpen,
-  Megaphone,
-  EnvelopeSimple,
-  ArrowsClockwise,
-  PushPin,
-  ChartBar,
-  TrendUp,
-  CurrencyDollar,
-  ListPlus,
-  GraduationCap,
-  Gear,
-  Lock,
-  SignOut,
-} from '@phosphor-icons/react'
-import type { Icon } from '@phosphor-icons/react'
+  IconKDP, IconMeta, IconMailerLite, IconPinterest, IconSwaps,
+  IconMetrics, IconRank, IconROAS, IconListBuilding, IconMyData,
+} from '@/components/icons'
 
-const NAV_ITEMS: { label: string; href: string; icon: Icon }[] = [
-  { label: 'My Dashboard',   href: '/dashboard',        icon: House },
-  { label: 'Upload & Analyze', href: '/dashboard/upload', icon: UploadSimple },
+type NavItem = { label: string; href: string; render: (active: boolean) => React.ReactNode }
+
+function phosphor(Icon: typeof House) {
+  return (active: boolean) => <Icon size={18} weight={active ? 'fill' : 'regular'} />
+}
+
+function custom(Icon: (props: { size?: number; color?: string }) => React.ReactNode, color: string) {
+  return (_active: boolean) => <Icon size={18} color={color} />
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { label: 'My Dashboard',     href: '/dashboard',        render: phosphor(House) },
+  { label: 'Upload & Analyze', href: '/dashboard/upload',  render: phosphor(UploadSimple) },
 ]
 
-const CHANNEL_ITEMS: { label: string; href: string; icon: Icon }[] = [
-  { label: 'KDP',              href: '/dashboard/kdp',        icon: BookOpen },
-  { label: 'Meta / Facebook',  href: '/dashboard/meta',       icon: Megaphone },
-  { label: 'MailerLite',       href: '/dashboard/mailerlite',  icon: EnvelopeSimple },
-  { label: 'Newsletter Swaps', href: '/dashboard/swaps',      icon: ArrowsClockwise },
-  { label: 'Pinterest',        href: '/dashboard/pinterest',   icon: PushPin },
+const CHANNEL_ITEMS: NavItem[] = [
+  { label: 'KDP',              href: '/dashboard/kdp',        render: custom(IconKDP, '#E9A020') },
+  { label: 'Meta / Facebook',  href: '/dashboard/meta',       render: custom(IconMeta, '#38bdf8') },
+  { label: 'MailerLite',       href: '/dashboard/mailerlite',  render: custom(IconMailerLite, '#34d399') },
+  { label: 'Newsletter Swaps', href: '/dashboard/swaps',      render: custom(IconSwaps, '#a78bfa') },
+  { label: 'Pinterest',        href: '/dashboard/pinterest',   render: custom(IconPinterest, '#fb7185') },
 ]
 
-const TOOL_ITEMS: { label: string; href: string; icon: Icon }[] = [
-  { label: 'Advanced Metrics',  href: '/dashboard/metrics',       icon: ChartBar },
-  { label: 'Rank Tracker',      href: '/dashboard/rank',          icon: TrendUp },
-  { label: 'Daily ROAS Log',    href: '/dashboard/roas',          icon: CurrencyDollar },
-  { label: 'List Building ROAS', href: '/dashboard/list-building', icon: ListPlus },
-  { label: 'Learn the Terms',   href: '/dashboard/learn',         icon: GraduationCap },
-  { label: 'Settings',          href: '/dashboard/settings',      icon: Gear },
-  { label: 'My Data',           href: '/dashboard/data-vault',    icon: Lock },
+const TOOL_ITEMS: NavItem[] = [
+  { label: 'Advanced Metrics',   href: '/dashboard/metrics',       render: custom(IconMetrics, '#E9A020') },
+  { label: 'Rank Tracker',       href: '/dashboard/rank',          render: custom(IconRank, '#34d399') },
+  { label: 'Daily ROAS Log',     href: '/dashboard/roas',          render: custom(IconROAS, '#E9A020') },
+  { label: 'List Building ROAS', href: '/dashboard/list-building',  render: custom(IconListBuilding, '#34d399') },
+  { label: 'Learn the Terms',    href: '/dashboard/learn',          render: phosphor(GraduationCap) },
+  { label: 'Settings',           href: '/dashboard/settings',       render: phosphor(Gear) },
+  { label: 'My Data',            href: '/dashboard/data-vault',     render: custom(IconMyData, '#fb7185') },
 ]
 
 export function Sidebar() {
@@ -61,7 +58,7 @@ export function Sidebar() {
     .substring(0, 2)
     .toUpperCase() || 'U'
 
-  function NavLink({ href, icon: IconComp, label }: { href: string; icon: Icon; label: string }) {
+  function NavLink({ href, render, label }: NavItem) {
     const active = isActive(href)
     return (
       <Link
@@ -76,7 +73,7 @@ export function Sidebar() {
         onMouseEnter={e => { if (!active) (e.currentTarget.style.background = '#EDE8DF') }}
         onMouseLeave={e => { if (!active) (e.currentTarget.style.background = '') }}
       >
-        <IconComp size={18} weight={active ? 'fill' : 'regular'} />
+        {render(active)}
         {label}
       </Link>
     )
@@ -84,7 +81,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className="w-[235px] flex-shrink-0 flex flex-col hidden md:flex"
+      className="w-[235px] flex-shrink-0 flex-col hidden md:flex"
       style={{ background: '#F5F0E8', borderRight: '1px solid #E8DDD0' }}
     >
       {/* Logo */}

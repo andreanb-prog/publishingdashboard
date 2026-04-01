@@ -10,13 +10,14 @@ import { ActionItem } from '@/components/ui'
 import { FreshBanner } from '@/components/FreshBanner'
 import { OnboardingBanner } from '@/components/OnboardingBanner'
 import { SortablePage } from '@/components/SortablePage'
+import { IconKDP, IconMeta, IconMailerLite, IconSwaps, IconPinterest } from '@/components/icons'
 
 const CHANNEL_CARDS = [
-  { key: 'kdp',        href: '/dashboard/kdp',        icon: '📚', name: 'KDP',        colorClass: 'border-t-amber-brand' },
-  { key: 'meta',       href: '/dashboard/meta',        icon: '📣', name: 'Meta Ads',   colorClass: 'border-t-blue-500' },
-  { key: 'mailerlite', href: '/dashboard/mailerlite',  icon: '📧', name: 'MailerLite', colorClass: 'border-t-emerald-500' },
-  { key: 'swaps',      href: '/dashboard/swaps',       icon: '🔁', name: 'Swaps',      colorClass: 'border-t-pink-500' },
-  { key: 'pinterest',  href: '/dashboard/pinterest',   icon: '📌', name: 'Pinterest',  colorClass: 'border-t-red-500' },
+  { key: 'kdp',        href: '/dashboard/kdp',        icon: IconKDP,       iconColor: '#E9A020', name: 'KDP',        colorClass: 'border-t-amber-brand' },
+  { key: 'meta',       href: '/dashboard/meta',        icon: IconMeta,      iconColor: '#38bdf8', name: 'Meta Ads',   colorClass: 'border-t-blue-500' },
+  { key: 'mailerlite', href: '/dashboard/mailerlite',  icon: IconMailerLite, iconColor: '#34d399', name: 'MailerLite', colorClass: 'border-t-emerald-500' },
+  { key: 'swaps',      href: '/dashboard/swaps',       icon: IconSwaps,     iconColor: '#a78bfa', name: 'Swaps',      colorClass: 'border-t-pink-500' },
+  { key: 'pinterest',  href: '/dashboard/pinterest',   icon: IconPinterest, iconColor: '#fb7185', name: 'Pinterest',  colorClass: 'border-t-red-500' },
 ]
 
 const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
@@ -317,7 +318,7 @@ export function OverviewClient() {
                       <Link key={card.key} href={card.href}
                         className={`card p-4 cursor-pointer hover:-translate-y-0.5 transition-all
                                     border-t-[3px] ${card.colorClass} no-underline animate-fade-up`}>
-                        <span className="text-2xl mb-2.5 block">{card.icon}</span>
+                        <span className="mb-2.5 block"><card.icon size={28} color={card.iconColor} /></span>
                         <div className="text-[10.5px] font-bold tracking-[0.8px] uppercase text-stone-400 mb-1">
                           {card.name}
                         </div>

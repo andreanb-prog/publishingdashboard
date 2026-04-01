@@ -3,41 +3,42 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { List, X, House, UploadSimple, GraduationCap, Gear } from '@phosphor-icons/react'
 import {
-  List,
-  X,
-  House,
-  UploadSimple,
-  BookOpen,
-  Megaphone,
-  EnvelopeSimple,
-  ArrowsClockwise,
-  PushPin,
-  ChartBar,
-  TrendUp,
-  CurrencyDollar,
-  ListPlus,
-  GraduationCap,
-  Gear,
-  Lock,
-} from '@phosphor-icons/react'
-import type { Icon } from '@phosphor-icons/react'
+  IconKDP, IconMeta, IconMailerLite, IconSwaps, IconPinterest,
+  IconMetrics, IconRank, IconROAS, IconListBuilding, IconMyData,
+} from '@/components/icons'
 
-const ALL_NAV: { label: string; href: string; icon: Icon; section?: string }[] = [
-  { section: 'Overview', label: 'My Dashboard',     href: '/dashboard',            icon: House },
-  { label: 'Upload & Analyze',                      href: '/dashboard/upload',     icon: UploadSimple },
-  { section: 'Channels', label: 'KDP',              href: '/dashboard/kdp',        icon: BookOpen },
-  { label: 'Meta / Facebook',                       href: '/dashboard/meta',       icon: Megaphone },
-  { label: 'MailerLite',                             href: '/dashboard/mailerlite', icon: EnvelopeSimple },
-  { label: 'Newsletter Swaps',                      href: '/dashboard/swaps',      icon: ArrowsClockwise },
-  { label: 'Pinterest',                              href: '/dashboard/pinterest',  icon: PushPin },
-  { section: 'Tools', label: 'Advanced Metrics',    href: '/dashboard/metrics',    icon: ChartBar },
-  { label: 'Rank Tracker',                          href: '/dashboard/rank',       icon: TrendUp },
-  { label: 'Daily ROAS Log',                        href: '/dashboard/roas',       icon: CurrencyDollar },
-  { label: 'List Building ROAS',                    href: '/dashboard/list-building', icon: ListPlus },
-  { label: 'Learn the Terms',                       href: '/dashboard/learn',      icon: GraduationCap },
-  { label: 'Settings',                               href: '/dashboard/settings',   icon: Gear },
-  { label: 'My Data',                                href: '/dashboard/data-vault', icon: Lock },
+type NavEntry = {
+  label: string
+  href: string
+  render: () => React.ReactNode
+  section?: string
+}
+
+function ph(Icon: typeof House) {
+  return () => <Icon size={20} />
+}
+
+function ic(Icon: (props: { size?: number; color?: string }) => React.ReactNode, color: string) {
+  return () => <Icon size={20} color={color} />
+}
+
+const ALL_NAV: NavEntry[] = [
+  { section: 'Overview', label: 'My Dashboard',   href: '/dashboard',              render: ph(House) },
+  { label: 'Upload & Analyze',                    href: '/dashboard/upload',       render: ph(UploadSimple) },
+  { section: 'Channels', label: 'KDP',            href: '/dashboard/kdp',          render: ic(IconKDP, '#E9A020') },
+  { label: 'Meta / Facebook',                     href: '/dashboard/meta',         render: ic(IconMeta, '#38bdf8') },
+  { label: 'MailerLite',                           href: '/dashboard/mailerlite',   render: ic(IconMailerLite, '#34d399') },
+  { label: 'Newsletter Swaps',                    href: '/dashboard/swaps',        render: ic(IconSwaps, '#a78bfa') },
+  { label: 'Pinterest',                            href: '/dashboard/pinterest',    render: ic(IconPinterest, '#fb7185') },
+  { section: 'Tools', label: 'Advanced Metrics',  href: '/dashboard/metrics',      render: ic(IconMetrics, '#E9A020') },
+  { label: 'Rank Tracker',                        href: '/dashboard/rank',         render: ic(IconRank, '#34d399') },
+  { label: 'Daily ROAS Log',                      href: '/dashboard/roas',         render: ic(IconROAS, '#E9A020') },
+  { label: 'List Building ROAS',                  href: '/dashboard/list-building', render: ic(IconListBuilding, '#34d399') },
+  { label: 'Learn the Terms',                     href: '/dashboard/learn',        render: ph(GraduationCap) },
+  { label: 'Settings',                             href: '/dashboard/settings',     render: ph(Gear) },
+  { label: 'My Data',                              href: '/dashboard/data-vault',   render: ic(IconMyData, '#fb7185') },
 ]
 
 export function MobileNav() {
@@ -110,7 +111,6 @@ export function MobileNav() {
             <div className="px-3 py-4">
               {ALL_NAV.map((item, i) => {
                 const active = isActive(item.href)
-                const IconComp = item.icon
                 return (
                   <div key={item.href}>
                     {item.section && (
@@ -130,7 +130,7 @@ export function MobileNav() {
                         minHeight:  44,
                       }}
                     >
-                      <IconComp size={20} weight={active ? 'fill' : 'regular'} />
+                      {item.render()}
                       {item.label}
                     </Link>
                   </div>
