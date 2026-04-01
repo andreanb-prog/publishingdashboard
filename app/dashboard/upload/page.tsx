@@ -361,7 +361,7 @@ export default function UploadPage() {
               {done ? '✅' : '⚙️'}
             </div>
             <div className="font-serif text-[22px] text-white mb-2">
-              {done ? 'Done! Opening your dashboard...' : `${getCoachTitle('upload').replace(' says', '')} is reading everything…`}
+              {done ? 'Done! Opening your dashboard...' : `${getCoachTitle().replace(' says', '')} is reading everything…`}
             </div>
             <div className="text-[13px] mb-5 transition-opacity duration-200"
               style={{ color: 'rgba(255,255,255,0.5)', opacity: stepFade ? 1 : 0 }}>

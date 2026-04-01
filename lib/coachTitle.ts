@@ -13,12 +13,11 @@ const COACH_TITLES = [
   'Your higher consciousness says',
   'Your book fairy godmother says',
   'Your chart reader says',
+  'Your bestseller whisperer says',
+  'Your author strategist says',
+  'Your ink and data oracle says',
 ]
 
-export function getCoachTitle(seed?: string): string {
-  if (seed) {
-    const index = seed.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % COACH_TITLES.length
-    return COACH_TITLES[index]
-  }
+export function getCoachTitle(): string {
   return COACH_TITLES[Math.floor(Math.random() * COACH_TITLES.length)]
 }

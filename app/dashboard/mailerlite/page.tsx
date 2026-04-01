@@ -7,9 +7,9 @@ import { GoalSection } from '@/components/GoalSection'
 import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis } from '@/types'
 
-const COACH_TITLE = getCoachTitle('mailerlite')
 
 export default function MailerLitePage() {
+  const [coachTitle] = useState(() => getCoachTitle())
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function MailerLitePage() {
             { label: 'Unsubscribes', value: ml.unsubscribes, sub: 'Recent period', color: ml.unsubscribes > 30 ? '#fb7185' : '#34d399' },
           ]} />
 
-          {coach && <DarkCoachBox color="#34d399" title={COACH_TITLE}>{coach}</DarkCoachBox>}
+          {coach && <DarkCoachBox color="#34d399" title={coachTitle}>{coach}</DarkCoachBox>}
 
           {/* Benchmarks table */}
           <div className="rounded-xl overflow-hidden mb-5"

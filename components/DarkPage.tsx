@@ -1,6 +1,7 @@
 'use client'
 // components/DarkPage.tsx
 import Link from 'next/link'
+import { getCoachTitle } from '@/lib/coachTitle'
 
 interface DarkPageProps {
   title: string
@@ -102,7 +103,8 @@ const EMPOWERMENT_PROMPTS = [
 ]
 
 // Coach callout for dark pages
-export function DarkCoachBox({ children, color = '#fbbf24', title = 'Your coach says' }: { children: React.ReactNode; color?: string; title?: string }) {
+export function DarkCoachBox({ children, color = '#fbbf24', title }: { children: React.ReactNode; color?: string; title?: string }) {
+  const resolvedTitle = title ?? getCoachTitle()
   const showPrompt = Math.random() < 0.1
   const prompt = EMPOWERMENT_PROMPTS[Math.floor(Math.random() * EMPOWERMENT_PROMPTS.length)]
 
@@ -115,7 +117,7 @@ export function DarkCoachBox({ children, color = '#fbbf24', title = 'Your coach 
       }}>
       <div className="text-[10.5px] font-bold tracking-[1px] uppercase mb-2"
         style={{ color }}>
-        {title}
+        {resolvedTitle}
       </div>
       <div className="text-[13px] leading-[1.75]" style={{ color: '#d6d3d1' }}>
         {children}

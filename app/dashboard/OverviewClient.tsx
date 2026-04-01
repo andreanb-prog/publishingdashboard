@@ -5,7 +5,7 @@ import Link from 'next/link'
 import type { Analysis, RankLog, RoasLog, ChannelScore, CoachingInsight } from '@/types'
 import { getCoachTitle } from '@/lib/coachTitle'
 
-const COACH_TITLE_OVERVIEW = getCoachTitle('overview')
+// coach title is set per-mount so it changes on every page load
 import { ActionItem } from '@/components/ui'
 import { FreshBanner } from '@/components/FreshBanner'
 import { OnboardingBanner } from '@/components/OnboardingBanner'
@@ -186,8 +186,9 @@ export function OverviewClient() {
   const [rankLogs,  setRankLogs]  = useState<RankLog[]>([])
   const [roasLogs,  setRoasLogs]  = useState<RoasLog[]>([])
   const [loading,   setLoading]   = useState(true)
-  const [copied,    setCopied]    = useState(false)
-  const [copying,   setCopying]   = useState(false)
+  const [copied,      setCopied]      = useState(false)
+  const [copying,     setCopying]     = useState(false)
+  const [coachTitle]  = useState(() => getCoachTitle())
 
   useEffect(() => {
     Promise.all([
@@ -350,7 +351,7 @@ export function OverviewClient() {
                 {loading ? (
                   <div className="card p-8 text-center">
                     <div className="text-[14px] font-serif text-[#0d1f35] animate-pulse">
-                      {COACH_TITLE_OVERVIEW.replace(' says', '')} is reading everything…
+                      {coachTitle.replace(' says', '')} is reading everything…
                     </div>
                   </div>
                 ) : !analysis?.actionPlan?.length ? (
@@ -370,7 +371,7 @@ export function OverviewClient() {
                   <div className="card overflow-hidden mb-7">
                     <div className="px-5 py-3.5" style={{ background: '#0d1f35' }}>
                       <div className="font-serif text-[16px] text-white">
-                        {COACH_TITLE_OVERVIEW.replace(' says', '')} reviewed everything. Here&apos;s what to do next.
+                        {coachTitle.replace(' says', '')} reviewed everything. Here&apos;s what to do next.
                       </div>
                       <div className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
                         Ranked by priority · Based on your real numbers

@@ -1,5 +1,6 @@
 // components/ui.tsx — shared UI components
 'use client'
+import { getCoachTitle } from '@/lib/coachTitle'
 
 interface TrafficLightProps {
   status: 'GREEN' | 'AMBER' | 'RED' | 'NEW'
@@ -56,7 +57,8 @@ interface CoachBoxProps {
   dark?: boolean
 }
 
-export function CoachBox({ title = 'Your coach says', children, color = 'amber', dark = false }: CoachBoxProps) {
+export function CoachBox({ title, children, color = 'amber', dark = false }: CoachBoxProps) {
+  const resolvedTitle = title ?? getCoachTitle()
   if (dark) {
     const borderColor = { amber: '#fbbf24', green: '#34d399', red: '#fb7185', blue: '#38bdf8' }[color]
     return (
@@ -70,7 +72,7 @@ export function CoachBox({ title = 'Your coach says', children, color = 'amber',
       >
         <div className="text-[10.5px] font-bold tracking-[1px] uppercase mb-2"
           style={{ color: borderColor }}>
-          {title}
+          {resolvedTitle}
         </div>
         <div className="text-[13px] leading-[1.75]" style={{ color: '#d6d3d1' }}>
           {children}
@@ -88,7 +90,7 @@ export function CoachBox({ title = 'Your coach says', children, color = 'amber',
         color === 'amber' ? 'text-amber-700' :
         color === 'green' ? 'text-emerald-700' :
         color === 'red' ? 'text-red-700' : 'text-blue-700'
-      }`}>{title}</div>
+      }`}>{resolvedTitle}</div>
       <div className="text-[13px] text-stone-600 leading-[1.75]">{children}</div>
     </div>
   )

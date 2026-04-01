@@ -9,7 +9,6 @@ import { BarChart } from '@/components/ui'
 import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis, DailyData, RoasLog } from '@/types'
 
-const COACH_TITLE = getCoachTitle('kdp')
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmt(d: Date) { return d.toISOString().split('T')[0] }
@@ -344,6 +343,7 @@ function DailyBarsChart({
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function KDPPage() {
+  const [coachTitle]  = useState(() => getCoachTitle())
   const [allAnalyses, setAllAnalyses] = useState<Analysis[]>([])
   const [roasLogs,    setRoasLogs]    = useState<RoasLog[]>([])
   const [preset,      setPreset]      = useState<Preset>('thisMonth')
@@ -460,7 +460,7 @@ export default function KDPPage() {
             { label: 'FDMBP Units',      value: kdp.books.find(b => b.asin === 'B0GQD4J6VT')?.units || 0,  sub: 'Fake Dating Billionaire', color: '#a78bfa' },
           ]} />
 
-          {coach && <DarkCoachBox color="#fbbf24" title={COACH_TITLE}>{coach}</DarkCoachBox>}
+          {coach && <DarkCoachBox color="#fbbf24" title={coachTitle}>{coach}</DarkCoachBox>}
 
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div className="rounded-xl p-5" style={{ background: '#1c1917', border: '1px solid #292524' }}>

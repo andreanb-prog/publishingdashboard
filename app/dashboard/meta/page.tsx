@@ -9,7 +9,6 @@ import { SortablePage } from '@/components/SortablePage'
 import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis, MetaAd } from '@/types'
 
-const COACH_TITLE = getCoachTitle('meta')
 
 // ── Column definitions ────────────────────────────────────────────────────────
 type ColKey =
@@ -231,7 +230,8 @@ function ColumnPicker({
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function MetaPage() {
-  const [analysis,   setAnalysis]   = useState<Analysis | null>(null)
+  const [coachTitle]               = useState(() => getCoachTitle())
+  const [analysis,   setAnalysis]  = useState<Analysis | null>(null)
   const [activeCols, setActiveCols] = useState<Set<ColKey>>(DEFAULT_COLS)
   const [pickerOpen, setPickerOpen] = useState(false)
   const pickerRef  = useRef<HTMLDivElement>(null)
@@ -361,7 +361,7 @@ export default function MetaPage() {
             { label: 'Total Clicks', value: meta.totalClicks,             sub: `$${meta.avgCPC} avg CPC`, color: '#38bdf8' },
           ]} />
 
-          {coach && <DarkCoachBox color="#fb7185" title={COACH_TITLE}>{coach}</DarkCoachBox>}
+          {coach && <DarkCoachBox color="#fb7185" title={coachTitle}>{coach}</DarkCoachBox>}
 
           {/* Viewing bar */}
           {viewRange && (
