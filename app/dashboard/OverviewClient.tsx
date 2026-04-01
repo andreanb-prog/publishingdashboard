@@ -14,10 +14,11 @@ const CHANNEL_CARDS = [
 ]
 
 const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
-  GREEN: { bg: 'bg-emerald-50', text: 'text-emerald-800', label: '🟢 Growing' },
-  AMBER: { bg: 'bg-amber-50',   text: 'text-amber-800',   label: '🟡 Watch' },
-  RED:   { bg: 'bg-red-50',     text: 'text-red-800',     label: '🔴 Fix this' },
-  NEW:   { bg: 'bg-blue-50',    text: 'text-blue-800',    label: '🔵 Starting' },
+  GREEN:  { bg: 'bg-emerald-50', text: 'text-emerald-800', label: '🟢 Growing' },
+  AMBER:  { bg: 'bg-amber-50',   text: 'text-amber-800',   label: '🟡 Watch' },
+  YELLOW: { bg: 'bg-amber-50',   text: 'text-amber-800',   label: '🟡 Watch' },
+  RED:    { bg: 'bg-red-50',     text: 'text-red-800',     label: '🔴 Fix this' },
+  NEW:    { bg: 'bg-blue-50',    text: 'text-blue-800',    label: '🔵 Starting' },
 }
 
 // Hardcoded swap calendar (matches swaps/page.tsx)
@@ -299,7 +300,7 @@ export function OverviewClient() {
       <div className="grid grid-cols-5 gap-3 mb-7">
         {CHANNEL_CARDS.map(card => {
           const score = channelScoreMap.get(card.key)
-          const badge = score ? STATUS_BADGE[score.status] : STATUS_BADGE.NEW
+          const badge = (score?.status ? STATUS_BADGE[score.status] : null) ?? STATUS_BADGE.NEW
           return (
             <Link key={card.key} href={card.href}
               className={`card p-4 cursor-pointer hover:-translate-y-0.5 transition-all
