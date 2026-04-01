@@ -1,9 +1,10 @@
 'use client'
 // app/dashboard/OverviewClient.tsx
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { Analysis, RankLog, RoasLog } from '@/types'
 import { ActionItem } from '@/components/ui'
+import { FreshBanner } from '@/components/FreshBanner'
 
 const CHANNEL_CARDS = [
   { key: 'kdp',        href: '/dashboard/kdp',        icon: '📚', name: 'KDP',        colorClass: 'border-t-amber-brand' },
@@ -236,6 +237,8 @@ export function OverviewClient() {
 
   return (
     <div className="p-8 max-w-[1400px]">
+
+      <Suspense fallback={null}><FreshBanner /></Suspense>
 
       {/* Banner */}
       <div className="rounded-xl p-6 mb-6 flex items-center justify-between"

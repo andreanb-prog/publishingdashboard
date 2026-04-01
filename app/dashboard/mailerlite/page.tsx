@@ -1,7 +1,8 @@
 'use client'
 // app/(dashboard)/mailerlite/page.tsx
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { DarkPage, DarkKPIStrip, DarkCoachBox } from '@/components/DarkPage'
+import { FreshBanner } from '@/components/FreshBanner'
 import type { Analysis } from '@/types'
 
 export default function MailerLitePage() {
@@ -10,7 +11,12 @@ export default function MailerLitePage() {
   useEffect(() => {
     fetch('/api/analyze')
       .then(r => r.json())
-      .then(d => { if (d.analyses?.[0]) setAnalysis(d.analyses[0].data || d.analyses[0]) })
+      .then(d => {
+        const rows: Analysis[] = (d.analyses ?? [])
+          .map((a: { data?: Analysis }) => a.data)
+          .filter((x: unknown): x is Analysis => !!x && typeof x === 'object' && 'month' in (x as object))
+        if (rows[0]) setAnalysis(rows[0])
+      })
   }, [])
 
   const ml = analysis?.mailerLite
@@ -25,6 +31,7 @@ export default function MailerLitePage() {
 
   return (
     <DarkPage title="📧 MailerLite — Email Marketing" subtitle="Open rates · List health · Subscriber trends">
+      <Suspense fallback={null}><FreshBanner /></Suspense>
       {!ml ? (
         <div className="text-center py-16" style={{ color: '#a8a29e' }}>
           <div className="text-4xl mb-4">📧</div>

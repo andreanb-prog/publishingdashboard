@@ -1,7 +1,8 @@
 'use client'
 // app/(dashboard)/pinterest/page.tsx
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { DarkPage, DarkCoachBox } from '@/components/DarkPage'
+import { FreshBanner } from '@/components/FreshBanner'
 import type { Analysis } from '@/types'
 
 const ROADMAP = [
@@ -38,7 +39,12 @@ export default function PinterestPage() {
   useEffect(() => {
     fetch('/api/analyze')
       .then(r => r.json())
-      .then(d => { if (d.analyses?.[0]) setAnalysis(d.analyses[0].data || d.analyses[0]) })
+      .then(d => {
+        const rows: Analysis[] = (d.analyses ?? [])
+          .map((a: { data?: Analysis }) => a.data)
+          .filter((x: unknown): x is Analysis => !!x && typeof x === 'object' && 'month' in (x as object))
+        if (rows[0]) setAnalysis(rows[0])
+      })
 
     fetch('/api/pinterest-log')
       .then(r => r.json())
@@ -78,6 +84,7 @@ export default function PinterestPage() {
 
   return (
     <DarkPage title="📌 Pinterest" subtitle="Dec 2025 – Mar 2026 · Building from zero · Your 30-day plan">
+      <Suspense fallback={null}><FreshBanner /></Suspense>
       {/* KPI strip */}
       <div className="grid grid-cols-3 gap-3.5 mb-7">
         {[

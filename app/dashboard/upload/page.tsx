@@ -123,7 +123,17 @@ export default function UploadPage() {
 
       if (res.ok) {
         setDone(true)
-        setTimeout(() => router.push('/dashboard'), 1500)
+        // Smart redirect: land on the most relevant deep-dive page
+        const uploadedCount = [kdpData, metaData, pinData].filter(Boolean).length
+        let redirectTo = '/dashboard'
+        if (uploadedCount === 0 && mlData) {
+          redirectTo = '/dashboard/mailerlite'
+        } else if (uploadedCount === 1) {
+          if (metaData)    redirectTo = '/dashboard/meta'
+          else if (kdpData) redirectTo = '/dashboard/kdp'
+          else if (pinData) redirectTo = '/dashboard/pinterest'
+        }
+        setTimeout(() => router.push(redirectTo + '?fresh=1'), 1500)
       } else {
         throw new Error('Analysis failed')
       }

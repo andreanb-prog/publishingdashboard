@@ -1,7 +1,8 @@
 'use client'
 // app/dashboard/kdp/page.tsx
-import { useEffect, useState, useMemo } from 'react'
+import { Suspense, useEffect, useState, useMemo } from 'react'
 import { DarkPage, DarkKPIStrip, DarkCoachBox } from '@/components/DarkPage'
+import { FreshBanner } from '@/components/FreshBanner'
 import { BarChart } from '@/components/ui'
 import type { Analysis, DailyData, RoasLog } from '@/types'
 
@@ -424,6 +425,7 @@ export default function KDPPage() {
 
   return (
     <DarkPage title="📚 KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties">
+      <Suspense fallback={null}><FreshBanner /></Suspense>
       {!kdp ? (
         <div className="text-center py-16" style={{ color: '#a8a29e' }}>
           <div className="text-4xl mb-4">📚</div>
