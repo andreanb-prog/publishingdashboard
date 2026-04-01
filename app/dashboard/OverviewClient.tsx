@@ -187,9 +187,10 @@ export function OverviewClient() {
       fetch('/api/rank').then(r => r.json()).catch(() => ({ logs: [] })),
       fetch('/api/roas').then(r => r.json()).catch(() => ({ logs: [] })),
     ]).then(([analyzeData, rankData, roasData]) => {
-      if (analyzeData.analyses?.length) {
-        setAnalyses(analyzeData.analyses.map((a: { data?: Analysis }) => a.data || a))
-      }
+      const rows: Analysis[] = (analyzeData.analyses ?? [])
+        .map((a: { data?: Analysis }) => a.data)
+        .filter((d: unknown): d is Analysis => !!d && typeof d === 'object' && 'month' in (d as object))
+      if (rows.length) setAnalyses(rows)
       setRankLogs(rankData.logs ?? [])
       setRoasLogs(roasData.logs ?? [])
     }).catch(console.error).finally(() => setLoading(false))

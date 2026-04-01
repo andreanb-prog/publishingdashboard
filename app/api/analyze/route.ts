@@ -96,15 +96,22 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       return NextResponse.json({ error: 'Failed to parse coaching response' }, { status: 500 })
     }
 
-    const analysis: Analysis = {
+    const analysis: Analysis & Record<string, unknown> = {
       month,
-      kdp,
-      meta,
-      mailerLite,
-      pinterest,
-      insights: coachingData.actionPlan || [],
+      kdp:        kdp        ?? undefined,
+      meta:       meta       ?? undefined,
+      mailerLite: mailerLite ?? undefined,
+      pinterest:  pinterest  ?? undefined,
+      overallVerdict: coachingData.overview?.headline || coachingData.overview?.subline || '',
+      insights:      coachingData.actionPlan  || [],
       channelScores: coachingData.channelScores || [],
-      actionPlan: coachingData.actionPlan || [],
+      actionPlan:    coachingData.actionPlan  || [],
+      // Channel-specific coach paragraphs — used by deep-dive pages
+      kdpCoach:      coachingData.insights?.kdp       || '',
+      metaCoach:     coachingData.insights?.meta      || '',
+      emailCoach:    coachingData.insights?.email     || '',
+      pinterestCoach:coachingData.insights?.pinterest || '',
+      swapsCoach:    coachingData.insights?.swaps     || '',
       generatedAt: new Date().toISOString(),
     }
 
