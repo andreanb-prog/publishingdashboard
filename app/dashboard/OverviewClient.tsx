@@ -2,7 +2,7 @@
 // app/dashboard/OverviewClient.tsx
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
-import type { Analysis, RankLog, RoasLog, ChannelScore, CoachingInsight, ExecutiveSummary, CrossChannelPlan } from '@/types'
+import type { Analysis, RankLog, RoasLog, ChannelScore, CoachingInsight, CrossChannelPlan } from '@/types'
 import { getCoachTitle } from '@/lib/coachTitle'
 
 // coach title is set per-mount so it changes on every page load
@@ -361,16 +361,11 @@ export function OverviewClient() {
   }, [])
 
   // Normalize channel keys: Claude returns "email" but our card key is "mailerlite"
-  const channelScoreMap = new Map(
-    (analysis?.channelScores as ChannelScore[] | undefined)?.map((s: ChannelScore) => {
-      const key = s.channel === 'email' ? 'mailerlite' : s.channel
-      return [key, s] as [string, ChannelScore]
-    }) || []
-  )
+  const channelScoresArr: ChannelScore[] = Array.isArray(analysis?.channelScores) ? analysis.channelScores : []
+  function getChannelScore(key: string): ChannelScore | undefined {
+    return channelScoresArr.find((s: ChannelScore) => (s.channel === 'email' ? 'mailerlite' : s.channel) === key)
+  }
 
-  const monthLabel = analysis?.month
-    ? new Date(analysis.month + '-02').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    : new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   async function handleCopy() {
     setCopying(true)
@@ -430,102 +425,117 @@ export function OverviewClient() {
         </div>
       )}
 
-      {/* ── Today's Priorities (#39) ──────────────────────────────── */}
+      {/* ══════ SECTION 1 — TODAY'S PRIORITIES ══════════════════════ */}
+      <div className="mb-7">
+        <h2 className="font-sans text-[22px] font-bold tracking-tight mb-1" style={{ color: '#1E2D3D' }}>
+          Today&apos;s Priorities
+        </h2>
+        <p className="text-[12.5px] mb-5" style={{ color: '#9CA3AF' }}>
+          Highest impact actions based on your real performance data
+        </p>
+
+        {analysis?.actionPlan?.length ? (
+          <div className="space-y-3">
+            {(analysis.actionPlan as CoachingInsight[]).slice(0, 3).map((item, i) => {
+              const href = item.channel === 'kdp' ? '/dashboard/kdp'
+                : item.channel === 'meta' ? '/dashboard/meta'
+                : item.channel === 'email' ? '/dashboard/mailerlite'
+                : item.channel === 'pinterest' ? '/dashboard/pinterest'
+                : '/dashboard/upload'
+              return (
+                <div key={i} className="rounded-xl px-5 py-4"
+                  style={{ background: '#FFF8F0', border: '1px solid #EEEBE6', borderLeft: '3px solid #E9A020' }}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <span className="text-[9px] font-bold tracking-[1.5px] uppercase px-2 py-0.5 rounded mr-2"
+                        style={{ background: 'rgba(30,45,61,0.08)', color: '#1E2D3D' }}>
+                        Priority {i + 1}
+                      </span>
+                      <div className="font-sans text-[14px] font-bold uppercase tracking-wide mt-2 mb-1.5" style={{ color: '#1E2D3D' }}>
+                        {item.title}
+                      </div>
+                      <div className="text-[12.5px] leading-relaxed" style={{ color: '#374151' }}>
+                        {item.body}
+                        {item.action && (
+                          <span className="ml-1">
+                            <strong style={{ color: '#E9A020' }}>Impact:</strong> {item.action}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Link href={href}
+                      className="flex-shrink-0 px-4 py-2 rounded-lg text-[11px] font-bold no-underline whitespace-nowrap transition-all hover:opacity-90"
+                      style={{ background: '#E9A020', color: '#0d1f35' }}>
+                      Action →
+                    </Link>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <InsightCallouts analysis={analysis!} page="overview" />
+        )}
+      </div>
+
+      {/* ══════ SECTION 2 — WHAT'S WORKING (metric tiles) ═════════ */}
       {analysis && (
-        <div className="mb-6">
-          <h2 className="font-sans text-[20px] font-bold tracking-tight mb-1" style={{ color: '#1E2D3D' }}>
-            Today&apos;s Priorities
-          </h2>
-          <p className="text-[12.5px] mb-4" style={{ color: '#9CA3AF' }}>
-            Review these first — highest impact actions based on your data
-          </p>
-          <InsightCallouts analysis={analysis} page="overview" />
+        <div className="mb-7">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {(() => {
+              const meta = analysis.meta
+              const ml = analysis.mailerLite
+              const tiles = [
+                { stat: meta?.avgCTR ? `${meta.avgCTR}%` : '—', label: 'META ADS', sub: meta?.avgCTR && meta.avgCTR >= 2 ? 'Exceptional performance (top 10%)' : meta?.avgCTR ? 'Room to improve' : 'No data yet' },
+                { stat: ml?.openRate ? `${ml.openRate}%` : '—', label: 'EMAIL OPEN RATE', sub: ml?.openRate && ml.openRate >= 25 ? 'Well above 20–25% author average' : ml?.openRate ? 'Near author average' : 'No data yet' },
+                { stat: ml?.clickRate ? `${ml.clickRate}%` : '—', label: 'EMAIL CLICK RATE', sub: ml?.clickRate && ml.clickRate >= 4 ? 'Strong reader engagement' : ml?.clickRate ? 'Room to grow' : 'No data yet' },
+                { stat: meta?.bestAd?.ctr ? `${meta.bestAd.ctr}%` : '—', label: 'TOP AD PERFORMER', sub: meta?.bestAd?.name ? meta.bestAd.name.slice(0, 40) : 'No data yet' },
+              ]
+              return tiles.map((t, i) => (
+                <div key={i}>
+                  <div className="text-[28px] font-bold leading-none tracking-tight mb-1" style={{ color: '#1E2D3D' }}>
+                    {t.stat}
+                  </div>
+                  <div className="text-[11px] font-bold tracking-[1.5px] uppercase mb-0.5" style={{ color: '#6EBF8B' }}>
+                    {t.label}
+                  </div>
+                  <div className="text-[12px]" style={{ color: '#9CA3AF' }}>{t.sub}</div>
+                </div>
+              ))
+            })()}
+          </div>
         </div>
       )}
 
-      {/* Verdict banner */}
-      <div className="rounded-xl mb-6 px-6 py-4 flex items-center justify-between"
-        style={{ background: '#FFF8F0', borderLeft: '4px solid #E9A020', border: '1px solid #EEEBE6', borderLeftWidth: '4px', borderLeftColor: '#E9A020' }}>
-        <div>
-          <div className="text-[10px] font-bold tracking-[2px] uppercase mb-1.5" style={{ color: '#e9a020' }}>
-            {monthLabel}
-          </div>
-          <div className="font-serif text-[16px] leading-snug" style={{ color: '#1E2D3D' }}>
-            {analysis?.overallVerdict || 'Upload your files to get your first analysis.'}
-          </div>
-        </div>
-        <div className="text-right flex-shrink-0 ml-6">
-          <div className="text-[11.5px] mb-1" style={{ color: '#9CA3AF' }}>
-            {analysis
-              ? `Analyzed ${new Date(analysis.generatedAt).toLocaleDateString()}`
-              : 'No analysis yet'}
-          </div>
-          <Link href="/dashboard/upload" className="text-[11px] font-semibold no-underline hover:underline"
-            style={{ color: '#e9a020' }}>
-            Upload new files →
-          </Link>
-        </div>
-      </div>
-
-      {/* ── Executive Summary (#33) ────────────────────────────────── */}
+      {/* ══════ SECTION 3 — NEEDS ATTENTION SOON ══════════════════ */}
       {analysis?.executiveSummary && (
-        <div className="card mb-6 overflow-hidden">
-          {/* Headline stat */}
-          <div className="px-6 py-5" style={{ background: '#FFF8F0', borderBottom: '1px solid #EEEBE6' }}>
-            <div className="font-sans text-[24px] font-bold tracking-tight" style={{ color: '#1E2D3D' }}>
-              {analysis.executiveSummary.headlineStat}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-7">
+          <div>
+            <div className="text-[11px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6EBF8B' }}>
+              What&apos;s working
             </div>
-          </div>
-
-          {/* Two columns */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:divide-x divide-[#EEEBE6]">
-            {/* What's working */}
-            <div className="px-6 py-5">
-              <div className="text-[10px] font-bold tracking-[2px] uppercase mb-3" style={{ color: '#6EBF8B' }}>
-                What&apos;s working
-              </div>
-              <ul className="space-y-2 list-none p-0 m-0">
-                {analysis.executiveSummary.whatsWorking.map((item: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: '#374151' }}>
-                    <span className="mt-1 flex-shrink-0" style={{ color: '#6EBF8B' }}>▲</span>
-                    <span dangerouslySetInnerHTML={{ __html: item.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Where to strengthen */}
-            <div className="px-6 py-5 border-t md:border-t-0 border-[#EEEBE6]">
-              <div className="text-[10px] font-bold tracking-[2px] uppercase mb-3" style={{ color: '#E9A020' }}>
-                Where you can strengthen
-              </div>
-              <ul className="space-y-2 list-none p-0 m-0">
-                {analysis.executiveSummary.whereToStrengthen.map((item: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: '#374151' }}>
-                    <span className="mt-1 flex-shrink-0" style={{ color: '#E9A020' }}>◆</span>
-                    <span dangerouslySetInnerHTML={{ __html: item.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Action pills */}
-          {analysis.executiveSummary.topActions?.length > 0 && (
-            <div className="px-6 py-4 flex flex-wrap gap-2" style={{ borderTop: '1px solid #EEEBE6' }}>
-              {analysis.executiveSummary.topActions.map((action: { label: string; href: string }, i: number) => (
-                <Link key={i} href={action.href}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-[12px] font-bold no-underline transition-all hover:opacity-90"
-                  style={{ background: '#FFF8F0', border: '1px solid #EEEBE6', color: '#1E2D3D' }}>
-                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
-                    style={{ background: '#E9A020', color: '#0d1f35' }}>
-                    {i + 1}
-                  </span>
-                  {action.label}
-                </Link>
+            <div className="space-y-2.5">
+              {analysis.executiveSummary.whatsWorking.map((item: string, i: number) => (
+                <div key={i} className="flex items-start gap-2.5 text-[13px] leading-snug" style={{ color: '#374151' }}>
+                  <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: '#6EBF8B' }} />
+                  <span dangerouslySetInnerHTML={{ __html: item.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#1E2D3D">$1</strong>') }} />
+                </div>
               ))}
             </div>
-          )}
+          </div>
+          <div>
+            <div className="text-[11px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#F97B6B' }}>
+              Needs attention soon
+            </div>
+            <div className="space-y-2.5">
+              {analysis.executiveSummary.whereToStrengthen.map((item: string, i: number) => (
+                <div key={i} className="flex items-start gap-2.5 text-[13px] leading-snug" style={{ color: '#374151' }}>
+                  <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: '#F97B6B' }} />
+                  <span dangerouslySetInnerHTML={{ __html: item.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#1E2D3D">$1</strong>') }} />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -547,7 +557,7 @@ export function OverviewClient() {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
                   {CHANNEL_CARDS.map(card => {
-                    const score = channelScoreMap.get(card.key) as ChannelScore | undefined
+                    const score = getChannelScore(card.key)
                     const badge = (score?.status ? STATUS_BADGE[score.status] : null) ?? STATUS_BADGE.NEW
                     return (
                       <Link key={card.key} href={card.href}
@@ -636,7 +646,39 @@ export function OverviewClient() {
         ]}
       />
 
-      {/* ── Cross-Channel Action Plan (#30) ──────────────────────────── */}
+      {/* ══════ SECTION 5 — YOUR GROWTH ROADMAP ═══════════════════ */}
+      {analysis?.executiveSummary?.topActions && analysis.executiveSummary.topActions.length > 0 && (
+        <div className="mb-7">
+          <h2 className="font-serif text-[18px] text-[#0d1f35] mb-4">Your Growth Roadmap</h2>
+          <div className="space-y-3">
+            {analysis.executiveSummary.topActions.map((action: { label: string; href: string }, i: number) => {
+              const isDone = false // future: track completion
+              return (
+                <div key={i} className="flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0"
+                    style={{
+                      background: isDone ? '#1E2D3D' : 'transparent',
+                      border: isDone ? 'none' : '2px solid #E9A020',
+                      color: isDone ? 'white' : '#E9A020',
+                    }}>
+                    {i + 1}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[13.5px] font-semibold" style={{ color: '#1E2D3D' }}>{action.label}</div>
+                  </div>
+                  <Link href={action.href}
+                    className="text-[11.5px] font-semibold no-underline hover:underline"
+                    style={{ color: '#E9A020' }}>
+                    Start here →
+                  </Link>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ══════ SECTION 6 — CROSS-CHANNEL ACTION PLAN ═════════════ */}
       <div className="mb-7">
         <div className="flex items-baseline justify-between mb-4">
           <h2 className="font-serif text-[18px] text-[#0d1f35]">Cross-Channel Action Plan</h2>

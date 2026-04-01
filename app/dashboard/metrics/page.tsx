@@ -159,6 +159,17 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
   if (readThroughPct >= 60) coachLines.push(`${readThroughPct.toFixed(0)}% read-through is excellent.`)
   if (coachLines.length === 0) coachLines.push('Upload your KDP and Meta data to see your full funnel.')
 
+  // Visual funnel: 4 horizontal bars shrinking in width
+  const FUNNEL_COLORS = ['#F97B6B', '#8B5CF6', '#60A5FA', '#6EBF8B']
+  const funnelStages = [
+    { label: 'Impressions', value: impressions, source: meta ? 'Meta' : '', color: FUNNEL_COLORS[0] },
+    { label: 'Clicks', value: clicks, source: meta ? `${ctr.toFixed(1)}% CTR` : '', color: FUNNEL_COLORS[1] },
+    { label: 'Readers', value: readers, source: readers > 0 ? `${totalUnits} units + ~${estimatedBorrows} KU` : '', color: FUNNEL_COLORS[2] },
+    { label: 'Email Subscribers', value: listSize, source: listSize > 0 ? `$${costPerSub.toFixed(2)}/sub` : '', color: FUNNEL_COLORS[3] },
+  ]
+  const maxFunnel = Math.max(...funnelStages.map(s => s.value), 1)
+  const biggestLeak = coachLines.find(l => l.includes('leak') || l.includes('Leak')) || coachLines[0] || ''
+
   return (
     <div className="mb-8">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
@@ -169,45 +180,56 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
           </div>
         ))}
       </div>
+
+      {/* Visual funnel — 4 horizontal bars */}
       <div className="rounded-xl p-5 md:p-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-        <div className="space-y-0">
-          {stages.map((stage, i) => {
-            const widthPct = 100 - (i * 12)
-            const leak = stage.leakStatus ? LEAK_COLORS[stage.leakStatus] : null
+        <div className="space-y-3">
+          {funnelStages.map((stage, i) => {
+            const widthPct = stage.value > 0 ? Math.max((stage.value / maxFunnel) * 100, 8) : 0
+            const convRate = i > 0 && funnelStages[i - 1].value > 0
+              ? ((stage.value / funnelStages[i - 1].value) * 100).toFixed(1)
+              : null
+            const hasData = stage.value > 0
             return (
-              <div key={stage.label}>
-                <div className="mx-auto" style={{ maxWidth: `${widthPct}%` }}>
-                  <div className="rounded-lg px-4 py-3 md:px-5 md:py-4"
-                    style={{ background: stage.available ? '#F9F9F8' : '#FAFAFA', border: stage.available ? '1px solid #EEEBE6' : '1px dashed #D6D3D1', opacity: stage.available ? 1 : 0.6 }}>
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div>
-                        <div className="text-[10px] font-bold tracking-[1px] uppercase mb-0.5" style={{ color: '#9CA3AF' }}>{stage.label}</div>
-                        <div className="text-[22px] md:text-[26px] font-semibold leading-none tracking-tight" style={{ color: stage.available ? '#1E2D3D' : '#9CA3AF' }}>{stage.value}</div>
-                      </div>
-                      <div className="text-[11px] text-right" style={{ color: '#6B7280' }}>{stage.sub}</div>
-                    </div>
-                    {!stage.available && <div className="mt-2 text-[11px]" style={{ color: '#e9a020' }}>Upload data to fill this stage →</div>}
-                  </div>
+              <div key={stage.label} className="flex items-center gap-4">
+                <div className="w-32 flex-shrink-0 text-right">
+                  <div className="text-[12px] font-semibold" style={{ color: '#1E2D3D' }}>{stage.label}</div>
+                  {stage.source && <div className="text-[10px]" style={{ color: '#9CA3AF' }}>{stage.source}</div>}
                 </div>
-                {i < stages.length - 1 && (
-                  <div className="flex items-center justify-center gap-2 py-1.5">
-                    <span className="text-[16px]" style={{ color: '#EEEBE6' }}>▼</span>
-                    {leak && stage.leakPct != null && stage.leakPct > 0 && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: leak.bg, color: leak.color }}>{stage.leakPct.toFixed(0)}% drop · {leak.label}</span>
-                    )}
-                  </div>
-                )}
-                {stage.leakNote && (
-                  <div className="mx-auto mb-1" style={{ maxWidth: `${widthPct}%` }}>
-                    <div className="rounded-lg px-3 py-2 text-[11.5px]" style={{ background: 'rgba(251,113,133,0.05)', border: '1px solid rgba(251,113,133,0.15)', color: '#fb7185' }}>💬 {stage.leakNote}</div>
-                  </div>
-                )}
+                <div className="flex-1">
+                  {hasData ? (
+                    <div className="relative rounded-md overflow-hidden" style={{ height: 32, background: `${stage.color}10` }}>
+                      <div className="h-full rounded-md flex items-center px-3 transition-all duration-700"
+                        style={{ width: `${widthPct}%`, background: stage.color }}>
+                        <span className="text-[12px] font-bold text-white whitespace-nowrap">
+                          {stage.value.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-md flex items-center px-3" style={{ height: 32, background: '#F5F5F4', border: '1px dashed #D6D3D1' }}>
+                      <span className="text-[11px]" style={{ color: '#9CA3AF' }}>No data yet</span>
+                    </div>
+                  )}
+                </div>
+                <div className="w-16 text-right flex-shrink-0">
+                  {convRate && (
+                    <span className="text-[11px] font-mono font-bold" style={{ color: '#6B7280' }}>{convRate}%</span>
+                  )}
+                </div>
               </div>
             )
           })}
         </div>
-        <div className="mt-5 pt-4 text-[12.5px] leading-relaxed" style={{ borderTop: '1px solid #EEEBE6', color: '#374151' }}>
-          <span className="font-bold" style={{ color: '#e9a020' }}>Funnel analysis:</span> {coachLines.join(' ')}
+
+        {/* AI insight box */}
+        <div className="mt-5 rounded-xl p-4" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-1" style={{ color: '#F97B6B' }}>
+            Biggest leak
+          </div>
+          <div className="text-[12.5px] leading-relaxed" style={{ color: '#374151' }}>
+            {biggestLeak}
+          </div>
         </div>
       </div>
     </div>
