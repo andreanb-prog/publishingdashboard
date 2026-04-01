@@ -382,17 +382,6 @@ export default function MetaPage() {
                 id: 'ads-table',
                 content: (
                   <div>
-                    {/* Download coaching tracker */}
-                    <div className="flex justify-end mb-3">
-                      <a
-                        href="/api/export/ad-tracker"
-                        download
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold no-underline transition-all"
-                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#78716c' }}
-                      >
-                        ⬇ Download Coaching Tracker
-                      </a>
-                    </div>
                     {/* ── Ads table with column picker ────────────────────── */}
                     <div className="relative mb-5" ref={pickerRef}>
             {/* Header row: label + customize button */}

@@ -82,11 +82,25 @@ export default function UploadPage() {
   // Last recognized file wins per type
   const byType = new Map<FileType, ParsedFile>()
   files.filter(f => f.status === 'done' && f.type !== 'unknown').forEach(f => byType.set(f.type, f))
-  const kdpData   = (byType.get('kdp')?.data as KDPData | undefined)       ?? null
-  const metaData  = (byType.get('meta')?.data as MetaData | undefined)      ?? null
+  const kdpData   = (byType.get('kdp')?.data as KDPData | undefined)           ?? null
+  const metaData  = (byType.get('meta')?.data as MetaData | undefined)         ?? null
   const pinData   = (byType.get('pinterest')?.data as PinterestData | undefined) ?? null
   const hasAny    = !!(kdpData || metaData || pinData)
   const allReading = files.some(f => f.status === 'reading')
+  const allDone   = files.length > 0 && files.every(f => f.status === 'done' && f.type !== 'unknown')
+
+  // Border color: green when all files recognized, amber while dragging, default otherwise
+  const borderColor = allDone
+    ? '#34d399'
+    : dragging
+    ? '#e9a020'
+    : files.length > 0
+    ? 'rgba(255,255,255,0.15)'
+    : 'rgba(255,255,255,0.2)'
+
+  const bgColor = dragging
+    ? 'rgba(233,160,32,0.08)'
+    : 'rgba(255,255,255,0.03)'
 
   async function runAnalysis() {
     setAnalyzing(true)
@@ -124,13 +138,12 @@ export default function UploadPage() {
 
       if (res.ok) {
         setDone(true)
-        // Smart redirect: land on the most relevant deep-dive page
         const uploadedCount = [kdpData, metaData, pinData].filter(Boolean).length
         let redirectTo = '/dashboard'
         if (uploadedCount === 0 && mlData) {
           redirectTo = '/dashboard/mailerlite'
         } else if (uploadedCount === 1) {
-          if (metaData)    redirectTo = '/dashboard/meta'
+          if (metaData)     redirectTo = '/dashboard/meta'
           else if (kdpData) redirectTo = '/dashboard/kdp'
           else if (pinData) redirectTo = '/dashboard/pinterest'
         }
@@ -161,13 +174,10 @@ export default function UploadPage() {
 
         {!analyzing ? (
           <>
-            {/* Big drop zone */}
+            {/* Drop zone — expands to contain files */}
             <div
               className="rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 mb-5"
-              style={{
-                borderColor: dragging ? '#e9a020' : 'rgba(255,255,255,0.2)',
-                background: dragging ? 'rgba(233,160,32,0.08)' : 'rgba(255,255,255,0.03)',
-              }}
+              style={{ borderColor, background: bgColor }}
               onClick={() => inputRef.current?.click()}
               onDragOver={e => { e.preventDefault(); setDragging(true) }}
               onDragLeave={() => setDragging(false)}
@@ -181,90 +191,134 @@ export default function UploadPage() {
                 className="hidden"
                 onChange={e => handleFiles(e.target.files)}
               />
-              <div className="flex flex-col items-center justify-center py-12 text-center px-6">
-                <div className="text-5xl mb-4">📂</div>
-                <div className="text-[16px] font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                  Drop your files here
-                </div>
-                <div className="text-[12px] mb-5" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                  or click anywhere in this box · up to 10 files · KDP, Meta Ads, Pinterest
-                </div>
-                {/* Visible browse button — stops propagation so the outer onClick doesn't double-fire */}
-                <button
-                  type="button"
-                  onClick={e => { e.stopPropagation(); inputRef.current?.click() }}
-                  className="px-5 py-2 rounded-lg text-[13px] font-semibold border transition-all duration-150
-                             hover:bg-white/10"
-                  style={{ borderColor: 'rgba(255,255,255,0.25)', color: 'rgba(255,255,255,0.65)' }}
-                >
-                  Browse files
-                </button>
-              </div>
-            </div>
 
-            {/* Per-file results */}
-            {files.length > 0 && (
-              <div className="mb-5">
-                {/* Header row with Start over */}
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider"
-                    style={{ color: 'rgba(255,255,255,0.3)' }}>
-                    {files.length} file{files.length !== 1 ? 's' : ''} added
-                  </span>
-                  <button
-                    onClick={() => setFiles([])}
-                    className="text-[12px] transition-colors duration-150 hover:underline"
-                    style={{ color: 'rgba(255,255,255,0.35)' }}
-                  >
-                    Start over
-                  </button>
+              {files.length === 0 ? (
+                /* ── Empty state ──────────────────────────────────────── */
+                <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+                  <div className="text-5xl mb-4">📂</div>
+                  <div className="text-[16px] font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                    Drop your files here
+                  </div>
+                  <div className="text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    or click to browse · up to 10 files · KDP, Meta Ads, Pinterest
+                  </div>
                 </div>
+              ) : (
+                /* ── Files inside the box ─────────────────────────────── */
+                <div className="p-4" onClick={e => e.stopPropagation()}>
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider"
+                      style={{ color: 'rgba(255,255,255,0.3)' }}>
+                      {files.length} file{files.length !== 1 ? 's' : ''} added
+                    </span>
+                    <div className="flex items-center gap-3">
+                      {/* Add more — opens file picker without closing the zone */}
+                      <button
+                        onClick={e => { e.stopPropagation(); inputRef.current?.click() }}
+                        className="text-[12px] font-semibold transition-colors"
+                        style={{ color: '#e9a020' }}
+                      >
+                        + Add more
+                      </button>
+                      <button
+                        onClick={() => setFiles([])}
+                        className="text-[12px] transition-colors hover:underline"
+                        style={{ color: 'rgba(255,255,255,0.3)' }}
+                      >
+                        Start over
+                      </button>
+                    </div>
+                  </div>
 
-                <div className="space-y-2">
-                  {files.map(f => {
-                    const info = f.type !== 'unknown' ? TYPE_INFO[f.type] : null
-                    return (
-                      <div key={f.id} className="flex items-center gap-3 rounded-lg px-4 py-3"
-                        style={{ background: 'rgba(255,255,255,0.06)' }}>
-                        <span className="text-xl flex-shrink-0">
-                          {f.status === 'reading' ? '⏳' : f.type === 'unknown' ? '❌' : info!.icon}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-semibold truncate"
-                            style={{ color: 'rgba(255,255,255,0.75)' }}>
-                            {f.filename}
-                          </div>
-                          <div className="text-[11px]"
-                            style={{ color: f.type === 'unknown' ? '#f87171' : '#34d399' }}>
-                            {f.status === 'reading'
-                              ? 'Reading...'
-                              : f.type === 'unknown'
-                              ? "We couldn't recognize this file — check it's a KDP, Meta Ads, or Pinterest export"
-                              : `${info!.label} · ${f.summary}`}
-                          </div>
-                        </div>
-                        {f.status === 'done' && f.type !== 'unknown' && (
-                          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full flex-shrink-0"
-                            style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399' }}>
-                            Ready ✓
-                          </span>
-                        )}
-                        {/* Per-file remove button */}
-                        <button
-                          onClick={() => setFiles(prev => prev.filter(x => x.id !== f.id))}
-                          className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center
-                                     text-[13px] transition-all duration-150 hover:bg-white/10"
-                          style={{ color: 'rgba(255,255,255,0.3)' }}
-                          title="Remove file"
+                  {/* File rows */}
+                  <div className="space-y-2">
+                    {files.map(f => {
+                      const info = f.type !== 'unknown' ? TYPE_INFO[f.type as Exclude<FileType, 'unknown'>] : null
+                      const isReading = f.status === 'reading'
+                      const isError   = f.type === 'unknown' && f.status === 'error'
+                      const isReady   = f.status === 'done' && f.type !== 'unknown'
+
+                      return (
+                        <div
+                          key={f.id}
+                          className="flex items-center gap-3 rounded-lg px-4 py-3"
+                          style={{
+                            background: isReady
+                              ? 'rgba(52,211,153,0.07)'
+                              : isError
+                              ? 'rgba(251,113,133,0.07)'
+                              : 'rgba(255,255,255,0.05)',
+                            border: isReady
+                              ? '1px solid rgba(52,211,153,0.2)'
+                              : isError
+                              ? '1px solid rgba(251,113,133,0.2)'
+                              : '1px solid transparent',
+                          }}
                         >
-                          ×
-                        </button>
-                      </div>
-                    )
-                  })}
+                          {/* Status icon */}
+                          <span className="text-xl flex-shrink-0">
+                            {isReading ? (
+                              <span className="inline-block animate-spin">⏳</span>
+                            ) : isError ? (
+                              '❌'
+                            ) : (
+                              info?.icon ?? '✅'
+                            )}
+                          </span>
+
+                          {/* File info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] font-semibold truncate"
+                              style={{ color: 'rgba(255,255,255,0.8)' }}>
+                              {f.filename}
+                            </div>
+                            <div className="text-[11px] mt-0.5"
+                              style={{
+                                color: isReading
+                                  ? 'rgba(255,255,255,0.35)'
+                                  : isError
+                                  ? '#f87171'
+                                  : '#34d399',
+                              }}>
+                              {isReading
+                                ? 'Reading...'
+                                : isError
+                                ? "We couldn't recognize this file — check it's a KDP, Meta Ads, or Pinterest export"
+                                : `${info!.label} · ${f.summary}`}
+                            </div>
+                          </div>
+
+                          {/* Ready badge */}
+                          {isReady && (
+                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full flex-shrink-0"
+                              style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399' }}>
+                              Ready ✓
+                            </span>
+                          )}
+
+                          {/* Remove button */}
+                          <button
+                            onClick={() => setFiles(prev => prev.filter(x => x.id !== f.id))}
+                            className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center
+                                       text-[14px] transition-all hover:bg-white/10"
+                            style={{ color: 'rgba(255,255,255,0.3)' }}
+                            title="Remove file"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Drop-more hint at bottom of box */}
+                  <div className="mt-3 text-center text-[11px]" style={{ color: 'rgba(255,255,255,0.18)' }}>
+                    Drop more files here or click "+ Add more"
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* MailerLite auto row */}
             <div className="flex items-center gap-3 rounded-lg px-4 py-3 mb-6"
@@ -281,18 +335,21 @@ export default function UploadPage() {
               </div>
             </div>
 
-            <button
-              className="flex items-center gap-2.5 px-8 py-3.5 rounded-lg text-[15px] font-bold
-                         transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: '#e9a020', color: '#0d1f35' }}
-              disabled={!hasAny || allReading}
-              onClick={runAnalysis}
-            >
-              See what's working and what to do next →
-            </button>
+            {/* CTA — shown only when at least one file is ready */}
+            {hasAny && (
+              <button
+                className="flex items-center gap-2.5 px-8 py-3.5 rounded-lg text-[15px] font-bold
+                           transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: '#e9a020', color: '#0d1f35' }}
+                disabled={allReading}
+                onClick={runAnalysis}
+              >
+                See what's working and what to do next →
+              </button>
+            )}
 
-            {!hasAny && !allReading && (
-              <p className="text-[11.5px] mt-3" style={{ color: 'rgba(255,255,255,0.25)' }}>
+            {!hasAny && !allReading && files.length === 0 && (
+              <p className="text-[11.5px] mt-0" style={{ color: 'rgba(255,255,255,0.25)' }}>
                 Drop at least one file above to get started.
               </p>
             )}
