@@ -10,34 +10,75 @@ export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteDa
     Accept: 'application/json',
   }
 
-  // Active subscriber count — total lives in meta.total
-  const subsRes = await fetch(
-    `${ML_BASE}/subscribers?limit=1&filter%5Bstatus%5D=active`,
-    { headers }
-  )
-  console.log('[MailerLite] subscribers response status:', subsRes.status, subsRes.statusText)
-  const subsData = await subsRes.json()
-  console.log('[MailerLite] subscribers FULL response keys:', Object.keys(subsData))
-  console.log('[MailerLite] subscribers meta:', JSON.stringify(subsData?.meta))
-  console.log('[MailerLite] subscribers total (top-level):', subsData?.total)
-  console.log('[MailerLite] subscribers data length:', subsData?.data?.length)
-  console.log('[MailerLite] subscribers FULL body (first 2000 chars):', JSON.stringify(subsData).slice(0, 2000))
-  const listSize = subsData?.meta?.total ?? subsData?.total ?? 0
+  // ── Active subscriber count ─────────────────────────────────────
+  // Try multiple approaches to get the count reliably
+  let listSize = 0
+
+  // Approach 1: /subscribers with filter[status]=active
+  try {
+    const subsRes = await fetch(
+      `${ML_BASE}/subscribers?filter[status]=active&limit=0`,
+      { headers }
+    )
+    console.log('[MailerLite] subscribers (filtered) status:', subsRes.status)
+    if (subsRes.ok) {
+      const subsData = await subsRes.json()
+      console.log('[MailerLite] subscribers meta:', JSON.stringify(subsData?.meta))
+      console.log('[MailerLite] subscribers total:', subsData?.total)
+      listSize = subsData?.meta?.total ?? subsData?.total ?? 0
+    }
+  } catch (e) {
+    console.error('[MailerLite] subscribers filtered call failed:', e)
+  }
+
+  // Approach 2: If still 0, try /subscribers without filter (all subscribers)
+  if (listSize === 0) {
+    try {
+      const allSubsRes = await fetch(`${ML_BASE}/subscribers?limit=0`, { headers })
+      console.log('[MailerLite] subscribers (all) status:', allSubsRes.status)
+      if (allSubsRes.ok) {
+        const allSubsData = await allSubsRes.json()
+        console.log('[MailerLite] subscribers (all) meta:', JSON.stringify(allSubsData?.meta))
+        console.log('[MailerLite] subscribers (all) total:', allSubsData?.total)
+        listSize = allSubsData?.meta?.total ?? allSubsData?.total ?? 0
+      }
+    } catch (e) {
+      console.error('[MailerLite] subscribers all call failed:', e)
+    }
+  }
+
+  // Approach 3: If still 0, try fetching 1 subscriber just to get the meta.total
+  if (listSize === 0) {
+    try {
+      const oneSubRes = await fetch(`${ML_BASE}/subscribers?limit=1`, { headers })
+      console.log('[MailerLite] subscribers (limit=1) status:', oneSubRes.status)
+      if (oneSubRes.ok) {
+        const oneSubData = await oneSubRes.json()
+        console.log('[MailerLite] subscribers (limit=1) full body (2000ch):', JSON.stringify(oneSubData).slice(0, 2000))
+        listSize = oneSubData?.meta?.total ?? oneSubData?.total ?? 0
+      }
+    } catch (e) {
+      console.error('[MailerLite] subscribers limit=1 call failed:', e)
+    }
+  }
   console.log('[MailerLite] => resolved listSize:', listSize)
 
-  // Total unsubscribed count — from filtered subscriber endpoint
-  const unsubRes = await fetch(
-    `${ML_BASE}/subscribers?limit=1&filter%5Bstatus%5D=unsubscribed`,
-    { headers }
-  )
-  console.log('[MailerLite] unsubscribes response status:', unsubRes.status, unsubRes.statusText)
-  const unsubData = await unsubRes.json()
-  console.log('[MailerLite] unsubscribes FULL response keys:', Object.keys(unsubData))
-  console.log('[MailerLite] unsubscribes meta:', JSON.stringify(unsubData?.meta))
-  console.log('[MailerLite] unsubscribes total (top-level):', unsubData?.total)
-  console.log('[MailerLite] unsubscribes data length:', unsubData?.data?.length)
-  console.log('[MailerLite] unsubscribes FULL body (first 2000 chars):', JSON.stringify(unsubData).slice(0, 2000))
-  const totalUnsubscribes = unsubData?.meta?.total ?? unsubData?.total ?? 0
+  // ── Unsubscribed count ─────────────────────────────────────────
+  let totalUnsubscribes = 0
+  try {
+    const unsubRes = await fetch(
+      `${ML_BASE}/subscribers?filter[status]=unsubscribed&limit=0`,
+      { headers }
+    )
+    console.log('[MailerLite] unsubscribes status:', unsubRes.status)
+    if (unsubRes.ok) {
+      const unsubData = await unsubRes.json()
+      console.log('[MailerLite] unsubscribes meta:', JSON.stringify(unsubData?.meta))
+      totalUnsubscribes = unsubData?.meta?.total ?? unsubData?.total ?? 0
+    }
+  } catch (e) {
+    console.error('[MailerLite] unsubscribes call failed:', e)
+  }
   console.log('[MailerLite] => resolved totalUnsubscribes:', totalUnsubscribes)
 
   // Recent sent campaigns
