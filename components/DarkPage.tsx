@@ -149,12 +149,13 @@ const EMPOWERMENT_PROMPTS = [
   '…before you act on this, sit with it for 10 seconds.',
 ]
 
-// Coach callout for deep-dive pages — collapsed by default
+// Coach callout for deep-dive pages — collapsed by default, structured insight
 export function DarkCoachBox({ children, color = '#E9A020', title }: { children: React.ReactNode; color?: string; title?: string }) {
   const [collapsed, setCollapsed] = useState(true)
-  const resolvedTitle = title ?? getCoachTitle()
-  const showPrompt = Math.random() < 0.1
-  const prompt = EMPOWERMENT_PROMPTS[Math.floor(Math.random() * EMPOWERMENT_PROMPTS.length)]
+
+  // Parse the children text into structured sections if it's a string
+  const content = typeof children === 'string' ? children : null
+  const sections = content ? parseInsightSections(content) : null
 
   return (
     <div className="rounded-xl overflow-hidden mb-8 transition-all duration-200"
@@ -168,9 +169,9 @@ export function DarkCoachBox({ children, color = '#E9A020', title }: { children:
         onClick={() => setCollapsed(c => !c)}
         className="w-full flex items-center justify-between px-5 py-3.5 text-left bg-transparent border-none cursor-pointer"
       >
-        <span className="text-[10.5px] font-bold tracking-[1px] uppercase"
-          style={{ color }}>
-          {resolvedTitle}
+        <span className="text-[13px] font-medium"
+          style={{ color: '#1E2D3D' }}>
+          What This Means For You
         </span>
         <span className="text-[11px] flex-shrink-0 ml-2 transition-transform duration-200"
           style={{ color: '#6B7280', transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)' }}>
@@ -178,21 +179,67 @@ export function DarkCoachBox({ children, color = '#E9A020', title }: { children:
         </span>
       </button>
       <div className="overflow-hidden transition-all duration-300 ease-out"
-        style={{ maxHeight: collapsed ? '0px' : '600px', opacity: collapsed ? 0 : 1 }}>
-        <div className="px-5 pb-4">
-          <div className="text-[13px] leading-[1.75]" style={{ color: '#374151' }}>
-            {children}
-          </div>
-          {showPrompt && (
-            <div className="mt-2 text-[12px] italic" style={{ color: '#6B7280' }}>
-              {prompt}
+        style={{ maxHeight: collapsed ? '0px' : '800px', opacity: collapsed ? 0 : 1 }}>
+        <div className="px-5 pb-5">
+          {sections ? (
+            <div className="space-y-4">
+              {sections.map((s, i) => (
+                <div key={i}>
+                  <div className="text-[11px] font-medium uppercase tracking-[0.8px] mb-1"
+                    style={{ color: '#E9A020' }}>
+                    {s.label}
+                  </div>
+                  <div className="text-[14px] leading-[1.6]" style={{ color: '#1E2D3D' }}
+                    dangerouslySetInnerHTML={{
+                      __html: boldNumbers(s.text),
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-[14px] leading-[1.6]" style={{ color: '#1E2D3D' }}
+              dangerouslySetInnerHTML={{
+                __html: typeof children === 'string' ? boldNumbers(children) : '',
+              }}
+            />
+          )}
+          {typeof children !== 'string' && (
+            <div className="text-[14px] leading-[1.6]" style={{ color: '#1E2D3D' }}>
+              {children}
             </div>
           )}
-          <div className="mt-3 pt-2.5 text-[10px]" style={{ color: '#6B7280', borderTop: '1px solid #EEEBE6' }}>
-            AI-generated insight · Test everything · You&apos;re the expert on your readers
+          <div className="mt-4 pt-3 text-[12px]" style={{ color: '#6B7280', borderTop: '1px solid #EEEBE6' }}>
+            This is a suggestion based on your data — you know your readers best.
           </div>
         </div>
       </div>
     </div>
   )
+}
+
+// Bold any numbers in text (dollars, percentages, plain numbers)
+function boldNumbers(text: string): string {
+  return text.replace(/(\$[\d,.]+|\d[\d,.]*%|\d[\d,.]+)/g, '<strong>$1</strong>')
+}
+
+// Try to split AI text into 3 structured sections by sentence
+function parseInsightSections(text: string): { label: string; text: string }[] | null {
+  const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.trim())
+  if (sentences.length < 2) return null
+
+  if (sentences.length === 2) {
+    return [
+      { label: "What's happening", text: sentences[0] },
+      { label: 'What to do next', text: sentences[1] },
+    ]
+  }
+
+  // 3+ sentences: first = what's happening, middle = why it matters, last = what to do
+  const mid = sentences.slice(1, -1).join(' ')
+  return [
+    { label: "What's happening", text: sentences[0] },
+    { label: 'Why it matters', text: mid },
+    { label: 'What to do next', text: sentences[sentences.length - 1] },
+  ]
 }
