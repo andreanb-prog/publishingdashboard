@@ -430,6 +430,19 @@ export function OverviewClient() {
         </div>
       )}
 
+      {/* ── Today's Priorities (#39) ──────────────────────────────── */}
+      {analysis && (
+        <div className="mb-6">
+          <h2 className="font-sans text-[20px] font-bold tracking-tight mb-1" style={{ color: '#1E2D3D' }}>
+            Today&apos;s Priorities
+          </h2>
+          <p className="text-[12.5px] mb-4" style={{ color: '#9CA3AF' }}>
+            Review these first — highest impact actions based on your data
+          </p>
+          <InsightCallouts analysis={analysis} page="overview" />
+        </div>
+      )}
+
       {/* Verdict banner */}
       <div className="rounded-xl mb-6 px-6 py-4 flex items-center justify-between"
         style={{ background: '#FFF8F0', borderLeft: '4px solid #E9A020', border: '1px solid #EEEBE6', borderLeftWidth: '4px', borderLeftColor: '#E9A020' }}>
@@ -453,9 +466,6 @@ export function OverviewClient() {
           </Link>
         </div>
       </div>
-
-      {/* ── Insight callouts (#32) ─────────────────────────────────── */}
-      {analysis && <InsightCallouts analysis={analysis} page="overview" />}
 
       {/* ── Executive Summary (#33) ────────────────────────────────── */}
       {analysis?.executiveSummary && (
