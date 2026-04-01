@@ -64,14 +64,34 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
     setAnalyzing(false)
   }
 
+  const [dragOverKdp, setDragOverKdp] = useState(false)
+  const [dragOverMeta, setDragOverMeta] = useState(false)
+
+  const onDrop = useCallback((e: React.DragEvent, type: 'kdp' | 'meta') => {
+    e.preventDefault()
+    if (type === 'kdp') setDragOverKdp(false)
+    else setDragOverMeta(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) handleFile(file, type)
+  }, [handleFile])
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+  }, [])
+
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
+      {/* File inputs always in DOM so refs are never null */}
+      <input ref={kdpRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
+        onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0], 'kdp'); e.target.value = '' }} />
+      <input ref={metaRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
+        onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0], 'meta'); e.target.value = '' }} />
+
       <div className="w-full max-w-lg">
 
         {/* ── Step 1: Welcome ──────────────────────────────────────────── */}
         {step === 'welcome' && (
           <div className="text-center">
-            <div className="text-5xl mb-6">👋</div>
             <h1 className="text-[28px] font-semibold tracking-tight mb-3" style={{ color: '#1E2D3D' }}>
               Let&apos;s get your dashboard set up
             </h1>
@@ -149,11 +169,13 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
             ) : (
               <div
                 className="rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all hover:border-amber-400"
-                style={{ borderColor: '#EEEBE6', background: '#FAFAFA' }}
+                style={{ borderColor: dragOverKdp ? '#e9a020' : '#EEEBE6', background: dragOverKdp ? 'rgba(233,160,32,0.04)' : '#FAFAFA' }}
                 onClick={() => kdpRef.current?.click()}
+                onDrop={e => onDrop(e, 'kdp')}
+                onDragOver={onDragOver}
+                onDragEnter={() => setDragOverKdp(true)}
+                onDragLeave={() => setDragOverKdp(false)}
               >
-                <input ref={kdpRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
-                  onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0], 'kdp') }} />
                 <div className="text-3xl mb-3">📂</div>
                 <div className="text-[15px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
                   {uploading ? 'Reading your file...' : 'Drop your KDP file here'}
@@ -211,11 +233,13 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
               <div className="grid grid-cols-2 gap-3 mb-5">
                 <div
                   className="rounded-xl p-5 text-center cursor-pointer transition-all hover:border-blue-300"
-                  style={{ background: 'white', border: '1.5px solid #EEEBE6' }}
+                  style={{ background: dragOverMeta ? 'rgba(56,189,248,0.04)' : 'white', border: `1.5px solid ${dragOverMeta ? '#38bdf8' : '#EEEBE6'}` }}
                   onClick={() => metaRef.current?.click()}
+                  onDrop={e => onDrop(e, 'meta')}
+                  onDragOver={onDragOver}
+                  onDragEnter={() => setDragOverMeta(true)}
+                  onDragLeave={() => setDragOverMeta(false)}
                 >
-                  <input ref={metaRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
-                    onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0], 'meta') }} />
                   <div className="text-2xl mb-2">📣</div>
                   <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
                     {uploading ? 'Reading...' : 'Yes, upload my ads'}

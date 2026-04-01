@@ -57,7 +57,6 @@ export function OnboardingBanner({ analysesCount }: { analysesCount: number }) {
           ×
         </button>
 
-        <div className="text-4xl mb-4">👋</div>
         <div className="font-serif text-[22px] text-white mb-3 leading-snug">
           Welcome to AuthorDash
         </div>
