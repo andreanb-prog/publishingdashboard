@@ -126,11 +126,11 @@ export default function DataVaultPage() {
                 Analyzed {formatDate(active.createdAt)} at {formatTime(active.createdAt)}
               </div>
               <div className="flex flex-wrap gap-3">
-                <div className="rounded-lg px-3 py-2" style={{ background: '#FFF8F0', border: '1px solid #F0E0C8' }}>
+                <div className="rounded-lg px-3 py-2" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
                   <div className="text-[10px] font-bold uppercase tracking-[0.8px] mb-0.5" style={{ color: '#9CA3AF' }}>Files used</div>
                   <div className="text-[12.5px] font-semibold" style={{ color: '#1E2D3D' }}>{getFilesUsed(active.data)}</div>
                 </div>
-                <div className="rounded-lg px-3 py-2" style={{ background: '#FFF8F0', border: '1px solid #F0E0C8' }}>
+                <div className="rounded-lg px-3 py-2" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
                   <div className="text-[10px] font-bold uppercase tracking-[0.8px] mb-0.5" style={{ color: '#9CA3AF' }}>Records parsed</div>
                   <div className="text-[12.5px] font-semibold" style={{ color: '#1E2D3D' }}>{getRecordsSummary(active.data)}</div>
                 </div>
@@ -148,8 +148,8 @@ export default function DataVaultPage() {
       )}
 
       {/* Upload History Table */}
-      <div className="rounded-xl overflow-hidden mb-6" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
-        <div className="px-5 py-3.5 font-semibold text-[13px]" style={{ color: '#1E2D3D', borderBottom: '1px solid #F0E0C8' }}>
+      <div className="rounded-xl overflow-hidden mb-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <div className="px-5 py-3.5 font-semibold text-[13px]" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
           Upload History
         </div>
         {loading ? (
@@ -249,7 +249,7 @@ export default function DataVaultPage() {
       </div>
 
       {/* What does AuthorDash store? */}
-      <div className="rounded-xl overflow-hidden mb-6" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+      <div className="rounded-xl overflow-hidden mb-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         <button
           onClick={() => setWhatWeStore(v => !v)}
           className="w-full px-5 py-4 flex items-center justify-between text-left"
@@ -260,7 +260,7 @@ export default function DataVaultPage() {
           <span className="text-[16px]" style={{ color: '#9CA3AF' }}>{whatWeStore ? '▲' : '▼'}</span>
         </button>
         {whatWeStore && (
-          <div className="px-5 pb-5" style={{ borderTop: '1px solid #F0E0C8' }}>
+          <div className="px-5 pb-5" style={{ borderTop: '1px solid #EEEBE6' }}>
             <div className="space-y-2.5 mt-4">
               {[
                 { icon: '📚', text: 'Your KDP report: we store total units, daily breakdown, and royalties per book' },

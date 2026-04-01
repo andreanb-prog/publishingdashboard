@@ -154,7 +154,7 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
         </div>
       </div>
 
-      <div className="rounded-lg px-4 py-3" style={{ background: '#F9F9F9', border: '1px solid #F0E0C8' }}>
+      <div className="rounded-lg px-4 py-3" style={{ background: '#F9F9F9', border: '1px solid #EEEBE6' }}>
         <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-2" style={{ color: '#9CA3AF' }}>
           Still stuck? Real humans who can help
         </div>
@@ -182,7 +182,7 @@ function CTRBar({ ctr, maxCTR }: { ctr: number; maxCTR: number }) {
           {ctr}%
         </div>
       </div>
-      <div className="h-1.5 rounded-full overflow-hidden flex-1 min-w-[48px]" style={{ background: '#F0E0C8' }}>
+      <div className="h-1.5 rounded-full overflow-hidden flex-1 min-w-[48px]" style={{ background: '#EEEBE6' }}>
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
       </div>
     </div>
@@ -282,7 +282,7 @@ function ColumnPicker({
           </label>
         )
       })}
-      <div className="mt-3 pt-3 flex justify-between items-center" style={{ borderTop: '1px solid #F0E0C8' }}>
+      <div className="mt-3 pt-3 flex justify-between items-center" style={{ borderTop: '1px solid #EEEBE6' }}>
         <button
           onClick={onReset}
           className="text-[11px] px-2.5 py-1 rounded-md"
@@ -516,7 +516,7 @@ export default function MetaPage() {
               },
             ].map((item, i) => (
               <div key={i} className="rounded-xl p-4 relative overflow-hidden"
-                style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+                style={{ background: `linear-gradient(135deg, ${item.color}06, white 60%)`, border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
                 <div className="absolute bottom-0 left-0 right-0 h-[3px]"
                   style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
                 <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2"
@@ -591,7 +591,7 @@ export default function MetaPage() {
 
             {/* Table */}
             <div className="rounded-xl overflow-x-auto"
-              style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+              style={{ background: 'white', border: '1px solid #EEEBE6' }}>
               <table className="w-full border-collapse" style={{ minWidth: 640 }}>
                 <thead>
                   <tr style={{ background: '#F5F5F4' }}>

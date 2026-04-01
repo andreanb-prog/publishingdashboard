@@ -54,7 +54,7 @@ export function MobileNav() {
     <>
       {/* Mobile header */}
       <div className="md:hidden flex items-center justify-between px-4 h-[52px] flex-shrink-0"
-        style={{ background: '#F5F0E8', borderBottom: '1px solid #E8DDD0' }}>
+        style={{ background: '#FAF8F5', borderBottom: '1px solid #EEEBE6' }}>
         <button
           onClick={() => setOpen(true)}
           className="w-10 h-10 flex items-center justify-center rounded-lg bg-transparent border-none cursor-pointer"
@@ -87,12 +87,12 @@ export function MobileNav() {
           {/* Drawer */}
           <nav
             className="absolute top-0 left-0 bottom-0 w-[280px] overflow-y-auto"
-            style={{ background: '#F5F0E8' }}
+            style={{ background: '#FAF8F5' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Drawer header */}
             <div className="flex items-center justify-between px-5 py-4"
-              style={{ borderBottom: '1px solid #E8DDD0' }}>
+              style={{ borderBottom: '1px solid #EEEBE6' }}>
               <div className="font-serif text-[16px]">
                 <span style={{ color: '#1E2D3D' }}>Author</span>
                 <span style={{ color: '#e9a020' }}>Dash</span>

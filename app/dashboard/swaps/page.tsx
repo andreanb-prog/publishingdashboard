@@ -71,7 +71,7 @@ export default function SwapsPage() {
 
         {submitted ? (
           <div className="rounded-xl p-8 text-center"
-            style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+            style={{ background: 'white', border: '1px solid #EEEBE6' }}>
             <div className="text-4xl mb-3">💛</div>
             <div className="text-[16px] font-semibold mb-2" style={{ color: '#1E2D3D' }}>
               You&apos;re helping build this — thank you!
@@ -81,7 +81,7 @@ export default function SwapsPage() {
             </p>
           </div>
         ) : (
-          <div className="rounded-xl p-6" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+          <div className="rounded-xl p-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
             <div className="text-[13px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>
               What would make this page incredibly useful for you?
             </div>

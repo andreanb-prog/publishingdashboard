@@ -46,7 +46,7 @@ function GoalBar({ current, goal, unit }: { current?: number; goal: number; unit
   return (
     <div>
       <div className="flex items-center gap-2">
-        <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#F0E0C8' }}>
+        <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#EEEBE6' }}>
           <div className="h-full rounded-full transition-all duration-500"
             style={{ width: `${displayPct}%`, background: color }} />
         </div>
@@ -137,7 +137,7 @@ export function GoalSection({
 
   return (
     <div className="rounded-xl mb-5 overflow-hidden"
-      style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+      style={{ background: 'white', border: '1px solid #EEEBE6' }}>
       {/* Header */}
       <button
         onClick={toggleCollapsed}
@@ -165,7 +165,7 @@ export function GoalSection({
 
       {/* Expanded content */}
       {!collapsed && (
-        <div className="px-5 pb-5" style={{ borderTop: '1px solid #F0E0C8' }}>
+        <div className="px-5 pb-5" style={{ borderTop: '1px solid #EEEBE6' }}>
           <div className="grid grid-cols-2 gap-x-6 gap-y-4 mt-4">
             {fields.map(f => {
               const goal    = goals[f.key]
@@ -187,7 +187,7 @@ export function GoalSection({
                       value={draft[f.key] ?? ''}
                       onChange={e => setDraft(d => ({ ...d, [f.key]: e.target.value }))}
                       className="flex-1 rounded-lg px-3 py-1.5 text-[13px] font-mono outline-none"
-                      style={{ background: 'white', border: '1px solid #F0E0C8', color: '#1E2D3D' }}
+                      style={{ background: 'white', border: '1px solid #EEEBE6', color: '#1E2D3D' }}
                     />
                     {f.unit === 'percent' && (
                       <span className="text-[13px]" style={{ color: '#9CA3AF' }}>%</span>

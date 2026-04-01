@@ -65,7 +65,7 @@ function FunnelBar({ label, pct, count, color, benchmark }: {
           <span className="text-[11px]" style={{ color: '#6B7280' }}>{fmtInt(count)} pages</span>
         </div>
       </div>
-      <div className="h-2.5 rounded-full overflow-hidden" style={{ background: '#F0E0C8' }}>
+      <div className="h-2.5 rounded-full overflow-hidden" style={{ background: '#EEEBE6' }}>
         <div className="h-full rounded-full transition-all duration-500"
           style={{ width: `${Math.min(pct, 100)}%`, background: barColor }} />
       </div>
@@ -88,7 +88,7 @@ function MetricCard({ title, value, valueColor, sub, coach, children }: {
   children?: React.ReactNode
 }) {
   return (
-    <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+    <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
       <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
         {title}
       </div>
@@ -103,7 +103,7 @@ function MetricCard({ title, value, valueColor, sub, coach, children }: {
       )}
       {children}
       <div className="mt-3 pt-3 text-[11.5px] leading-relaxed"
-        style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8' }}>
+        style={{ color: '#6B7280', borderTop: '1px solid #EEEBE6' }}>
         💬 {coach}
       </div>
     </div>
@@ -163,13 +163,13 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
     <div className="mb-8">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {metrics.map(m => (
-          <div key={m.label} className="rounded-xl p-4" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+          <div key={m.label} className="rounded-xl p-4" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
             <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-1.5" style={{ color: '#9CA3AF' }}>{m.label}</div>
             <div className="text-[28px] font-semibold leading-none tracking-tight" style={{ color: m.color }}>{m.value}</div>
           </div>
         ))}
       </div>
-      <div className="rounded-xl p-5 md:p-6" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+      <div className="rounded-xl p-5 md:p-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         <div className="space-y-0">
           {stages.map((stage, i) => {
             const widthPct = 100 - (i * 12)
@@ -178,7 +178,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
               <div key={stage.label}>
                 <div className="mx-auto" style={{ maxWidth: `${widthPct}%` }}>
                   <div className="rounded-lg px-4 py-3 md:px-5 md:py-4"
-                    style={{ background: stage.available ? '#F5F0E8' : '#FAFAFA', border: stage.available ? '1px solid #E8DDD0' : '1px dashed #D6D3D1', opacity: stage.available ? 1 : 0.6 }}>
+                    style={{ background: stage.available ? '#FAF8F5' : '#FAFAFA', border: stage.available ? '1px solid #EEEBE6' : '1px dashed #D6D3D1', opacity: stage.available ? 1 : 0.6 }}>
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div>
                         <div className="text-[10px] font-bold tracking-[1px] uppercase mb-0.5" style={{ color: '#9CA3AF' }}>{stage.label}</div>
@@ -191,7 +191,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
                 </div>
                 {i < stages.length - 1 && (
                   <div className="flex items-center justify-center gap-2 py-1.5">
-                    <span className="text-[16px]" style={{ color: '#E8DDD0' }}>▼</span>
+                    <span className="text-[16px]" style={{ color: '#EEEBE6' }}>▼</span>
                     {leak && stage.leakPct != null && stage.leakPct > 0 && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: leak.bg, color: leak.color }}>{stage.leakPct.toFixed(0)}% drop · {leak.label}</span>
                     )}
@@ -206,7 +206,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
             )
           })}
         </div>
-        <div className="mt-5 pt-4 text-[12.5px] leading-relaxed" style={{ borderTop: '1px solid #F0E0C8', color: '#374151' }}>
+        <div className="mt-5 pt-4 text-[12.5px] leading-relaxed" style={{ borderTop: '1px solid #EEEBE6', color: '#374151' }}>
           <span className="font-bold" style={{ color: '#e9a020' }}>Funnel analysis:</span> {coachLines.join(' ')}
         </div>
       </div>
@@ -304,7 +304,7 @@ export default function MetricsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-7">
 
         {/* Ad Spend → Rank Correlation */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
           <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
             Ad Spend → Rank Correlation
           </div>
@@ -323,7 +323,7 @@ export default function MetricsPage() {
               <Sparkline data={recentRankByMonth.map(v => v != null ? -v : 0)} color="#34d399" />
             </div>
           )}
-          <div className="text-[11.5px] leading-relaxed pt-3" style={{ borderTop: '1px solid #F0E0C8', color: '#6B7280' }}>
+          <div className="text-[11.5px] leading-relaxed pt-3" style={{ borderTop: '1px solid #EEEBE6', color: '#6B7280' }}>
             💬 {spendHistory.filter(v => v > 0).length >= 2
               ? 'Compare the shapes above — if spend goes up and rank improves (lower number), your ads are driving discoverability.'
               : 'Need 2+ months of Meta ads data and rank logs to see this correlation.'}
@@ -331,7 +331,7 @@ export default function MetricsPage() {
         </div>
 
         {/* Email → Sales Correlation */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
           <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
             Email → Sales Correlation
           </div>
@@ -350,7 +350,7 @@ export default function MetricsPage() {
               <Sparkline data={unitsHistory} color="#e9a020" />
             </div>
           )}
-          <div className="text-[11.5px] leading-relaxed pt-3" style={{ borderTop: '1px solid #F0E0C8', color: '#6B7280' }}>
+          <div className="text-[11.5px] leading-relaxed pt-3" style={{ borderTop: '1px solid #EEEBE6', color: '#6B7280' }}>
             💬 {emailOpenHistory.filter(v => v > 0).length >= 2
               ? 'When email opens spike and units follow, your list is converting. Months where opens are high but units flat may mean you need stronger CTAs in your emails.'
               : 'Need 2+ months of MailerLite and KDP data to see this correlation.'}
@@ -358,7 +358,7 @@ export default function MetricsPage() {
         </div>
 
         {/* Swap → KENP Correlation */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
           <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
             Swap → KENP Correlation
           </div>
@@ -371,7 +371,7 @@ export default function MetricsPage() {
               <Sparkline data={kenpHistory} color="#a78bfa" width={200} />
             </div>
           )}
-          <div className="text-[11.5px] leading-relaxed pt-3" style={{ borderTop: '1px solid #F0E0C8', color: '#6B7280' }}>
+          <div className="text-[11.5px] leading-relaxed pt-3" style={{ borderTop: '1px solid #EEEBE6', color: '#6B7280' }}>
             💬 {kenpHistory.filter(v => v > 0).length >= 2
               ? 'Look for KENP spikes in months with active swaps. A swap with a larger list should produce a visible bump in borrows within 1–2 weeks.'
               : 'Need 2+ months of KDP data to spot swap-driven KENP patterns. Keep logging your swaps!'}
@@ -379,7 +379,7 @@ export default function MetricsPage() {
         </div>
 
         {/* Series Health Score */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
           <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
             Series Health Score
           </div>
@@ -400,14 +400,14 @@ export default function MetricsPage() {
             ].map(item => (
               <div key={item.label} className="flex items-center gap-3">
                 <div className="text-[11px] w-24" style={{ color: '#6B7280' }}>{item.label}</div>
-                <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#F0E0C8' }}>
+                <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#EEEBE6' }}>
                   <div className="h-full rounded-full" style={{ width: `${item.score}%`, background: item.score >= 70 ? '#34d399' : item.score >= 40 ? '#fbbf24' : '#fb7185' }} />
                 </div>
                 <div className="text-[10px] w-28 text-right" style={{ color: '#9CA3AF' }}>{item.note}</div>
               </div>
             ))}
           </div>
-          <div className="text-[11.5px] leading-relaxed pt-3" style={{ borderTop: '1px solid #F0E0C8', color: '#6B7280' }}>
+          <div className="text-[11.5px] leading-relaxed pt-3" style={{ borderTop: '1px solid #EEEBE6', color: '#6B7280' }}>
             💬 {seriesHealth >= 70
               ? 'Your series is healthy across all three dimensions. Keep the momentum.'
               : seriesHealth >= 40
@@ -420,7 +420,7 @@ export default function MetricsPage() {
       {/* ── 3. SERIES READ-THROUGH FUNNEL ──────────────────────────────────── */}
       <DarkSectionHeader title="Series Read-Through Funnel" badge="Cross-book" badgeColor="#a78bfa" />
 
-      <div className="rounded-xl p-5 mb-7" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+      <div className="rounded-xl p-5 mb-7" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         {readThrough.length >= 2 ? (
           <>
             {readThrough.map((rt, i) => (
@@ -433,7 +433,7 @@ export default function MetricsPage() {
                 benchmark={i > 0 ? 40 : undefined}
               />
             ))}
-            <div className="mt-3 pt-3 text-[11.5px] leading-relaxed" style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8' }}>
+            <div className="mt-3 pt-3 text-[11.5px] leading-relaxed" style={{ color: '#6B7280', borderTop: '1px solid #EEEBE6' }}>
               💬 {readThrough[1].pct >= 40
                 ? `${readThrough[1].pct.toFixed(0)}% of Book 1 readers continued to Book 2 — above the 40% benchmark. Your series hook is working.`
                 : `${readThrough[1].pct.toFixed(0)}% continued to Book 2. Strengthen your cliffhanger and add a direct link at the end of Book 1.`}
@@ -449,7 +449,7 @@ export default function MetricsPage() {
       {/* ── 4. ARC CALCULATOR ──────────────────────────────────────────────── */}
       <DarkSectionHeader title="ARC Conversion Calculator" badge="Tool" badgeColor="#9CA3AF" />
 
-      <div className="rounded-xl p-5 mb-7 max-w-md" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+      <div className="rounded-xl p-5 mb-7 max-w-md" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         <div className="flex gap-3 mb-4">
           <div className="flex-1">
             <label className="text-[10px] font-bold tracking-[1px] uppercase block mb-1.5" style={{ color: '#6B7280' }}>ARCs Sent</label>
@@ -468,7 +468,7 @@ export default function MetricsPage() {
             <div className="text-[11px] mt-1" style={{ color: '#6B7280' }}>conversion rate</div>
           </div>
         )}
-        <div className="text-[11.5px] leading-relaxed" style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8', paddingTop: 12 }}>
+        <div className="text-[11.5px] leading-relaxed" style={{ color: '#6B7280', borderTop: '1px solid #EEEBE6', paddingTop: 12 }}>
           💬 {arcPct != null && !isNaN(arcPct)
             ? arcPct >= 25 ? `${arcPct.toFixed(1)}% is above the 15–25% normal range — your ARC readers are engaged.`
               : arcPct >= 15 ? `${arcPct.toFixed(1)}% is within normal range. Follow up with non-reviewers 2 weeks post-launch.`

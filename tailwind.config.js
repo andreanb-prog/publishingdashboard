@@ -32,7 +32,7 @@ module.exports = {
         sky:    '#60A5FA',
         sage:   '#6EBF8B',
         rose:   '#F472B6',
-        'warm-border': '#F0E0C8',
+        'warm-border': '#EEEBE6',
         // Dark theme
         dk: {
           bg: '#0c0a09',

@@ -88,8 +88,8 @@ export default function MailerLitePage() {
 
           {/* Benchmarks table */}
           <div className="rounded-xl overflow-x-auto mb-5"
-            style={{ background: 'white', border: '1px solid #F0E0C8' }}>
-            <div className="px-5 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #F0E0C8' }}>
+            style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+            <div className="px-5 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #EEEBE6' }}>
               <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>How you compare</span>
               <span className="text-[11px] px-2 py-0.5 rounded-full cursor-default"
                 title="Based on email marketing data for indie authors and fiction publishers. Your genre may vary."
@@ -138,8 +138,8 @@ export default function MailerLitePage() {
           {/* Recent campaigns */}
           {ml.campaigns.length > 0 && (
             <div className="rounded-xl overflow-x-auto"
-              style={{ background: 'white', border: '1px solid #F0E0C8' }}>
-              <div className="px-5 py-3.5 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #F0E0C8' }}>
+              style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+              <div className="px-5 py-3.5 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
                 Recent Campaigns
               </div>
               <table className="w-full border-collapse text-[12px]">

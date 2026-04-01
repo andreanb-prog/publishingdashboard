@@ -70,7 +70,7 @@ export function Sidebar() {
           color:      active ? '#e9a020' : '#1E2D3D',
           background: active ? 'rgba(233,160,32,0.1)' : undefined,
         }}
-        onMouseEnter={e => { if (!active) (e.currentTarget.style.background = '#EDE8DF') }}
+        onMouseEnter={e => { if (!active) (e.currentTarget.style.background = '#F5F5F4') }}
         onMouseLeave={e => { if (!active) (e.currentTarget.style.background = '') }}
       >
         {render(active)}
@@ -82,11 +82,11 @@ export function Sidebar() {
   return (
     <aside
       className="w-[235px] flex-shrink-0 flex-col hidden md:flex"
-      style={{ background: '#F5F0E8', borderRight: '1px solid #E8DDD0' }}
+      style={{ background: '#FFFFFF', borderRight: '1px solid #EEEBE6' }}
     >
       {/* Logo */}
       <Link href="/dashboard" className="block px-5 py-6 no-underline hover:opacity-80 transition-opacity"
-        style={{ borderBottom: '1px solid #E8DDD0' }}>
+        style={{ borderBottom: '1px solid #EEEBE6' }}>
         <div>
           <span style={{ color: '#1E2D3D', fontWeight: 600, fontSize: '18px' }}>Author</span>
           <span style={{ color: '#E9A020', fontWeight: 600, fontSize: '18px' }}>Dash</span>
@@ -119,7 +119,7 @@ export function Sidebar() {
       </nav>
 
       {/* User */}
-      <div className="px-2.5 py-4" style={{ borderTop: '1px solid #E8DDD0' }}>
+      <div className="px-2.5 py-4" style={{ borderTop: '1px solid #EEEBE6' }}>
         <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg"
           style={{ background: 'white' }}>
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"

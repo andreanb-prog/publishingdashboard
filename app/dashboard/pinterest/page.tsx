@@ -103,7 +103,7 @@ export default function PinterestPage() {
           { label: 'Account Age', value: pin?.accountAge || '~6 weeks', sub: 'Active since mid-Feb 2026', color: '#fbbf24' },
         ].map((item, i) => (
           <div key={i} className="rounded-xl p-5 relative overflow-hidden"
-            style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+            style={{ background: 'white', border: '1px solid #EEEBE6' }}>
             <div className="absolute bottom-0 left-0 right-0 h-[3px]"
               style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
             <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2" style={{ color: '#6B7280' }}>{item.label}</div>
@@ -122,11 +122,11 @@ export default function PinterestPage() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-4">
           <h2 className="font-serif text-[19px]" style={{ color: '#1E2D3D' }}>Your 30-Day Pinterest Launch Plan</h2>
-          <div className="flex-1 h-px" style={{ background: '#F0E0C8' }} />
+          <div className="flex-1 h-px" style={{ background: '#EEEBE6' }} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {ROADMAP.map((step, i) => (
-            <div key={i} className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+            <div key={i} className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
               <div className="text-[10px] font-bold tracking-[1px] uppercase mb-2" style={{ color: '#e60023' }}>
                 {step.week}
               </div>
@@ -138,7 +138,7 @@ export default function PinterestPage() {
       </div>
 
       {/* Weekly log form */}
-      <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+      <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         <div className="text-[13px] font-bold mb-4" style={{ color: '#1E2D3D' }}>
           Log your weekly Pinterest numbers — takes 30 seconds
         </div>
@@ -189,7 +189,7 @@ export default function PinterestPage() {
 
       {/* History table */}
       <div className="rounded-xl overflow-x-auto mb-6"
-        style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+        style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         <table className="w-full border-collapse text-[12px]" style={{ minWidth: 580 }}>
           <thead>
             <tr style={{ background: '#F5F5F4' }}>
@@ -244,7 +244,7 @@ export default function PinterestPage() {
       </div>
 
       {/* Benchmarks */}
-      <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+      <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         <div className="text-[11px] font-bold uppercase tracking-[1px] mb-3" style={{ color: '#6B7280' }}>
           Pinterest Benchmarks for Romance Authors
         </div>

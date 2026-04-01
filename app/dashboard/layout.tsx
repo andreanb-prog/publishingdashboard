@@ -24,7 +24,7 @@ export default async function DashboardLayout({
         <div className="hidden md:block">
           <TopBar user={session.user} />
         </div>
-        <main className="flex-1 overflow-y-auto" style={{ background: '#F5F0E8' }}>
+        <main className="flex-1 overflow-y-auto" style={{ background: '#FAF8F5' }}>
           {children}
         </main>
       </div>

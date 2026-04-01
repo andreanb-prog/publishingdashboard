@@ -471,7 +471,7 @@ export default function KDPPage() {
               { label: 'FDMBP Units',      value: String(kdp.books.find(b => b.asin === 'B0GQD4J6VT')?.units || 0),  sub: 'Fake Dating Billionaire', color: '#a78bfa' },
             ].map((item, i) => (
               <div key={i} className="rounded-xl relative overflow-hidden"
-                style={{ background: 'white', border: '1px solid #F0E0C8', padding: 16, minHeight: 100 }}>
+                style={{ background: `linear-gradient(135deg, ${item.color}06, white 60%)`, border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)', padding: 16, minHeight: 100 }}>
                 <div className="absolute bottom-0 left-0 right-0 h-[3px]"
                   style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
                 <div className="text-[11px] font-bold tracking-[1.2px] uppercase mb-2"
@@ -491,7 +491,7 @@ export default function KDPPage() {
 
           {/* Chart cards — equal 1fr 1fr grid */}
           <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: '1fr 1fr' }}>
-            <div className="rounded-xl" style={{ background: 'white', border: '1px solid #F0E0C8', padding: 20 }}>
+            <div className="rounded-xl" style={{ background: 'white', border: '1px solid #EEEBE6', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
               <h3 className="text-[16px] font-medium mb-4" style={{ color: '#1E2D3D' }}>Units by Book</h3>
               <div className="space-y-2.5">
                 {kdp.books.map((b, i) => {
@@ -504,7 +504,7 @@ export default function KDPPage() {
                         <span className="text-[12px]" style={{ color: '#6B7280' }}>{b.shortTitle}</span>
                         <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>{b.units}</span>
                       </div>
-                      <div className="rounded-full overflow-hidden" style={{ height: 28, background: '#F0E0C8' }}>
+                      <div className="rounded-full overflow-hidden" style={{ height: 28, background: '#EEEBE6' }}>
                         <div className="h-full rounded-full transition-all" style={{ width: `${(b.units / maxVal) * 100}%`, background: color }} />
                       </div>
                     </div>
@@ -512,7 +512,7 @@ export default function KDPPage() {
                 })}
               </div>
             </div>
-            <div className="rounded-xl" style={{ background: 'white', border: '1px solid #F0E0C8', padding: 20 }}>
+            <div className="rounded-xl" style={{ background: 'white', border: '1px solid #EEEBE6', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
               <h3 className="text-[16px] font-medium mb-4" style={{ color: '#1E2D3D' }}>KENP by Book</h3>
               <div className="space-y-2.5">
                 {kdp.books.map((b, i) => {
@@ -525,7 +525,7 @@ export default function KDPPage() {
                         <span className="text-[12px]" style={{ color: '#6B7280' }}>{b.shortTitle}</span>
                         <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>{b.kenp.toLocaleString()}</span>
                       </div>
-                      <div className="rounded-full overflow-hidden" style={{ height: 28, background: '#F0E0C8' }}>
+                      <div className="rounded-full overflow-hidden" style={{ height: 28, background: '#EEEBE6' }}>
                         <div className="h-full rounded-full transition-all" style={{ width: `${(b.kenp / maxVal) * 100}%`, background: color }} />
                       </div>
                     </div>
@@ -574,7 +574,7 @@ export default function KDPPage() {
           </div>
 
           {/* Daily Units chart */}
-          <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+          <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-[13.5px] font-semibold" style={{ color: '#1E2D3D' }}>Daily Units Sold</h3>
               {compareMode && prevPeriod && (
@@ -607,7 +607,7 @@ export default function KDPPage() {
 
           {/* Daily KENP chart */}
           {filteredKENP.length > 0 && (
-            <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+            <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-[13.5px] font-semibold" style={{ color: '#1E2D3D' }}>Daily KENP Reads</h3>
                 {compareMode && prevPeriod && (

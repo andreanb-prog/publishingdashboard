@@ -59,11 +59,11 @@ export function HelpDrawer() {
           <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.3)' }} />
           <div
             className="absolute top-0 right-0 bottom-0 w-[340px] overflow-y-auto shadow-2xl"
-            style={{ background: '#F5F0E8' }}
+            style={{ background: '#FAF8F5' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #E8DDD0' }}>
+            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #EEEBE6' }}>
               <h3 className="text-[16px] font-semibold" style={{ color: '#1E2D3D' }}>Help</h3>
               <button onClick={() => setOpen(false)}
                 className="w-8 h-8 rounded-lg flex items-center justify-center bg-transparent border-none cursor-pointer"
@@ -75,7 +75,7 @@ export function HelpDrawer() {
             {/* Help items */}
             <div className="p-4 space-y-2">
               {HELP_ITEMS.map((item, i) => (
-                <div key={i} className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #E8DDD0' }}>
+                <div key={i} className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
                   <button
                     onClick={() => setExpandedIdx(expandedIdx === i ? null : i)}
                     className="w-full flex items-center justify-between px-4 py-3 text-left bg-transparent border-none cursor-pointer"
@@ -84,7 +84,7 @@ export function HelpDrawer() {
                     <span className="text-[12px]" style={{ color: '#9CA3AF', transform: expandedIdx === i ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.2s' }}>▾</span>
                   </button>
                   {expandedIdx === i && (
-                    <div className="px-4 pb-4" style={{ borderTop: '1px solid #F0E0C8' }}>
+                    <div className="px-4 pb-4" style={{ borderTop: '1px solid #EEEBE6' }}>
                       <div className="space-y-2 mt-3">
                         {item.steps.map((step, j) => (
                           <div key={j} className="flex items-start gap-2">

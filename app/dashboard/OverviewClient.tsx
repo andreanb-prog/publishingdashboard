@@ -272,7 +272,7 @@ function WhatHappenedCard({ current, previous, actionPlan }: { current: Analysis
 
   return (
     <div className="rounded-xl mb-4 overflow-hidden"
-      style={{ background: 'white', border: '1px solid #E8DDD0', borderLeft: '3px solid #e9a020' }}>
+      style={{ background: 'white', border: '1px solid #EEEBE6', borderLeft: '3px solid #e9a020', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
       <button onClick={handleToggle}
         className="w-full flex items-center justify-between px-5 py-3.5 text-left bg-transparent border-none cursor-pointer">
         <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
@@ -284,7 +284,7 @@ function WhatHappenedCard({ current, previous, actionPlan }: { current: Analysis
       </button>
 
       {open && (
-        <div className="px-5 pb-5" style={{ borderTop: '1px solid #F0E0C8' }}>
+        <div className="px-5 pb-5" style={{ borderTop: '1px solid #EEEBE6' }}>
           <div className="text-[10px] font-bold uppercase tracking-wider mt-3 mb-2" style={{ color: '#9CA3AF' }}>
             What changed
           </div>
@@ -409,7 +409,7 @@ export function OverviewClient() {
       {/* Hero numbers strip */}
       {analysis?.kdp && (
         <div className="rounded-xl mb-4 p-6 grid grid-cols-2 md:grid-cols-4 gap-4"
-          style={{ background: 'white', border: '1px solid #E8DDD0' }}>
+          style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
           {[
             { label: 'Revenue',     value: `$${analysis.kdp.totalRoyaltiesUSD}`, color: '#1E2D3D' },
             { label: 'Units Sold',  value: fmt(analysis.kdp.totalUnits),         color: '#1E2D3D' },

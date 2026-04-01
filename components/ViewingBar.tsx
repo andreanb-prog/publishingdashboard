@@ -16,7 +16,7 @@ export function ViewingBar({
       className="flex items-center gap-2 mb-5 px-4 py-2.5 rounded-lg"
       style={{
         background: '#F5F5F4',
-        border: '1px solid #F0E0C8',
+        border: '1px solid #EEEBE6',
       }}
     >
       <span

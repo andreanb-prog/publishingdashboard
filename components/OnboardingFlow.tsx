@@ -113,7 +113,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
             </p>
 
             {/* Visual numbered guide */}
-            <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+            <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
               {[
                 { num: '1', text: 'Go to kdp.amazon.com and sign in' },
                 { num: '2', text: 'Click "Reports" in the top menu bar' },
@@ -133,7 +133,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
 
             <a href="https://kdp.amazon.com/en_US/reports" target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-[14px] font-semibold no-underline mb-5 transition-all hover:opacity-90"
-              style={{ background: '#F5F0E8', border: '1px solid #E8DDD0', color: '#1E2D3D' }}>
+              style={{ background: '#FAF8F5', border: '1px solid #EEEBE6', color: '#1E2D3D' }}>
               Open KDP Reports in new tab →
             </a>
 
@@ -149,7 +149,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
             ) : (
               <div
                 className="rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all hover:border-amber-400"
-                style={{ borderColor: '#E8DDD0', background: '#FAFAFA' }}
+                style={{ borderColor: '#EEEBE6', background: '#FAFAFA' }}
                 onClick={() => kdpRef.current?.click()}
               >
                 <input ref={kdpRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
@@ -211,7 +211,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
               <div className="grid grid-cols-2 gap-3 mb-5">
                 <div
                   className="rounded-xl p-5 text-center cursor-pointer transition-all hover:border-blue-300"
-                  style={{ background: 'white', border: '1.5px solid #E8DDD0' }}
+                  style={{ background: 'white', border: '1.5px solid #EEEBE6' }}
                   onClick={() => metaRef.current?.click()}
                 >
                   <input ref={metaRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
@@ -226,7 +226,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                 </div>
                 <div
                   className="rounded-xl p-5 text-center cursor-pointer transition-all hover:border-stone-300"
-                  style={{ background: '#FAFAFA', border: '1.5px solid #E8DDD0' }}
+                  style={{ background: '#FAFAFA', border: '1.5px solid #EEEBE6' }}
                   onClick={() => setStep('done')}
                 >
                   <div className="text-2xl mb-2">⏭️</div>
