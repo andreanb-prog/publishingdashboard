@@ -22,14 +22,14 @@ export function TopBar({ user }: TopBarProps) {
   const now = new Date()
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 
-  // Daily Check state — persists per day in sessionStorage
+  // Daily Check state — persists per day in localStorage
   const [checks, setChecks] = useState<Record<string, boolean>>({})
   const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     const key = `daily-check-${getTodayKey()}`
     try {
-      const stored = sessionStorage.getItem(key)
+      const stored = localStorage.getItem(key)
       if (stored) setChecks(JSON.parse(stored))
     } catch {}
   }, [])
@@ -38,7 +38,7 @@ export function TopBar({ user }: TopBarProps) {
     setChecks(prev => {
       const next = { ...prev, [checkKey]: !prev[checkKey] }
       try {
-        sessionStorage.setItem(`daily-check-${getTodayKey()}`, JSON.stringify(next))
+        localStorage.setItem(`daily-check-${getTodayKey()}`, JSON.stringify(next))
       } catch {}
       return next
     })
@@ -64,6 +64,10 @@ export function TopBar({ user }: TopBarProps) {
         <div className="flex items-center gap-3">
           {/* Daily Check — desktop: inline, mobile: toggle */}
           <div className="hidden md:flex items-center gap-3 mr-2">
+            <span className="text-[11px] font-medium" style={{ color: '#1E2D3D', letterSpacing: '0.5px' }}>
+              Daily Check-In
+            </span>
+            <span className="w-px h-4" style={{ background: '#EEEBE6' }} />
             {DAILY_CHECKS.map(c => (
               <button
                 key={c.key}
