@@ -91,8 +91,21 @@ export function DarkSectionHeader({ title, badge, badgeColor }: { title: string;
   )
 }
 
-// Coach callout for dark pages  
-export function DarkCoachBox({ children, color = '#fbbf24' }: { children: React.ReactNode; color?: string }) {
+const EMPOWERMENT_PROMPTS = [
+  '…but what does your gut say?',
+  '…does this match what you\'ve been feeling?',
+  '…you\'ve seen your readers — do you agree?',
+  '…trust the data, but you\'re driving this car.',
+  '…what would YOU do with this information?',
+  '…your instincts built this far — what do they tell you?',
+  '…before you act on this, sit with it for 10 seconds.',
+]
+
+// Coach callout for dark pages
+export function DarkCoachBox({ children, color = '#fbbf24', title = 'Your coach says' }: { children: React.ReactNode; color?: string; title?: string }) {
+  const showPrompt = Math.random() < 0.1
+  const prompt = EMPOWERMENT_PROMPTS[Math.floor(Math.random() * EMPOWERMENT_PROMPTS.length)]
+
   return (
     <div className="rounded-xl p-5 mb-5"
       style={{
@@ -102,10 +115,18 @@ export function DarkCoachBox({ children, color = '#fbbf24' }: { children: React.
       }}>
       <div className="text-[10.5px] font-bold tracking-[1px] uppercase mb-2"
         style={{ color }}>
-        Your coach says
+        {title}
       </div>
       <div className="text-[13px] leading-[1.75]" style={{ color: '#d6d3d1' }}>
         {children}
+      </div>
+      {showPrompt && (
+        <div className="mt-2 text-[12px] italic" style={{ color: '#a8a29e' }}>
+          {prompt}
+        </div>
+      )}
+      <div className="mt-3 pt-2.5 text-[10px]" style={{ color: '#44403c', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        AI-generated insight · Test everything · You&apos;re the expert on your readers
       </div>
     </div>
   )

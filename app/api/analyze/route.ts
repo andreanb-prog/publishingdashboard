@@ -115,7 +115,9 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       generatedAt: new Date().toISOString(),
     }
 
-    await db.analysis.upsert({
+    console.log('[POST] upserting id:', `${session.user.id}-${month}`, '| kdp:', !!kdp, '| meta:', !!meta, '| mailerLite:', !!mailerLite, '| pinterest:', !!pinterest)
+
+    const saved = await db.analysis.upsert({
       where: { id: `${session.user.id}-${month}` },
       update: { data: analysis as any },
       create: {
@@ -125,6 +127,8 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
         data: analysis as any,
       },
     })
+
+    console.log('[POST] upserted successfully, id:', saved.id, '| month:', saved.month)
 
     return NextResponse.json({ success: true, analysis, coaching: coachingData })
   } catch (error) {
@@ -197,16 +201,9 @@ export async function GET(req: NextRequest) {
     take: 6,
   })
 
-  if (analyses[0]) {
-    const row = analyses[0]
-    const d = row.data as any
-    console.log('[GET /api/analyze] row keys:', Object.keys(row))
-    console.log('[GET /api/analyze] row.data type:', typeof row.data)
-    console.log('[GET /api/analyze] data.kdp:', d?.kdp == null ? (d?.kdp === null ? 'NULL' : 'MISSING') : JSON.stringify(d.kdp).substring(0, 120))
-    console.log('[GET /api/analyze] data.channelScores:', JSON.stringify(d?.channelScores))
-    console.log('[GET /api/analyze] data.month:', d?.month)
-    console.log('[GET /api/analyze] data keys:', d ? Object.keys(d) : 'NO DATA FIELD')
-  }
+  const analysis = (analyses[0]?.data ?? null) as any
+  console.log('[GET] records:', analyses.length, '| latest keys:', analysis ? Object.keys(analysis) : 'none')
+  console.log('[GET] kdp:', analysis?.kdp ? `units=${analysis.kdp.totalUnits} kenp=${analysis.kdp.totalKENP}` : 'MISSING')
 
-  return NextResponse.json({ analyses })
+  return NextResponse.json({ analyses, analysis })
 }

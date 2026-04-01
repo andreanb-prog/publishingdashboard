@@ -3,6 +3,9 @@
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { Analysis, RankLog, RoasLog, ChannelScore, CoachingInsight } from '@/types'
+import { getCoachTitle } from '@/lib/coachTitle'
+
+const COACH_TITLE_OVERVIEW = getCoachTitle('overview')
 import { ActionItem } from '@/components/ui'
 import { FreshBanner } from '@/components/FreshBanner'
 
@@ -333,7 +336,7 @@ export function OverviewClient() {
       {loading ? (
         <div className="card p-8 text-center">
           <div className="text-[14px] font-serif text-[#0d1f35] animate-pulse">
-            Your coach is reading everything…
+            {COACH_TITLE_OVERVIEW.replace(' says', '')} is reading everything…
           </div>
         </div>
       ) : !analysis?.actionPlan?.length ? (
@@ -353,7 +356,7 @@ export function OverviewClient() {
         <div className="card overflow-hidden mb-7">
           <div className="px-5 py-3.5" style={{ background: '#0d1f35' }}>
             <div className="font-serif text-[16px] text-white">
-              Your coach reviewed everything. Here&apos;s what to do next.
+              {COACH_TITLE_OVERVIEW.replace(' says', '')} reviewed everything. Here&apos;s what to do next.
             </div>
             <div className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
               Ranked by priority · Based on your real numbers

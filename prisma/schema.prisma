@@ -43,6 +43,8 @@ model User {
   apiKey        String?        // Claude API key (encrypted)
   mailerLiteKey String?        // MailerLite API key
   books         Json?          // My Books: [{title, asin, category, series, bookNumber}]
+  columnPrefs   Json?          // Per-page column visibility: { meta: ['spend', 'clicks', ...] }
+  onboardingDismissed Boolean  @default(false)
   accounts      Account[]
   sessions      Session[]
   rankLogs      RankLog[]

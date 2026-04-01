@@ -3,7 +3,10 @@
 import { Suspense, useEffect, useState } from 'react'
 import { DarkPage, DarkCoachBox } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
+import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis } from '@/types'
+
+const COACH_TITLE = getCoachTitle('pinterest')
 
 const ROADMAP = [
   {
@@ -104,7 +107,7 @@ export default function PinterestPage() {
       </div>
 
       {/* Coach box */}
-      <DarkCoachBox color="#f472b6">
+      <DarkCoachBox color="#f472b6" title={COACH_TITLE}>
         {coach || `Your data is honest: 20 impressions, 2 pins, brand new account. That's not a problem — that's a starting line. Pinterest is one of the most powerful long-term channels for romance authors because pins keep working for months and years. A pin you create today about your forced proximity trope could still be driving readers to your book in 2028. Start posting this week. Consistency beats perfection here.`}
       </DarkCoachBox>
 

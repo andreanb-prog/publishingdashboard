@@ -3,8 +3,12 @@
 import { Suspense, useEffect, useState, useMemo } from 'react'
 import { DarkPage, DarkKPIStrip, DarkCoachBox } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
+import { ViewingBar } from '@/components/ViewingBar'
 import { BarChart } from '@/components/ui'
+import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis, DailyData, RoasLog } from '@/types'
+
+const COACH_TITLE = getCoachTitle('kdp')
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmt(d: Date) { return d.toISOString().split('T')[0] }
@@ -446,7 +450,7 @@ export default function KDPPage() {
             { label: 'FDMBP Units',      value: kdp.books.find(b => b.asin === 'B0GQD4J6VT')?.units || 0,  sub: 'Fake Dating Billionaire', color: '#a78bfa' },
           ]} />
 
-          {coach && <DarkCoachBox color="#fbbf24">{coach}</DarkCoachBox>}
+          {coach && <DarkCoachBox color="#fbbf24" title={COACH_TITLE}>{coach}</DarkCoachBox>}
 
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div className="rounded-xl p-5" style={{ background: '#1c1917', border: '1px solid #292524' }}>
@@ -475,21 +479,19 @@ export default function KDPPage() {
             onCustomEnd={setCustomEnd}
           />
 
+          {/* Viewing bar */}
+          {range.start && range.end && (
+            <ViewingBar
+              start={formatShortDate(range.start)}
+              end={formatShortDate(range.end)}
+              days={filteredUnits.length || undefined}
+              summary={filteredTotalUnits > 0 ? `${filteredTotalUnits.toLocaleString()} units · ${filteredTotalKENP.toLocaleString()} KENP` : undefined}
+            />
+          )}
+
           {/* Range label + compare toggle */}
           <div className="flex items-center justify-between mb-4">
-            {range.start && range.end ? (
-              <div className="text-[11.5px]" style={{ color: '#78716c' }}>
-                Viewing:{' '}
-                <span style={{ color: '#d6d3d1', fontWeight: 600 }}>
-                  {formatDisplayRange(range.start, range.end)}
-                </span>
-                {filteredUnits.length > 0 && (
-                  <span style={{ color: '#57534e' }}>
-                    {' · '}{filteredUnits.length} days · {filteredTotalUnits.toLocaleString()} units
-                  </span>
-                )}
-              </div>
-            ) : <div />}
+            <div />
 
             <button
               onClick={() => setCompareMode(m => !m)}
