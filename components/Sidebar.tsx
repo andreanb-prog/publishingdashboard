@@ -28,7 +28,7 @@ const CHANNEL_ITEMS: NavItem[] = [
   { label: 'KDP',              href: '/dashboard/kdp',        render: custom(IconKDP, '#E9A020') },
   { label: 'Meta / Facebook',  href: '/dashboard/meta',       render: custom(IconMeta, '#38bdf8') },
   { label: 'MailerLite',       href: '/dashboard/mailerlite',  render: custom(IconMailerLite, '#34d399') },
-  { label: 'Newsletter Swaps', href: '/dashboard/swaps',      render: custom(IconSwaps, '#a78bfa') },
+  { label: 'Newsletter Swaps', href: '/dashboard/swaps',      render: custom(IconSwaps, '#E9A020') },
   { label: 'Pinterest',        href: '/dashboard/pinterest',   render: custom(IconPinterest, '#fb7185') },
 ]
 
@@ -85,16 +85,17 @@ export function Sidebar() {
       style={{ background: '#F5F0E8', borderRight: '1px solid #E8DDD0' }}
     >
       {/* Logo */}
-      <div className="px-5 py-6" style={{ borderBottom: '1px solid #E8DDD0' }}>
-        <div className="font-serif text-[16px] leading-snug">
-          <span style={{ color: '#1E2D3D' }}>Author</span>
-          <span style={{ color: '#e9a020' }}>Dash</span>
+      <Link href="/dashboard" className="block px-5 py-6 no-underline hover:opacity-80 transition-opacity"
+        style={{ borderBottom: '1px solid #E8DDD0' }}>
+        <div>
+          <span style={{ color: '#1E2D3D', fontWeight: 600, fontSize: '18px' }}>Author</span>
+          <span style={{ color: '#E9A020', fontWeight: 600, fontSize: '18px' }}>Dash</span>
         </div>
-        <span className="inline-block text-[9px] font-bold tracking-[1.5px] uppercase mt-1 px-1.5 py-0.5 rounded"
-          style={{ background: 'rgba(233,160,32,0.15)', color: '#e9a020' }}>
+        <span className="inline-block mt-1 text-[10px] font-semibold tracking-[0.05em]"
+          style={{ background: '#FFF4E0', color: '#E9A020', padding: '2px 8px', borderRadius: 20 }}>
           BETA
         </span>
-      </div>
+      </Link>
 
       {/* Nav */}
       <nav className="flex-1 px-2.5 py-3 overflow-y-auto">

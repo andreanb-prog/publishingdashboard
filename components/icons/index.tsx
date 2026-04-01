@@ -52,11 +52,13 @@ export function IconPinterest({ size = 24, color = '#fb7185', className }: IconP
   )
 }
 
-export function IconSwaps({ size = 24, color = '#a78bfa', className }: IconProps) {
+export function IconSwaps({ size = 24, color = '#E9A020', className }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
-      <polygon points="12,2 14.5,8.5 21.5,9.5 16.5,14 18,21 12,17.5 6,21 7.5,14 2.5,9.5 9.5,8.5"
-        stroke={color} strokeWidth="1.8" strokeLinejoin="round" fill={color} fillOpacity="0.15" />
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" className={className}>
+      <path d="M6 12 L30 12" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M24 6 L30 12 L24 18" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M30 24 L6 24" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M12 18 L6 24 L12 30" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </svg>
   )
 }
