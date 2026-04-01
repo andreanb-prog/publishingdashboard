@@ -22,14 +22,14 @@ const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> 
 
 // Hardcoded swap calendar (matches swaps/page.tsx)
 const SWAP_CALENDAR = [
-  { partner: 'Mandy Baker + Madison Brooke',     date: 'Apr 1',  direction: 'Inbound',          list: '1,038 / 1,532', status: 'Applied' },
-  { partner: 'Chloe Horne #3',                   date: 'Apr 6',  direction: 'Inbound + Outbound',list: '8,198',         status: 'Approved' },
-  { partner: 'Zoe Dawson + Ava Bloome + 4 more', date: 'Apr 6',  direction: 'Outbound',          list: 'Various',       status: 'Approved' },
-  { partner: 'Tessa Sloan',                      date: 'Apr 9',  direction: 'Inbound',           list: '4,288',         status: 'Applied — follow up' },
-  { partner: 'Lisa Monroe + Lucy Barbee',        date: 'Apr 13', direction: 'Inbound',           list: 'Various',       status: 'Approved' },
-  { partner: 'Rachel J. Green',                  date: 'Apr 18', direction: 'Inbound',           list: '9,451',         status: 'Applied — follow up' },
-  { partner: 'Brandi Creek (FPA)',               date: 'Apr 21', direction: 'Inbound',           list: '2,703',         status: 'Approved' },
-  { partner: 'Lily-Mae Montana',                 date: 'Apr 30', direction: 'Inbound + Outbound',list: '1,168',         status: 'Decision needed' },
+  { partner: 'Mandy Baker + Madison Brooke',     date: 'Apr 1',  direction: 'Inbound',           list: '1,038 / 1,532', status: 'Applied' },
+  { partner: 'Chloe Horne #3',                   date: 'Apr 6',  direction: 'Inbound + Outbound', list: '8,198',         status: 'Approved' },
+  { partner: 'Zoe Dawson + Ava Bloome + 4 more', date: 'Apr 6',  direction: 'Outbound',           list: 'Various',       status: 'Approved' },
+  { partner: 'Tessa Sloan',                      date: 'Apr 9',  direction: 'Inbound',            list: '4,288',         status: 'Applied — follow up' },
+  { partner: 'Lisa Monroe + Lucy Barbee',        date: 'Apr 13', direction: 'Inbound',            list: 'Various',       status: 'Approved' },
+  { partner: 'Rachel J. Green',                  date: 'Apr 18', direction: 'Inbound',            list: '9,451',         status: 'Applied — follow up' },
+  { partner: 'Brandi Creek (FPA)',               date: 'Apr 21', direction: 'Inbound',            list: '2,703',         status: 'Approved' },
+  { partner: 'Lily-Mae Montana',                 date: 'Apr 30', direction: 'Inbound + Outbound', list: '1,168',         status: 'Decision needed' },
 ]
 
 function fmt(n: number | undefined, prefix = '', decimals = 0) {
@@ -57,10 +57,9 @@ function buildCoachPrompt(
   const month = analysis?.month ?? new Date().toISOString().substring(0, 7)
 
   lines.push(`# My Publishing Marketing Data — ${month}`)
-  lines.push(`I'm an indie romance author. Here's my full marketing data for the month. Please help me understand what it means and what I should do next.`)
+  lines.push(`I'm an indie romance author. Here's my full marketing data for the month.`)
   lines.push('')
 
-  // ── KDP ──────────────────────────────────────────────
   if (analysis?.kdp) {
     const k = analysis.kdp
     lines.push('## KDP (Amazon Publishing) Results')
@@ -79,7 +78,6 @@ function buildCoachPrompt(
     lines.push('')
   }
 
-  // ── Meta Ads ──────────────────────────────────────────
   if (analysis?.meta) {
     const m = analysis.meta
     lines.push('## Meta (Facebook) Ads')
@@ -88,18 +86,17 @@ function buildCoachPrompt(
     lines.push(`Average CTR: ${m.avgCTR}%`)
     lines.push(`Average CPC: $${m.avgCPC}`)
     if (m.bestAd) {
-      lines.push(`Best performing ad: "${m.bestAd.name}" — ${m.bestAd.ctr}% CTR, $${m.bestAd.cpc} CPC, ${m.bestAd.clicks} clicks`)
+      lines.push(`Best ad: "${m.bestAd.name}" — ${m.bestAd.ctr}% CTR, $${m.bestAd.cpc} CPC, ${m.bestAd.clicks} clicks`)
     }
     if (m.ads?.length) {
       lines.push('All ads:')
       m.ads.forEach(a => {
-        lines.push(`  • "${a.name}": $${a.spend} spend, ${a.clicks} clicks, ${a.ctr}% CTR, $${a.cpc} CPC — Status: ${a.status}`)
+        lines.push(`  • "${a.name}": $${a.spend} spend, ${a.clicks} clicks, ${a.ctr}% CTR, $${a.cpc} CPC — ${a.status}`)
       })
     }
     lines.push('')
   }
 
-  // ── MailerLite ───────────────────────────────────────
   if (analysis?.mailerLite) {
     const ml = analysis.mailerLite
     lines.push('## Email List (MailerLite)')
@@ -116,14 +113,12 @@ function buildCoachPrompt(
     lines.push('')
   }
 
-  // ── Newsletter Swaps ─────────────────────────────────
   lines.push('## Newsletter Swap Calendar (April)')
   SWAP_CALENDAR.forEach(s => {
     lines.push(`  • ${s.date} — ${s.partner} | ${s.direction} | List: ${s.list} | Status: ${s.status}`)
   })
   lines.push('')
 
-  // ── Pinterest ─────────────────────────────────────────
   if (analysis?.pinterest) {
     const p = analysis.pinterest
     lines.push('## Pinterest')
@@ -136,7 +131,6 @@ function buildCoachPrompt(
     lines.push('')
   }
 
-  // ── Rank Tracker ─────────────────────────────────────
   if (rankLogs.length) {
     lines.push('## Rank Tracker (Last 30 Days)')
     rankLogs.forEach(r => {
@@ -146,20 +140,18 @@ function buildCoachPrompt(
     lines.push('')
   }
 
-  // ── ROAS Log ─────────────────────────────────────────
   if (roasLogs.length) {
     lines.push('## Daily ROAS Log (Last 30 Days)')
     roasLogs.forEach(r => {
       const date = new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      const note = r.notes ? ` — Note: ${r.notes}` : ''
+      const note = r.notes ? ` — ${r.notes}` : ''
       lines.push(`  • ${date}: $${r.spend} spend, $${r.earnings} earnings, ${r.roas}x ROAS${note}`)
     })
     lines.push('')
   }
 
-  // ── AI Coach's Existing Insights ─────────────────────
   if (analysis?.channelScores?.length) {
-    lines.push('## Channel Health Scores (from my dashboard)')
+    lines.push('## Channel Health Scores')
     analysis.channelScores.forEach(s => {
       lines.push(`  • ${s.channel.toUpperCase()}: ${s.status} — ${s.metric} — ${s.subline}`)
     })
@@ -167,7 +159,7 @@ function buildCoachPrompt(
   }
 
   if (analysis?.actionPlan?.length) {
-    lines.push('## Current Action Plan (from my dashboard)')
+    lines.push('## Current Action Plan')
     analysis.actionPlan.forEach((item, i) => {
       lines.push(`  ${i + 1}. [${item.type}] ${item.title}: ${item.body}`)
     })
@@ -175,101 +167,19 @@ function buildCoachPrompt(
   }
 
   lines.push('---')
-  lines.push('Based on this data, I want to ask you: [CURSOR]')
+  lines.push('Based on everything above, I want to ask you:')
 
   return lines.join('\n')
 }
 
-// ── Modal ────────────────────────────────────────────────────────────────────
-function CoachModal({ onClose }: { onClose: () => void }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(13,31,53,0.7)', backdropFilter: 'blur(4px)' }}
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Icon */}
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-5"
-          style={{ background: 'rgba(233,160,32,0.12)' }}>
-          ✅
-        </div>
-
-        {/* Heading */}
-        <h2 className="font-serif text-[22px] text-[#0d1f35] text-center leading-snug mb-2">
-          Copied! Now open any AI and paste.
-        </h2>
-        <p className="text-[13px] text-stone-500 text-center leading-relaxed mb-7">
-          Your data is on your clipboard. Open any AI assistant, paste it in, and type your question
-          at the end where it says <span className="font-semibold text-[#0d1f35]">[CURSOR]</span>.
-          Works with Claude, ChatGPT, Gemini — any AI you like.
-        </p>
-
-        {/* AI buttons */}
-        <div className="space-y-2.5 mb-5">
-          <a
-            href="https://claude.ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between w-full px-5 py-3.5 rounded-xl font-semibold
-                       text-[14px] transition-all duration-150 no-underline hover:opacity-90"
-            style={{ background: '#0d1f35', color: '#fff' }}
-          >
-            <span className="flex items-center gap-2.5">
-              <span className="text-lg">🟠</span> Open Claude.ai
-            </span>
-            <span style={{ color: 'rgba(255,255,255,0.4)' }}>→</span>
-          </a>
-          <a
-            href="https://chat.openai.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between w-full px-5 py-3.5 rounded-xl font-semibold
-                       text-[14px] transition-all duration-150 no-underline hover:opacity-90"
-            style={{ background: '#10a37f', color: '#fff' }}
-          >
-            <span className="flex items-center gap-2.5">
-              <span className="text-lg">🟢</span> Open ChatGPT
-            </span>
-            <span style={{ color: 'rgba(255,255,255,0.4)' }}>→</span>
-          </a>
-          <a
-            href="https://gemini.google.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between w-full px-5 py-3.5 rounded-xl font-semibold
-                       text-[14px] transition-all duration-150 no-underline hover:opacity-90"
-            style={{ background: '#4285f4', color: '#fff' }}
-          >
-            <span className="flex items-center gap-2.5">
-              <span className="text-lg">🔵</span> Open Gemini
-            </span>
-            <span style={{ color: 'rgba(255,255,255,0.4)' }}>→</span>
-          </a>
-        </div>
-
-        <button
-          onClick={onClose}
-          className="w-full text-[13px] text-stone-400 hover:text-stone-600 transition-colors py-1"
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // ── Main component ───────────────────────────────────────────────────────────
 export function OverviewClient() {
-  const [analyses,  setAnalyses]  = useState<Analysis[]>([])
-  const [rankLogs,  setRankLogs]  = useState<RankLog[]>([])
-  const [roasLogs,  setRoasLogs]  = useState<RoasLog[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [showModal, setShowModal] = useState(false)
-  const [copying,   setCopying]   = useState(false)
+  const [analyses, setAnalyses] = useState<Analysis[]>([])
+  const [rankLogs, setRankLogs] = useState<RankLog[]>([])
+  const [roasLogs, setRoasLogs] = useState<RoasLog[]>([])
+  const [loading,  setLoading]  = useState(true)
+  const [copied,   setCopied]   = useState(false)
+  const [copying,  setCopying]  = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -292,15 +202,15 @@ export function OverviewClient() {
     ? new Date(analysis.month + '-02').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
-  async function handleCopyPrompt() {
+  async function handleCopy() {
     setCopying(true)
     try {
       const prompt = buildCoachPrompt(analysis, rankLogs, roasLogs)
       await navigator.clipboard.writeText(prompt)
-      setShowModal(true)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 4000)
     } catch {
-      // Fallback for browsers that block clipboard
-      alert('Could not copy automatically. Try right-clicking and copying manually.')
+      alert('Could not copy automatically — please try again.')
     } finally {
       setCopying(false)
     }
@@ -308,8 +218,6 @@ export function OverviewClient() {
 
   return (
     <div className="p-8 max-w-[1400px]">
-      {/* Modal */}
-      {showModal && <CoachModal onClose={() => setShowModal(false)} />}
 
       {/* Banner */}
       <div className="rounded-xl p-6 mb-6 flex items-center justify-between"
@@ -344,32 +252,6 @@ export function OverviewClient() {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* AI Coach button */}
-      <div className="mb-7">
-        <button
-          onClick={handleCopyPrompt}
-          disabled={copying || !analysis}
-          className="flex items-center gap-3 px-6 py-4 rounded-xl text-[15px] font-bold
-                     transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed
-                     hover:-translate-y-0.5 hover:shadow-lg w-full justify-between"
-          style={{ background: 'linear-gradient(135deg, #1a3352 0%, #0d1f35 100%)', color: '#fff', border: '1px solid rgba(233,160,32,0.3)' }}
-        >
-          <span className="flex items-center gap-3">
-            <span className="text-2xl">🤖</span>
-            <span>
-              <span className="block text-[15px]">Talk to an AI coach about this data</span>
-              <span className="block text-[11.5px] font-normal mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                Copies all your numbers to clipboard — paste into any AI assistant
-              </span>
-            </span>
-          </span>
-          <span className="flex items-center gap-1.5 text-[13px] font-semibold flex-shrink-0"
-            style={{ color: '#e9a020' }}>
-            {copying ? 'Copying...' : 'Copy & open →'}
-          </span>
-        </button>
       </div>
 
       {/* Channel Cards */}
@@ -460,7 +342,7 @@ export function OverviewClient() {
             <h2 className="font-serif text-[18px] text-[#0d1f35]">How you're tracking over time</h2>
             <span className="text-[12px] text-stone-400">Last {analyses.length} months</span>
           </div>
-          <div className="card overflow-hidden mb-6">
+          <div className="card overflow-hidden mb-7">
             <table className="w-full text-[12.5px]">
               <thead>
                 <tr style={{ background: '#0d1f35' }}>
@@ -475,8 +357,8 @@ export function OverviewClient() {
               </thead>
               <tbody>
                 {analyses.map((a, i) => {
-                  const prev = analyses[i + 1]
-                  const label = new Date(a.month + '-02').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                  const prev      = analyses[i + 1]
+                  const label     = new Date(a.month + '-02').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                   const isCurrent = i === 0
                   return (
                     <tr key={a.month} className="border-t border-stone-100"
@@ -518,6 +400,77 @@ export function OverviewClient() {
           </div>
         </>
       )}
+
+      {/* ── AI Coach panel — full-width, dark, editorial ── */}
+      <div className="-mx-8 -mb-8 mt-2" style={{ background: '#0d1f35' }}>
+        <div className="max-w-2xl mx-auto px-8 py-14 text-center">
+
+          {/* Eyebrow */}
+          <div className="text-[10px] font-bold tracking-[2.5px] uppercase mb-5"
+            style={{ color: 'rgba(233,160,32,0.7)' }}>
+            Go deeper
+          </div>
+
+          {/* Headline */}
+          <h2 className="font-serif text-[28px] leading-snug text-white mb-4">
+            Want to go deeper? Bring your data to any AI.
+          </h2>
+
+          {/* Subtext */}
+          <p className="text-[14px] leading-relaxed mb-8 max-w-lg mx-auto"
+            style={{ color: 'rgba(255,255,255,0.45)' }}>
+            Your numbers, insights, and action plan — formatted and ready to paste into
+            Claude, ChatGPT, Gemini, or any AI you use.
+          </p>
+
+          {/* Copy button */}
+          <button
+            onClick={handleCopy}
+            disabled={copying}
+            className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-lg text-[14px]
+                       font-bold transition-all duration-200
+                       disabled:opacity-50 disabled:cursor-not-allowed
+                       hover:brightness-110 active:scale-[0.98]"
+            style={{ background: '#e9a020', color: '#0d1f35' }}
+          >
+            {copying
+              ? 'Copying...'
+              : copied
+              ? 'Copied to clipboard'
+              : 'Copy my full data summary'}
+          </button>
+
+          {/* Quiet confirmation */}
+          <div className={`mt-3 text-[12px] transition-opacity duration-500 ${copied ? 'opacity-100' : 'opacity-0'}`}
+            style={{ color: 'rgba(255,255,255,0.35)' }}>
+            Paste it into any AI and type your question at the end.
+          </div>
+
+          {/* Text links */}
+          <div className="flex items-center justify-center gap-6 mt-8">
+            {[
+              { label: 'Open Claude', href: 'https://claude.ai' },
+              { label: 'Open ChatGPT', href: 'https://chat.openai.com' },
+              { label: 'Open Gemini', href: 'https://gemini.google.com' },
+            ].map(({ label, href }) => (
+              <a
+                key={href}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[12.5px] no-underline transition-colors duration-150 hover:underline"
+                style={{ color: 'rgba(255,255,255,0.35)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
+              >
+                {label} →
+              </a>
+            ))}
+          </div>
+
+        </div>
+      </div>
+
     </div>
   )
 }
