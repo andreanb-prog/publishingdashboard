@@ -1,6 +1,7 @@
 'use client'
 // app/dashboard/settings/page.tsx
 import { useState, useEffect, useRef, useId } from 'react'
+import Link from 'next/link'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 type TestState = 'idle' | 'testing' | 'ok' | 'error'
@@ -658,6 +659,19 @@ export default function SettingsPage() {
             Go to console.anthropic.com → sign up or log in → click API Keys in the left menu → Create Key
           </div>
         </div>
+      </div>
+
+      {/* Legal links */}
+      <div className="flex items-center gap-5 mt-8 pt-6 border-t border-stone-100">
+        <Link href="/privacy"
+          className="text-[12px] text-stone-400 no-underline hover:underline hover:text-stone-600">
+          Privacy Policy
+        </Link>
+        <span className="text-stone-200">·</span>
+        <Link href="/terms"
+          className="text-[12px] text-stone-400 no-underline hover:underline hover:text-stone-600">
+          Terms of Service
+        </Link>
       </div>
     </div>
   )

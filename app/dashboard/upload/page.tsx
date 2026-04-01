@@ -22,14 +22,17 @@ const TYPE_INFO: Record<Exclude<FileType, 'unknown'>, { icon: string; label: str
   pinterest: { icon: '📌', label: 'Pinterest' },
 }
 
-const STEPS = [
-  'Your marketing coach is reading your files...',
-  'Looking at your book sales...',
-  'Reviewing your ad performance...',
-  'Checking your email stats...',
-  'Pulling it all together...',
-  'Writing your coaching session...',
-  'Almost ready...',
+const ANALYSIS_STEPS = [
+  'Cracking open your KDP report...',
+  'Ooh interesting — counting your page reads...',
+  'Tallying up those royalties (nice)...',
+  'Peeking at your ad spend...',
+  'Calculating your CTR — this one\'s good...',
+  'Checking in on your email list...',
+  'Cross-referencing everything...',
+  'Your coach is connecting the dots...',
+  'Almost there — writing your action plan...',
+  'Putting the finishing touches on your session...',
 ]
 
 export default function UploadPage() {
@@ -38,9 +41,10 @@ export default function UploadPage() {
   const [dragging, setDragging] = useState(false)
   const [files, setFiles] = useState<ParsedFile[]>([])
   const [analyzing, setAnalyzing] = useState(false)
-  const [step, setStep] = useState(0)
-  const [progress, setProgress] = useState(0)
-  const [done, setDone] = useState(false)
+  const [step,      setStep]      = useState(0)
+  const [stepFade,  setStepFade]  = useState(true)
+  const [progress,  setProgress]  = useState(0)
+  const [done,      setDone]      = useState(false)
 
   async function processFile(file: File) {
     const id = `${file.name}-${Date.now()}-${Math.random()}`
@@ -91,13 +95,17 @@ export default function UploadPage() {
     let stepIdx = 0
     const interval = setInterval(() => {
       stepIdx++
-      if (stepIdx < STEPS.length) {
-        setStep(stepIdx)
-        setProgress(Math.round((stepIdx / STEPS.length) * 100))
+      if (stepIdx < ANALYSIS_STEPS.length) {
+        setStepFade(false)
+        setTimeout(() => {
+          setStep(stepIdx)
+          setStepFade(true)
+        }, 250)
+        setProgress(Math.round((stepIdx / ANALYSIS_STEPS.length) * 100))
       } else {
         clearInterval(interval)
       }
-    }, 1100)
+    }, 1500)
 
     try {
       const mlRes  = await fetch('/api/mailerlite').catch(() => null)
@@ -280,15 +288,16 @@ export default function UploadPage() {
           </>
         ) : (
           <div className="text-center py-8">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl ${!done ? 'animate-pulse' : ''}`}
               style={{ background: 'rgba(233,160,32,0.15)' }}>
               {done ? '✅' : '⚙️'}
             </div>
             <div className="font-serif text-[22px] text-white mb-2">
               {done ? 'Done! Opening your dashboard...' : 'Your coach is reading everything…'}
             </div>
-            <div className="text-[13px] mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              {STEPS[step]}
+            <div className="text-[13px] mb-5 transition-opacity duration-200"
+              style={{ color: 'rgba(255,255,255,0.5)', opacity: stepFade ? 1 : 0 }}>
+              {ANALYSIS_STEPS[step]}
             </div>
             <div className="max-w-[300px] mx-auto h-1.5 rounded-full overflow-hidden"
               style={{ background: 'rgba(255,255,255,0.1)' }}>

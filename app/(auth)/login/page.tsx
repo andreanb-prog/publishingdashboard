@@ -1,6 +1,7 @@
 'use client'
 // app/(auth)/login/page.tsx
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 
 export default function LoginPage() {
@@ -58,6 +59,19 @@ export default function LoginPage() {
         <p className="text-center text-xs text-white/25 mt-8">
           Publishing Marketing Dashboard · Beta v0.1
         </p>
+        <div className="flex items-center justify-center gap-5 mt-3">
+          <Link href="/privacy"
+            className="text-[11px] no-underline hover:underline"
+            style={{ color: 'rgba(255,255,255,0.2)' }}>
+            Privacy Policy
+          </Link>
+          <span style={{ color: 'rgba(255,255,255,0.1)' }}>·</span>
+          <Link href="/terms"
+            className="text-[11px] no-underline hover:underline"
+            style={{ color: 'rgba(255,255,255,0.2)' }}>
+            Terms of Service
+          </Link>
+        </div>
       </div>
     </div>
   )
