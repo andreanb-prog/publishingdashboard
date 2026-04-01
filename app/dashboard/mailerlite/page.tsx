@@ -11,23 +11,37 @@ import type { Analysis } from '@/types'
 export default function MailerLitePage() {
   const [coachTitle] = useState(() => getCoachTitle())
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  const [goals, setGoals] = useState<Record<string, number>>({})
 
   useEffect(() => {
     fetch('/api/analyze')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(d => {
-        if (d.analysis) setAnalysis(d.analysis as Analysis)
-      })
+      .then(d => { if (d.analysis) setAnalysis(d.analysis as Analysis) })
+      .catch(() => {})
+    fetch('/api/prefs')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (d.goals) setGoals(d.goals) })
       .catch(() => {})
   }, [])
 
   const ml = analysis?.mailerLite
   const coach = (analysis as any)?.emailCoach
 
+  // Use user's custom targets if set, else fall back to author averages
+  const openTarget  = goals.email_open_rate  ?? 20
+  const clickTarget = goals.email_click_rate ?? 1.5
+
+  const openSub  = goals.email_open_rate
+    ? `Your target: ${goals.email_open_rate}% · Author avg: 20–25%`
+    : 'Author avg: 20–25%'
+  const clickSub = goals.email_click_rate
+    ? `Your target: ${goals.email_click_rate}% · Author avg: 1.5–2.5%`
+    : 'Author avg: 1.5–2.5%'
+
   const benchmarks = [
-    { metric: 'Open Rate', yours: ml?.openRate || 0, avg: '20–25', unit: '%', good: (v: number) => v >= 20 },
-    { metric: 'Click Rate', yours: ml?.clickRate || 0, avg: '1.5–2.5', unit: '%', good: (v: number) => v >= 1.5 },
-    { metric: 'List Size', yours: ml?.listSize || 0, avg: null, unit: '', good: () => true },
+    { metric: 'Open Rate',  yours: ml?.openRate  || 0, avg: '20–25',   unit: '%', good: (v: number) => v >= openTarget  },
+    { metric: 'Click Rate', yours: ml?.clickRate || 0, avg: '1.5–2.5', unit: '%', good: (v: number) => v >= clickTarget },
+    { metric: 'List Size',  yours: ml?.listSize  || 0, avg: null, unit: '', good: () => true },
     { metric: 'Unsubscribes (recent)', yours: ml?.unsubscribes || 0, avg: null, unit: '', good: (v: number) => v < 30 },
   ]
 
@@ -53,10 +67,10 @@ export default function MailerLitePage() {
           />
 
           <DarkKPIStrip cols={4} items={[
-            { label: 'Open Rate', value: `${ml.openRate}%`, sub: 'Author avg: 20–25%', color: ml.openRate >= 24 ? '#34d399' : '#fbbf24' },
-            { label: 'List Size', value: ml.listSize.toLocaleString(), sub: 'Active subscribers', color: '#38bdf8' },
-            { label: 'Click Rate', value: `${ml.clickRate}%`, sub: 'Romance avg: 1.5–2.5%', color: '#fbbf24' },
-            { label: 'Unsubscribes', value: ml.unsubscribes, sub: 'Recent period', color: ml.unsubscribes > 30 ? '#fb7185' : '#34d399' },
+            { label: 'Open Rate',    value: `${ml.openRate}%`,           sub: openSub,  color: ml.openRate  >= openTarget  ? '#34d399' : '#fbbf24' },
+            { label: 'List Size',    value: ml.listSize.toLocaleString(), sub: 'Active subscribers', color: '#38bdf8' },
+            { label: 'Click Rate',   value: `${ml.clickRate}%`,           sub: clickSub, color: ml.clickRate >= clickTarget ? '#34d399' : '#fbbf24' },
+            { label: 'Unsubscribes', value: ml.unsubscribes,              sub: 'Total unsubscribed', color: ml.unsubscribes > 30 ? '#fb7185' : '#34d399' },
           ]} />
 
           {coach && <DarkCoachBox color="#34d399" title={coachTitle}>{coach}</DarkCoachBox>}

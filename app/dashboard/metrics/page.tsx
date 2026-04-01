@@ -129,6 +129,7 @@ export default function MetricsPage() {
   const [loading,     setLoading]     = useState(true)
   const [arcSent,     setArcSent]     = useState('')
   const [arcReceived, setArcReceived] = useState('')
+  const [goals,       setGoals]       = useState<Record<string, number>>({})
 
   useEffect(() => {
     fetch('/api/analyze')
@@ -141,6 +142,10 @@ export default function MetricsPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
+    fetch('/api/prefs')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (d.goals) setGoals(d.goals) })
+      .catch(() => {})
   }, [])
 
   const analysis     = analyses[0] ?? null
@@ -148,6 +153,12 @@ export default function MetricsPage() {
   const kdp  = analysis?.kdp
   const meta = analysis?.meta
   const ml   = analysis?.mailerLite
+
+  // Custom targets from My Benchmarks settings (fall back to book ad averages)
+  const targetCTR = goals.meta_ctr ?? 1
+  const targetCPC = goals.meta_cpc ?? 0.5
+  const ctrLabel  = goals.meta_ctr  ? `Your target: ${goals.meta_ctr}%` : 'Book ad avg 1%+'
+  const cpcLabel  = goals.meta_cpc  ? `Your target: $${goals.meta_cpc}` : 'Book ad avg under $0.50'
 
   // ── KENP velocity ──────────────────────────────────────────────────────────
   const allDailyKENP = (kdp?.dailyKENP ?? []).slice().sort((a, b) => a.date.localeCompare(b.date))
@@ -466,14 +477,14 @@ export default function MetricsPage() {
         <MetricCard
           title="CTR Trend (Monthly)"
           value={meta ? `${meta.avgCTR}%` : '—'}
-          valueColor={meta ? statusColor(meta.avgCTR, 1.5, 0.8) : '#78716c'}
-          sub="Average click-through rate · Benchmark 1%+"
+          valueColor={meta ? statusColor(meta.avgCTR, targetCTR * 1.5, targetCTR * 0.8) : '#78716c'}
+          sub={`Average click-through rate · ${ctrLabel}`}
           coach={meta
-            ? meta.avgCTR >= 1.5
+            ? meta.avgCTR >= targetCTR * 1.5
               ? `${meta.avgCTR}% CTR is excellent — your creatives are resonating with romance readers.`
-              : meta.avgCTR >= 0.8
-              ? `${meta.avgCTR}% CTR is near the 1% benchmark. Test 2–3 new hook angles to find a creative that breaks through.`
-              : `${meta.avgCTR}% CTR is below 1%. Lead with emotion over plot — show the feeling, not the synopsis.`
+              : meta.avgCTR >= targetCTR * 0.8
+              ? `${meta.avgCTR}% CTR is close to your target. Test 2–3 new hook angles to find a creative that breaks through.`
+              : `${meta.avgCTR}% CTR is below target. Lead with emotion over plot — show the feeling, not the synopsis.`
             : 'Upload Meta Ads data to see your CTR trend.'}
         >
           {ctrHistory.filter(v => v > 0).length >= 2 && (
@@ -490,13 +501,13 @@ export default function MetricsPage() {
         <MetricCard
           title="CPC Trend (Monthly)"
           value={meta ? `$${meta.avgCPC}` : '—'}
-          valueColor={meta ? statusColor(meta.avgCPC, 0.5, 1.0, false) : '#78716c'}
-          sub="Average cost per click · Benchmark under $0.50"
+          valueColor={meta ? statusColor(meta.avgCPC, targetCPC, targetCPC * 2, false) : '#78716c'}
+          sub={`Average cost per click · ${cpcLabel}`}
           coach={meta
-            ? meta.avgCPC <= 0.5
+            ? meta.avgCPC <= targetCPC
               ? `$${meta.avgCPC} CPC is efficient. Reinvest savings into scaling your best ad.`
-              : meta.avgCPC <= 1.0
-              ? `$${meta.avgCPC} CPC is reasonable for romance. If it creeps above $1, pause and retest.`
+              : meta.avgCPC <= targetCPC * 2
+              ? `$${meta.avgCPC} CPC is reasonable for romance. If it keeps rising, pause and retest creative.`
               : `$${meta.avgCPC} CPC is high. Cut your lowest-CTR ads first — they're dragging your average cost up.`
             : 'Upload Meta Ads data to see your CPC trend.'}
         >
