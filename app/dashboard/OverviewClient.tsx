@@ -426,6 +426,7 @@ export function OverviewClient() {
       )}
 
       {/* ══════ SECTION 1 — TODAY'S PRIORITIES ══════════════════════ */}
+      {!loading && (
       <div className="mb-7">
         <h2 className="font-sans text-[22px] font-bold tracking-tight mb-1" style={{ color: '#1E2D3D' }}>
           Today&apos;s Priorities
@@ -473,10 +474,15 @@ export function OverviewClient() {
               )
             })}
           </div>
+        ) : analysis ? (
+          <InsightCallouts analysis={analysis} page="overview" />
         ) : (
-          <InsightCallouts analysis={analysis!} page="overview" />
+          <div className="text-[13px] py-4" style={{ color: '#9CA3AF' }}>
+            Upload your files to see your priorities.
+          </div>
         )}
       </div>
+      )}
 
       {/* ══════ SECTION 2 — WHAT'S WORKING (metric tiles) ═════════ */}
       {analysis && (
