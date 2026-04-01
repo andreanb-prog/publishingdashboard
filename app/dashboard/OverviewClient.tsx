@@ -180,6 +180,150 @@ function buildCoachPrompt(
   return lines.join('\n')
 }
 
+// ── What Happened card ──────────────────────────────────────────────────────
+function buildChanges(current: Analysis, previous: Analysis) {
+  const changes: { label: string; direction: 'up' | 'down' | 'flat'; detail: string }[] = []
+
+  if (current.kdp && previous.kdp) {
+    const cr = current.kdp.totalRoyaltiesUSD, pr = previous.kdp.totalRoyaltiesUSD
+    const pct = pr > 0 ? Math.round(((cr - pr) / pr) * 100) : 0
+    changes.push({
+      label: 'Royalties',
+      direction: pct > 3 ? 'up' : pct < -3 ? 'down' : 'flat',
+      detail: pct > 3 ? `Up ${pct}% vs last month ($${cr} vs $${pr})`
+        : pct < -3 ? `Down ${Math.abs(pct)}% vs last month ($${cr} vs $${pr})`
+        : `Flat ($${cr} vs $${pr})`,
+    })
+
+    const cu = current.kdp.totalUnits, pu = previous.kdp.totalUnits
+    const upct = pu > 0 ? Math.round(((cu - pu) / pu) * 100) : 0
+    changes.push({
+      label: 'Units Sold',
+      direction: upct > 3 ? 'up' : upct < -3 ? 'down' : 'flat',
+      detail: upct > 3 ? `Up ${upct}% (${cu} vs ${pu})`
+        : upct < -3 ? `Down ${Math.abs(upct)}% (${cu} vs ${pu})`
+        : `Flat (${cu} vs ${pu})`,
+    })
+
+    const ck = current.kdp.totalKENP ?? 0, pk = previous.kdp.totalKENP ?? 0
+    const kpct = pk > 0 ? Math.round(((ck - pk) / pk) * 100) : 0
+    changes.push({
+      label: 'KENP Reads',
+      direction: kpct > 3 ? 'up' : kpct < -3 ? 'down' : 'flat',
+      detail: kpct > 3 ? `Up ${kpct}% (${ck.toLocaleString()} vs ${pk.toLocaleString()})`
+        : kpct < -3 ? `Down ${Math.abs(kpct)}% (${ck.toLocaleString()} vs ${pk.toLocaleString()})`
+        : `Flat (${ck.toLocaleString()} vs ${pk.toLocaleString()})`,
+    })
+  }
+
+  if (current.meta && previous.meta) {
+    const cc = current.meta.bestAd?.ctr ?? 0, pc = previous.meta.bestAd?.ctr ?? 0
+    if (cc > 0 || pc > 0) {
+      changes.push({
+        label: 'Best CTR',
+        direction: cc > pc + 1 ? 'up' : cc < pc - 1 ? 'down' : 'flat',
+        detail: cc > pc + 1 ? `Improved from ${pc}% to ${cc}%`
+          : cc < pc - 1 ? `Dropped from ${pc}% to ${cc}%`
+          : `Holding at ${cc}%`,
+      })
+    }
+  }
+
+  if (current.mailerLite) {
+    const ls = current.mailerLite.listSize
+    if (ls === 0) {
+      changes.push({ label: 'Email List', direction: 'down', detail: 'Still showing 0 — needs attention' })
+    } else if (previous.mailerLite) {
+      const pls = previous.mailerLite.listSize
+      changes.push({
+        label: 'Email List',
+        direction: ls > pls ? 'up' : ls < pls ? 'down' : 'flat',
+        detail: ls > pls ? `Grew to ${ls} (from ${pls})` : ls === pls ? `Steady at ${ls}` : `Dropped to ${ls} (from ${pls})`,
+      })
+    }
+  }
+
+  return changes
+}
+
+const DIR_STYLE = {
+  up:   { icon: '▲', color: '#34d399', bg: 'rgba(52,211,153,0.08)' },
+  down: { icon: '▼', color: '#fb7185', bg: 'rgba(251,113,133,0.08)' },
+  flat: { icon: '—', color: '#9CA3AF', bg: 'rgba(0,0,0,0.03)' },
+}
+
+function WhatHappenedCard({ current, previous, actionPlan }: { current: Analysis; previous: Analysis; actionPlan?: any[] }) {
+  const [open, setOpen] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return localStorage.getItem('what-happened-seen') !== current.month
+  })
+  const changes = buildChanges(current, previous)
+  const topActions = (actionPlan ?? []).slice(0, 3)
+
+  function handleToggle() {
+    setOpen(prev => {
+      if (prev) localStorage.setItem('what-happened-seen', current.month ?? '')
+      return !prev
+    })
+  }
+
+  if (changes.length === 0) return null
+
+  return (
+    <div className="rounded-xl mb-4 overflow-hidden"
+      style={{ background: 'white', border: '1px solid #E8DDD0', borderLeft: '3px solid #e9a020' }}>
+      <button onClick={handleToggle}
+        className="w-full flex items-center justify-between px-5 py-3.5 text-left bg-transparent border-none cursor-pointer">
+        <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
+          What happened this month
+        </span>
+        <span className="text-[12px]" style={{ color: '#9CA3AF', transform: open ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.2s' }}>
+          ▾
+        </span>
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5" style={{ borderTop: '1px solid #F0E0C8' }}>
+          <div className="text-[10px] font-bold uppercase tracking-wider mt-3 mb-2" style={{ color: '#9CA3AF' }}>
+            What changed
+          </div>
+          <div className="space-y-1.5 mb-4">
+            {changes.map(c => {
+              const s = DIR_STYLE[c.direction]
+              return (
+                <div key={c.label} className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12.5px]"
+                  style={{ background: s.bg }}>
+                  <span className="text-[10px] font-bold" style={{ color: s.color }}>{s.icon}</span>
+                  <span style={{ color: '#1E2D3D' }}><strong>{c.label}:</strong> {c.detail}</span>
+                </div>
+              )
+            })}
+          </div>
+
+          {topActions.length > 0 && (
+            <>
+              <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#9CA3AF' }}>
+                What needs action
+              </div>
+              <div className="space-y-1.5">
+                {topActions.map((item: any, i: number) => {
+                  const typeColor = item.type === 'RED' ? '#fb7185' : item.type === 'YELLOW' ? '#fbbf24' : '#34d399'
+                  return (
+                    <div key={i} className="flex items-start gap-2 text-[12.5px]">
+                      <span className="mt-0.5 w-2 h-2 rounded-full flex-shrink-0" style={{ background: typeColor }} />
+                      <span style={{ color: '#374151' }}>{item.title}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 export function OverviewClient() {
   const [analysis,  setAnalysis]  = useState<any>(null)
@@ -245,6 +389,9 @@ export function OverviewClient() {
 
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <OnboardingBanner analysesCount={analyses.length} />
+
+      {/* What Happened card */}
+      {analyses.length >= 2 && <WhatHappenedCard current={analyses[0]} previous={analyses[1]} actionPlan={analysis?.actionPlan} />}
 
       {/* Hero numbers strip */}
       {analysis?.kdp && (

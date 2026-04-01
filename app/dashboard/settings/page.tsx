@@ -55,6 +55,75 @@ function blankBook(): BookEntry {
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
+// ── Notifications section ────────────────────────────────────────────────────
+function NotificationsSection() {
+  const [digestEnabled, setDigestEnabled] = useState(true)
+  const [digestDay, setDigestDay] = useState<'monday' | 'friday'>('monday')
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/prefs').then(r => r.json()).then(d => {
+      if (d.weeklyDigest === false) setDigestEnabled(false)
+      if (d.digestDay) setDigestDay(d.digestDay)
+    }).catch(() => {})
+  }, [])
+
+  async function save() {
+    await fetch('/api/prefs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save-notifications', weeklyDigest: digestEnabled, digestDay }),
+    }).catch(() => {})
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  return (
+    <div className="card p-6 mb-6">
+      <h3 className="font-serif text-[16px] text-[#0d1f35] mb-1">Notifications</h3>
+      <p className="text-[12px] text-stone-400 mb-4">Control your weekly digest email</p>
+
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <div className="text-[13px] font-semibold text-[#0d1f35]">Weekly digest email</div>
+          <div className="text-[11px] text-stone-400">A summary of what changed + what needs action</div>
+        </div>
+        <button
+          onClick={() => { setDigestEnabled(p => !p); setSaved(false) }}
+          className="w-10 h-6 rounded-full relative transition-colors border-none cursor-pointer"
+          style={{ background: digestEnabled ? '#34d399' : '#D6D3D1' }}
+        >
+          <div className="absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all"
+            style={{ left: digestEnabled ? 22 : 2 }} />
+        </button>
+      </div>
+
+      {digestEnabled && (
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-[12px] text-stone-500">Send on:</span>
+          {(['monday', 'friday'] as const).map(day => (
+            <button key={day} onClick={() => { setDigestDay(day); setSaved(false) }}
+              className="px-3 py-1 rounded-full text-[11px] font-semibold border-none cursor-pointer"
+              style={{
+                background: digestDay === day ? 'rgba(233,160,32,0.12)' : '#F5F5F4',
+                color: digestDay === day ? '#e9a020' : '#6B7280',
+              }}>
+              {day.charAt(0).toUpperCase() + day.slice(1)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <button onClick={save}
+        className="px-4 py-1.5 rounded-lg text-[12px] font-semibold border-none cursor-pointer"
+        style={{ background: '#e9a020', color: '#0d1f35' }}>
+        Save
+      </button>
+      {saved && <span className="ml-2 text-[11px] font-semibold" style={{ color: '#34d399' }}>✓ Saved</span>}
+    </div>
+  )
+}
+
 export default function SettingsPage() {
   const [mailerLiteKey,  setMailerLiteKey]  = useState('')
   const [claudeKey,      setClaudeKey]      = useState('')
@@ -534,6 +603,9 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Notifications */}
+      <NotificationsSection />
 
       {/* Legal links */}
       <div className="flex items-center gap-5 mt-8 pt-6 border-t border-stone-100">
