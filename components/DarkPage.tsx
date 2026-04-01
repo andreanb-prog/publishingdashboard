@@ -1,5 +1,6 @@
 'use client'
 // components/DarkPage.tsx — deep dive page components (light theme)
+import { useState } from 'react'
 import Link from 'next/link'
 import { getCoachTitle } from '@/lib/coachTitle'
 
@@ -128,34 +129,49 @@ const EMPOWERMENT_PROMPTS = [
   '…before you act on this, sit with it for 10 seconds.',
 ]
 
-// Coach callout for deep-dive pages
+// Coach callout for deep-dive pages — collapsed by default
 export function DarkCoachBox({ children, color = '#E9A020', title }: { children: React.ReactNode; color?: string; title?: string }) {
+  const [collapsed, setCollapsed] = useState(true)
   const resolvedTitle = title ?? getCoachTitle()
   const showPrompt = Math.random() < 0.1
   const prompt = EMPOWERMENT_PROMPTS[Math.floor(Math.random() * EMPOWERMENT_PROMPTS.length)]
 
   return (
-    <div className="rounded-xl p-5 mb-8"
+    <div className="rounded-xl overflow-hidden mb-8 transition-all duration-200"
       style={{
-        background: 'white',
+        background: collapsed ? 'white' : '#FFF8F0',
         border: '1px solid #EEEBE6',
         borderLeft: `3px solid ${color}`,
         boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)',
       }}>
-      <div className="text-[10.5px] font-bold tracking-[1px] uppercase mb-2"
-        style={{ color }}>
-        {resolvedTitle}
-      </div>
-      <div className="text-[13px] leading-[1.75]" style={{ color: '#374151' }}>
-        {children}
-      </div>
-      {showPrompt && (
-        <div className="mt-2 text-[12px] italic" style={{ color: '#6B7280' }}>
-          {prompt}
+      <button
+        onClick={() => setCollapsed(c => !c)}
+        className="w-full flex items-center justify-between px-5 py-3.5 text-left bg-transparent border-none cursor-pointer"
+      >
+        <span className="text-[10.5px] font-bold tracking-[1px] uppercase"
+          style={{ color }}>
+          {resolvedTitle}
+        </span>
+        <span className="text-[11px] flex-shrink-0 ml-2 transition-transform duration-200"
+          style={{ color: '#9CA3AF', transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)' }}>
+          ▾
+        </span>
+      </button>
+      <div className="overflow-hidden transition-all duration-300 ease-out"
+        style={{ maxHeight: collapsed ? '0px' : '600px', opacity: collapsed ? 0 : 1 }}>
+        <div className="px-5 pb-4">
+          <div className="text-[13px] leading-[1.75]" style={{ color: '#374151' }}>
+            {children}
+          </div>
+          {showPrompt && (
+            <div className="mt-2 text-[12px] italic" style={{ color: '#6B7280' }}>
+              {prompt}
+            </div>
+          )}
+          <div className="mt-3 pt-2.5 text-[10px]" style={{ color: '#9CA3AF', borderTop: '1px solid #EEEBE6' }}>
+            AI-generated insight · Test everything · You&apos;re the expert on your readers
+          </div>
         </div>
-      )}
-      <div className="mt-3 pt-2.5 text-[10px]" style={{ color: '#9CA3AF', borderTop: '1px solid #EEEBE6' }}>
-        AI-generated insight · Test everything · You&apos;re the expert on your readers
       </div>
     </div>
   )

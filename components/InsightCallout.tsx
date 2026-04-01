@@ -100,7 +100,7 @@ const PAGE_FILTERS: Record<string, (i: Insight) => boolean> = {
 }
 
 function InsightCard({ insight, index }: { insight: Insight; index: number }) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
   const isAlarm = insight.mode === 'alarm'
   const color = isAlarm ? '#E9A020' : '#6EBF8B'
 
