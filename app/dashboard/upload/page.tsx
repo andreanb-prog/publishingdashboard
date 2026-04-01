@@ -40,16 +40,49 @@ const PLATFORM_ERRORS: Record<string, string> = {
 }
 
 const ANALYSIS_STEPS = [
-  'Cracking open your KDP report...',
-  'Ooh interesting — counting your page reads...',
-  'Tallying up those royalties (nice)...',
-  'Peeking at your ad spend...',
-  'Calculating your CTR — this one\'s good...',
-  'Checking in on your email list...',
-  'Cross-referencing everything...',
-  `${getCoachTitle().replace(' says', '')} is connecting the dots...`,
-  'Almost there — writing your action plan...',
-  'Putting the finishing touches on your session...',
+  // Magical / enchanting
+  'Turning your spreadsheets into stories',
+  'Brewing up your monthly insights',
+  'Sprinkling some magic on those numbers',
+  'Weaving your data into a narrative',
+  // Fun / relatable author vibes
+  'Reading between the rows (get it?)',
+  'Doing the math so you don\'t have to',
+  'Your royalties are looking interesting',
+  'Counting every single page read',
+  'Your ads have a story to tell',
+  // Book / writing themed
+  'Opening chapter one of your data story',
+  'Every number has a plot twist',
+  'Writing the next chapter of your growth',
+  'Turning raw exports into readable insights',
+  'Your marketing story is coming together',
+  // Coaching themed
+  'Checking what your readers are responding to',
+  'Finding the patterns you might have missed',
+  'Looking for your hidden strengths',
+  'Spotting the opportunities in your numbers',
+  'Building a game plan just for you',
+  // Warm / encouraging
+  'Your books are out there doing their thing',
+  'Every sale started with a reader who found you',
+  'Your consistency is paying off — let\'s see how',
+  'Small wins are still wins',
+  'You\'re closer than you think',
+  // Playful
+  'Giving your spreadsheets a spa day',
+  'Asking your numbers what they\'ve been up to',
+  'Making sense of allll those columns',
+  'Connecting the dots across every channel',
+  'Putting your whole picture together',
+  'Almost there — polishing up your insights',
+  // Closing
+  'Finishing touches on your coaching session',
+  'Just a moment more',
+  `${getCoachTitle().replace(' says', '')} is connecting the dots`,
+  'Your dashboard is almost ready',
+  'Wrapping it all up with a bow',
+  'Here we go — almost done',
 ]
 
 const FILE_HELP = [
@@ -80,6 +113,7 @@ export default function UploadPage() {
   const [step, setStep] = useState(0)
   const [stepFade, setStepFade] = useState(true)
   const [progress, setProgress] = useState(0)
+  const [shuffledSteps, setShuffledSteps] = useState(ANALYSIS_STEPS)
   const [done, setDone] = useState(false)
   const [showFileHelp, setShowFileHelp] = useState(false)
 
@@ -215,17 +249,24 @@ export default function UploadPage() {
     setStep(0)
     setProgress(0)
 
+    // Shuffle messages and cycle every 3s
+    const shuffled = [...ANALYSIS_STEPS].sort(() => Math.random() - 0.5)
+    setShuffledSteps(shuffled)
     let stepIdx = 0
+    const startTime = Date.now()
     const interval = setInterval(() => {
       stepIdx++
-      if (stepIdx < ANALYSIS_STEPS.length) {
+      if (stepIdx < shuffled.length) {
         setStepFade(false)
-        setTimeout(() => { setStep(stepIdx); setStepFade(true) }, 250)
-        setProgress(Math.round((stepIdx / ANALYSIS_STEPS.length) * 100))
+        const nextIdx = stepIdx
+        setTimeout(() => { setStep(nextIdx); setStepFade(true) }, 250)
       } else {
         clearInterval(interval)
       }
-    }, 1500)
+      // Progress bar fills smoothly over ~20s
+      const elapsed = Date.now() - startTime
+      setProgress(Math.min(Math.round((elapsed / 20000) * 90), 90))
+    }, 3000)
 
     try {
       const mlRes  = await fetch('/api/mailerlite').catch(() => null)
@@ -546,12 +587,13 @@ export default function UploadPage() {
             </div>
             <div className="text-[13px] mb-5 transition-opacity duration-200"
               style={{ color: 'rgba(255,255,255,0.5)', opacity: stepFade ? 1 : 0 }}>
-              {ANALYSIS_STEPS[step]}
+              {shuffledSteps[step]}
+              <span className="inline-block animate-pulse ml-0.5">...</span>
             </div>
-            <div className="max-w-[300px] mx-auto h-1.5 rounded-full overflow-hidden"
-              style={{ background: 'rgba(255,255,255,0.1)' }}>
-              <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${progress}%`, background: '#e9a020' }} />
+            <div className="max-w-[300px] mx-auto h-2 rounded-full overflow-hidden"
+              style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <div className="h-full rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #e9a020, #f4c542)' }} />
             </div>
           </div>
         )}
