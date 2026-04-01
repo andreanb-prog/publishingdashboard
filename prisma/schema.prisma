@@ -42,6 +42,7 @@ model User {
   image         String?
   apiKey        String?        // Claude API key (encrypted)
   mailerLiteKey String?        // MailerLite API key
+  books         Json?          // My Books: [{title, asin, category, series, bookNumber}]
   accounts      Account[]
   sessions      Session[]
   rankLogs      RankLog[]

@@ -10,23 +10,24 @@ function mask(key: string | null | undefined): string {
   return key.slice(0, 4) + '•'.repeat(Math.min(key.length - 8, 20)) + key.slice(-4)
 }
 
-// GET — return masked keys so the UI can show "key saved" state
+// GET — return masked keys + books
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { apiKey: true, mailerLiteKey: true },
+    select: { apiKey: true, mailerLiteKey: true, books: true },
   })
 
   return NextResponse.json({
-    claudeKey: user?.apiKey ? mask(user.apiKey) : null,
+    claudeKey:     user?.apiKey        ? mask(user.apiKey)        : null,
     mailerLiteKey: user?.mailerLiteKey ? mask(user.mailerLiteKey) : null,
+    books:         user?.books ?? [],
   })
 }
 
-// POST — either save keys or test a MailerLite key
+// POST — test keys, save keys, or save books
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -45,7 +46,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Save keys
+  // Save books
+  if (body.action === 'save-books') {
+    const books = Array.isArray(body.books) ? body.books : []
+    await db.user.update({ where: { id: session.user.id }, data: { books } })
+    return NextResponse.json({ success: true })
+  }
+
+  // Save API keys
   const update: { apiKey?: string; mailerLiteKey?: string } = {}
   if (typeof body.claudeKey === 'string' && body.claudeKey.trim()) {
     update.apiKey = body.claudeKey.trim()

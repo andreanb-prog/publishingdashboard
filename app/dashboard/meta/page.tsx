@@ -5,11 +5,11 @@ import { DarkPage, DarkKPIStrip, DarkCoachBox } from '@/components/DarkPage'
 import type { Analysis, MetaAd } from '@/types'
 
 const STATUS_STYLE: Record<MetaAd['status'], { bg: string; text: string; label: string }> = {
-  SCALE:    { bg: 'rgba(52,211,153,0.12)',  text: '#34d399', label: '🟢 SCALE' },
-  WATCH:    { bg: 'rgba(251,191,36,0.12)',  text: '#fbbf24', label: '🟡 WATCH' },
-  CUT:      { bg: 'rgba(251,113,133,0.12)', text: '#fb7185', label: '🔴 CUT' },
-  DELETE:   { bg: 'rgba(251,113,133,0.15)', text: '#fb7185', label: '🔴 DELETE' },
-  LOW_DATA: { bg: 'rgba(56,189,248,0.12)',  text: '#38bdf8', label: '◇ LOW DATA' },
+  SCALE:    { bg: 'rgba(52,211,153,0.12)',  text: '#34d399', label: '🟢 Scale it' },
+  WATCH:    { bg: 'rgba(251,191,36,0.12)',  text: '#fbbf24', label: '🟡 Keep watching' },
+  CUT:      { bg: 'rgba(251,113,133,0.12)', text: '#fb7185', label: '🔴 Cut this' },
+  DELETE:   { bg: 'rgba(251,113,133,0.15)', text: '#fb7185', label: '🔴 Delete' },
+  LOW_DATA: { bg: 'rgba(56,189,248,0.12)',  text: '#38bdf8', label: '◇ Need more data' },
 }
 
 // ── Rescue Panel ──────────────────────────────────────────────────────────────
@@ -51,7 +51,6 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
       background: 'rgba(251,113,133,0.04)',
       border: '1px solid rgba(251,113,133,0.18)',
     }}>
-      {/* Warm alert */}
       <div className="flex items-start gap-3 mb-5">
         <span className="text-xl flex-shrink-0 mt-0.5">💛</span>
         <div>
@@ -66,7 +65,6 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
         </div>
       </div>
 
-      {/* Three steps */}
       <div className="mb-5">
         <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
           Guided next steps
@@ -82,13 +80,11 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
                 <div className="text-[12.5px] font-semibold mb-0.5" style={{ color: '#d6d3d1' }}>{step.title}</div>
                 <p className="text-[12px] leading-relaxed m-0 mb-1.5" style={{ color: '#78716c' }}>{step.body}</p>
                 {step.link && (
-                  <a
-                    href={step.link.href}
+                  <a href={step.link.href}
                     target={step.link.href.startsWith('http') ? '_blank' : undefined}
                     rel={step.link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                     className="text-[11.5px] font-semibold no-underline hover:underline"
-                    style={{ color: '#e9a020' }}
-                  >
+                    style={{ color: '#e9a020' }}>
                     {step.link.label}
                   </a>
                 )}
@@ -98,25 +94,34 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
         </div>
       </div>
 
-      {/* Still stuck */}
       <div className="rounded-lg px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-2" style={{ color: 'rgba(255,255,255,0.25)' }}>
           Still stuck? Real humans who can help
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           {resources.map(r => (
-            <a
-              key={r.href}
-              href={r.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11.5px] no-underline hover:underline"
-              style={{ color: '#57534e' }}
-            >
+            <a key={r.href} href={r.href} target="_blank" rel="noopener noreferrer"
+              className="text-[11.5px] no-underline hover:underline" style={{ color: '#57534e' }}>
               {r.label} ↗
             </a>
           ))}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ── CTR bar ───────────────────────────────────────────────────────────────────
+function CTRBar({ ctr, maxCTR }: { ctr: number; maxCTR: number }) {
+  const barColor = ctr >= 15 ? '#34d399' : ctr >= 8 ? '#fbbf24' : '#fb7185'
+  const pct = maxCTR > 0 ? (ctr / maxCTR) * 100 : 0
+  return (
+    <div>
+      <div className="font-mono font-bold text-[22px] leading-none mb-1.5" style={{ color: barColor }}>
+        {ctr}%
+      </div>
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#292524', width: 80 }}>
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
       </div>
     </div>
   )
@@ -136,6 +141,7 @@ export default function MetaPage() {
   const coach = (analysis as any)?.metaCoach
 
   const rescueAds = meta?.ads.filter(ad => ad.clicks === 0 || ad.ctr < 1) ?? []
+  const maxCTR    = meta ? Math.max(...meta.ads.map(a => a.ctr), 1) : 1
 
   return (
     <DarkPage title="📣 Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
@@ -150,68 +156,102 @@ export default function MetaPage() {
       ) : (
         <>
           <DarkKPIStrip cols={4} items={[
-            { label: 'Total Spend',  value: `$${meta.totalSpend}`,         sub: 'This period',       color: '#fb7185' },
-            { label: 'Best CTR',     value: `${meta.bestAd?.ctr || 0}%`,   sub: meta.bestAd?.name || '—', color: '#34d399' },
-            { label: 'Best CPC',     value: `$${meta.bestAd?.cpc || 0}`,   sub: 'Cost per click',    color: '#fbbf24' },
-            { label: 'Total Clicks', value: meta.totalClicks,               sub: `${meta.avgCPC} avg CPC`, color: '#38bdf8' },
+            { label: 'Total Spend',  value: `$${meta.totalSpend}`,       sub: 'This period',         color: '#fb7185' },
+            { label: 'Best CTR',     value: `${meta.bestAd?.ctr || 0}%`, sub: meta.bestAd?.name || '—', color: '#34d399' },
+            { label: 'Best CPC',     value: `$${meta.bestAd?.cpc || 0}`, sub: 'Cost per click',      color: '#fbbf24' },
+            { label: 'Total Clicks', value: meta.totalClicks,             sub: `${meta.avgCPC} avg CPC`, color: '#38bdf8' },
           ]} />
 
           {coach && <DarkCoachBox color="#fb7185">{coach}</DarkCoachBox>}
 
-          {/* Ads Table */}
+          {/* ── Ads table ─────────────────────────────────────────────── */}
           <div className="rounded-xl overflow-hidden mb-5"
             style={{ background: '#1c1917', border: '1px solid #292524' }}>
-            <table className="w-full border-collapse text-[12.5px]">
+            <table className="w-full border-collapse">
               <thead>
                 <tr style={{ background: '#292524' }}>
-                  {['Ad Name', 'Spend', 'Clicks', 'CTR', 'CPC', 'Status'].map(h => (
-                    <th key={h} className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.8px]"
-                      style={{ color: '#a8a29e' }}>{h}</th>
+                  {[
+                    { label: 'Ad Name',          w: '' },
+                    { label: 'Spend',            w: 'w-[100px]' },
+                    { label: 'Clicks',           w: 'w-[80px]' },
+                    { label: 'Click Rate (CTR)', w: 'w-[160px]' },
+                    { label: 'Cost Per Click',   w: 'w-[120px]' },
+                    { label: 'What to do',       w: 'w-[160px]' },
+                  ].map(h => (
+                    <th key={h.label}
+                      className={`text-left px-5 py-3 text-[11px] font-bold tracking-[0.5px] ${h.w}`}
+                      style={{ color: '#78716c' }}>
+                      {h.label}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {meta.ads.map((ad, i) => {
-                  const s = STATUS_STYLE[ad.status]
-                  const maxCTR = Math.max(...meta.ads.map(a => a.ctr), 1)
+                  const s           = STATUS_STYLE[ad.status]
+                  const isDead      = ad.clicks === 0 || ad.ctr < 1
                   const needsRescue = ad.clicks === 0 || ad.ctr < 1
+
                   return (
-                    <tr key={i} className="border-t hover:bg-white/[0.02] transition-colors"
-                      style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-                      <td className="px-4 py-3">
-                        <div className="font-semibold flex items-center gap-2" style={{ color: '#fafaf9' }}>
-                          {ad.name}
-                          {needsRescue && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                              style={{ background: 'rgba(251,113,133,0.15)', color: '#fb7185' }}>
-                              needs rescue
-                            </span>
-                          )}
+                    <tr
+                      key={i}
+                      className="border-t transition-colors"
+                      style={{
+                        borderColor: 'rgba(255,255,255,0.05)',
+                        opacity: isDead ? 0.55 : 1,
+                      }}
+                    >
+                      {/* Ad Name */}
+                      <td className="px-5 py-5">
+                        <div className="flex items-start gap-2">
+                          <div>
+                            <div
+                              className="text-[14px] font-semibold leading-snug"
+                              style={{ color: '#fafaf9', maxWidth: 260 }}
+                              title={ad.name}
+                            >
+                              <span className="block truncate" style={{ maxWidth: 260 }}>{ad.name}</span>
+                            </div>
+                            {needsRescue && (
+                              <span className="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded"
+                                style={{ background: 'rgba(251,113,133,0.15)', color: '#fb7185' }}>
+                                needs rescue
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-mono" style={{ color: '#a8a29e' }}>${ad.spend}</td>
-                      <td className="px-4 py-3 font-mono font-bold"
-                        style={{ color: ad.clicks === 0 ? '#fb7185' : '#34d399' }}>
-                        {ad.clicks}
+
+                      {/* Spend */}
+                      <td className="px-5 py-5">
+                        <span className="font-mono text-[16px]" style={{ color: '#78716c' }}>
+                          ${ad.spend}
+                        </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="font-mono mb-1"
-                          style={{ color: ad.ctr >= 15 ? '#34d399' : ad.ctr >= 8 ? '#fbbf24' : '#fb7185' }}>
-                          {ad.ctr}%
-                        </div>
-                        <div className="h-1 rounded-full overflow-hidden" style={{ background: '#292524', width: '60px' }}>
-                          <div className="h-full rounded-full"
-                            style={{
-                              width: `${(ad.ctr / maxCTR) * 100}%`,
-                              background: ad.ctr >= 15 ? '#34d399' : ad.ctr >= 8 ? '#fbbf24' : '#fb7185',
-                            }} />
-                        </div>
+
+                      {/* Clicks */}
+                      <td className="px-5 py-5">
+                        <span className="font-mono font-bold text-[20px]"
+                          style={{ color: ad.clicks === 0 ? '#fb7185' : '#34d399' }}>
+                          {ad.clicks}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 font-mono" style={{ color: '#a8a29e' }}>
-                        {ad.cpc > 0 ? `$${ad.cpc}` : '—'}
+
+                      {/* CTR — largest, most prominent */}
+                      <td className="px-5 py-5">
+                        <CTRBar ctr={ad.ctr} maxCTR={maxCTR} />
                       </td>
-                      <td className="px-4 py-3">
-                        <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full"
+
+                      {/* CPC */}
+                      <td className="px-5 py-5">
+                        <span className="font-mono text-[16px]" style={{ color: '#78716c' }}>
+                          {ad.cpc > 0 ? `$${ad.cpc}` : '—'}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-5 py-5">
+                        <span className="text-[11px] font-bold px-3 py-1.5 rounded-full"
                           style={{ background: s.bg, color: s.text }}>
                           {s.label}
                         </span>
