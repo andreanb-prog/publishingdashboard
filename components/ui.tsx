@@ -9,15 +9,16 @@ interface TrafficLightProps {
 
 export function TrafficLight({ status, label }: TrafficLightProps) {
   const config = {
-    GREEN: { bg: 'bg-emerald-50', text: 'text-emerald-800', dot: 'bg-emerald-500', defaultLabel: '🟢 Growing' },
-    AMBER: { bg: 'bg-amber-50', text: 'text-amber-800', dot: 'bg-amber-500', defaultLabel: '🟡 Watch' },
-    RED: { bg: 'bg-red-50', text: 'text-red-800', dot: 'bg-red-500', defaultLabel: '🔴 Fix this' },
-    NEW: { bg: 'bg-blue-50', text: 'text-blue-800', dot: 'bg-blue-500', defaultLabel: '🔵 Getting started' },
+    GREEN: { bg: '', text: '', dot: '', style: { background: 'rgba(91,191,181,0.12)', color: '#3a9e93' }, dotColor: '#5BBFB5', defaultLabel: '🟢 Growing' },
+    AMBER: { bg: '', text: '', dot: '', style: { background: 'rgba(233,160,32,0.12)', color: '#92600a' }, dotColor: '#E9A020', defaultLabel: '🟡 Watch' },
+    RED:   { bg: '', text: '', dot: '', style: { background: 'rgba(249,123,107,0.12)', color: '#b94034' }, dotColor: '#F97B6B', defaultLabel: '🔴 Fix this' },
+    NEW:   { bg: '', text: '', dot: '', style: { background: 'rgba(139,92,246,0.12)', color: '#6d3fd4' }, dotColor: '#8B5CF6', defaultLabel: '🔵 Getting started' },
   }
   const c = config[status]
   return (
-    <span className={`inline-flex items-center gap-1.5 text-[10.5px] font-bold px-2.5 py-1 rounded-full ${c.bg} ${c.text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+    <span className="inline-flex items-center gap-1.5 text-[10.5px] font-bold px-2.5 py-1 rounded-full"
+      style={c.style}>
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: c.dotColor }} />
       {label || c.defaultLabel}
     </span>
   )

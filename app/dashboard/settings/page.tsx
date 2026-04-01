@@ -68,6 +68,10 @@ export default function SettingsPage() {
   const [booksSaveState, setBooksSaveState] = useState<SaveState>('idle')
   const [editingId,      setEditingId]      = useState<string | null>(null)
 
+  // Benchmarks
+  const [benchmarks,      setBenchmarks]      = useState({ email_open_rate: '25', email_click_rate: '2', meta_cpc: '0.15', meta_ctr: '15' })
+  const [benchmarksSave,  setBenchmarksSave]  = useState<SaveState>('idle')
+
   // Load keys + books on mount
   useEffect(() => {
     fetch('/api/settings')
@@ -75,6 +79,17 @@ export default function SettingsPage() {
       .then(d => {
         setHasSavedML(!!d.mailerLiteKey)
         setHasSavedClaude(!!d.claudeKey)
+        // load benchmarks/goals
+        fetch('/api/prefs').then(r => r.json()).then(p => {
+          const g = p.goals ?? {}
+          setBenchmarks({
+            email_open_rate: g.email_open_rate != null ? String(g.email_open_rate) : '25',
+            email_click_rate: g.email_click_rate != null ? String(g.email_click_rate) : '2',
+            meta_cpc: g.meta_cpc != null ? String(g.meta_cpc) : '0.15',
+            meta_ctr: g.meta_ctr != null ? String(g.meta_ctr) : '15',
+          })
+        }).catch(() => {})
+
         if (Array.isArray(d.books)) {
           setBooks(d.books.map((b: Omit<BookEntry, 'id'> & { id?: string; category?: string }) => ({
             ...b,
@@ -168,6 +183,29 @@ export default function SettingsPage() {
     } catch {
       setBooksSaveState('error')
       setTimeout(() => setBooksSaveState('idle'), 3000)
+    }
+  }
+
+  async function saveBenchmarks() {
+    setBenchmarksSave('saving')
+    try {
+      const goals = {
+        email_open_rate:  parseFloat(benchmarks.email_open_rate)  || 25,
+        email_click_rate: parseFloat(benchmarks.email_click_rate) || 2,
+        meta_cpc:         parseFloat(benchmarks.meta_cpc)         || 0.15,
+        meta_ctr:         parseFloat(benchmarks.meta_ctr)         || 15,
+      }
+      const res = await fetch('/api/prefs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save-goals', goals }),
+      })
+      if (!res.ok) throw new Error()
+      setBenchmarksSave('saved')
+      setTimeout(() => setBenchmarksSave('idle'), 3000)
+    } catch {
+      setBenchmarksSave('error')
+      setTimeout(() => setBenchmarksSave('idle'), 3000)
     }
   }
 
@@ -351,6 +389,57 @@ export default function SettingsPage() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* ─── My Benchmarks ───────────────────────────────────────────────── */}
+      <div className="card p-6 mb-4">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+            style={{ background: 'rgba(233,160,32,0.1)' }}>🎯</div>
+          <div className="flex-1">
+            <div className="font-bold text-[#0d1f35] text-[14px]">My Benchmarks</div>
+            <div className="text-[11.5px] text-stone-400">Set your personal targets — shown on your Email and Meta pages</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          {[
+            { label: 'Email Open Rate Target', key: 'email_open_rate', unit: '%', hint: 'Author avg: 20–25%' },
+            { label: 'Email Click Rate Target', key: 'email_click_rate', unit: '%', hint: 'Author avg: 1.5–2.5%' },
+            { label: 'Meta CPC Target', key: 'meta_cpc', unit: '$', hint: 'Under $0.15 is great for book ads' },
+            { label: 'Meta CTR Target', key: 'meta_ctr', unit: '%', hint: '15%+ is strong for book ads' },
+          ].map(f => (
+            <div key={f.key}>
+              <label className="block text-[12px] font-bold text-[#0d1f35] mb-1">{f.label}</label>
+              <p className="text-[11px] text-stone-400 mb-1.5">{f.hint}</p>
+              <div className="flex items-center gap-1.5">
+                {f.unit === '$' && <span className="text-stone-400 text-[13px]">$</span>}
+                <input
+                  type="number"
+                  min="0"
+                  step={f.unit === '$' ? '0.01' : '0.1'}
+                  value={benchmarks[f.key as keyof typeof benchmarks]}
+                  onChange={e => setBenchmarks(b => ({ ...b, [f.key]: e.target.value }))}
+                  className="w-full border border-stone-200 rounded-lg px-3 py-2 text-[13px] font-mono
+                             text-[#0d1f35] bg-white outline-none focus:border-amber-brand transition-colors"
+                />
+                {f.unit === '%' && <span className="text-stone-400 text-[13px]">%</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={saveBenchmarks}
+          disabled={benchmarksSave === 'saving'}
+          className="text-[12.5px] font-semibold px-4 py-2 rounded-lg transition-all duration-150 disabled:opacity-50"
+          style={{ background: '#e9a020', color: '#0d1f35' }}
+        >
+          {benchmarksSave === 'saving' ? 'Saving…'
+            : benchmarksSave === 'saved' ? '✓ Saved!'
+            : benchmarksSave === 'error' ? 'Save failed'
+            : 'Save benchmarks'}
+        </button>
       </div>
 
       {/* ─── MailerLite ──────────────────────────────────────────────────── */}

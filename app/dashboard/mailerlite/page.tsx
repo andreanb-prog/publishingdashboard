@@ -25,10 +25,10 @@ export default function MailerLitePage() {
   const coach = (analysis as any)?.emailCoach
 
   const benchmarks = [
-    { metric: 'Open Rate', yours: ml?.openRate || 0, avg: 22, unit: '%', good: (v: number) => v >= 24 },
-    { metric: 'Click Rate', yours: ml?.clickRate || 0, avg: 2, unit: '%', good: (v: number) => v >= 1.5 },
+    { metric: 'Open Rate', yours: ml?.openRate || 0, avg: '20–25', unit: '%', good: (v: number) => v >= 20 },
+    { metric: 'Click Rate', yours: ml?.clickRate || 0, avg: '1.5–2.5', unit: '%', good: (v: number) => v >= 1.5 },
     { metric: 'List Size', yours: ml?.listSize || 0, avg: null, unit: '', good: () => true },
-    { metric: 'Unsubscribes (recent)', yours: ml?.unsubscribes || 0, avg: 20, unit: '', good: (v: number) => v < 20 },
+    { metric: 'Unsubscribes (recent)', yours: ml?.unsubscribes || 0, avg: null, unit: '', good: (v: number) => v < 30 },
   ]
 
   return (
@@ -53,7 +53,7 @@ export default function MailerLitePage() {
           />
 
           <DarkKPIStrip cols={4} items={[
-            { label: 'Open Rate', value: `${ml.openRate}%`, sub: 'Industry avg: 22%', color: ml.openRate >= 24 ? '#34d399' : '#fbbf24' },
+            { label: 'Open Rate', value: `${ml.openRate}%`, sub: 'Author avg: 20–25%', color: ml.openRate >= 24 ? '#34d399' : '#fbbf24' },
             { label: 'List Size', value: ml.listSize.toLocaleString(), sub: 'Active subscribers', color: '#38bdf8' },
             { label: 'Click Rate', value: `${ml.clickRate}%`, sub: 'Romance avg: 1.5–2.5%', color: '#fbbf24' },
             { label: 'Unsubscribes', value: ml.unsubscribes, sub: 'Recent period', color: ml.unsubscribes > 30 ? '#fb7185' : '#34d399' },
@@ -64,10 +64,18 @@ export default function MailerLitePage() {
           {/* Benchmarks table */}
           <div className="rounded-xl overflow-hidden mb-5"
             style={{ background: '#1c1917', border: '1px solid #292524' }}>
+            <div className="px-5 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #292524' }}>
+              <span className="text-[13px] font-semibold" style={{ color: '#d6d3d1' }}>How you compare</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full cursor-default"
+                title="Based on email marketing data for indie authors and fiction publishers. Your genre may vary."
+                style={{ background: 'rgba(255,255,255,0.07)', color: '#a8a29e' }}>
+                ⓘ Author benchmarks
+              </span>
+            </div>
             <table className="w-full border-collapse text-[12.5px]">
               <thead>
                 <tr style={{ background: '#292524' }}>
-                  {['Metric', 'Your Number', 'Industry Average', 'Status'].map(h => (
+                  {['Metric', 'Your Number', 'Author Average', 'Status'].map(h => (
                     <th key={h} className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.8px]"
                       style={{ color: '#a8a29e' }}>{h}</th>
                   ))}

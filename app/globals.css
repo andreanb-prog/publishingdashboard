@@ -3,9 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --navy: #0d1f35;
-  --amber: #e9a020;
-  --cream: #f7f5f1;
+  --navy:   #1E2D3D;
+  --amber:  #E9A020;
+  --cream:  #FFF8F0;
+  --coral:  #F97B6B;
+  --peach:  #F4A261;
+  --plum:   #8B5CF6;
+  --teal:   #5BBFB5;
+  --sky:    #60A5FA;
+  --sage:   #6EBF8B;
+  --rose:   #F472B6;
+  --warm-border: #F0E0C8;
 }
 
 @layer base {
@@ -44,7 +52,8 @@
   }
 
   .card {
-    @apply bg-white border border-stone-200 rounded-xl;
+    @apply bg-white rounded-xl;
+    border: 1px solid #F0E0C8;
   }
 
   .card-dark {
@@ -75,29 +84,35 @@
     @apply bg-blue-50 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full;
   }
 
-  /* Dark theme badges */
+  /* Dark theme badges — AuthorDash palette */
   .dk-badge-scale {
     @apply text-xs font-semibold px-2.5 py-1 rounded-full;
-    background: rgba(52,211,153,0.12);
-    color: #34d399;
+    background: rgba(110,191,139,0.15);
+    color: #6EBF8B;  /* sage — Scale it / Growing */
   }
 
   .dk-badge-cut {
     @apply text-xs font-semibold px-2.5 py-1 rounded-full;
-    background: rgba(251,113,133,0.12);
-    color: #fb7185;
+    background: rgba(249,123,107,0.15);
+    color: #F97B6B;  /* coral — Fix this / Cut this */
   }
 
   .dk-badge-watch {
     @apply text-xs font-semibold px-2.5 py-1 rounded-full;
-    background: rgba(251,191,36,0.12);
-    color: #fbbf24;
+    background: rgba(233,160,32,0.15);
+    color: #E9A020;  /* amber — Keep watching */
   }
 
   .dk-badge-test {
     @apply text-xs font-semibold px-2.5 py-1 rounded-full;
-    background: rgba(56,189,248,0.12);
-    color: #38bdf8;
+    background: rgba(139,92,246,0.15);
+    color: #8B5CF6;  /* plum — Just starting / New */
+  }
+
+  .dk-badge-teal {
+    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+    background: rgba(91,191,181,0.15);
+    color: #5BBFB5;  /* teal — Growing */
   }
 
   /* Input styles */
