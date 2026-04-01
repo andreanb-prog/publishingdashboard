@@ -21,8 +21,18 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Publishing Marketing Dashboard',
-  description: 'Your indie author marketing coach — powered by AI',
+  title: 'AuthorDash — Publishing Marketing Dashboard',
+  description: 'Your indie author marketing coach',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'AuthorDash',
+  },
+  icons: {
+    apple: '/apple-touch-icon.svg',
+  },
+  themeColor: '#1E2D3D',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
