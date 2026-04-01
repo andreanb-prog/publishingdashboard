@@ -181,7 +181,7 @@ function ImportFromCloud({ onFile }: { onFile: (files: FileList | null) => void 
       )}
 
       <input ref={fileRef} type="file" multiple accept=".xlsx,.xls,.csv" className="hidden"
-        onChange={e => { onFile(e.target.files); setShowTip(null) }} />
+        onChange={e => { onFile(e.target.files); setShowTip(null); e.target.value = '' }} />
 
       {/* Having trouble? */}
       <details className="mt-3">
@@ -422,9 +422,10 @@ export default function UploadPage() {
               className="rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 mb-5"
               style={{ borderColor, background: bgColor }}
               onClick={() => inputRef.current?.click()}
-              onDragOver={e => { e.preventDefault(); setDragging(true) }}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragging(true) }}
+              onDragEnter={e => { e.preventDefault(); e.stopPropagation(); setDragging(true) }}
               onDragLeave={() => setDragging(false)}
-              onDrop={e => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files) }}
+              onDrop={e => { e.preventDefault(); e.stopPropagation(); setDragging(false); handleFiles(e.dataTransfer.files) }}
             >
               <input
                 ref={inputRef}
@@ -432,7 +433,7 @@ export default function UploadPage() {
                 multiple
                 accept=".xlsx,.xls,.csv"
                 className="hidden"
-                onChange={e => handleFiles(e.target.files)}
+                onChange={e => { handleFiles(e.target.files); e.target.value = '' }}
               />
 
               {files.length === 0 ? (

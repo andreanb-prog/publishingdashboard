@@ -1,115 +1,142 @@
 // lib/mailerlite.ts
 import type { MailerLiteData, MailerLiteAutomation } from '@/types'
 
-const ML_BASE = 'https://connect.mailerlite.com/api'
+// Two different MailerLite APIs exist:
+// - Classic v2: api.mailerlite.com/api/v2 with X-MailerLite-ApiKey header
+// - New API: connect.mailerlite.com/api with Bearer token
+// We try both to handle whichever key format the user has.
+
+const ML_CLASSIC = 'https://api.mailerlite.com/api/v2'
+const ML_NEW = 'https://connect.mailerlite.com/api'
+
+async function tryFetch(url: string, headers: Record<string, string>): Promise<{ ok: boolean; data: any }> {
+  try {
+    const res = await fetch(url, { headers })
+    if (res.ok) {
+      const data = await res.json()
+      return { ok: true, data }
+    }
+    console.log(`[MailerLite] ${url} returned ${res.status}`)
+    return { ok: false, data: null }
+  } catch (e) {
+    console.error(`[MailerLite] ${url} failed:`, e)
+    return { ok: false, data: null }
+  }
+}
 
 export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteData> {
-  const headers = {
+  // Classic v2 headers
+  const classicHeaders = {
+    'X-MailerLite-ApiKey': apiKey,
+    'Content-Type': 'application/json',
+  }
+
+  // New API headers
+  const newHeaders = {
     Authorization: `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
     Accept: 'application/json',
   }
 
-  // ── Active subscriber count ─────────────────────────────────────
-  // Try multiple approaches to get the count reliably
+  // ── Subscriber count ───────────────────────────────────────────
   let listSize = 0
-
-  // Approach 1: /subscribers with filter[status]=active
-  try {
-    const subsRes = await fetch(
-      `${ML_BASE}/subscribers?filter[status]=active&limit=0`,
-      { headers }
-    )
-    console.log('[MailerLite] subscribers (filtered) status:', subsRes.status)
-    if (subsRes.ok) {
-      const subsData = await subsRes.json()
-      console.log('[MailerLite] subscribers meta:', JSON.stringify(subsData?.meta))
-      console.log('[MailerLite] subscribers total:', subsData?.total)
-      listSize = subsData?.meta?.total ?? subsData?.total ?? 0
-    }
-  } catch (e) {
-    console.error('[MailerLite] subscribers filtered call failed:', e)
-  }
-
-  // Approach 2: If still 0, try /subscribers without filter (all subscribers)
-  if (listSize === 0) {
-    try {
-      const allSubsRes = await fetch(`${ML_BASE}/subscribers?limit=0`, { headers })
-      console.log('[MailerLite] subscribers (all) status:', allSubsRes.status)
-      if (allSubsRes.ok) {
-        const allSubsData = await allSubsRes.json()
-        console.log('[MailerLite] subscribers (all) meta:', JSON.stringify(allSubsData?.meta))
-        console.log('[MailerLite] subscribers (all) total:', allSubsData?.total)
-        listSize = allSubsData?.meta?.total ?? allSubsData?.total ?? 0
-      }
-    } catch (e) {
-      console.error('[MailerLite] subscribers all call failed:', e)
-    }
-  }
-
-  // Approach 3: If still 0, try fetching 1 subscriber just to get the meta.total
-  if (listSize === 0) {
-    try {
-      const oneSubRes = await fetch(`${ML_BASE}/subscribers?limit=1`, { headers })
-      console.log('[MailerLite] subscribers (limit=1) status:', oneSubRes.status)
-      if (oneSubRes.ok) {
-        const oneSubData = await oneSubRes.json()
-        console.log('[MailerLite] subscribers (limit=1) full body (2000ch):', JSON.stringify(oneSubData).slice(0, 2000))
-        listSize = oneSubData?.meta?.total ?? oneSubData?.total ?? 0
-      }
-    } catch (e) {
-      console.error('[MailerLite] subscribers limit=1 call failed:', e)
-    }
-  }
-  console.log('[MailerLite] => resolved listSize:', listSize)
-
-  // ── Unsubscribed count ─────────────────────────────────────────
   let totalUnsubscribes = 0
-  try {
-    const unsubRes = await fetch(
-      `${ML_BASE}/subscribers?filter[status]=unsubscribed&limit=0`,
-      { headers }
-    )
-    console.log('[MailerLite] unsubscribes status:', unsubRes.status)
-    if (unsubRes.ok) {
-      const unsubData = await unsubRes.json()
-      console.log('[MailerLite] unsubscribes meta:', JSON.stringify(unsubData?.meta))
-      totalUnsubscribes = unsubData?.meta?.total ?? unsubData?.total ?? 0
-    }
-  } catch (e) {
-    console.error('[MailerLite] unsubscribes call failed:', e)
+  let usingClassic = false
+
+  // Try classic v2 API first — /stats gives total directly
+  console.log('[MailerLite] Trying classic v2 API...')
+  const statsResult = await tryFetch(`${ML_CLASSIC}/stats`, classicHeaders)
+  if (statsResult.ok && statsResult.data) {
+    console.log('[MailerLite] Classic v2 /stats response:', JSON.stringify(statsResult.data))
+    // Classic stats returns: { subscribed: 2167, unsubscribed: 45, campaigns: 12, ... }
+    listSize = statsResult.data.subscribed ?? statsResult.data.active ?? statsResult.data.total ?? 0
+    totalUnsubscribes = statsResult.data.unsubscribed ?? 0
+    usingClassic = true
+    console.log('[MailerLite] Classic v2 => listSize:', listSize, 'unsubs:', totalUnsubscribes)
   }
-  console.log('[MailerLite] => resolved totalUnsubscribes:', totalUnsubscribes)
 
-  // Recent sent campaigns
-  const campRes = await fetch(
-    `${ML_BASE}/campaigns?limit=10&filter%5Bstatus%5D=sent&sort=-sent_at`,
-    { headers }
-  )
-  console.log('[MailerLite] campaigns response status:', campRes.status, campRes.statusText)
-  const campData = await campRes.json()
-  console.log('[MailerLite] campaigns FULL response keys:', Object.keys(campData))
-  console.log('[MailerLite] campaigns data length:', campData?.data?.length)
-  console.log('[MailerLite] campaign sample (first):', JSON.stringify(campData?.data?.[0]))
-  const campaigns = campData?.data ?? []
+  // If classic didn't work, try classic subscribers endpoint
+  if (listSize === 0) {
+    const subResult = await tryFetch(`${ML_CLASSIC}/subscribers?limit=1&status=active`, classicHeaders)
+    if (subResult.ok && subResult.data) {
+      console.log('[MailerLite] Classic v2 /subscribers response keys:', Object.keys(subResult.data))
+      listSize = subResult.data.total ?? subResult.data.meta?.total ?? 0
+      usingClassic = listSize > 0
+      console.log('[MailerLite] Classic v2 subscribers => listSize:', listSize)
+    }
+  }
 
-  const parsedCampaigns = campaigns.map((c: any) => {
-    // Open/click rates: API returns { float: 0.297, string: "29.7%" } or plain float
-    // Multiply by 100 to get percentage points
-    const rawOpen  = c.stats?.open_rate?.float  ?? c.stats?.open_rate  ?? 0
-    const rawClick = c.stats?.click_rate?.float ?? c.stats?.click_rate ?? 0
+  // If classic didn't work, try new API
+  if (listSize === 0) {
+    console.log('[MailerLite] Classic failed, trying new API...')
+    const newSubResult = await tryFetch(`${ML_NEW}/subscribers?filter[status]=active&limit=1`, newHeaders)
+    if (newSubResult.ok && newSubResult.data) {
+      console.log('[MailerLite] New API /subscribers meta:', JSON.stringify(newSubResult.data?.meta))
+      listSize = newSubResult.data?.meta?.total ?? newSubResult.data?.total ?? 0
+      console.log('[MailerLite] New API => listSize:', listSize)
+    }
+  }
 
-    // Unsubscribes per campaign: MailerLite v2 field is unsubscribes_count
-    const campUnsubs = c.stats?.unsubscribes_count ?? c.stats?.unsubscribed ?? c.stats?.unsubscribe_count ?? 0
+  // Last resort: new API without filter
+  if (listSize === 0) {
+    const fallback = await tryFetch(`${ML_NEW}/subscribers?limit=1`, newHeaders)
+    if (fallback.ok && fallback.data) {
+      console.log('[MailerLite] Fallback full body (1000ch):', JSON.stringify(fallback.data).slice(0, 1000))
+      listSize = fallback.data?.meta?.total ?? fallback.data?.total ?? 0
+    }
+  }
 
-    // sent_at may be ISO string or null
-    const sentAt = c.sent_at || c.sends_at || c.scheduled_at || ''
+  console.log('[MailerLite] FINAL listSize:', listSize)
+
+  // ── Unsubscribes (if not already from classic /stats) ──────────
+  if (totalUnsubscribes === 0 && !usingClassic) {
+    const unsubResult = usingClassic
+      ? await tryFetch(`${ML_CLASSIC}/subscribers?status=unsubscribed&limit=1`, classicHeaders)
+      : await tryFetch(`${ML_NEW}/subscribers?filter[status]=unsubscribed&limit=0`, newHeaders)
+    if (unsubResult.ok && unsubResult.data) {
+      totalUnsubscribes = unsubResult.data.total ?? unsubResult.data?.meta?.total ?? 0
+    }
+  }
+  console.log('[MailerLite] FINAL totalUnsubscribes:', totalUnsubscribes)
+
+  // ── Campaigns ──────────────────────────────────────────────────
+  const headers = usingClassic ? classicHeaders : newHeaders
+  const campUrl = usingClassic
+    ? `${ML_CLASSIC}/campaigns?limit=10&status=sent`
+    : `${ML_NEW}/campaigns?limit=10&filter[status]=sent&sort=-sent_at`
+
+  const campResult = await tryFetch(campUrl, headers)
+  const campaigns = campResult.ok ? (campResult.data?.data ?? campResult.data ?? []) : []
+  console.log('[MailerLite] campaigns count:', Array.isArray(campaigns) ? campaigns.length : 0)
+
+  const parsedCampaigns = (Array.isArray(campaigns) ? campaigns : []).map((c: any) => {
+    // Classic v2: open_rate is already a percentage (29.7)
+    // New API: open_rate is { float: 0.297, string: "29.7%" }
+    let openRate = 0
+    let clickRate = 0
+
+    if (usingClassic) {
+      // Classic returns plain numbers as percentages
+      openRate = Number(c.opened?.rate ?? c.open_rate ?? c.stats?.open_rate ?? 0)
+      clickRate = Number(c.clicked?.rate ?? c.click_rate ?? c.stats?.click_rate ?? 0)
+      // Classic sometimes returns as decimal (0.297), sometimes as percentage (29.7)
+      if (openRate > 0 && openRate < 1) openRate = Math.round(openRate * 1000) / 10
+      if (clickRate > 0 && clickRate < 1) clickRate = Math.round(clickRate * 1000) / 10
+    } else {
+      const rawOpen = c.stats?.open_rate?.float ?? c.stats?.open_rate ?? 0
+      const rawClick = c.stats?.click_rate?.float ?? c.stats?.click_rate ?? 0
+      openRate = Math.round(Number(rawOpen) * 1000) / 10
+      clickRate = Math.round(Number(rawClick) * 1000) / 10
+    }
+
+    const campUnsubs = c.stats?.unsubscribes_count ?? c.stats?.unsubscribed ?? c.stats?.unsubscribe_count ?? c.unsubscribed?.count ?? 0
+    const sentAt = c.sent_at || c.sends_at || c.scheduled_at || c.date_send || ''
 
     return {
-      name:         c.name || 'Untitled',
+      name: c.name || c.subject || 'Untitled',
       sentAt,
-      openRate:     Math.round(Number(rawOpen)  * 1000) / 10,
-      clickRate:    Math.round(Number(rawClick) * 1000) / 10,
+      openRate,
+      clickRate,
       unsubscribes: campUnsubs,
     }
   })
@@ -123,45 +150,48 @@ export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteDa
     ? Math.round(recentCampaigns.reduce((s: number, c: any) => s + c.clickRate, 0) / recentCampaigns.length * 10) / 10
     : 0
 
-  // Fetch automations
+  // ── Automations ────────────────────────────────────────────────
   let automations: MailerLiteAutomation[] = []
   try {
-    const autoRes = await fetch(`${ML_BASE}/automations?limit=25`, { headers })
-    console.log('[MailerLite] automations response status:', autoRes.status, autoRes.statusText)
-    const autoData = await autoRes.json()
-    console.log('[MailerLite] automations FULL response keys:', Object.keys(autoData))
-    console.log('[MailerLite] automations data length:', autoData?.data?.length)
-    automations = (autoData?.data ?? []).map((a: any) => {
-      const status = a.status === 'active' ? 'active' as const : 'paused' as const
-      const subscriberCount = a.stats?.completed_subscribers_count ?? a.stats?.subscribers_count ?? 0
-      const rawOpen = a.stats?.open_rate?.float ?? a.stats?.open_rate ?? 0
-      const rawClick = a.stats?.click_rate?.float ?? a.stats?.click_rate ?? 0
-      const openRate = Math.round(Number(rawOpen) * 1000) / 10
-      const clickRate = Math.round(Number(rawClick) * 1000) / 10
+    const autoUrl = usingClassic ? `${ML_CLASSIC}/groups` : `${ML_NEW}/automations?limit=25`
+    const autoResult = await tryFetch(autoUrl, headers)
+    if (autoResult.ok) {
+      const autoList = autoResult.data?.data ?? autoResult.data ?? []
+      automations = (Array.isArray(autoList) ? autoList : []).map((a: any) => {
+        const status = (a.status === 'active' || a.active) ? 'active' as const : 'paused' as const
+        const subscriberCount = a.stats?.completed_subscribers_count ?? a.stats?.subscribers_count ?? a.total ?? a.active_count ?? 0
+        const rawOpen = a.stats?.open_rate?.float ?? a.stats?.open_rate ?? 0
+        const rawClick = a.stats?.click_rate?.float ?? a.stats?.click_rate ?? 0
+        const openRate = usingClassic
+          ? (Number(rawOpen) > 0 && Number(rawOpen) < 1 ? Math.round(Number(rawOpen) * 1000) / 10 : Number(rawOpen))
+          : Math.round(Number(rawOpen) * 1000) / 10
+        const clickRate = usingClassic
+          ? (Number(rawClick) > 0 && Number(rawClick) < 1 ? Math.round(Number(rawClick) * 1000) / 10 : Number(rawClick))
+          : Math.round(Number(rawClick) * 1000) / 10
 
-      // Health: red if paused or zero activity, amber if click < 1%, green otherwise
-      let health: 'green' | 'amber' | 'red' = 'green'
-      if (status === 'paused' || subscriberCount === 0) health = 'red'
-      else if (clickRate < 1) health = 'amber'
+        let health: 'green' | 'amber' | 'red' = 'green'
+        if (status === 'paused' || subscriberCount === 0) health = 'red'
+        else if (clickRate < 1) health = 'amber'
 
-      return { name: a.name || 'Untitled', status, subscriberCount, openRate, clickRate, health }
-    })
-  } catch { /* automations API may not be available */ }
+        return { name: a.name || 'Untitled', status, subscriberCount, openRate, clickRate, health }
+      })
+    }
+  } catch { /* automations may not be available */ }
 
-  console.log('[MailerLite] === FINAL RETURN VALUES ===')
+  console.log('[MailerLite] === FINAL RETURN ===')
+  console.log('[MailerLite]   API:', usingClassic ? 'Classic v2' : 'New API')
   console.log('[MailerLite]   listSize:', listSize)
   console.log('[MailerLite]   avgOpenRate:', avgOpenRate)
-  console.log('[MailerLite]   avgClickRate:', avgClickRate)
   console.log('[MailerLite]   totalUnsubscribes:', totalUnsubscribes)
-  console.log('[MailerLite]   campaigns count:', parsedCampaigns.length)
-  console.log('[MailerLite]   automations count:', automations.length)
+  console.log('[MailerLite]   campaigns:', parsedCampaigns.length)
+  console.log('[MailerLite]   automations:', automations.length)
 
   return {
     listSize,
-    openRate:     avgOpenRate,
-    clickRate:    avgClickRate,
+    openRate: avgOpenRate,
+    clickRate: avgClickRate,
     unsubscribes: totalUnsubscribes,
-    campaigns:    parsedCampaigns,
+    campaigns: parsedCampaigns,
     automations,
   }
 }
