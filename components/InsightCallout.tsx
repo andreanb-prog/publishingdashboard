@@ -2,6 +2,7 @@
 // components/InsightCallout.tsx — Dynamic AI insight boxes (#32)
 // Shows "alarm" or "cheerleader" callouts based on data patterns
 
+import { useState } from 'react'
 import type { Analysis } from '@/types'
 
 interface Insight {
@@ -98,6 +99,50 @@ const PAGE_FILTERS: Record<string, (i: Insight) => boolean> = {
   pinterest: () => false,
 }
 
+function InsightCard({ insight, index }: { insight: Insight; index: number }) {
+  const [collapsed, setCollapsed] = useState(false)
+  const isAlarm = insight.mode === 'alarm'
+  const color = isAlarm ? '#E9A020' : '#6EBF8B'
+
+  return (
+    <div className="rounded-xl overflow-hidden transition-all duration-200"
+      style={{
+        background: '#FFF8F0',
+        border: '1px solid #EEEBE6',
+        borderLeft: `4px solid ${color}`,
+      }}>
+      <button
+        onClick={() => setCollapsed(c => !c)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left bg-transparent border-none cursor-pointer"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold tracking-[1.5px] uppercase" style={{ color }}>
+            {isAlarm ? '⚠️ Watch this' : '🎉 Nice work'}
+          </span>
+          {collapsed && (
+            <span className="text-[11px] truncate max-w-[300px]" style={{ color: '#9CA3AF' }}>
+              {insight.text.replace(/\*\*/g, '').slice(0, 60)}…
+            </span>
+          )}
+        </div>
+        <span className="text-[11px] flex-shrink-0 ml-2 transition-transform duration-200"
+          style={{ color: '#9CA3AF', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+          ▼
+        </span>
+      </button>
+      {!collapsed && (
+        <div className="px-4 pb-4 -mt-1">
+          <div className="text-[13px] leading-[1.7]" style={{ color: '#374151' }}
+            dangerouslySetInnerHTML={{
+              __html: insight.text.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#1E2D3D">$1</strong>'),
+            }}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function InsightCallouts({ analysis, page = 'overview' }: { analysis: Analysis; page?: string }) {
   const all = detectInsights(analysis)
   const filter = PAGE_FILTERS[page] || (() => true)
@@ -107,27 +152,9 @@ export function InsightCallouts({ analysis, page = 'overview' }: { analysis: Ana
 
   return (
     <div className="space-y-3 mb-6">
-      {insights.map((insight, i) => {
-        const isAlarm = insight.mode === 'alarm'
-        return (
-          <div key={i} className="rounded-xl p-4"
-            style={{
-              background: '#FFF8F0',
-              border: '1px solid #EEEBE6',
-              borderLeft: `4px solid ${isAlarm ? '#E9A020' : '#6EBF8B'}`,
-            }}>
-            <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-1.5"
-              style={{ color: isAlarm ? '#E9A020' : '#6EBF8B' }}>
-              {isAlarm ? '⚠️ Watch this' : '🎉 Nice work'}
-            </div>
-            <div className="text-[13px] leading-[1.7]" style={{ color: '#374151' }}
-              dangerouslySetInnerHTML={{
-                __html: insight.text.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#1E2D3D">$1</strong>'),
-              }}
-            />
-          </div>
-        )
-      })}
+      {insights.map((insight, i) => (
+        <InsightCard key={i} insight={insight} index={i} />
+      ))}
     </div>
   )
 }
