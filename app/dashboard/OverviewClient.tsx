@@ -336,6 +336,7 @@ export function OverviewClient() {
   const [copying,     setCopying]     = useState(false)
   const [coachTitle]  = useState(() => getCoachTitle())
   const [onboardingSkipped, setOnboardingSkipped] = useState(false)
+  const [expandedPriority, setExpandedPriority] = useState<number | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -450,45 +451,60 @@ export function OverviewClient() {
         </p>
 
         {analysis?.actionPlan?.length ? (
-          <div className="space-y-3">
+          <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '0.5px solid #EEEBE6' }}>
             {(analysis.actionPlan as CoachingInsight[]).slice(0, 3).map((item, i) => {
               const href = item.channel === 'kdp' ? '/dashboard/kdp'
                 : item.channel === 'meta' ? '/dashboard/meta'
                 : item.channel === 'email' ? '/dashboard/mailerlite'
                 : item.channel === 'pinterest' ? '/dashboard/pinterest'
                 : '/dashboard/upload'
-              const priorityColors = [
-                { border: '#F97B6B', bg: '#FFF5F4', badge: 'rgba(249,123,107,0.12)', badgeText: '#F97B6B' },
-                { border: '#E9A020', bg: '#FFFBF0', badge: 'rgba(233,160,32,0.12)', badgeText: '#E9A020' },
-                { border: '#60A5FA', bg: '#F0F7FF', badge: 'rgba(96,165,250,0.12)', badgeText: '#60A5FA' },
-              ]
-              const pc = priorityColors[i] ?? priorityColors[2]
+              const colors = ['#F97B6B', '#E9A020', '#60A5FA']
+              const color = colors[i] ?? colors[2]
+              const isOpen = expandedPriority === i
               return (
-                <div key={i} className="rounded-xl px-5 py-4"
-                  style={{ background: pc.bg, border: '1px solid #EEEBE6', borderLeft: `3px solid ${pc.border}` }}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <span className="text-[9px] font-bold tracking-[1.5px] uppercase px-2 py-0.5 rounded mr-2"
-                        style={{ background: pc.badge, color: pc.badgeText }}>
-                        Priority {i + 1}
-                      </span>
-                      <div className="font-sans text-[14px] font-bold uppercase tracking-wide mt-2 mb-1.5" style={{ color: '#1E2D3D' }}>
-                        {item.title}
-                      </div>
-                      <div className="text-[12.5px] leading-relaxed" style={{ color: '#374151' }}>
+                <div key={i}
+                  style={{
+                    borderBottom: i < 2 ? '0.5px solid #EEEBE6' : 'none',
+                    background: isOpen ? '#FFF8F0' : 'white',
+                    borderLeft: isOpen ? `3px solid ${color}` : '3px solid transparent',
+                    transition: 'background 0.2s ease, border-left-color 0.2s ease',
+                  }}>
+                  {/* Collapsed row */}
+                  <button
+                    onClick={() => setExpandedPriority(isOpen ? null : i)}
+                    className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left bg-transparent border-none cursor-pointer"
+                  >
+                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
+                      style={{ background: color, color: 'white' }}>
+                      {i + 1}
+                    </span>
+                    <span className="flex-1 text-[13.5px] font-bold" style={{ color: '#1E2D3D' }}>
+                      {item.title}
+                    </span>
+                    <span className="text-[12px] flex-shrink-0 transition-transform duration-200"
+                      style={{ color: '#9CA3AF', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                      ▾
+                    </span>
+                  </button>
+
+                  {/* Expanded detail */}
+                  <div className="overflow-hidden transition-all duration-300 ease-out"
+                    style={{ maxHeight: isOpen ? '300px' : '0px', opacity: isOpen ? 1 : 0 }}>
+                    <div className="px-4 pb-4 pl-[60px]">
+                      <div className="text-[12.5px] leading-[1.7] mb-3" style={{ color: '#374151' }}>
                         {item.body}
                         {item.action && (
                           <span className="ml-1">
-                            <strong style={{ color: pc.border }}>Impact:</strong> {item.action}
+                            <strong style={{ color: '#E9A020' }}>Impact:</strong> {item.action}
                           </span>
                         )}
                       </div>
+                      <Link href={href}
+                        className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-[11.5px] font-bold no-underline transition-all hover:opacity-90"
+                        style={{ background: color, color: 'white' }}>
+                        Read the Full Story →
+                      </Link>
                     </div>
-                    <Link href={href}
-                      className="flex-shrink-0 px-4 py-2 rounded-lg text-[11px] font-bold no-underline whitespace-nowrap transition-all hover:opacity-90"
-                      style={{ background: pc.border, color: 'white' }}>
-                      Action →
-                    </Link>
                   </div>
                 </div>
               )
