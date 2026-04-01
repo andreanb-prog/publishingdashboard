@@ -3,6 +3,7 @@
 // Collapsible per-page goal tracker with progress bars
 
 import { useEffect, useState } from 'react'
+import { IconStar } from '@/components/icons'
 
 type Goals = Record<string, number>
 
@@ -144,7 +145,7 @@ export function GoalSection({
         className="w-full flex items-center justify-between px-5 py-3.5 text-left bg-transparent border-none cursor-pointer"
       >
         <div className="flex items-center gap-2">
-          <span className="text-[13px]">🎯</span>
+          <IconStar size={16} />
           <span className="text-[12.5px] font-bold" style={{ color: '#1E2D3D' }}>My Goals</span>
           {collapsed && hasGoals && summaryParts.length > 0 && (
             <span className="text-[11px] ml-2" style={{ color: '#6B7280' }}>

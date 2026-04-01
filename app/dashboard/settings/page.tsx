@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { CategoryTagInput } from '@/components/CategoryTagInput'
+import { IconStar } from '@/components/icons'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 type TestState = 'idle' | 'testing' | 'ok' | 'error'
@@ -463,8 +464,8 @@ export default function SettingsPage() {
       {/* ─── My Benchmarks ───────────────────────────────────────────────── */}
       <div className="card p-6 mb-4">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-            style={{ background: 'rgba(233,160,32,0.1)' }}>🎯</div>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ background: 'rgba(233,160,32,0.1)' }}><IconStar size={22} /></div>
           <div className="flex-1">
             <div className="font-bold text-[#0d1f35] text-[14px]">My Benchmarks</div>
             <div className="text-[11.5px] text-stone-400">Set your personal targets — shown on your Email and Meta pages</div>

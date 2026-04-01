@@ -11,14 +11,13 @@ import { InsightCallouts } from '@/components/InsightCallout'
 import { FreshBanner } from '@/components/FreshBanner'
 import { OnboardingBanner } from '@/components/OnboardingBanner'
 import { SortablePage } from '@/components/SortablePage'
-import { IconKDP, IconMeta, IconMailerLite, IconSwaps, IconPinterest } from '@/components/icons'
+import { IconKDP, IconMeta, IconMailerLite, IconPinterest } from '@/components/icons'
 import { OnboardingFlow } from '@/components/OnboardingFlow'
 
 const CHANNEL_CARDS = [
   { key: 'kdp',        href: '/dashboard/kdp',        icon: IconKDP,       iconColor: '#E9A020', name: 'KDP',        colorClass: 'border-t-amber-brand' },
   { key: 'meta',       href: '/dashboard/meta',        icon: IconMeta,      iconColor: '#60A5FA', name: 'Meta Ads',   colorClass: 'border-t-blue-500' },
   { key: 'mailerlite', href: '/dashboard/mailerlite',  icon: IconMailerLite, iconColor: '#34d399', name: 'MailerLite', colorClass: 'border-t-emerald-500' },
-  { key: 'swaps',      href: '/dashboard/swaps',       icon: IconSwaps,     iconColor: '#E9A020', name: 'Swaps',      colorClass: 'border-t-amber-brand' },
   { key: 'pinterest',  href: '/dashboard/pinterest',   icon: IconPinterest, iconColor: '#fb7185', name: 'Pinterest',  colorClass: 'border-t-red-500' },
 ]
 
@@ -536,7 +535,7 @@ export function OverviewClient() {
                     Each channel has a detailed analysis with your coach&apos;s recommendations
                   </p>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-7">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
                   {CHANNEL_CARDS.map(card => {
                     const score = channelScoreMap.get(card.key) as ChannelScore | undefined
                     const badge = (score?.status ? STATUS_BADGE[score.status] : null) ?? STATUS_BADGE.NEW

@@ -110,6 +110,15 @@ export function IconListBuilding({ size = 24, color = '#34d399', className }: Ic
   )
 }
 
+export function IconStar({ size = 20, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <polygon points="40,5 55,30 82,30 60,48 69,74 40,57 11,74 20,48 -2,30 25,30" fill="none" stroke="#1E2D3D" strokeWidth="5" strokeLinejoin="round"/>
+      <polygon points="40,18 51,38 74,38 56,50 63,70 40,57 17,70 24,50 6,38 29,38" fill="#E9A020" stroke="none"/>
+    </svg>
+  )
+}
+
 export function IconMyData({ size = 24, color = '#fb7185', className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>

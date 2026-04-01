@@ -15,25 +15,40 @@ export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteDa
     `${ML_BASE}/subscribers?limit=1&filter%5Bstatus%5D=active`,
     { headers }
   )
+  console.log('[MailerLite] subscribers response status:', subsRes.status, subsRes.statusText)
   const subsData = await subsRes.json()
-  console.log('[MailerLite] active subscribers raw:', JSON.stringify(subsData?.meta))
+  console.log('[MailerLite] subscribers FULL response keys:', Object.keys(subsData))
+  console.log('[MailerLite] subscribers meta:', JSON.stringify(subsData?.meta))
+  console.log('[MailerLite] subscribers total (top-level):', subsData?.total)
+  console.log('[MailerLite] subscribers data length:', subsData?.data?.length)
+  console.log('[MailerLite] subscribers FULL body (first 2000 chars):', JSON.stringify(subsData).slice(0, 2000))
   const listSize = subsData?.meta?.total ?? subsData?.total ?? 0
+  console.log('[MailerLite] => resolved listSize:', listSize)
 
   // Total unsubscribed count — from filtered subscriber endpoint
   const unsubRes = await fetch(
     `${ML_BASE}/subscribers?limit=1&filter%5Bstatus%5D=unsubscribed`,
     { headers }
   )
+  console.log('[MailerLite] unsubscribes response status:', unsubRes.status, unsubRes.statusText)
   const unsubData = await unsubRes.json()
-  console.log('[MailerLite] unsubscribed raw:', JSON.stringify(unsubData?.meta))
-  const totalUnsubscribes = unsubData?.meta?.total ?? 0
+  console.log('[MailerLite] unsubscribes FULL response keys:', Object.keys(unsubData))
+  console.log('[MailerLite] unsubscribes meta:', JSON.stringify(unsubData?.meta))
+  console.log('[MailerLite] unsubscribes total (top-level):', unsubData?.total)
+  console.log('[MailerLite] unsubscribes data length:', unsubData?.data?.length)
+  console.log('[MailerLite] unsubscribes FULL body (first 2000 chars):', JSON.stringify(unsubData).slice(0, 2000))
+  const totalUnsubscribes = unsubData?.meta?.total ?? unsubData?.total ?? 0
+  console.log('[MailerLite] => resolved totalUnsubscribes:', totalUnsubscribes)
 
   // Recent sent campaigns
   const campRes = await fetch(
     `${ML_BASE}/campaigns?limit=10&filter%5Bstatus%5D=sent&sort=-sent_at`,
     { headers }
   )
+  console.log('[MailerLite] campaigns response status:', campRes.status, campRes.statusText)
   const campData = await campRes.json()
+  console.log('[MailerLite] campaigns FULL response keys:', Object.keys(campData))
+  console.log('[MailerLite] campaigns data length:', campData?.data?.length)
   console.log('[MailerLite] campaign sample (first):', JSON.stringify(campData?.data?.[0]))
   const campaigns = campData?.data ?? []
 
@@ -71,7 +86,10 @@ export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteDa
   let automations: MailerLiteAutomation[] = []
   try {
     const autoRes = await fetch(`${ML_BASE}/automations?limit=25`, { headers })
+    console.log('[MailerLite] automations response status:', autoRes.status, autoRes.statusText)
     const autoData = await autoRes.json()
+    console.log('[MailerLite] automations FULL response keys:', Object.keys(autoData))
+    console.log('[MailerLite] automations data length:', autoData?.data?.length)
     automations = (autoData?.data ?? []).map((a: any) => {
       const status = a.status === 'active' ? 'active' as const : 'paused' as const
       const subscriberCount = a.stats?.completed_subscribers_count ?? a.stats?.subscribers_count ?? 0
@@ -88,6 +106,14 @@ export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteDa
       return { name: a.name || 'Untitled', status, subscriberCount, openRate, clickRate, health }
     })
   } catch { /* automations API may not be available */ }
+
+  console.log('[MailerLite] === FINAL RETURN VALUES ===')
+  console.log('[MailerLite]   listSize:', listSize)
+  console.log('[MailerLite]   avgOpenRate:', avgOpenRate)
+  console.log('[MailerLite]   avgClickRate:', avgClickRate)
+  console.log('[MailerLite]   totalUnsubscribes:', totalUnsubscribes)
+  console.log('[MailerLite]   campaigns count:', parsedCampaigns.length)
+  console.log('[MailerLite]   automations count:', automations.length)
 
   return {
     listSize,
