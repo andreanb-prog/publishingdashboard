@@ -245,65 +245,52 @@ export function OverviewClient() {
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <OnboardingBanner analysesCount={analyses.length} />
 
-      {/* Banner */}
-      <div className="rounded-xl mb-6 overflow-hidden" style={{ background: '#0d1f35' }}>
-        {/* KPI hero row */}
-        {analysis?.kdp && (
-          <div className="grid grid-cols-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-            {[
-              { label: 'Units Sold',  value: fmt(analysis.kdp.totalUnits),              color: '#e9a020' },
-              { label: 'KENP Reads',  value: fmt(analysis.kdp.totalKENP),               color: '#38bdf8' },
-              { label: 'Royalties',   value: `$${analysis.kdp.totalRoyaltiesUSD}`,      color: '#34d399' },
-            ].map((stat, i) => (
-              <div key={stat.label} className="px-7 py-5 text-center"
-                style={{ borderRight: i < 2 ? '1px solid rgba(255,255,255,0.07)' : undefined }}>
-                <div className="font-serif text-[38px] font-medium leading-none tracking-tight mb-1.5"
-                  style={{ color: stat.color }}>
-                  {stat.value}
-                </div>
-                <div className="text-[10px] font-bold tracking-[1.5px] uppercase"
-                  style={{ color: 'rgba(255,255,255,0.3)' }}>
-                  {stat.label}
-                </div>
+      {/* Hero numbers strip */}
+      {analysis?.kdp && (
+        <div className="rounded-xl mb-4 p-6 grid grid-cols-2 md:grid-cols-4 gap-4"
+          style={{ background: 'white', border: '1px solid #E8DDD0' }}>
+          {[
+            { label: 'Revenue',     value: `$${analysis.kdp.totalRoyaltiesUSD}`, color: '#1E2D3D' },
+            { label: 'Units Sold',  value: fmt(analysis.kdp.totalUnits),         color: '#1E2D3D' },
+            { label: 'KENP Reads',  value: fmt(analysis.kdp.totalKENP),          color: '#1E2D3D' },
+            { label: 'Best CTR',    value: analysis.meta?.bestAd ? `${analysis.meta.bestAd.ctr}%` : '—', color: '#1E2D3D' },
+          ].map(stat => (
+            <div key={stat.label}>
+              <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-1"
+                style={{ color: '#9CA3AF' }}>
+                {stat.label}
               </div>
-            ))}
+              <div className="font-serif text-[48px] font-medium leading-none tracking-tight"
+                style={{ color: stat.color }}>
+                {stat.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Verdict banner */}
+      <div className="rounded-xl mb-6 px-6 py-4 flex items-center justify-between"
+        style={{ background: '#0d1f35' }}>
+        <div>
+          <div className="text-[10px] font-bold tracking-[2px] uppercase mb-1.5" style={{ color: '#e9a020' }}>
+            {monthLabel}
           </div>
-        )}
-        {/* Verdict + meta row */}
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div>
-            <div className="text-[10px] font-bold tracking-[2px] uppercase mb-1.5" style={{ color: '#e9a020' }}>
-              {monthLabel}
-            </div>
-            <div className="font-serif text-[16px] text-white leading-snug">
-              {analysis?.overallVerdict || 'Upload your files to get your first analysis.'}
-            </div>
-          </div>
-          <div className="text-right flex-shrink-0 ml-6">
-            <div className="text-[11.5px] mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              {analysis
-                ? `Analyzed ${new Date(analysis.generatedAt).toLocaleDateString()}`
-                : 'No analysis yet'}
-            </div>
-            <Link href="/dashboard/upload" className="text-[11px] font-semibold no-underline hover:underline"
-              style={{ color: '#e9a020' }}>
-              Upload new files →
-            </Link>
+          <div className="font-serif text-[16px] text-white leading-snug">
+            {analysis?.overallVerdict || 'Upload your files to get your first analysis.'}
           </div>
         </div>
-        {/* No-KDP fallback inside banner */}
-        {!analysis?.kdp && analysis && (
-          <div className="px-6 pb-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11.5px]"
-              style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}>
-              No KDP data in this analysis ·{' '}
-              <Link href="/dashboard/upload" className="font-semibold no-underline hover:underline"
-                style={{ color: '#e9a020' }}>
-                Upload KDP report →
-              </Link>
-            </div>
+        <div className="text-right flex-shrink-0 ml-6">
+          <div className="text-[11.5px] mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            {analysis
+              ? `Analyzed ${new Date(analysis.generatedAt).toLocaleDateString()}`
+              : 'No analysis yet'}
           </div>
-        )}
+          <Link href="/dashboard/upload" className="text-[11px] font-semibold no-underline hover:underline"
+            style={{ color: '#e9a020' }}>
+            Upload new files →
+          </Link>
+        </div>
       </div>
 
       <SortablePage

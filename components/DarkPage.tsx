@@ -14,7 +14,7 @@ export function DarkPage({ title, subtitle, backHref = '/dashboard', children }:
   return (
     <div
       className="min-h-full px-9 py-8"
-      style={{ background: '#FFF8F0', color: '#1E2D3D' }}
+      style={{ background: '#F5F0E8', color: '#1E2D3D' }}
     >
       {/* Header */}
       <div className="flex items-end justify-between mb-7 pb-5"
