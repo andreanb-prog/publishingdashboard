@@ -11,8 +11,24 @@ export function parseMetaFile(csvText: string): MetaData {
 
   const rows = result.data as any[]
 
+  // Log available headers to help debug column mismatches
+  if (rows.length > 0) {
+    console.log('[Meta parser] CSV headers found:', Object.keys(rows[0]))
+  }
+
+  // Flexible column-name resolver — tries multiple variants in order
+  function col(row: any, ...keys: string[]): string | number {
+    for (const k of keys) {
+      if (row[k] != null && row[k] !== '') return row[k]
+    }
+    return 0
+  }
+
   // Filter to rows that have ad names (skip summary/blank rows)
-  const adRows = rows.filter((r) => r['Ad name'] && String(r['Ad name']).trim() !== '')
+  const adRows = rows.filter((r) => {
+    const name = r['Ad name'] ?? r['Ad Name'] ?? r['Ad set name'] ?? ''
+    return String(name).trim() !== ''
+  })
 
   // Group by ad name, sum across date ranges
   const adMap = new Map<string, {
@@ -20,13 +36,17 @@ export function parseMetaFile(csvText: string): MetaData {
   }>()
 
   for (const row of adRows) {
-    const name = String(row['Ad name']).trim()
-    const spend = Number(row['Amount spent (USD)'] || 0)
-    const clicks = Number(row['Link clicks'] || 0)
-    const impressions = Number(row['Impressions'] || 0)
-    const reach = Number(row['Reach'] || 0)
-    const ctr = Number(row['CTR (link click-through rate)'] || 0)
-    const cpc = Number(row['CPC (cost per link click) (USD)'] || 0)
+    const name = String(col(row, 'Ad name', 'Ad Name', 'Ad set name', 'Campaign name')).trim()
+    const spend = Number(col(row,
+      'Amount spent (USD)', 'Amount spent', 'Spend', 'Cost'))
+    const clicks = Number(col(row,
+      'Clicks (all)', 'Link clicks', 'Clicks', 'Results'))
+    const impressions = Number(col(row, 'Impressions'))
+    const reach = Number(col(row, 'Reach'))
+    const ctr = Number(col(row,
+      'CTR (all)', 'CTR (link click-through rate)', 'CTR'))
+    const cpc = Number(col(row,
+      'CPC (all) (USD)', 'CPC (cost per link click) (USD)', 'CPC (all)', 'CPC'))
 
     if (!adMap.has(name)) {
       adMap.set(name, { spend: 0, clicks: 0, impressions: 0, reach: 0, ctrs: [], cpcs: [] })

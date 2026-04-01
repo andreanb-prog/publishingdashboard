@@ -107,7 +107,9 @@ export default function MailerLitePage() {
                       style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
                       <td className="px-4 py-2.5 max-w-[200px] truncate" style={{ color: '#fafaf9' }}>{c.name}</td>
                       <td className="px-4 py-2.5 font-mono text-[11px]" style={{ color: '#a8a29e' }}>
-                        {c.sentAt ? new Date(c.sentAt).toLocaleDateString() : '—'}
+                        {c.sentAt
+                          ? new Date(c.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                          : '—'}
                       </td>
                       <td className="px-4 py-2.5 font-mono"
                         style={{ color: c.openRate >= 22 ? '#34d399' : '#fbbf24' }}>
@@ -116,7 +118,7 @@ export default function MailerLitePage() {
                       <td className="px-4 py-2.5 font-mono" style={{ color: '#d6d3d1' }}>{c.clickRate}%</td>
                       <td className="px-4 py-2.5 font-mono"
                         style={{ color: c.unsubscribes > 10 ? '#fb7185' : '#a8a29e' }}>
-                        {c.unsubscribes}
+                        {c.unsubscribes ?? 0}
                       </td>
                     </tr>
                   ))}

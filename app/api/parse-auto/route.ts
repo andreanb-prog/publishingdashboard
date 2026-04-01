@@ -12,8 +12,13 @@ function detectCSVType(text: string): 'meta' | 'pinterest' | 'unknown' {
     (text.trimStart().startsWith('Analytics overview') || text.includes('"Analytics overview"')) &&
     text.includes('Impressions')
   ) return 'pinterest'
-  // Meta exports have "Ad name" and "Amount spent" columns
-  if (text.includes('Ad name') && text.includes('Amount spent')) return 'meta'
+  // Meta exports: match if any 2+ of these signals are present
+  const metaSignals = [
+    'Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'CPC (cost',
+    'Campaign name', 'Ad set name', 'Impressions',
+  ]
+  const metaHits = metaSignals.filter(s => text.includes(s)).length
+  if (metaHits >= 2) return 'meta'
   return 'unknown'
 }
 

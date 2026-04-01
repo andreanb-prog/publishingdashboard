@@ -23,11 +23,12 @@ const TYPE_INFO: Record<Exclude<FileType, 'unknown'>, { icon: string; label: str
 }
 
 const STEPS = [
-  'Reading your files...',
-  'Crunching the numbers...',
-  'Pulling your email stats...',
-  'Asking your AI coach...',
-  'Writing your action plan...',
+  'Your marketing coach is reading your files...',
+  'Looking at your book sales...',
+  'Reviewing your ad performance...',
+  'Checking your email stats...',
+  'Pulling it all together...',
+  'Writing your coaching session...',
   'Almost ready...',
 ]
 
@@ -284,7 +285,7 @@ export default function UploadPage() {
               {done ? '✅' : '⚙️'}
             </div>
             <div className="font-serif text-[22px] text-white mb-2">
-              {done ? 'Done! Opening your dashboard...' : 'Your coach is reading everything...'}
+              {done ? 'Done! Opening your dashboard...' : 'Your coach is reading everything…'}
             </div>
             <div className="text-[13px] mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
               {STEPS[step]}

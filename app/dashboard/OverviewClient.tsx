@@ -279,7 +279,7 @@ export function OverviewClient() {
                 {score?.metric || '—'}
               </div>
               <div className="text-[11px] text-stone-500 leading-snug mb-2.5">
-                {score?.subline || 'Upload files to analyze'}
+                {score?.subline || 'Add your files to see this'}
               </div>
               <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
                 {badge.label}
@@ -296,7 +296,11 @@ export function OverviewClient() {
       </div>
 
       {loading ? (
-        <div className="card p-8 text-center text-stone-400 text-sm">Loading your analysis...</div>
+        <div className="card p-8 text-center">
+          <div className="text-[14px] font-serif text-[#0d1f35] animate-pulse">
+            Your coach is reading everything…
+          </div>
+        </div>
       ) : !analysis?.actionPlan?.length ? (
         <div className="card p-8 text-center">
           <div className="text-2xl mb-3">⚡</div>
@@ -314,7 +318,7 @@ export function OverviewClient() {
         <div className="card overflow-hidden mb-7">
           <div className="px-5 py-3.5" style={{ background: '#0d1f35' }}>
             <div className="font-serif text-[16px] text-white">
-              What your marketing coach says to do right now
+              Your coach reviewed everything. Here&apos;s what to do next.
             </div>
             <div className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
               Ranked by priority · Based on your real numbers

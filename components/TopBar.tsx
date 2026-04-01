@@ -17,7 +17,9 @@ export function TopBar({ user }: TopBarProps) {
         <div className="font-serif text-[19px] text-[#0d1f35] tracking-tight leading-none">
           Good morning{user.name ? `, ${user.name.split(' ')[0]}` : ''} 👋
         </div>
-        <div className="text-[11px] text-stone-400 mt-0.5">{dateStr} · {timeStr}</div>
+        <div className="text-[11px] text-stone-400 mt-0.5">
+          Your marketing coach is ready when you are.
+        </div>
       </div>
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"

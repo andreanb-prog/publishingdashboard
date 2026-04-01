@@ -1,17 +1,128 @@
 'use client'
-// app/(dashboard)/meta/page.tsx
+// app/dashboard/meta/page.tsx
 import { useEffect, useState } from 'react'
 import { DarkPage, DarkKPIStrip, DarkCoachBox } from '@/components/DarkPage'
 import type { Analysis, MetaAd } from '@/types'
 
 const STATUS_STYLE: Record<MetaAd['status'], { bg: string; text: string; label: string }> = {
-  SCALE: { bg: 'rgba(52,211,153,0.12)', text: '#34d399', label: '🟢 SCALE' },
-  WATCH: { bg: 'rgba(251,191,36,0.12)', text: '#fbbf24', label: '🟡 WATCH' },
-  CUT: { bg: 'rgba(251,113,133,0.12)', text: '#fb7185', label: '🔴 CUT' },
-  DELETE: { bg: 'rgba(251,113,133,0.15)', text: '#fb7185', label: '🔴 DELETE' },
-  LOW_DATA: { bg: 'rgba(56,189,248,0.12)', text: '#38bdf8', label: '◇ LOW DATA' },
+  SCALE:    { bg: 'rgba(52,211,153,0.12)',  text: '#34d399', label: '🟢 SCALE' },
+  WATCH:    { bg: 'rgba(251,191,36,0.12)',  text: '#fbbf24', label: '🟡 WATCH' },
+  CUT:      { bg: 'rgba(251,113,133,0.12)', text: '#fb7185', label: '🔴 CUT' },
+  DELETE:   { bg: 'rgba(251,113,133,0.15)', text: '#fb7185', label: '🔴 DELETE' },
+  LOW_DATA: { bg: 'rgba(56,189,248,0.12)',  text: '#38bdf8', label: '◇ LOW DATA' },
 }
 
+// ── Rescue Panel ──────────────────────────────────────────────────────────────
+function RescuePanel({ ad }: { ad: MetaAd }) {
+  const isZeroClicks = ad.clicks === 0
+  const problemText = isZeroClicks
+    ? `zero clicks despite $${ad.spend} in spend`
+    : `a CTR of just ${ad.ctr}% — well below the 1% threshold`
+
+  const steps = [
+    {
+      num: '1',
+      title: 'See what\'s actually getting clicks right now',
+      body: 'The Facebook Ad Library shows you every live romance ad. Search for authors in your sub-genre and screenshot 2–3 ads that stop your scroll.',
+      link: { label: 'Open Ad Library →', href: 'https://www.facebook.com/ads/library' },
+    },
+    {
+      num: '2',
+      title: 'Upload those screenshots for analysis',
+      body: 'Drop your competitor screenshots into the upload page. Your AI coach will break down what\'s working — hook type, image style, emotional pull.',
+      link: { label: 'Upload competitor ads →', href: '/dashboard/upload' },
+    },
+    {
+      num: '3',
+      title: 'Test a new creative with a fresh angle',
+      body: 'Most winning romance ads lead with one of: grumpy/sunshine tension, forbidden desire, or a slow-burn "almost kiss" moment. Try a different hook than what you\'re running.',
+      link: null,
+    },
+  ]
+
+  const resources = [
+    { label: 'Reedsy Book Marketing Experts', href: 'https://reedsy.com/experts/book-marketing' },
+    { label: 'Indie Romance Authors Facebook Group', href: 'https://www.facebook.com/groups/indieromanceauthors' },
+    { label: 'Kindlepreneur Facebook Ads Guide', href: 'https://kindlepreneur.com/facebook-ads-for-books/' },
+  ]
+
+  return (
+    <div className="rounded-xl p-5 mt-4" style={{
+      background: 'rgba(251,113,133,0.04)',
+      border: '1px solid rgba(251,113,133,0.18)',
+    }}>
+      {/* Warm alert */}
+      <div className="flex items-start gap-3 mb-5">
+        <span className="text-xl flex-shrink-0 mt-0.5">💛</span>
+        <div>
+          <div className="font-semibold text-[13.5px] mb-1.5" style={{ color: '#fafaf9' }}>
+            {ad.name} isn&apos;t getting traction yet — that&apos;s fixable
+          </div>
+          <p className="text-[12.5px] leading-relaxed m-0" style={{ color: '#a8a29e' }}>
+            This ad has {problemText}. That&apos;s not a failure — it&apos;s data.
+            Romance readers scroll fast. Most ads need 2–3 creative iterations to find their hook.
+            Here&apos;s a clear path forward.
+          </p>
+        </div>
+      </div>
+
+      {/* Three steps */}
+      <div className="mb-5">
+        <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          Guided next steps
+        </div>
+        <div className="space-y-3">
+          {steps.map(step => (
+            <div key={step.num} className="flex gap-3">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold mt-0.5"
+                style={{ background: 'rgba(233,160,32,0.15)', color: '#e9a020' }}>
+                {step.num}
+              </div>
+              <div className="flex-1">
+                <div className="text-[12.5px] font-semibold mb-0.5" style={{ color: '#d6d3d1' }}>{step.title}</div>
+                <p className="text-[12px] leading-relaxed m-0 mb-1.5" style={{ color: '#78716c' }}>{step.body}</p>
+                {step.link && (
+                  <a
+                    href={step.link.href}
+                    target={step.link.href.startsWith('http') ? '_blank' : undefined}
+                    rel={step.link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                    className="text-[11.5px] font-semibold no-underline hover:underline"
+                    style={{ color: '#e9a020' }}
+                  >
+                    {step.link.label}
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Still stuck */}
+      <div className="rounded-lg px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-2" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          Still stuck? Real humans who can help
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          {resources.map(r => (
+            <a
+              key={r.href}
+              href={r.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11.5px] no-underline hover:underline"
+              style={{ color: '#57534e' }}
+            >
+              {r.label} ↗
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 export default function MetaPage() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
 
@@ -21,8 +132,10 @@ export default function MetaPage() {
       .then(d => { if (d.analyses?.[0]) setAnalysis(d.analyses[0].data || d.analyses[0]) })
   }, [])
 
-  const meta = analysis?.meta
+  const meta  = analysis?.meta
   const coach = (analysis as any)?.metaCoach
+
+  const rescueAds = meta?.ads.filter(ad => ad.clicks === 0 || ad.ctr < 1) ?? []
 
   return (
     <DarkPage title="📣 Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
@@ -37,10 +150,10 @@ export default function MetaPage() {
       ) : (
         <>
           <DarkKPIStrip cols={4} items={[
-            { label: 'Total Spend', value: `$${meta.totalSpend}`, sub: 'This period', color: '#fb7185' },
-            { label: 'Best CTR', value: `${meta.bestAd?.ctr || 0}%`, sub: meta.bestAd?.name || '—', color: '#34d399' },
-            { label: 'Best CPC', value: `$${meta.bestAd?.cpc || 0}`, sub: 'Cost per click', color: '#fbbf24' },
-            { label: 'Total Clicks', value: meta.totalClicks, sub: `${meta.avgCPC} avg CPC`, color: '#38bdf8' },
+            { label: 'Total Spend',  value: `$${meta.totalSpend}`,         sub: 'This period',       color: '#fb7185' },
+            { label: 'Best CTR',     value: `${meta.bestAd?.ctr || 0}%`,   sub: meta.bestAd?.name || '—', color: '#34d399' },
+            { label: 'Best CPC',     value: `$${meta.bestAd?.cpc || 0}`,   sub: 'Cost per click',    color: '#fbbf24' },
+            { label: 'Total Clicks', value: meta.totalClicks,               sub: `${meta.avgCPC} avg CPC`, color: '#38bdf8' },
           ]} />
 
           {coach && <DarkCoachBox color="#fb7185">{coach}</DarkCoachBox>}
@@ -61,11 +174,20 @@ export default function MetaPage() {
                 {meta.ads.map((ad, i) => {
                   const s = STATUS_STYLE[ad.status]
                   const maxCTR = Math.max(...meta.ads.map(a => a.ctr), 1)
+                  const needsRescue = ad.clicks === 0 || ad.ctr < 1
                   return (
                     <tr key={i} className="border-t hover:bg-white/[0.02] transition-colors"
                       style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
                       <td className="px-4 py-3">
-                        <div className="font-semibold" style={{ color: '#fafaf9' }}>{ad.name}</div>
+                        <div className="font-semibold flex items-center gap-2" style={{ color: '#fafaf9' }}>
+                          {ad.name}
+                          {needsRescue && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                              style={{ background: 'rgba(251,113,133,0.15)', color: '#fb7185' }}>
+                              needs rescue
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 font-mono" style={{ color: '#a8a29e' }}>${ad.spend}</td>
                       <td className="px-4 py-3 font-mono font-bold"
@@ -73,7 +195,8 @@ export default function MetaPage() {
                         {ad.clicks}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-mono mb-1" style={{ color: ad.ctr >= 15 ? '#34d399' : ad.ctr >= 8 ? '#fbbf24' : '#fb7185' }}>
+                        <div className="font-mono mb-1"
+                          style={{ color: ad.ctr >= 15 ? '#34d399' : ad.ctr >= 8 ? '#fbbf24' : '#fb7185' }}>
                           {ad.ctr}%
                         </div>
                         <div className="h-1 rounded-full overflow-hidden" style={{ background: '#292524', width: '60px' }}>
@@ -100,17 +223,55 @@ export default function MetaPage() {
             </table>
           </div>
 
+          {/* Rescue panels */}
+          {rescueAds.length > 0 && (
+            <div className="mb-5">
+              <div className="text-[11px] font-bold uppercase tracking-[1.5px] mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                🚨 Ads needing attention ({rescueAds.length})
+              </div>
+              <div className="space-y-4">
+                {rescueAds.map((ad, i) => <RescuePanel key={i} ad={ad} />)}
+              </div>
+            </div>
+          )}
+
           {/* Action grid */}
           <div className="grid grid-cols-4 gap-3">
             {[
-              { type: 'scale', title: '↑ Scale', color: '#34d399', bg: 'rgba(52,211,153,0.05)', border: 'rgba(52,211,153,0.2)',
-                items: ['Put $10+/day behind your best ad only', 'You have a proven winner — fund it', `${meta.bestAd?.name || 'Best ad'} at ${meta.bestAd?.ctr || 0}% CTR — extraordinary`] },
-              { type: 'cut', title: '✕ Cut Now', color: '#fb7185', bg: 'rgba(251,113,133,0.05)', border: 'rgba(251,113,133,0.2)',
-                items: meta.worstAds.map(a => `${a.name} — ${a.clicks === 0 ? 'zero clicks in 30 days' : 'underperforming'}`) },
-              { type: 'fix', title: '⚠ Fix', color: '#fbbf24', bg: 'rgba(251,191,36,0.05)', border: 'rgba(251,191,36,0.2)',
-                items: [`Increase daily budget from $${(meta.totalSpend / 30).toFixed(2)}/day to $10+/day`, 'Facebook needs volume to optimize', 'One winner + real budget = results'] },
-              { type: 'test', title: '◇ Test Next', color: '#38bdf8', bg: 'rgba(56,189,248,0.05)', border: 'rgba(56,189,248,0.2)',
-                items: ['Grumpy protector hook — untested', 'Carousel version of your winner', 'Slow-burn yearning static image'] },
+              {
+                type: 'scale', title: '↑ Scale', color: '#34d399',
+                bg: 'rgba(52,211,153,0.05)', border: 'rgba(52,211,153,0.2)',
+                items: [
+                  'Put $10+/day behind your best ad only',
+                  'You have a proven winner — fund it',
+                  `${meta.bestAd?.name || 'Best ad'} at ${meta.bestAd?.ctr || 0}% CTR — extraordinary`,
+                ],
+              },
+              {
+                type: 'cut', title: '✕ Cut Now', color: '#fb7185',
+                bg: 'rgba(251,113,133,0.05)', border: 'rgba(251,113,133,0.2)',
+                items: meta.worstAds.map(a =>
+                  `${a.name} — ${a.clicks === 0 ? 'zero clicks in 30 days' : 'underperforming'}`
+                ),
+              },
+              {
+                type: 'fix', title: '⚠ Fix', color: '#fbbf24',
+                bg: 'rgba(251,191,36,0.05)', border: 'rgba(251,191,36,0.2)',
+                items: [
+                  `Increase daily budget from $${(meta.totalSpend / 30).toFixed(2)}/day to $10+/day`,
+                  'Facebook needs volume to optimize',
+                  'One winner + real budget = results',
+                ],
+              },
+              {
+                type: 'test', title: '◇ Test Next', color: '#38bdf8',
+                bg: 'rgba(56,189,248,0.05)', border: 'rgba(56,189,248,0.2)',
+                items: [
+                  'Grumpy protector hook — untested',
+                  'Carousel version of your winner',
+                  'Slow-burn yearning static image',
+                ],
+              },
             ].map(card => (
               <div key={card.type} className="rounded-xl p-4"
                 style={{ background: card.bg, border: `1px solid ${card.border}` }}>
