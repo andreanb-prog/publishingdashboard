@@ -187,9 +187,18 @@ export function OverviewClient() {
       fetch('/api/rank').then(r => r.json()).catch(() => ({ logs: [] })),
       fetch('/api/roas').then(r => r.json()).catch(() => ({ logs: [] })),
     ]).then(([analyzeData, rankData, roasData]) => {
+      // Debug: log raw API response shape
+      if (analyzeData.analyses?.[0]) {
+        const first = analyzeData.analyses[0]
+        console.log('[Overview] record keys:', Object.keys(first))
+        console.log('[Overview] data keys:', first.data ? Object.keys(first.data) : 'NO DATA')
+        console.log('[Overview] kdp:', first.data?.kdp == null ? (first.data?.kdp === null ? 'NULL' : 'MISSING') : 'PRESENT')
+        console.log('[Overview] channelScores:', JSON.stringify(first.data?.channelScores))
+      }
       const rows: Analysis[] = (analyzeData.analyses ?? [])
         .map((a: { data?: Analysis }) => a.data)
         .filter((d: unknown): d is Analysis => !!d && typeof d === 'object' && 'month' in (d as object))
+      console.log('[Overview] usable rows:', rows.length)
       if (rows.length) setAnalyses(rows)
       setRankLogs(rankData.logs ?? [])
       setRoasLogs(roasData.logs ?? [])
@@ -197,7 +206,14 @@ export function OverviewClient() {
   }, [])
 
   const analysis = analyses[0] ?? null
-  const channelScoreMap = new Map(analysis?.channelScores?.map(s => [s.channel, s]) || [])
+
+  // Normalize channel keys: Claude returns "email" but our card key is "mailerlite"
+  const channelScoreMap = new Map(
+    analysis?.channelScores?.map(s => {
+      const key = s.channel === 'email' ? 'mailerlite' : s.channel
+      return [key, s] as [string, typeof s]
+    }) || []
+  )
 
   const monthLabel = analysis?.month
     ? new Date(analysis.month + '-02').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -240,18 +256,34 @@ export function OverviewClient() {
             </Link>
           </div>
         </div>
-        <div className="flex gap-2.5">
-          {[
-            { label: 'Units Sold', value: fmt(analysis?.kdp?.totalUnits) },
-            { label: 'KENP Reads', value: fmt(analysis?.kdp?.totalKENP) },
-            { label: 'Royalties',  value: analysis?.kdp ? `$${analysis.kdp.totalRoyaltiesUSD}` : '—' },
-          ].map(stat => (
-            <div key={stat.label} className="px-4 py-3 text-center rounded-lg"
+        <div className="flex gap-2.5 items-center">
+          {analysis?.kdp ? (
+            <>
+              {[
+                { label: 'Units Sold', value: fmt(analysis.kdp.totalUnits) },
+                { label: 'KENP Reads', value: fmt(analysis.kdp.totalKENP) },
+                { label: 'Royalties',  value: `$${analysis.kdp.totalRoyaltiesUSD}` },
+              ].map(stat => (
+                <div key={stat.label} className="px-4 py-3 text-center rounded-lg"
+                  style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <div className="font-serif text-[22px] text-white tracking-tight">{stat.value}</div>
+                  <div className="text-[9.5px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{stat.label}</div>
+                </div>
+              ))}
+            </>
+          ) : analysis ? (
+            <div className="px-4 py-3 text-center rounded-lg"
               style={{ background: 'rgba(255,255,255,0.06)' }}>
-              <div className="font-serif text-[22px] text-white tracking-tight">{stat.value}</div>
-              <div className="text-[9.5px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{stat.label}</div>
+              <div className="text-[11.5px] mb-1.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                No KDP data in this analysis
+              </div>
+              <Link href="/dashboard/upload"
+                className="text-[11px] font-semibold no-underline hover:underline"
+                style={{ color: '#e9a020' }}>
+                Upload KDP report →
+              </Link>
             </div>
-          ))}
+          ) : null}
         </div>
       </div>
 
