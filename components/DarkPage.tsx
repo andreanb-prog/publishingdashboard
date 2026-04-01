@@ -94,15 +94,16 @@ export function DarkKPIStrip({ items, cols = 4 }: DarkKPIProps) {
               {item.label}
             </div>
             {isEmpty ? (
-              <div>
-                <svg width="12" height="12" viewBox="0 0 12 12" className="mb-1.5">
-                  <circle cx="6" cy="6" r="5" fill="none" stroke="#D1D5DB" strokeWidth="1" strokeDasharray="3 2" />
+              <div className="flex flex-col items-start justify-center" style={{ minHeight: 60 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mb-2" style={{ opacity: 0.2 }}>
+                  <rect x="3" y="14" width="4" height="7" rx="1" fill="#1E2D3D" />
+                  <rect x="10" y="9" width="4" height="12" rx="1" fill="#1E2D3D" />
+                  <rect x="17" y="4" width="4" height="17" rx="1" fill="#1E2D3D" />
                 </svg>
-                <div className="text-[28px] font-semibold leading-none tracking-tight mb-1"
-                  style={{ color: '#6B7280' }}>—</div>
-                <Link href="/dashboard/upload" className="text-[10px] font-semibold no-underline hover:underline"
+                <div className="text-[12px] mb-1" style={{ color: '#6B7280' }}>No data yet</div>
+                <Link href="/dashboard/upload" className="text-[11px] font-semibold no-underline hover:underline"
                   style={{ color: '#E9A020' }}>
-                  Upload data →
+                  Upload to unlock →
                 </Link>
               </div>
             ) : (
