@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { DarkPage, DarkKPIStrip, DarkCoachBox } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { ViewingBar } from '@/components/ViewingBar'
+import { GoalSection } from '@/components/GoalSection'
 import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis, MetaAd } from '@/types'
 
@@ -343,6 +344,16 @@ export default function MetaPage() {
         </div>
       ) : (
         <>
+          <GoalSection
+            page="meta"
+            currentValues={{
+              meta_ctr:         meta.avgCTR,
+              meta_cpc:         meta.avgCPC,
+              meta_impressions: meta.totalImpressions,
+              meta_spend:       meta.totalSpend,
+            }}
+          />
+
           <DarkKPIStrip cols={4} items={[
             { label: 'Total Spend',  value: `$${meta.totalSpend}`,       sub: 'This period',            color: '#fb7185' },
             { label: 'Best CTR',     value: `${meta.bestAd?.ctr || 0}%`, sub: meta.bestAd?.name || '—', color: '#34d399' },
@@ -361,6 +372,18 @@ export default function MetaPage() {
               summary={`$${meta.totalSpend} total spend · ${meta.totalClicks} clicks`}
             />
           )}
+
+          {/* Download coaching tracker */}
+          <div className="flex justify-end mb-3">
+            <a
+              href="/api/export/ad-tracker"
+              download
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold no-underline transition-all"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#78716c' }}
+            >
+              ⬇ Download Coaching Tracker
+            </a>
+          </div>
 
           {/* ── Ads table with column picker ─────────────────────────────── */}
           <div className="relative mb-5" ref={pickerRef}>

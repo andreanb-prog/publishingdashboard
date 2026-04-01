@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { DarkPage, DarkKPIStrip, DarkCoachBox } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
+import { GoalSection } from '@/components/GoalSection'
 import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis } from '@/types'
 
@@ -45,6 +46,14 @@ export default function MailerLitePage() {
         </div>
       ) : (
         <>
+          <GoalSection
+            page="mailerlite"
+            currentValues={{
+              email_open_rate: ml.openRate,
+              email_list_size: ml.listSize,
+            }}
+          />
+
           <DarkKPIStrip cols={4} items={[
             { label: 'Open Rate', value: `${ml.openRate}%`, sub: 'Industry avg: 22%', color: ml.openRate >= 24 ? '#34d399' : '#fbbf24' },
             { label: 'List Size', value: ml.listSize.toLocaleString(), sub: 'Active subscribers', color: '#38bdf8' },

@@ -10,12 +10,13 @@ export async function GET() {
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { columnPrefs: true, onboardingDismissed: true },
+    select: { columnPrefs: true, onboardingDismissed: true, goals: true },
   })
 
   return NextResponse.json({
     columnPrefs: (user?.columnPrefs as Record<string, string[]>) ?? {},
     onboardingDismissed: user?.onboardingDismissed ?? false,
+    goals: (user?.goals as Record<string, number>) ?? {},
   })
 }
 
@@ -40,6 +41,12 @@ export async function POST(req: NextRequest) {
   // Dismiss onboarding banner
   if (body.action === 'dismiss-onboarding') {
     await db.user.update({ where: { id: session.user.id }, data: { onboardingDismissed: true } })
+    return NextResponse.json({ success: true })
+  }
+
+  // Save goals
+  if (body.action === 'save-goals' && body.goals && typeof body.goals === 'object') {
+    await db.user.update({ where: { id: session.user.id }, data: { goals: body.goals } })
     return NextResponse.json({ success: true })
   }
 

@@ -44,6 +44,7 @@ model User {
   mailerLiteKey String?        // MailerLite API key
   books         Json?          // My Books: [{title, asin, category, series, bookNumber}]
   columnPrefs   Json?          // Per-page column visibility: { meta: ['spend', 'clicks', ...] }
+  goals         Json?          // Channel goals: { kdp_royalties: 500, meta_ctr: 15, ... }
   onboardingDismissed Boolean  @default(false)
   accounts      Account[]
   sessions      Session[]

@@ -57,11 +57,21 @@ export default function ROASPage() {
 
   return (
     <div className="p-8 max-w-2xl">
-      <div className="mb-6">
-        <h1 className="font-serif text-[22px] text-[#0d1f35] mb-1">Daily ROAS Log</h1>
-        <p className="text-[12.5px] text-stone-400">
-          Log your ad spend and earnings every day. Takes 30 seconds. Builds a picture over time so you can spot trends before they cost you money.
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-[22px] text-[#0d1f35] mb-1">Daily ROAS Log</h1>
+          <p className="text-[12.5px] text-stone-400">
+            Log your ad spend and earnings every day. Takes 30 seconds. Builds a picture over time so you can spot trends before they cost you money.
+          </p>
+        </div>
+        <a
+          href="/api/export/ad-tracker"
+          download
+          className="flex-shrink-0 px-4 py-2 rounded-lg text-[12.5px] font-semibold no-underline transition-all"
+          style={{ background: '#0d1f35', color: '#fff' }}
+        >
+          ⬇ Download Coaching Tracker
+        </a>
       </div>
 
       {/* Summary stats */}

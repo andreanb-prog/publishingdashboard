@@ -8,6 +8,7 @@ import { getCoachTitle } from '@/lib/coachTitle'
 const COACH_TITLE_OVERVIEW = getCoachTitle('overview')
 import { ActionItem } from '@/components/ui'
 import { FreshBanner } from '@/components/FreshBanner'
+import { OnboardingBanner } from '@/components/OnboardingBanner'
 
 const CHANNEL_CARDS = [
   { key: 'kdp',        href: '/dashboard/kdp',        icon: '📚', name: 'KDP',        colorClass: 'border-t-amber-brand' },
@@ -62,7 +63,7 @@ function buildCoachPrompt(
   const month = analysis?.month ?? new Date().toISOString().substring(0, 7)
 
   lines.push(`# My Publishing Marketing Data — ${month}`)
-  lines.push(`I'm an indie romance author. Here's my full marketing data for the month.`)
+  lines.push(`I'm an indie author. Here's my full marketing data for the month.`)
   lines.push('')
 
   if (analysis?.kdp) {
@@ -240,6 +241,7 @@ export function OverviewClient() {
     <div className="p-8 max-w-[1400px]">
 
       <Suspense fallback={null}><FreshBanner /></Suspense>
+      <OnboardingBanner analysesCount={analyses.length} />
 
       {/* Banner */}
       <div className="rounded-xl p-6 mb-6 flex items-center justify-between"

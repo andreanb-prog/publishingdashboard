@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useMemo } from 'react'
 import { DarkPage, DarkKPIStrip, DarkCoachBox } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { ViewingBar } from '@/components/ViewingBar'
+import { GoalSection } from '@/components/GoalSection'
 import { BarChart } from '@/components/ui'
 import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis, DailyData, RoasLog } from '@/types'
@@ -442,6 +443,15 @@ export default function KDPPage() {
         </div>
       ) : (
         <>
+          <GoalSection
+            page="kdp"
+            currentValues={{
+              kdp_units:     filteredTotalUnits,
+              kdp_kenp:      filteredTotalKENP,
+              kdp_royalties: kdp.totalRoyaltiesUSD,
+            }}
+          />
+
           <DarkKPIStrip cols={5} items={[
             { label: 'Total Royalties',  value: `$${kdp.totalRoyaltiesUSD}`,         sub: 'USD this month',         color: '#fb7185' },
             { label: 'Units (range)',    value: filteredTotalUnits.toLocaleString(),   sub: 'eBooks + paperback',     color: '#38bdf8' },
