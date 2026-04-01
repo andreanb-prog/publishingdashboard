@@ -10,10 +10,10 @@ export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteDa
     Accept: 'application/json',
   }
 
-  // Fetch subscriber count
+  // Fetch subscriber count — total lives in meta.total, not root
   const subsRes = await fetch(`${ML_BASE}/subscribers?limit=1&filter[status]=active`, { headers })
   const subsData = await subsRes.json()
-  const listSize = subsData?.total || 0
+  const listSize = subsData?.meta?.total ?? subsData?.total ?? 0
 
   // Fetch recent campaigns (last 10)
   const campRes = await fetch(`${ML_BASE}/campaigns?limit=10&filter[status]=sent&sort=-sent_at`, { headers })
@@ -23,8 +23,8 @@ export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteDa
   const parsedCampaigns = campaigns.map((c: any) => ({
     name: c.name || 'Untitled',
     sentAt: c.sent_at || '',
-    openRate: c.stats?.open_rate?.float ? Math.round(c.stats.open_rate.float * 10) / 10 : 0,
-    clickRate: c.stats?.click_rate?.float ? Math.round(c.stats.click_rate.float * 10) / 10 : 0,
+    openRate: c.stats?.open_rate?.float ? Math.round(c.stats.open_rate.float * 1000) / 10 : 0,
+    clickRate: c.stats?.click_rate?.float ? Math.round(c.stats.click_rate.float * 1000) / 10 : 0,
     unsubscribes: c.stats?.unsubscribed || 0,
   }))
 

@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 
 const NAV_ITEMS = [
-  { label: 'Morning Check-In', href: '/dashboard', icon: '📊', section: 'overview' },
-  { label: 'Upload & Analyze', href: '/dashboard/upload', icon: '⚡', section: 'overview' },
+  { label: 'Morning Check-In', href: '/dashboard', icon: '📊' },
+  { label: 'Upload & Analyze', href: '/dashboard/upload', icon: '⚡' },
 ]
 
 const CHANNEL_ITEMS = [
@@ -21,7 +21,13 @@ const TOOL_ITEMS = [
   { label: 'Rank Tracker', href: '/dashboard/rank', icon: '📈' },
   { label: 'Daily ROAS Log', href: '/dashboard/roas', icon: '💰' },
   { label: 'Learn the Terms', href: '/dashboard/learn', icon: '📖' },
+  { label: 'Settings', href: '/dashboard/settings', icon: '⚙️' },
 ]
+
+const INACTIVE_COLOR  = 'rgba(255,255,255,0.70)'
+const ACTIVE_COLOR    = '#e9a020'
+const ACTIVE_BG       = 'rgba(233,160,32,0.13)'
+const SECTION_COLOR   = 'rgba(255,255,255,0.35)'
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -39,11 +45,24 @@ export function Sidebar() {
     .substring(0, 2)
     .toUpperCase() || 'U'
 
+  function NavLink({ href, icon, label }: { href: string; icon: string; label: string }) {
+    const active = isActive(href)
+    return (
+      <Link
+        href={href}
+        className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-[13px]
+                    mb-0.5 transition-all duration-150 no-underline
+                    ${active ? 'font-semibold' : 'hover:bg-white/5'}`}
+        style={{ color: active ? ACTIVE_COLOR : INACTIVE_COLOR, background: active ? ACTIVE_BG : undefined }}
+      >
+        <span className="text-base w-5 text-center">{icon}</span>
+        {label}
+      </Link>
+    )
+  }
+
   return (
-    <aside
-      className="w-[235px] flex-shrink-0 flex flex-col"
-      style={{ background: '#0d1f35' }}
-    >
+    <aside className="w-[235px] flex-shrink-0 flex flex-col" style={{ background: '#0d1f35' }}>
       {/* Logo */}
       <div className="px-5 py-7 border-b border-white/[0.07]">
         <div className="font-serif text-[15px] text-white leading-snug">
@@ -58,82 +77,29 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-2.5 py-3">
         <div className="text-[9px] font-bold tracking-[1.8px] uppercase px-3 pt-3 pb-1.5"
-          style={{ color: 'rgba(255,255,255,0.2)' }}>
+          style={{ color: SECTION_COLOR }}>
           Overview
         </div>
-        {NAV_ITEMS.map(item => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-[13px]
-                        mb-0.5 transition-all duration-150 no-underline
-                        ${isActive(item.href)
-                ? 'font-semibold'
-                : 'hover:bg-white/5'
-              }`}
-            style={{
-              color: isActive(item.href) ? '#e9a020' : 'rgba(255,255,255,0.45)',
-              background: isActive(item.href) ? 'rgba(233,160,32,0.13)' : undefined,
-            }}
-          >
-            <span className="text-base w-5 text-center">{item.icon}</span>
-            {item.label}
-          </Link>
-        ))}
+        {NAV_ITEMS.map(item => <NavLink key={item.href} {...item} />)}
 
         <div className="text-[9px] font-bold tracking-[1.8px] uppercase px-3 pt-5 pb-1.5"
-          style={{ color: 'rgba(255,255,255,0.2)' }}>
+          style={{ color: SECTION_COLOR }}>
           Channel Deep Dives
         </div>
-        {CHANNEL_ITEMS.map(item => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-[13px]
-                        mb-0.5 transition-all duration-150 no-underline
-                        ${isActive(item.href)
-                ? 'font-semibold'
-                : 'hover:bg-white/[0.04]'
-              }`}
-            style={{
-              color: isActive(item.href) ? '#e9a020' : 'rgba(255,255,255,0.45)',
-              background: isActive(item.href) ? 'rgba(233,160,32,0.13)' : undefined,
-            }}
-          >
-            <span className="text-base w-5 text-center">{item.icon}</span>
-            {item.label}
-          </Link>
-        ))}
+        {CHANNEL_ITEMS.map(item => <NavLink key={item.href} {...item} />)}
 
         <div className="text-[9px] font-bold tracking-[1.8px] uppercase px-3 pt-5 pb-1.5"
-          style={{ color: 'rgba(255,255,255,0.2)' }}>
+          style={{ color: SECTION_COLOR }}>
           Tools
         </div>
-        {TOOL_ITEMS.map(item => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-[13px]
-                        mb-0.5 transition-all duration-150 no-underline
-                        ${isActive(item.href) ? 'font-semibold' : 'hover:bg-white/5'}`}
-            style={{
-              color: isActive(item.href) ? '#e9a020' : 'rgba(255,255,255,0.45)',
-              background: isActive(item.href) ? 'rgba(233,160,32,0.13)' : undefined,
-            }}
-          >
-            <span className="text-base w-5 text-center">{item.icon}</span>
-            {item.label}
-          </Link>
-        ))}
+        {TOOL_ITEMS.map(item => <NavLink key={item.href} {...item} />)}
       </nav>
 
       {/* User */}
       <div className="px-2.5 py-4 border-t border-white/[0.07]">
         <div className="flex items-center gap-2.5 px-3 py-2">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-            style={{ background: '#e9a020', color: '#0d1f35' }}
-          >
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+            style={{ background: '#e9a020', color: '#0d1f35' }}>
             {initials}
           </div>
           <div className="flex-1 min-w-0">
