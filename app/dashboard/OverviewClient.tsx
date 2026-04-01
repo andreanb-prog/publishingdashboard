@@ -416,29 +416,47 @@ export function OverviewClient() {
       {/* What Happened card */}
       {analyses.length >= 2 && <WhatHappenedCard current={analyses[0]} previous={analyses[1]} actionPlan={analysis?.actionPlan} />}
 
-      {/* Hero numbers strip */}
-      {analysis?.kdp && (
-        <div className="rounded-xl mb-4 p-6 grid grid-cols-2 md:grid-cols-4 gap-4"
-          style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
-          {[
-            { label: 'Revenue',     value: `$${analysis.kdp.totalRoyaltiesUSD}`, color: '#1E2D3D' },
-            { label: 'Units Sold',  value: fmt(analysis.kdp.totalUnits),         color: '#1E2D3D' },
-            { label: 'KENP Reads',  value: fmt(analysis.kdp.totalKENP),          color: '#1E2D3D' },
-            { label: 'Best CTR',    value: analysis.meta?.bestAd ? `${analysis.meta.bestAd.ctr}%` : '—', color: '#1E2D3D' },
-          ].map(stat => (
-            <div key={stat.label}>
+      {/* Hero numbers strip — centered grid */}
+      <div className="rounded-xl mb-4 p-6"
+        style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        {[
+          { label: 'Revenue',    value: analysis?.kdp ? `$${analysis.kdp.totalRoyaltiesUSD}` : null },
+          { label: 'Units Sold', value: analysis?.kdp ? fmt(analysis.kdp.totalUnits) : null },
+          { label: 'KENP Reads', value: analysis?.kdp ? fmt(analysis.kdp.totalKENP) : null },
+          { label: 'Best CTR',   value: analysis?.meta?.bestAd ? `${analysis.meta.bestAd.ctr}%` : null },
+        ].map(stat => {
+          const hasData = stat.value != null && stat.value !== '—'
+          return (
+            <div key={stat.label} className="text-center transition-colors rounded-lg py-2"
+              style={{ background: hasData ? 'transparent' : undefined }}
+              onMouseEnter={e => { if (!hasData) e.currentTarget.style.background = '#FFF8F0' }}
+              onMouseLeave={e => { if (!hasData) e.currentTarget.style.background = 'transparent' }}>
               <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-1"
                 style={{ color: '#6B7280' }}>
                 {stat.label}
               </div>
-              <div className="font-serif text-[48px] font-medium leading-none tracking-tight"
-                style={{ color: stat.color }}>
-                {stat.value}
-              </div>
+              {hasData ? (
+                <div className="font-serif text-[48px] font-medium leading-none tracking-tight"
+                  style={{ color: '#1E2D3D' }}>
+                  {stat.value}
+                </div>
+              ) : (
+                <div>
+                  <svg width="12" height="12" viewBox="0 0 12 12" className="mx-auto mb-1.5">
+                    <circle cx="6" cy="6" r="5" fill="none" stroke="#D1D5DB" strokeWidth="1" strokeDasharray="3 2" />
+                  </svg>
+                  <div className="font-serif text-[48px] font-medium leading-none tracking-tight mb-1"
+                    style={{ color: '#6B7280' }}>—</div>
+                  <Link href="/dashboard/upload" className="text-[10px] font-semibold no-underline hover:underline"
+                    style={{ color: '#E9A020' }}>
+                    Upload data →
+                  </Link>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+          )
+        })}
+      </div>
 
       {/* ══════ SECTION 1 — TODAY'S PRIORITIES ══════════════════════ */}
       {!loading && (

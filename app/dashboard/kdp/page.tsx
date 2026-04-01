@@ -1,6 +1,7 @@
 'use client'
 // app/dashboard/kdp/page.tsx
 import { Suspense, useEffect, useState, useMemo } from 'react'
+import Link from 'next/link'
 import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { InsightCallouts } from '@/components/InsightCallout'
@@ -492,26 +493,58 @@ export default function KDPPage() {
             ]
 
             function renderCard(item: KpiItem, i: number) {
+              const val = String(item.value)
+              const isEmpty = val === '—' || val === '0' || val === '$0' || val === '0%' || val === '$0.00' || val === '~0.0'
               return (
-                <div key={i} className="rounded-xl relative overflow-hidden"
-                  style={{ background: `linear-gradient(135deg, ${item.color}06, white 60%)`, border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)', padding: 16, minHeight: 90 }}>
+                <div key={i} className="rounded-xl relative overflow-hidden transition-colors"
+                  style={{ background: `linear-gradient(135deg, ${item.color}06, white 60%)`, border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)', padding: 20 }}
+                  onMouseEnter={e => { if (isEmpty) e.currentTarget.style.background = '#FFF8F0' }}
+                  onMouseLeave={e => { if (isEmpty) e.currentTarget.style.background = `linear-gradient(135deg, ${item.color}06, white 60%)` }}>
                   <div className="absolute bottom-0 left-0 right-0 h-[3px]"
-                    style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
-                  <div className="flex items-center gap-1 mb-2">
-                    <span className="text-[10px] font-bold tracking-[1.2px] uppercase" style={{ color: '#6B7280' }}>
+                    style={{ background: isEmpty ? '#EEEBE6' : `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
+                  <div className="flex items-center gap-1 mb-3">
+                    <span className="text-[12px] font-medium uppercase" style={{ color: '#374151', letterSpacing: '0.5px' }}>
                       {item.label}
                     </span>
                     <MetricTooltip metric={item.tooltip} />
                   </div>
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-[28px] font-semibold leading-none tracking-tight" style={{ color: item.color }}>
-                      {item.value}
-                    </span>
-                    {item.projection && <ProjectionBadge metric={item.projection} />}
-                    {item.warn && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded ml-1" style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>⚠</span>}
-                  </div>
-                  <div className="text-[11px]" style={{ color: '#6B7280' }}>{item.sub}</div>
-                  {item.benchmark && <HealthBenchmarkBar metric={item.benchmark.metric} value={item.benchmark.value} />}
+                  {isEmpty ? (
+                    <div>
+                      <svg width="12" height="12" viewBox="0 0 12 12" className="mb-1.5">
+                        <circle cx="6" cy="6" r="5" fill="none" stroke="#D1D5DB" strokeWidth="1" strokeDasharray="3 2" />
+                      </svg>
+                      <div className="text-[28px] font-semibold leading-none tracking-tight mb-1"
+                        style={{ color: '#6B7280' }}>—</div>
+                      <Link href="/dashboard/upload" className="text-[10px] font-semibold no-underline hover:underline"
+                        style={{ color: '#E9A020' }}>
+                        Upload data →
+                      </Link>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-[28px] font-semibold leading-none tracking-tight mb-1"
+                        style={{ color: '#1E2D3D' }}>
+                        {item.value}
+                      </div>
+                      <div className="text-[12px] mt-1 mb-2" style={{ color: '#4B5563' }}>{item.sub}</div>
+                      {item.projection && (
+                        <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1"
+                          style={{
+                            background: item.projection === 'readerDepth' ? '#EFF6FF' : '#FEF3C7',
+                            color: item.projection === 'readerDepth' ? '#1E40AF' : '#92400E',
+                          }}>
+                          {item.projection === 'readerDepth' ? '~ Early indicator' : '⚠ Projection'}
+                        </span>
+                      )}
+                      {item.warn && (
+                        <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 ml-1"
+                          style={{ background: '#FEF3C7', color: '#92400E' }}>
+                          ⚠ High dependency
+                        </span>
+                      )}
+                      {item.benchmark && <HealthBenchmarkBar metric={item.benchmark.metric} value={item.benchmark.value} />}
+                    </>
+                  )}
                 </div>
               )
             }

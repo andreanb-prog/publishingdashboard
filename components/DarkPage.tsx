@@ -76,25 +76,45 @@ export function DarkKPIStrip({ items, cols = 4 }: DarkKPIProps) {
     <div className={`grid grid-cols-2 ${colsClass} gap-3 md:gap-4 mb-8`}>
       {items.map((item, i) => {
         const accent = item.color || '#e9a020'
+        const val = String(item.value)
+        const isEmpty = val === '—' || val === '0' || val === '$0' || val === '0%' || val === '$0.00'
         return (
-          <div key={i} className="rounded-xl p-4 relative overflow-hidden"
+          <div key={i} className="rounded-xl p-5 relative overflow-hidden transition-colors"
             style={{
               background: `linear-gradient(135deg, ${accent}06, white 60%)`,
               border: '1px solid #EEEBE6',
               boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)',
-            }}>
+            }}
+            onMouseEnter={e => { if (isEmpty) e.currentTarget.style.background = '#FFF8F0' }}
+            onMouseLeave={e => { if (isEmpty) e.currentTarget.style.background = `linear-gradient(135deg, ${accent}06, white 60%)` }}>
             <div className="absolute bottom-0 left-0 right-0 h-[3px]"
-              style={{ background: `linear-gradient(90deg, ${accent}40, ${accent})` }} />
-            <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2"
-              style={{ color: '#6B7280' }}>
+              style={{ background: isEmpty ? '#EEEBE6' : `linear-gradient(90deg, ${accent}40, ${accent})` }} />
+            <div className="text-[12px] font-medium uppercase mb-2"
+              style={{ color: '#374151', letterSpacing: '0.5px' }}>
               {item.label}
             </div>
-            <div className="text-[32px] font-semibold leading-none tracking-tight mb-1.5"
-              style={{ color: accent }}>
-              {item.value}
-            </div>
-            {item.sub && (
-              <div className="text-[11px]" style={{ color: '#6B7280' }}>{item.sub}</div>
+            {isEmpty ? (
+              <div>
+                <svg width="12" height="12" viewBox="0 0 12 12" className="mb-1.5">
+                  <circle cx="6" cy="6" r="5" fill="none" stroke="#D1D5DB" strokeWidth="1" strokeDasharray="3 2" />
+                </svg>
+                <div className="text-[28px] font-semibold leading-none tracking-tight mb-1"
+                  style={{ color: '#6B7280' }}>—</div>
+                <Link href="/dashboard/upload" className="text-[10px] font-semibold no-underline hover:underline"
+                  style={{ color: '#E9A020' }}>
+                  Upload data →
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="text-[28px] font-semibold leading-none tracking-tight mb-1.5"
+                  style={{ color: accent }}>
+                  {item.value}
+                </div>
+                {item.sub && (
+                  <div className="text-[12px] mt-1" style={{ color: '#4B5563' }}>{item.sub}</div>
+                )}
+              </>
             )}
           </div>
         )
