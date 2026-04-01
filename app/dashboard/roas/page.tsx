@@ -81,6 +81,7 @@ export default function ROASPage() {
   const [prefilled, setPrefilled] = useState({ spend: false, earnings: false })
   const [saving,    setSaving]    = useState(false)
   const [verdict,   setVerdict]   = useState<{ text: string; color: string } | null>(null)
+  const [loading,   setLoading]   = useState(true)
 
   // ── Fetch logs + latest analysis ─────────────────────────────────────────
   useEffect(() => {
@@ -121,7 +122,7 @@ export default function ROASPage() {
           setPrefilled(p => ({ ...p, earnings: true }))
         }
       }
-    })
+    }).finally(() => setLoading(false))
   }, [])
 
   // ── Live ROAS calculation ─────────────────────────────────────────────────
@@ -185,6 +186,16 @@ export default function ROASPage() {
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="p-8 max-w-2xl animate-pulse space-y-4">
+        <div className="h-10 rounded-xl bg-stone-100 w-48" />
+        <div className="h-40 rounded-xl bg-stone-100" />
+        <div className="h-64 rounded-xl bg-stone-100" />
+      </div>
+    )
+  }
+
   return (
     <div className="p-8 max-w-2xl">
 

@@ -1,7 +1,7 @@
 'use client'
 // app/(dashboard)/pinterest/page.tsx
 import { Suspense, useEffect, useState } from 'react'
-import { DarkPage, DarkCoachBox } from '@/components/DarkPage'
+import { DarkPage, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis } from '@/types'
@@ -38,18 +38,19 @@ export default function PinterestPage() {
   const [logs, setLogs] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
   const [verdict, setVerdict] = useState('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/analyze')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(d => {
-        if (d.analysis) setAnalysis(d.analysis as Analysis)
-      })
-      .catch(() => {})
-
-    fetch('/api/pinterest-log')
-      .then(r => r.json())
-      .then(d => { if (d.logs) setLogs(d.logs) })
+    Promise.all([
+      fetch('/api/analyze')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(d => { if (d.analysis) setAnalysis(d.analysis as Analysis) })
+        .catch(() => {}),
+      fetch('/api/pinterest-log')
+        .then(r => r.json())
+        .then(d => { if (d.logs) setLogs(d.logs) })
+        .catch(() => {}),
+    ]).finally(() => setLoading(false))
   }, [])
 
   const pin = analysis?.pinterest
@@ -81,6 +82,14 @@ export default function PinterestPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <DarkPage title="📌 Pinterest" subtitle="Dec 2025 – Mar 2026 · Building from zero · Your 30-day plan">
+        <PageSkeleton cols={3} rows={3} />
+      </DarkPage>
+    )
   }
 
   return (

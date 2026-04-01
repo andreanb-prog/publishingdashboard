@@ -1,7 +1,7 @@
 'use client'
 // app/dashboard/kdp/page.tsx
 import { Suspense, useEffect, useState, useMemo } from 'react'
-import { DarkPage, DarkKPIStrip, DarkCoachBox } from '@/components/DarkPage'
+import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { ViewingBar } from '@/components/ViewingBar'
 import { GoalSection } from '@/components/GoalSection'
@@ -350,6 +350,7 @@ export default function KDPPage() {
   const [customStart, setCustomStart] = useState('')
   const [customEnd,   setCustomEnd]   = useState('')
   const [compareMode, setCompareMode] = useState(false)
+  const [loading,     setLoading]     = useState(true)
 
   useEffect(() => {
     Promise.all([
@@ -361,7 +362,7 @@ export default function KDPPage() {
       )
       setAllAnalyses(analyses)
       setRoasLogs(roasData.logs ?? [])
-    })
+    }).finally(() => setLoading(false))
   }, [])
 
   // Merge daily data from all analyses, sorted chronologically
@@ -426,6 +427,14 @@ export default function KDPPage() {
       setCustomStart('')
       setCustomEnd('')
     }
+  }
+
+  if (loading) {
+    return (
+      <DarkPage title="📚 KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties">
+        <PageSkeleton cols={5} />
+      </DarkPage>
+    )
   }
 
   return (

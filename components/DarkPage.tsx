@@ -44,6 +44,25 @@ export function DarkPage({ title, subtitle, backHref = '/dashboard', children }:
   )
 }
 
+// Skeleton loader for deep-dive pages (eliminates empty-state flash)
+export function PageSkeleton({ cols = 4, rows = 2 }: { cols?: 3 | 4 | 5; rows?: number }) {
+  const colsClass = { 3: 'grid-cols-3', 4: 'grid-cols-4', 5: 'grid-cols-5' }[cols]
+  return (
+    <div className="animate-pulse">
+      <div className={`grid ${colsClass} gap-3.5 mb-7`}>
+        {Array.from({ length: cols }).map((_, i) => (
+          <div key={i} className="rounded-xl h-24" style={{ background: '#F0E0C8' }} />
+        ))}
+      </div>
+      <div className="space-y-4">
+        {Array.from({ length: rows }).map((_, i) => (
+          <div key={i} className="rounded-xl" style={{ background: '#F0E0C8', height: i === 0 ? 200 : 120 }} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // KPI strip for deep-dive pages
 interface DarkKPIProps {
   items: { label: string; value: string | number; sub?: string; color?: string }[]

@@ -1,7 +1,7 @@
 'use client'
 // app/(dashboard)/mailerlite/page.tsx
 import { Suspense, useEffect, useState } from 'react'
-import { DarkPage, DarkKPIStrip, DarkCoachBox } from '@/components/DarkPage'
+import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { GoalSection } from '@/components/GoalSection'
 import { getCoachTitle } from '@/lib/coachTitle'
@@ -12,16 +12,19 @@ export default function MailerLitePage() {
   const [coachTitle] = useState(() => getCoachTitle())
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [goals, setGoals] = useState<Record<string, number>>({})
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/analyze')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(d => { if (d.analysis) setAnalysis(d.analysis as Analysis) })
-      .catch(() => {})
-    fetch('/api/prefs')
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (d.goals) setGoals(d.goals) })
-      .catch(() => {})
+    Promise.all([
+      fetch('/api/analyze')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(d => { if (d.analysis) setAnalysis(d.analysis as Analysis) })
+        .catch(() => {}),
+      fetch('/api/prefs')
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(d => { if (d.goals) setGoals(d.goals) })
+        .catch(() => {}),
+    ]).finally(() => setLoading(false))
   }, [])
 
   const ml = analysis?.mailerLite
@@ -44,6 +47,14 @@ export default function MailerLitePage() {
     { metric: 'List Size',  yours: ml?.listSize  || 0, avg: null, unit: '', good: () => true },
     { metric: 'Unsubscribes (recent)', yours: ml?.unsubscribes || 0, avg: null, unit: '', good: (v: number) => v < 30 },
   ]
+
+  if (loading) {
+    return (
+      <DarkPage title="📧 MailerLite — Email Marketing" subtitle="Open rates · List health · Subscriber trends">
+        <PageSkeleton cols={4} />
+      </DarkPage>
+    )
+  }
 
   return (
     <DarkPage title="📧 MailerLite — Email Marketing" subtitle="Open rates · List health · Subscriber trends">

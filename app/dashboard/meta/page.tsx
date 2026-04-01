@@ -1,7 +1,7 @@
 'use client'
 // app/dashboard/meta/page.tsx
 import { Suspense, useEffect, useRef, useState } from 'react'
-import { DarkPage, DarkKPIStrip, DarkCoachBox } from '@/components/DarkPage'
+import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { ViewingBar } from '@/components/ViewingBar'
 import { GoalSection } from '@/components/GoalSection'
@@ -234,28 +234,26 @@ export default function MetaPage() {
   const [analysis,   setAnalysis]  = useState<Analysis | null>(null)
   const [activeCols, setActiveCols] = useState<Set<ColKey>>(DEFAULT_COLS)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [loading,    setLoading]   = useState(true)
   const pickerRef  = useRef<HTMLDivElement>(null)
   const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    fetch('/api/analyze')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(d => {
-        // d.analysis is already the unwrapped data blob from the latest DB record
-        if (d.analysis) setAnalysis(d.analysis as Analysis)
-      })
-      .catch(() => {})
-
-    // Restore saved column preferences
-    fetch('/api/prefs')
-      .then(r => r.json())
-      .then(d => {
-        const saved = d.columnPrefs?.meta
-        if (Array.isArray(saved) && saved.length > 0) {
-          setActiveCols(new Set<ColKey>(saved as ColKey[]))
-        }
-      })
-      .catch(() => {})
+    Promise.all([
+      fetch('/api/analyze')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(d => { if (d.analysis) setAnalysis(d.analysis as Analysis) })
+        .catch(() => {}),
+      fetch('/api/prefs')
+        .then(r => r.json())
+        .then(d => {
+          const saved = d.columnPrefs?.meta
+          if (Array.isArray(saved) && saved.length > 0) {
+            setActiveCols(new Set<ColKey>(saved as ColKey[]))
+          }
+        })
+        .catch(() => {}),
+    ]).finally(() => setLoading(false))
   }, [])
 
   // Close picker when clicking outside
@@ -329,6 +327,14 @@ export default function MetaPage() {
       default:
         return <span style={{ color: '#9CA3AF' }}>—</span>
     }
+  }
+
+  if (loading) {
+    return (
+      <DarkPage title="📣 Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
+        <PageSkeleton cols={4} rows={3} />
+      </DarkPage>
+    )
   }
 
   return (
