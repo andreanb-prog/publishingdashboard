@@ -39,6 +39,12 @@ export interface MetaAd {
   cpc: number
   reach: number
   status: 'SCALE' | 'WATCH' | 'CUT' | 'DELETE' | 'LOW_DATA'
+  // Optional — only present when included in the Meta CSV export
+  uniqueClicks?: number
+  uniqueCtr?: number
+  frequency?: number
+  results?: number
+  costPerResult?: number
 }
 
 export interface MetaData {

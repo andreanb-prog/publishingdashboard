@@ -301,6 +301,18 @@ export default function MetaPage() {
   const viewRange  = analysis?.month ? getMonthRange(analysis.month) : null
   const activeColDefs = ALL_COLUMNS.filter(c => activeCols.has(c.key))
 
+  function MissingCell({ tip }: { tip: string }) {
+    return (
+      <span
+        title={tip}
+        style={{ color: '#9CA3AF', cursor: 'help', borderBottom: '1px dashed #D6D3D1' }}
+        className="text-[13px]"
+      >
+        —
+      </span>
+    )
+  }
+
   function renderCell(ad: MetaAd, key: ColKey) {
     switch (key) {
       case 'spend':
@@ -315,6 +327,26 @@ export default function MetaPage() {
         return <span className="font-mono text-[16px]" style={{ color: '#6B7280' }}>{ad.cpc > 0 ? `$${ad.cpc}` : '—'}</span>
       case 'reach':
         return <span className="font-mono text-[14px]" style={{ color: '#1E2D3D' }}>{ad.reach > 0 ? ad.reach.toLocaleString() : '—'}</span>
+      case 'uniqueClicks':
+        return ad.uniqueClicks != null
+          ? <span className="font-mono text-[14px]" style={{ color: '#1E2D3D' }}>{ad.uniqueClicks.toLocaleString()}</span>
+          : <MissingCell tip="Unique Clicks wasn't included in your Meta CSV export. Re-export your report and add the 'Unique clicks' column to see this." />
+      case 'uniqueCtr':
+        return ad.uniqueCtr != null
+          ? <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>{ad.uniqueCtr}%</span>
+          : <MissingCell tip="Unique CTR wasn't included in your Meta CSV export. Re-export your report and add the 'Unique CTR' column to see this." />
+      case 'frequency':
+        return ad.frequency != null
+          ? <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>{ad.frequency.toFixed(1)}×</span>
+          : <MissingCell tip="Frequency (avg times each person saw your ad) wasn't in this CSV export. Add the 'Frequency' column when re-exporting." />
+      case 'results':
+        return ad.results != null
+          ? <span className="font-mono text-[14px]" style={{ color: '#34d399' }}>{ad.results.toLocaleString()}</span>
+          : <MissingCell tip="Results depend on your campaign objective and weren't in this CSV export. Add the 'Results' column when re-exporting." />
+      case 'costPerResult':
+        return ad.costPerResult != null
+          ? <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>${ad.costPerResult.toFixed(2)}</span>
+          : <MissingCell tip="Cost per Result wasn't in this CSV export. Add the 'Cost per result' column when re-exporting from Meta." />
       case 'status': {
         const s = STATUS_STYLE[ad.status]
         return (
