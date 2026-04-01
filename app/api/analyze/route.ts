@@ -197,5 +197,16 @@ export async function GET(req: NextRequest) {
     take: 6,
   })
 
+  if (analyses[0]) {
+    const row = analyses[0]
+    const d = row.data as any
+    console.log('[GET /api/analyze] row keys:', Object.keys(row))
+    console.log('[GET /api/analyze] row.data type:', typeof row.data)
+    console.log('[GET /api/analyze] data.kdp:', d?.kdp == null ? (d?.kdp === null ? 'NULL' : 'MISSING') : JSON.stringify(d.kdp).substring(0, 120))
+    console.log('[GET /api/analyze] data.channelScores:', JSON.stringify(d?.channelScores))
+    console.log('[GET /api/analyze] data.month:', d?.month)
+    console.log('[GET /api/analyze] data keys:', d ? Object.keys(d) : 'NO DATA FIELD')
+  }
+
   return NextResponse.json({ analyses })
 }
