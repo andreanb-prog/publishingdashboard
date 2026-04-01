@@ -2,7 +2,7 @@
 // app/dashboard/OverviewClient.tsx
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
-import type { Analysis, RankLog, RoasLog } from '@/types'
+import type { Analysis, RankLog, RoasLog, ChannelScore, CoachingInsight } from '@/types'
 import { ActionItem } from '@/components/ui'
 import { FreshBanner } from '@/components/FreshBanner'
 
@@ -176,12 +176,13 @@ function buildCoachPrompt(
 
 // ── Main component ───────────────────────────────────────────────────────────
 export function OverviewClient() {
-  const [analyses, setAnalyses] = useState<Analysis[]>([])
-  const [rankLogs, setRankLogs] = useState<RankLog[]>([])
-  const [roasLogs, setRoasLogs] = useState<RoasLog[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [copied,   setCopied]   = useState(false)
-  const [copying,  setCopying]  = useState(false)
+  const [analysis,  setAnalysis]  = useState<any>(null)
+  const [analyses,  setAnalyses]  = useState<Analysis[]>([])
+  const [rankLogs,  setRankLogs]  = useState<RankLog[]>([])
+  const [roasLogs,  setRoasLogs]  = useState<RoasLog[]>([])
+  const [loading,   setLoading]   = useState(true)
+  const [copied,    setCopied]    = useState(false)
+  const [copying,   setCopying]   = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -189,31 +190,28 @@ export function OverviewClient() {
       fetch('/api/rank').then(r => r.json()).catch(() => ({ logs: [] })),
       fetch('/api/roas').then(r => r.json()).catch(() => ({ logs: [] })),
     ]).then(([analyzeData, rankData, roasData]) => {
-      // Debug: log raw API response shape
-      if (analyzeData.analyses?.[0]) {
-        const first = analyzeData.analyses[0]
-        console.log('[Overview] record keys:', Object.keys(first))
-        console.log('[Overview] data keys:', first.data ? Object.keys(first.data) : 'NO DATA')
-        console.log('[Overview] kdp:', first.data?.kdp == null ? (first.data?.kdp === null ? 'NULL' : 'MISSING') : 'PRESENT')
-        console.log('[Overview] channelScores:', JSON.stringify(first.data?.channelScores))
-      }
+      // Read the single analysis data blob directly
+      const a = analyzeData.analysis ?? null
+      console.log('[Overview] analysis keys:', a ? Object.keys(a) : 'null')
+      console.log('[Overview] kdp:', a?.kdp ? `units=${a.kdp.totalUnits}` : 'MISSING')
+      if (a) setAnalysis(a)
+
+      // Keep analyses array for history table
       const rows: Analysis[] = (analyzeData.analyses ?? [])
-        .map((a: { data?: Analysis }) => a.data)
+        .map((r: { data?: Analysis }) => r.data)
         .filter((d: unknown): d is Analysis => !!d && typeof d === 'object' && 'month' in (d as object))
-      console.log('[Overview] usable rows:', rows.length)
       if (rows.length) setAnalyses(rows)
+
       setRankLogs(rankData.logs ?? [])
       setRoasLogs(roasData.logs ?? [])
     }).catch(console.error).finally(() => setLoading(false))
   }, [])
 
-  const analysis = analyses[0] ?? null
-
   // Normalize channel keys: Claude returns "email" but our card key is "mailerlite"
   const channelScoreMap = new Map(
-    analysis?.channelScores?.map(s => {
+    (analysis?.channelScores as ChannelScore[] | undefined)?.map((s: ChannelScore) => {
       const key = s.channel === 'email' ? 'mailerlite' : s.channel
-      return [key, s] as [string, typeof s]
+      return [key, s] as [string, ChannelScore]
     }) || []
   )
 
@@ -302,7 +300,7 @@ export function OverviewClient() {
       </div>
       <div className="grid grid-cols-5 gap-3 mb-7">
         {CHANNEL_CARDS.map(card => {
-          const score = channelScoreMap.get(card.key)
+          const score = channelScoreMap.get(card.key) as ChannelScore | undefined
           const badge = (score?.status ? STATUS_BADGE[score.status] : null) ?? STATUS_BADGE.NEW
           return (
             <Link key={card.key} href={card.href}
@@ -362,7 +360,7 @@ export function OverviewClient() {
             </div>
           </div>
           <div>
-            {analysis.actionPlan.map((item, i) => (
+            {(analysis.actionPlan as CoachingInsight[]).map((item: CoachingInsight, i: number) => (
               <ActionItem
                 key={i}
                 priority={item.priority}
