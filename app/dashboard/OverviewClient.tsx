@@ -384,6 +384,20 @@ export function OverviewClient() {
   // First-time user: show guided onboarding instead of empty dashboard
   const isFirstVisit = !loading && analyses.length === 0 && !analysis && !onboardingSkipped
 
+  if (loading) {
+    return (
+      <div className="p-4 md:p-8 max-w-[1400px]">
+        <div className="animate-pulse space-y-4">
+          <div className="h-20 rounded-xl" style={{ background: '#EEEBE6' }} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[1,2,3,4].map(i => <div key={i} className="h-24 rounded-xl" style={{ background: '#EEEBE6' }} />)}
+          </div>
+          <div className="h-40 rounded-xl" style={{ background: '#EEEBE6' }} />
+        </div>
+      </div>
+    )
+  }
+
   if (isFirstVisit) {
     return (
       <div className="p-4 md:p-8 max-w-[1400px]">
