@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
+import { InsightCallouts } from '@/components/InsightCallout'
 import { ViewingBar } from '@/components/ViewingBar'
 import { GoalSection } from '@/components/GoalSection'
 import { SortablePage } from '@/components/SortablePage'
@@ -539,6 +540,7 @@ export default function MetaPage() {
             ))}
           </div>
 
+          {analysis && <InsightCallouts analysis={analysis} page="meta" />}
           {coach && <DarkCoachBox color="#fb7185" title={coachTitle}>{coach}</DarkCoachBox>}
 
           {/* Viewing bar */}

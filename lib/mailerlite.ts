@@ -1,5 +1,5 @@
 // lib/mailerlite.ts
-import type { MailerLiteData } from '@/types'
+import type { MailerLiteData, MailerLiteAutomation } from '@/types'
 
 const ML_BASE = 'https://connect.mailerlite.com/api'
 
@@ -67,11 +67,34 @@ export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteDa
     ? Math.round(recentCampaigns.reduce((s: number, c: any) => s + c.clickRate, 0) / recentCampaigns.length * 10) / 10
     : 0
 
+  // Fetch automations
+  let automations: MailerLiteAutomation[] = []
+  try {
+    const autoRes = await fetch(`${ML_BASE}/automations?limit=25`, { headers })
+    const autoData = await autoRes.json()
+    automations = (autoData?.data ?? []).map((a: any) => {
+      const status = a.status === 'active' ? 'active' as const : 'paused' as const
+      const subscriberCount = a.stats?.completed_subscribers_count ?? a.stats?.subscribers_count ?? 0
+      const rawOpen = a.stats?.open_rate?.float ?? a.stats?.open_rate ?? 0
+      const rawClick = a.stats?.click_rate?.float ?? a.stats?.click_rate ?? 0
+      const openRate = Math.round(Number(rawOpen) * 1000) / 10
+      const clickRate = Math.round(Number(rawClick) * 1000) / 10
+
+      // Health: red if paused or zero activity, amber if click < 1%, green otherwise
+      let health: 'green' | 'amber' | 'red' = 'green'
+      if (status === 'paused' || subscriberCount === 0) health = 'red'
+      else if (clickRate < 1) health = 'amber'
+
+      return { name: a.name || 'Untitled', status, subscriberCount, openRate, clickRate, health }
+    })
+  } catch { /* automations API may not be available */ }
+
   return {
     listSize,
     openRate:     avgOpenRate,
     clickRate:    avgClickRate,
     unsubscribes: totalUnsubscribes,
     campaigns:    parsedCampaigns,
+    automations,
   }
 }

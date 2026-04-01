@@ -5,12 +5,14 @@ import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components
 import { FreshBanner } from '@/components/FreshBanner'
 import { GoalSection } from '@/components/GoalSection'
 import { getCoachTitle } from '@/lib/coachTitle'
-import type { Analysis } from '@/types'
+import { InsightCallouts } from '@/components/InsightCallout'
+import type { Analysis, MailerLiteAutomation } from '@/types'
 
 
 export default function MailerLitePage() {
   const [coachTitle] = useState(() => getCoachTitle())
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  const [prevAnalysis, setPrevAnalysis] = useState<Analysis | null>(null)
   const [goals, setGoals] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
 
@@ -18,7 +20,13 @@ export default function MailerLitePage() {
     Promise.all([
       fetch('/api/analyze')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(d => { if (d.analysis) setAnalysis(d.analysis as Analysis) })
+        .then(d => {
+          if (d.analysis) setAnalysis(d.analysis as Analysis)
+          // Get previous month for comparison
+          if (d.analyses?.length >= 2) {
+            setPrevAnalysis((d.analyses[1] as any)?.data as Analysis)
+          }
+        })
         .catch(() => {}),
       fetch('/api/prefs')
         .then(r => r.ok ? r.json() : Promise.reject())
@@ -84,6 +92,7 @@ export default function MailerLitePage() {
             { label: 'Unsubscribes', value: ml.unsubscribes,              sub: 'Total unsubscribed', color: ml.unsubscribes > 30 ? '#fb7185' : '#34d399' },
           ]} />
 
+          {analysis && <InsightCallouts analysis={analysis} page="mailerlite" />}
           {coach && <DarkCoachBox color="#34d399" title={coachTitle}>{coach}</DarkCoachBox>}
 
           {/* Benchmarks table */}
@@ -134,6 +143,144 @@ export default function MailerLitePage() {
               </tbody>
             </table>
           </div>
+
+          {/* ── Month-over-Month + Unsubscribe Spikes (#31) ─────────── */}
+          {prevAnalysis?.mailerLite && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+              {/* Left: Comparison table */}
+              <div className="rounded-xl overflow-hidden" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+                <div className="px-5 py-3 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
+                  Month-over-Month
+                </div>
+                <table className="w-full text-[12px]">
+                  <thead>
+                    <tr style={{ background: 'rgba(0,0,0,0.02)' }}>
+                      <th className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]" style={{ color: '#6B7280' }}>Metric</th>
+                      <th className="text-right px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]" style={{ color: '#6B7280' }}>Last Month</th>
+                      <th className="text-right px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]" style={{ color: '#6B7280' }}>This Month</th>
+                      <th className="text-right px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]" style={{ color: '#6B7280' }}>Change</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const prev = prevAnalysis.mailerLite!
+                      const rows = [
+                        { label: 'Campaigns Sent', prev: prev.campaigns.length, curr: ml!.campaigns.length },
+                        { label: 'Open Rate', prev: prev.openRate, curr: ml!.openRate, unit: '%' },
+                        { label: 'Click Rate', prev: prev.clickRate, curr: ml!.clickRate, unit: '%' },
+                        { label: 'Unsubscribes', prev: prev.unsubscribes, curr: ml!.unsubscribes },
+                      ]
+                      return rows.map((r, i) => {
+                        const diff = r.curr - r.prev
+                        const isGood = r.label === 'Unsubscribes' ? diff <= 0 : diff >= 0
+                        return (
+                          <tr key={i} className="border-t" style={{ borderColor: '#EEEBE6' }}>
+                            <td className="px-4 py-2.5" style={{ color: '#374151' }}>{r.label}</td>
+                            <td className="px-4 py-2.5 text-right font-mono" style={{ color: '#6B7280' }}>{r.prev}{r.unit || ''}</td>
+                            <td className="px-4 py-2.5 text-right font-mono font-semibold" style={{ color: '#1E2D3D' }}>{r.curr}{r.unit || ''}</td>
+                            <td className="px-4 py-2.5 text-right font-mono font-semibold" style={{ color: isGood ? '#6EBF8B' : '#F97B6B' }}>
+                              {diff > 0 ? '+' : ''}{r.unit === '%' ? diff.toFixed(1) : diff}{r.unit || ''}
+                            </td>
+                          </tr>
+                        )
+                      })
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Right: Unsubscribe spikes */}
+              <div className="rounded-xl overflow-hidden" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+                <div className="px-5 py-3 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
+                  ⚠ Unsubscribe Spikes — Watch
+                </div>
+                <div className="px-5 py-4">
+                  {(() => {
+                    const sorted = [...ml!.campaigns]
+                      .filter(c => c.unsubscribes > 0)
+                      .sort((a, b) => b.unsubscribes - a.unsubscribes)
+                      .slice(0, 5)
+                    const max = sorted[0]?.unsubscribes || 1
+                    if (sorted.length === 0) {
+                      return <div className="text-[12px]" style={{ color: '#9CA3AF' }}>No unsubscribe spikes detected. Keep it up!</div>
+                    }
+                    return (
+                      <div className="space-y-2.5">
+                        {sorted.map((c, i) => (
+                          <div key={i}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[11.5px] truncate max-w-[200px]" style={{ color: '#374151' }}>{c.name}</span>
+                              <span className="text-[11px] font-mono font-bold" style={{ color: '#F97B6B' }}>{c.unsubscribes}</span>
+                            </div>
+                            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(249,123,107,0.1)' }}>
+                              <div className="h-full rounded-full" style={{
+                                width: `${(c.unsubscribes / max) * 100}%`,
+                                background: `linear-gradient(90deg, rgba(249,123,107,${0.3 + (i === 0 ? 0.5 : 0.2)}), #F97B6B)`,
+                              }} />
+                            </div>
+                          </div>
+                        ))}
+                        <div className="text-[11px] mt-3 pt-2" style={{ color: '#9CA3AF', borderTop: '1px solid #EEEBE6' }}>
+                          High unsubscribes often correlate with subject line mismatches or send frequency.
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Automation Health (#31) ───────────────────────────────── */}
+          {ml!.automations && ml!.automations.length > 0 && (
+            <div className="rounded-xl overflow-hidden mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+              <div className="px-5 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #EEEBE6' }}>
+                <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Automation Health</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.06)', color: '#6B7280' }}>
+                  Live from MailerLite
+                </span>
+              </div>
+              <table className="w-full border-collapse text-[12px]">
+                <thead>
+                  <tr style={{ background: '#F5F5F4' }}>
+                    {['Automation', 'Status', 'Subscribers', 'Open Rate', 'Click Rate', 'Health'].map(h => (
+                      <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
+                        style={{ color: '#6B7280' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {ml!.automations.map((auto: MailerLiteAutomation, i: number) => {
+                    const healthColors = { green: '#6EBF8B', amber: '#E9A020', red: '#F97B6B' }
+                    const healthLabels = { green: 'Healthy', amber: 'Needs Attention', red: 'Stalled' }
+                    return (
+                      <tr key={i} className="border-t" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+                        <td className="px-4 py-2.5 max-w-[200px] truncate" style={{ color: '#1E2D3D' }}>{auto.name}</td>
+                        <td className="px-4 py-2.5">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            style={{
+                              background: auto.status === 'active' ? 'rgba(110,191,139,0.12)' : 'rgba(249,123,107,0.12)',
+                              color: auto.status === 'active' ? '#6EBF8B' : '#F97B6B',
+                            }}>
+                            {auto.status === 'active' ? 'Active' : 'Paused'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 font-mono" style={{ color: '#1E2D3D' }}>{auto.subscriberCount.toLocaleString()}</td>
+                        <td className="px-4 py-2.5 font-mono" style={{ color: auto.openRate >= 20 ? '#6EBF8B' : '#E9A020' }}>{auto.openRate}%</td>
+                        <td className="px-4 py-2.5 font-mono" style={{ color: auto.clickRate >= 1 ? '#6EBF8B' : '#E9A020' }}>{auto.clickRate}%</td>
+                        <td className="px-4 py-2.5">
+                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                            style={{ background: `${healthColors[auto.health]}20`, color: healthColors[auto.health] }}>
+                            {healthLabels[auto.health]}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Recent campaigns */}
           {ml.campaigns.length > 0 && (

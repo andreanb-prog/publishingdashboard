@@ -7,6 +7,7 @@ import { getCoachTitle } from '@/lib/coachTitle'
 
 // coach title is set per-mount so it changes on every page load
 import { ActionItem } from '@/components/ui'
+import { InsightCallouts } from '@/components/InsightCallout'
 import { FreshBanner } from '@/components/FreshBanner'
 import { OnboardingBanner } from '@/components/OnboardingBanner'
 import { SortablePage } from '@/components/SortablePage'
@@ -453,6 +454,9 @@ export function OverviewClient() {
           </Link>
         </div>
       </div>
+
+      {/* ── Insight callouts (#32) ─────────────────────────────────── */}
+      {analysis && <InsightCallouts analysis={analysis} page="overview" />}
 
       {/* ── Executive Summary (#33) ────────────────────────────────── */}
       {analysis?.executiveSummary && (

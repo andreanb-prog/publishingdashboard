@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState, useMemo } from 'react'
 import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
+import { InsightCallouts } from '@/components/InsightCallout'
 import { ViewingBar } from '@/components/ViewingBar'
 import { GoalSection } from '@/components/GoalSection'
 import { BarChart } from '@/components/ui'
@@ -487,6 +488,7 @@ export default function KDPPage() {
             ))}
           </div>
 
+          {analysis && <InsightCallouts analysis={analysis} page="kdp" />}
           {coach && <DarkCoachBox color="#fbbf24" title={coachTitle}>{coach}</DarkCoachBox>}
 
           {/* Chart cards — equal 1fr 1fr grid */}

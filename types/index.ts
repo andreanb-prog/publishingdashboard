@@ -58,12 +58,22 @@ export interface MetaData {
   worstAds: MetaAd[]
 }
 
+export interface MailerLiteAutomation {
+  name: string
+  status: 'active' | 'paused'
+  subscriberCount: number
+  openRate: number
+  clickRate: number
+  health: 'green' | 'amber' | 'red'
+}
+
 export interface MailerLiteData {
   listSize: number
   openRate: number
   clickRate: number
   unsubscribes: number
   campaigns: MailerLiteCampaign[]
+  automations?: MailerLiteAutomation[]
 }
 
 export interface MailerLiteCampaign {
