@@ -106,6 +106,14 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
     }
     console.log('=== STEP 7: coaching data parsed OK ===')
 
+    // ── Confidence scoring gate ───────────────────────────────────────
+    // Don't show confidence/impact scores unless we have enough data
+    const isNewUser = historical.length === 0
+    const totalAds = meta?.ads?.length ?? 0
+    // Approximate days of data from month range (full month = ~30 days)
+    const daysOfData = kdp || meta ? 30 : 0
+    const confidenceReady = !isNewUser && daysOfData >= 14 && totalAds >= 3
+
     const analysis: Analysis & Record<string, unknown> = {
       month,
       kdp:        kdp        ?? undefined,
@@ -122,6 +130,8 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       emailCoach:    coachingData.insights?.email     || '',
       pinterestCoach:coachingData.insights?.pinterest || '',
       swapsCoach:    coachingData.insights?.swaps     || '',
+      confidenceReady,
+      confidenceNote: confidenceReady ? null : 'Confidence scoring unlocks after 14 days of data.',
       generatedAt: new Date().toISOString(),
     }
 

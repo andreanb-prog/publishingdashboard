@@ -385,6 +385,12 @@ export function OverviewClient() {
                           action={item.action}
                         />
                       ))}
+                      {analysis.confidenceNote && (
+                        <div className="mt-4 px-4 py-2.5 rounded-lg text-[12px]"
+                          style={{ background: '#F5F5F4', color: '#9CA3AF' }}>
+                          {analysis.confidenceNote}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
