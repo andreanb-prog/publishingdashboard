@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { DarkPage, DarkSectionHeader } from '@/components/DarkPage'
 import type { Analysis } from '@/types'
 
-const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA', '#6EBF8B', '#F472B6', '#F97B6B']
+// B1=coral B2=peach B3=plum B4=teal B5=sky B6=rose — cycles back at Book 7+
+const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA', '#F472B6', '#F97B6B', '#F4A261']
 const AVG_ROMANCE_PAGES = 300
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
