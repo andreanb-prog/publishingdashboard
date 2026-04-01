@@ -240,7 +240,7 @@ export function OverviewClient() {
   }
 
   return (
-    <div className="p-8 max-w-[1400px]">
+    <div className="p-4 md:p-8 max-w-[1400px]">
 
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <OnboardingBanner analysesCount={analyses.length} />
@@ -309,7 +309,7 @@ export function OverviewClient() {
                     Each channel has a detailed analysis with your coach&apos;s recommendations
                   </p>
                 </div>
-                <div className="grid grid-cols-5 gap-3 mb-7">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-7">
                   {CHANNEL_CARDS.map(card => {
                     const score = channelScoreMap.get(card.key) as ChannelScore | undefined
                     const badge = (score?.status ? STATUS_BADGE[score.status] : null) ?? STATUS_BADGE.NEW

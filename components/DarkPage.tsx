@@ -13,7 +13,7 @@ interface DarkPageProps {
 export function DarkPage({ title, subtitle, backHref = '/dashboard', children }: DarkPageProps) {
   return (
     <div
-      className="min-h-full px-9 py-8"
+      className="min-h-full px-4 py-6 md:px-9 md:py-8"
       style={{ background: '#F5F0E8', color: '#1E2D3D' }}
     >
       {/* Header */}
@@ -70,9 +70,9 @@ interface DarkKPIProps {
 }
 
 export function DarkKPIStrip({ items, cols = 4 }: DarkKPIProps) {
-  const colsClass = { 3: 'grid-cols-3', 4: 'grid-cols-4', 5: 'grid-cols-5' }[cols]
+  const colsClass = { 3: 'md:grid-cols-3', 4: 'md:grid-cols-4', 5: 'md:grid-cols-5' }[cols]
   return (
-    <div className={`grid ${colsClass} gap-3.5 mb-7`}>
+    <div className={`grid grid-cols-2 ${colsClass} gap-3 md:gap-3.5 mb-7`}>
       {items.map((item, i) => (
         <div key={i} className="rounded-xl p-4.5 relative overflow-hidden"
           style={{ background: 'white', border: '1px solid #F0E0C8' }}>

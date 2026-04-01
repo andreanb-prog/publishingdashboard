@@ -320,7 +320,7 @@ export default function RankPage() {
       {/* How to read your rank */}
       <div className="card p-5">
         <div className="text-[13px] font-bold text-[#0d1f35] mb-3">How to read your rank</div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {[
             { label: '🟢 Top 50,000', bg: '#eaf7f1', text: '#0f6b46', body: 'Strong sales momentum. Your promos are working. Keep the swap calendar full.' },
             { label: '🟡 50K – 200K', bg: '#fdf5e3', text: '#7a4f00', body: 'Steady sales. Good for a newer title. Schedule a promo week to push higher.' },

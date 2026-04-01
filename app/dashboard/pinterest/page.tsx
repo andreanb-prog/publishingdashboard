@@ -96,7 +96,7 @@ export default function PinterestPage() {
     <DarkPage title="📌 Pinterest" subtitle="Dec 2025 – Mar 2026 · Building from zero · Your 30-day plan">
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {/* KPI strip */}
-      <div className="grid grid-cols-3 gap-3.5 mb-7">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-3.5 mb-7">
         {[
           { label: 'Total Impressions', value: pin?.totalImpressions || 20, sub: 'Dec 2025 – Mar 2026', color: '#f472b6' },
           { label: 'Active Pins', value: pin?.pinCount || 2, sub: 'Stillwater Series board', color: '#fb7185' },
@@ -124,7 +124,7 @@ export default function PinterestPage() {
           <h2 className="font-serif text-[19px]" style={{ color: '#1E2D3D' }}>Your 30-Day Pinterest Launch Plan</h2>
           <div className="flex-1 h-px" style={{ background: '#F0E0C8' }} />
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {ROADMAP.map((step, i) => (
             <div key={i} className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
               <div className="text-[10px] font-bold tracking-[1px] uppercase mb-2" style={{ color: '#e60023' }}>
@@ -143,7 +143,7 @@ export default function PinterestPage() {
           Log your weekly Pinterest numbers — takes 30 seconds
         </div>
         <form onSubmit={handleLog}>
-          <div className="grid grid-cols-5 gap-3 mb-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
             {[
               { key: 'weekEnding', label: 'Week ending', type: 'date' },
               { key: 'impressions', label: 'Impressions', type: 'number', placeholder: '0' },
@@ -188,9 +188,9 @@ export default function PinterestPage() {
       </div>
 
       {/* History table */}
-      <div className="rounded-xl overflow-hidden mb-6"
+      <div className="rounded-xl overflow-x-auto mb-6"
         style={{ background: 'white', border: '1px solid #F0E0C8' }}>
-        <table className="w-full border-collapse text-[12px]">
+        <table className="w-full border-collapse text-[12px]" style={{ minWidth: 580 }}>
           <thead>
             <tr style={{ background: '#F5F5F4' }}>
               {['Period', 'Impressions', 'Saves', 'Link Clicks', 'Pins', 'Save Rate', 'Trend'].map(h => (
@@ -248,7 +248,7 @@ export default function PinterestPage() {
         <div className="text-[11px] font-bold uppercase tracking-[1px] mb-3" style={{ color: '#6B7280' }}>
           Pinterest Benchmarks for Romance Authors
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {BENCHMARKS.map((b, i) => (
             <div key={i} className="rounded-lg p-3"
               style={{ background: `${b.color}10` }}>

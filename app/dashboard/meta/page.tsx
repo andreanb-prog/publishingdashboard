@@ -480,7 +480,7 @@ export default function MetaPage() {
           />
 
           {/* KPI strip with goal comparison */}
-          <div className="grid grid-cols-5 gap-3 mb-7">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-7">
             {[
               {
                 label: 'Total Spend',
@@ -590,9 +590,9 @@ export default function MetaPage() {
             )}
 
             {/* Table */}
-            <div className="rounded-xl overflow-hidden"
+            <div className="rounded-xl overflow-x-auto"
               style={{ background: 'white', border: '1px solid #F0E0C8' }}>
-              <table className="w-full border-collapse">
+              <table className="w-full border-collapse" style={{ minWidth: 640 }}>
                 <thead>
                   <tr style={{ background: '#F5F5F4' }}>
                     <th className="text-left px-5 py-3">
@@ -698,7 +698,7 @@ export default function MetaPage() {
               {
                 id: 'action-grid',
                 content: (
-                  <div className="grid grid-cols-4 gap-3 mt-5">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
                     {[
                       {
                         type: 'scale', title: '↑ Scale', color: '#34d399',

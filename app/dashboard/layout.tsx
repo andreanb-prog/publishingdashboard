@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { Sidebar } from '@/components/Sidebar'
 import { TopBar } from '@/components/TopBar'
+import { MobileNav } from '@/components/MobileNav'
 import { FeedbackButton } from '@/components/FeedbackButton'
 
 export default async function DashboardLayout({
@@ -18,7 +19,10 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <TopBar user={session.user} />
+        <MobileNav />
+        <div className="hidden md:block">
+          <TopBar user={session.user} />
+        </div>
         <main className="flex-1 overflow-y-auto" style={{ background: '#F5F0E8' }}>
           {children}
         </main>
