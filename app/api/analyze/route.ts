@@ -7,7 +7,9 @@ import { db } from '@/lib/db'
 import type { KDPData, MetaData, MailerLiteData, PinterestData, Analysis } from '@/types'
 
 export async function POST(req: NextRequest) {
+  console.log('=== ANALYZE POST CALLED ===')
   const session = await getServerSession(authOptions)
+  console.log('Session:', session?.user?.id)
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -115,8 +117,7 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       generatedAt: new Date().toISOString(),
     }
 
-    console.log('Session userId:', session.user.id)
-    console.log('[POST] upserting id:', `${session.user.id}-${month}`, '| kdp:', !!kdp, '| meta:', !!meta, '| mailerLite:', !!mailerLite, '| pinterest:', !!pinterest)
+    console.log('=== ABOUT TO SAVE ===', { userId: session.user.id, month })
 
     const saved = await db.analysis.upsert({
       where: { id: `${session.user.id}-${month}` },
@@ -129,7 +130,7 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       },
     })
 
-    console.log('[POST] upserted successfully, id:', saved.id, '| month:', saved.month)
+    console.log('=== SAVED ===', saved.id)
 
     return NextResponse.json({ success: true, analysis, coaching: coachingData })
   } catch (error) {
