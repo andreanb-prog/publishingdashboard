@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
-type Step = 'welcome' | 'kdp' | 'meta' | 'done'
+type Step = 'welcome' | 'kdp' | 'meta' | 'mailerlite' | 'done'
 
 interface FileResult {
   filename: string
@@ -21,6 +21,9 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
   const [uploading, setUploading] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysisDone, setAnalysisDone] = useState(false)
+  const [mlKey, setMlKey] = useState('')
+  const [mlStatus, setMlStatus] = useState<'idle' | 'testing' | 'connected' | 'error'>('idle')
+  const [mlMessage, setMlMessage] = useState('')
   const kdpRef = useRef<HTMLInputElement>(null)
   const metaRef = useRef<HTMLInputElement>(null)
 
@@ -71,6 +74,32 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
       setAnalysisDone(true)
     } catch { /* ignore */ }
     setAnalyzing(false)
+  }
+
+  async function testAndSaveMailerLite() {
+    if (!mlKey.trim()) return
+    setMlStatus('testing')
+    setMlMessage('')
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'test-mailerlite', key: mlKey.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Connection failed')
+      // Save the key
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mailerLiteKey: mlKey.trim() }),
+      })
+      setMlStatus('connected')
+      setMlMessage(`Connected! Your list has ${data.listSize?.toLocaleString()} subscribers.`)
+    } catch (err: unknown) {
+      setMlStatus('error')
+      setMlMessage(err instanceof Error ? err.message : 'Could not connect — double-check your API key.')
+    }
   }
 
   const [dragOverKdp, setDragOverKdp] = useState(false)
@@ -278,7 +307,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
               <div
                 className="rounded-xl p-5 text-center cursor-pointer transition-all hover:border-stone-300"
                 style={{ background: '#FAFAFA', border: '1.5px solid #EEEBE6' }}
-                onClick={() => setStep('done')}
+                onClick={() => setStep('mailerlite')}
               >
                 <div className="text-2xl mb-2">⏭️</div>
                 <div className="text-[13px] font-semibold" style={{ color: '#6B7280' }}>
@@ -296,7 +325,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                 ← Back
               </button>
               <button
-                onClick={() => setStep('done')}
+                onClick={() => setStep('mailerlite')}
                 className="px-6 py-2.5 rounded-lg text-[13px] font-bold border-none cursor-pointer"
                 style={{ background: '#e9a020', color: '#0d1f35' }}
               >
@@ -306,7 +335,106 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
           </div>
         )}
 
-        {/* ── Step 4: All set ─────────────────────────────────────────── */}
+        {/* ── Step 4: MailerLite API Key ─────────────────────────────── */}
+        {step === 'mailerlite' && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
+                style={{ background: '#34d399', color: 'white' }}>3</span>
+              <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: '#9CA3AF' }}>
+                Step 3 of 4
+              </span>
+            </div>
+            <h2 className="text-[22px] font-semibold tracking-tight mb-2" style={{ color: '#1E2D3D' }}>
+              Connect your MailerLite account
+            </h2>
+            <p className="text-[13px] mb-5" style={{ color: '#6B7280' }}>
+              This lets us pull your email subscriber stats automatically. Here&apos;s how to get your API key:
+            </p>
+
+            {/* Visual numbered guide */}
+            <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+              {[
+                { num: '1', text: 'Go to mailerlite.com and log in to your account' },
+                { num: '2', text: 'Click your profile icon in the bottom-left corner' },
+                { num: '3', text: 'Select "Integrations" from the menu' },
+                { num: '4', text: 'Click "MailerLite API"' },
+                { num: '5', text: 'Click "Generate new token"' },
+                { num: '6', text: 'Give it a name (e.g. "AuthorDash") and click "Create"' },
+                { num: '7', text: 'Copy the token — you won\'t see it again!' },
+              ].map(s => (
+                <div key={s.num} className="flex items-start gap-3 mb-3 last:mb-0">
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5"
+                    style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}>
+                    {s.num}
+                  </span>
+                  <span className="text-[13.5px]" style={{ color: '#374151' }}>{s.text}</span>
+                </div>
+              ))}
+            </div>
+
+            <a href="https://connect.mailerlite.com/integrations/api" target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-[14px] font-semibold no-underline mb-5 transition-all hover:opacity-90"
+              style={{ background: '#FFFFFF', border: '1px solid #EEEBE6', color: '#1E2D3D' }}>
+              Open MailerLite Integrations in new tab →
+            </a>
+
+            {/* API key input */}
+            {mlStatus === 'connected' ? (
+              <div className="rounded-xl p-5 text-center" style={{ background: 'rgba(52,211,153,0.06)', border: '1.5px solid rgba(52,211,153,0.3)' }}>
+                <div className="text-[14px] font-semibold mb-1" style={{ color: '#34d399' }}>
+                  ✅ MailerLite connected!
+                </div>
+                <div className="text-[12px]" style={{ color: '#6B7280' }}>{mlMessage}</div>
+              </div>
+            ) : (
+              <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+                <label className="block text-[12px] font-semibold mb-2" style={{ color: '#374151' }}>
+                  Paste your API token here
+                </label>
+                <input
+                  type="text"
+                  value={mlKey}
+                  onChange={e => { setMlKey(e.target.value); setMlStatus('idle'); setMlMessage('') }}
+                  placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOi..."
+                  className="w-full px-4 py-3 rounded-lg text-[13px] border outline-none transition-all focus:ring-2 focus:ring-emerald-200"
+                  style={{ borderColor: mlStatus === 'error' ? '#fb7185' : '#EEEBE6', background: '#FAFAFA' }}
+                />
+                {mlStatus === 'error' && (
+                  <div className="text-[12px] mt-2" style={{ color: '#fb7185' }}>{mlMessage}</div>
+                )}
+                <button
+                  onClick={testAndSaveMailerLite}
+                  disabled={!mlKey.trim() || mlStatus === 'testing'}
+                  className="mt-3 px-5 py-2.5 rounded-lg text-[13px] font-bold border-none cursor-pointer transition-all"
+                  style={{
+                    background: mlKey.trim() ? '#34d399' : '#F5F5F4',
+                    color: mlKey.trim() ? 'white' : '#9CA3AF',
+                    opacity: mlStatus === 'testing' ? 0.7 : 1,
+                  }}
+                >
+                  {mlStatus === 'testing' ? 'Testing connection...' : 'Test & Connect'}
+                </button>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between mt-5">
+              <button onClick={() => setStep('meta')}
+                className="text-[13px] bg-transparent border-none cursor-pointer" style={{ color: '#9CA3AF' }}>
+                ← Back
+              </button>
+              <button
+                onClick={() => setStep('done')}
+                className="px-6 py-2.5 rounded-lg text-[13px] font-bold border-none cursor-pointer transition-all"
+                style={{ background: mlStatus === 'connected' ? '#e9a020' : '#F5F5F4', color: mlStatus === 'connected' ? '#0d1f35' : '#9CA3AF' }}
+              >
+                {mlStatus === 'connected' ? 'Next →' : 'Skip this step →'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 5: All set ─────────────────────────────────────────── */}
         {step === 'done' && (
           <div className="text-center">
             {analysisDone ? (
@@ -346,9 +474,9 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
               <>
                 <div className="flex items-center gap-2 mb-6 justify-center">
                   <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
-                    style={{ background: '#34d399', color: 'white' }}>3</span>
+                    style={{ background: '#34d399', color: 'white' }}>4</span>
                   <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: '#9CA3AF' }}>
-                    Step 3 of 3
+                    Step 4 of 4
                   </span>
                 </div>
                 <h2 className="text-[24px] font-semibold tracking-tight mb-4" style={{ color: '#1E2D3D' }}>
@@ -374,11 +502,13 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                       </div>
                     </div>
                   )}
-                  <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(56,189,248,0.06)' }}>
-                    <span style={{ color: '#38bdf8' }}>⚡</span>
+                  <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: mlStatus === 'connected' ? 'rgba(52,211,153,0.06)' : 'rgba(56,189,248,0.06)' }}>
+                    <span style={{ color: mlStatus === 'connected' ? '#34d399' : '#38bdf8' }}>{mlStatus === 'connected' ? '✅' : '⚡'}</span>
                     <div>
                       <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>MailerLite</div>
-                      <div className="text-[11px]" style={{ color: '#6B7280' }}>Connected automatically (if API key set)</div>
+                      <div className="text-[11px]" style={{ color: '#6B7280' }}>
+                        {mlStatus === 'connected' ? mlMessage : 'Not connected — you can add it later in Settings'}
+                      </div>
                     </div>
                   </div>
                   {kdpFiles.length === 0 && metaFiles.length === 0 && (
