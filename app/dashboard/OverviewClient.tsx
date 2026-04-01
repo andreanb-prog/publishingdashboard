@@ -2,15 +2,15 @@
 // app/dashboard/OverviewClient.tsx
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import type { Analysis } from '@/types'
+import type { Analysis, RankLog, RoasLog } from '@/types'
 import { ActionItem } from '@/components/ui'
 
 const CHANNEL_CARDS = [
-  { key: 'kdp',       href: '/dashboard/kdp',       icon: '📚', name: 'KDP',        colorClass: 'border-t-amber-brand' },
-  { key: 'meta',      href: '/dashboard/meta',      icon: '📣', name: 'Meta Ads',   colorClass: 'border-t-blue-500' },
-  { key: 'mailerlite',href: '/dashboard/mailerlite',icon: '📧', name: 'MailerLite', colorClass: 'border-t-emerald-500' },
-  { key: 'swaps',     href: '/dashboard/swaps',     icon: '🔁', name: 'Swaps',      colorClass: 'border-t-pink-500' },
-  { key: 'pinterest', href: '/dashboard/pinterest', icon: '📌', name: 'Pinterest',  colorClass: 'border-t-red-500' },
+  { key: 'kdp',        href: '/dashboard/kdp',        icon: '📚', name: 'KDP',        colorClass: 'border-t-amber-brand' },
+  { key: 'meta',       href: '/dashboard/meta',        icon: '📣', name: 'Meta Ads',   colorClass: 'border-t-blue-500' },
+  { key: 'mailerlite', href: '/dashboard/mailerlite',  icon: '📧', name: 'MailerLite', colorClass: 'border-t-emerald-500' },
+  { key: 'swaps',      href: '/dashboard/swaps',       icon: '🔁', name: 'Swaps',      colorClass: 'border-t-pink-500' },
+  { key: 'pinterest',  href: '/dashboard/pinterest',   icon: '📌', name: 'Pinterest',  colorClass: 'border-t-red-500' },
 ]
 
 const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
@@ -19,6 +19,18 @@ const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> 
   RED:   { bg: 'bg-red-50',     text: 'text-red-800',     label: '🔴 Fix this' },
   NEW:   { bg: 'bg-blue-50',    text: 'text-blue-800',    label: '🔵 Starting' },
 }
+
+// Hardcoded swap calendar (matches swaps/page.tsx)
+const SWAP_CALENDAR = [
+  { partner: 'Mandy Baker + Madison Brooke',     date: 'Apr 1',  direction: 'Inbound',          list: '1,038 / 1,532', status: 'Applied' },
+  { partner: 'Chloe Horne #3',                   date: 'Apr 6',  direction: 'Inbound + Outbound',list: '8,198',         status: 'Approved' },
+  { partner: 'Zoe Dawson + Ava Bloome + 4 more', date: 'Apr 6',  direction: 'Outbound',          list: 'Various',       status: 'Approved' },
+  { partner: 'Tessa Sloan',                      date: 'Apr 9',  direction: 'Inbound',           list: '4,288',         status: 'Applied — follow up' },
+  { partner: 'Lisa Monroe + Lucy Barbee',        date: 'Apr 13', direction: 'Inbound',           list: 'Various',       status: 'Approved' },
+  { partner: 'Rachel J. Green',                  date: 'Apr 18', direction: 'Inbound',           list: '9,451',         status: 'Applied — follow up' },
+  { partner: 'Brandi Creek (FPA)',               date: 'Apr 21', direction: 'Inbound',           list: '2,703',         status: 'Approved' },
+  { partner: 'Lily-Mae Montana',                 date: 'Apr 30', direction: 'Inbound + Outbound',list: '1,168',         status: 'Decision needed' },
+]
 
 function fmt(n: number | undefined, prefix = '', decimals = 0) {
   if (n == null) return '—'
@@ -36,32 +48,269 @@ function Trend({ curr, prev }: { curr?: number; prev?: number }) {
   )
 }
 
+function buildCoachPrompt(
+  analysis: Analysis | null,
+  rankLogs: RankLog[],
+  roasLogs: RoasLog[],
+): string {
+  const lines: string[] = []
+  const month = analysis?.month ?? new Date().toISOString().substring(0, 7)
+
+  lines.push(`# My Publishing Marketing Data — ${month}`)
+  lines.push(`I'm an indie romance author. Here's my full marketing data for the month. Please help me understand what it means and what I should do next.`)
+  lines.push('')
+
+  // ── KDP ──────────────────────────────────────────────
+  if (analysis?.kdp) {
+    const k = analysis.kdp
+    lines.push('## KDP (Amazon Publishing) Results')
+    lines.push(`Total royalties: $${k.totalRoyaltiesUSD}`)
+    lines.push(`Total units sold: ${k.totalUnits}`)
+    lines.push(`Total KENP reads: ${k.totalKENP?.toLocaleString()}`)
+    if (k.summary) {
+      lines.push(`Paid units: ${k.summary.paidUnits} | Free units: ${k.summary.freeUnits} | Paperback: ${k.summary.paperbackUnits}`)
+    }
+    if (k.books?.length) {
+      lines.push('Books breakdown:')
+      k.books.forEach(b => {
+        lines.push(`  • ${b.title}: ${b.units} units, ${b.kenp} KENP reads, $${b.royalties} royalties`)
+      })
+    }
+    lines.push('')
+  }
+
+  // ── Meta Ads ──────────────────────────────────────────
+  if (analysis?.meta) {
+    const m = analysis.meta
+    lines.push('## Meta (Facebook) Ads')
+    lines.push(`Total spend: $${m.totalSpend}`)
+    lines.push(`Total clicks: ${m.totalClicks}`)
+    lines.push(`Average CTR: ${m.avgCTR}%`)
+    lines.push(`Average CPC: $${m.avgCPC}`)
+    if (m.bestAd) {
+      lines.push(`Best performing ad: "${m.bestAd.name}" — ${m.bestAd.ctr}% CTR, $${m.bestAd.cpc} CPC, ${m.bestAd.clicks} clicks`)
+    }
+    if (m.ads?.length) {
+      lines.push('All ads:')
+      m.ads.forEach(a => {
+        lines.push(`  • "${a.name}": $${a.spend} spend, ${a.clicks} clicks, ${a.ctr}% CTR, $${a.cpc} CPC — Status: ${a.status}`)
+      })
+    }
+    lines.push('')
+  }
+
+  // ── MailerLite ───────────────────────────────────────
+  if (analysis?.mailerLite) {
+    const ml = analysis.mailerLite
+    lines.push('## Email List (MailerLite)')
+    lines.push(`Subscribers: ${ml.listSize}`)
+    lines.push(`Open rate: ${ml.openRate}%`)
+    lines.push(`Click rate: ${ml.clickRate}%`)
+    lines.push(`Unsubscribes: ${ml.unsubscribes}`)
+    if (ml.campaigns?.length) {
+      lines.push('Recent campaigns:')
+      ml.campaigns.forEach(c => {
+        lines.push(`  • "${c.name}" (${c.sentAt}): ${c.openRate}% open, ${c.clickRate}% click, ${c.unsubscribes} unsubs`)
+      })
+    }
+    lines.push('')
+  }
+
+  // ── Newsletter Swaps ─────────────────────────────────
+  lines.push('## Newsletter Swap Calendar (April)')
+  SWAP_CALENDAR.forEach(s => {
+    lines.push(`  • ${s.date} — ${s.partner} | ${s.direction} | List: ${s.list} | Status: ${s.status}`)
+  })
+  lines.push('')
+
+  // ── Pinterest ─────────────────────────────────────────
+  if (analysis?.pinterest) {
+    const p = analysis.pinterest
+    lines.push('## Pinterest')
+    lines.push(`Total impressions: ${p.totalImpressions}`)
+    lines.push(`Total saves: ${p.totalSaves}`)
+    lines.push(`Total clicks: ${p.totalClicks}`)
+    lines.push(`Pin count: ${p.pinCount}`)
+    lines.push(`Save rate: ${p.saveRate}%`)
+    lines.push(`Account age: ${p.accountAge}`)
+    lines.push('')
+  }
+
+  // ── Rank Tracker ─────────────────────────────────────
+  if (rankLogs.length) {
+    lines.push('## Rank Tracker (Last 30 Days)')
+    rankLogs.forEach(r => {
+      const date = new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      lines.push(`  • ${date} — ${r.book}: rank #${r.rank}`)
+    })
+    lines.push('')
+  }
+
+  // ── ROAS Log ─────────────────────────────────────────
+  if (roasLogs.length) {
+    lines.push('## Daily ROAS Log (Last 30 Days)')
+    roasLogs.forEach(r => {
+      const date = new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const note = r.notes ? ` — Note: ${r.notes}` : ''
+      lines.push(`  • ${date}: $${r.spend} spend, $${r.earnings} earnings, ${r.roas}x ROAS${note}`)
+    })
+    lines.push('')
+  }
+
+  // ── AI Coach's Existing Insights ─────────────────────
+  if (analysis?.channelScores?.length) {
+    lines.push('## Channel Health Scores (from my dashboard)')
+    analysis.channelScores.forEach(s => {
+      lines.push(`  • ${s.channel.toUpperCase()}: ${s.status} — ${s.metric} — ${s.subline}`)
+    })
+    lines.push('')
+  }
+
+  if (analysis?.actionPlan?.length) {
+    lines.push('## Current Action Plan (from my dashboard)')
+    analysis.actionPlan.forEach((item, i) => {
+      lines.push(`  ${i + 1}. [${item.type}] ${item.title}: ${item.body}`)
+    })
+    lines.push('')
+  }
+
+  lines.push('---')
+  lines.push('Based on this data, I want to ask you: [CURSOR]')
+
+  return lines.join('\n')
+}
+
+// ── Modal ────────────────────────────────────────────────────────────────────
+function CoachModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(13,31,53,0.7)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Icon */}
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-5"
+          style={{ background: 'rgba(233,160,32,0.12)' }}>
+          ✅
+        </div>
+
+        {/* Heading */}
+        <h2 className="font-serif text-[22px] text-[#0d1f35] text-center leading-snug mb-2">
+          Copied! Now open any AI and paste.
+        </h2>
+        <p className="text-[13px] text-stone-500 text-center leading-relaxed mb-7">
+          Your data is on your clipboard. Open any AI assistant, paste it in, and type your question
+          at the end where it says <span className="font-semibold text-[#0d1f35]">[CURSOR]</span>.
+          Works with Claude, ChatGPT, Gemini — any AI you like.
+        </p>
+
+        {/* AI buttons */}
+        <div className="space-y-2.5 mb-5">
+          <a
+            href="https://claude.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between w-full px-5 py-3.5 rounded-xl font-semibold
+                       text-[14px] transition-all duration-150 no-underline hover:opacity-90"
+            style={{ background: '#0d1f35', color: '#fff' }}
+          >
+            <span className="flex items-center gap-2.5">
+              <span className="text-lg">🟠</span> Open Claude.ai
+            </span>
+            <span style={{ color: 'rgba(255,255,255,0.4)' }}>→</span>
+          </a>
+          <a
+            href="https://chat.openai.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between w-full px-5 py-3.5 rounded-xl font-semibold
+                       text-[14px] transition-all duration-150 no-underline hover:opacity-90"
+            style={{ background: '#10a37f', color: '#fff' }}
+          >
+            <span className="flex items-center gap-2.5">
+              <span className="text-lg">🟢</span> Open ChatGPT
+            </span>
+            <span style={{ color: 'rgba(255,255,255,0.4)' }}>→</span>
+          </a>
+          <a
+            href="https://gemini.google.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between w-full px-5 py-3.5 rounded-xl font-semibold
+                       text-[14px] transition-all duration-150 no-underline hover:opacity-90"
+            style={{ background: '#4285f4', color: '#fff' }}
+          >
+            <span className="flex items-center gap-2.5">
+              <span className="text-lg">🔵</span> Open Gemini
+            </span>
+            <span style={{ color: 'rgba(255,255,255,0.4)' }}>→</span>
+          </a>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="w-full text-[13px] text-stone-400 hover:text-stone-600 transition-colors py-1"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
 export function OverviewClient() {
-  const [analyses, setAnalyses] = useState<Analysis[]>([])
-  const [loading, setLoading] = useState(true)
+  const [analyses,  setAnalyses]  = useState<Analysis[]>([])
+  const [rankLogs,  setRankLogs]  = useState<RankLog[]>([])
+  const [roasLogs,  setRoasLogs]  = useState<RoasLog[]>([])
+  const [loading,   setLoading]   = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [copying,   setCopying]   = useState(false)
 
   useEffect(() => {
-    fetch('/api/analyze')
-      .then(r => r.json())
-      .then(d => {
-        if (d.analyses?.length) {
-          setAnalyses(d.analyses.map((a: { data?: Analysis }) => a.data || a))
-        }
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch('/api/analyze').then(r => r.json()).catch(() => ({})),
+      fetch('/api/rank').then(r => r.json()).catch(() => ({ logs: [] })),
+      fetch('/api/roas').then(r => r.json()).catch(() => ({ logs: [] })),
+    ]).then(([analyzeData, rankData, roasData]) => {
+      if (analyzeData.analyses?.length) {
+        setAnalyses(analyzeData.analyses.map((a: { data?: Analysis }) => a.data || a))
+      }
+      setRankLogs(rankData.logs ?? [])
+      setRoasLogs(roasData.logs ?? [])
+    }).catch(console.error).finally(() => setLoading(false))
   }, [])
 
   const analysis = analyses[0] ?? null
   const channelScoreMap = new Map(analysis?.channelScores?.map(s => [s.channel, s]) || [])
 
-  // Month label — show from the analysis or fall back to current month
   const monthLabel = analysis?.month
     ? new Date(analysis.month + '-02').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
+  async function handleCopyPrompt() {
+    setCopying(true)
+    try {
+      const prompt = buildCoachPrompt(analysis, rankLogs, roasLogs)
+      await navigator.clipboard.writeText(prompt)
+      setShowModal(true)
+    } catch {
+      // Fallback for browsers that block clipboard
+      alert('Could not copy automatically. Try right-clicking and copying manually.')
+    } finally {
+      setCopying(false)
+    }
+  }
+
   return (
     <div className="p-8 max-w-[1400px]">
+      {/* Modal */}
+      {showModal && <CoachModal onClose={() => setShowModal(false)} />}
+
       {/* Banner */}
       <div className="rounded-xl p-6 mb-6 flex items-center justify-between"
         style={{ background: '#0d1f35' }}>
@@ -84,9 +333,9 @@ export function OverviewClient() {
         </div>
         <div className="flex gap-2.5">
           {[
-            { label: 'Units Sold',  value: fmt(analysis?.kdp?.totalUnits) },
-            { label: 'KENP Reads',  value: fmt(analysis?.kdp?.totalKENP) },
-            { label: 'Royalties',   value: analysis?.kdp ? `$${analysis.kdp.totalRoyaltiesUSD}` : '—' },
+            { label: 'Units Sold', value: fmt(analysis?.kdp?.totalUnits) },
+            { label: 'KENP Reads', value: fmt(analysis?.kdp?.totalKENP) },
+            { label: 'Royalties',  value: analysis?.kdp ? `$${analysis.kdp.totalRoyaltiesUSD}` : '—' },
           ].map(stat => (
             <div key={stat.label} className="px-4 py-3 text-center rounded-lg"
               style={{ background: 'rgba(255,255,255,0.06)' }}>
@@ -95,6 +344,32 @@ export function OverviewClient() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* AI Coach button */}
+      <div className="mb-7">
+        <button
+          onClick={handleCopyPrompt}
+          disabled={copying || !analysis}
+          className="flex items-center gap-3 px-6 py-4 rounded-xl text-[15px] font-bold
+                     transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed
+                     hover:-translate-y-0.5 hover:shadow-lg w-full justify-between"
+          style={{ background: 'linear-gradient(135deg, #1a3352 0%, #0d1f35 100%)', color: '#fff', border: '1px solid rgba(233,160,32,0.3)' }}
+        >
+          <span className="flex items-center gap-3">
+            <span className="text-2xl">🤖</span>
+            <span>
+              <span className="block text-[15px]">Talk to an AI coach about this data</span>
+              <span className="block text-[11.5px] font-normal mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                Copies all your numbers to clipboard — paste into any AI assistant
+              </span>
+            </span>
+          </span>
+          <span className="flex items-center gap-1.5 text-[13px] font-semibold flex-shrink-0"
+            style={{ color: '#e9a020' }}>
+            {copying ? 'Copying...' : 'Copy & open →'}
+          </span>
+        </button>
       </div>
 
       {/* Channel Cards */}
@@ -155,15 +430,12 @@ export function OverviewClient() {
         </div>
       ) : (
         <div className="card overflow-hidden mb-7">
-          <div className="px-5 py-3.5 flex items-center justify-between"
-            style={{ background: '#0d1f35' }}>
-            <div>
-              <div className="font-serif text-[16px] text-white">
-                What your marketing coach says to do right now
-              </div>
-              <div className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Ranked by priority · Based on your real numbers
-              </div>
+          <div className="px-5 py-3.5" style={{ background: '#0d1f35' }}>
+            <div className="font-serif text-[16px] text-white">
+              What your marketing coach says to do right now
+            </div>
+            <div className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              Ranked by priority · Based on your real numbers
             </div>
           </div>
           <div>
@@ -181,7 +453,7 @@ export function OverviewClient() {
         </div>
       )}
 
-      {/* History section — only shown when we have 2+ months */}
+      {/* History table — only shown when we have 2+ months */}
       {analyses.length >= 2 && (
         <>
           <div className="flex items-baseline justify-between mb-4">
@@ -192,24 +464,13 @@ export function OverviewClient() {
             <table className="w-full text-[12.5px]">
               <thead>
                 <tr style={{ background: '#0d1f35' }}>
-                  <th className="text-left px-5 py-3 font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    Month
-                  </th>
-                  <th className="text-right px-4 py-3 font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    Royalties
-                  </th>
-                  <th className="text-right px-4 py-3 font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    Units
-                  </th>
-                  <th className="text-right px-4 py-3 font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    KENP
-                  </th>
-                  <th className="text-right px-4 py-3 font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    Ad Spend
-                  </th>
-                  <th className="text-right px-5 py-3 font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    Subscribers
-                  </th>
+                  {['Month', 'Royalties', 'Units', 'KENP', 'Ad Spend', 'Subscribers'].map((h, i) => (
+                    <th key={h}
+                      className={`py-3 font-semibold ${i === 0 ? 'text-left px-5' : 'text-right px-4'}`}
+                      style={{ color: 'rgba(255,255,255,0.5)' }}>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -218,8 +479,7 @@ export function OverviewClient() {
                   const label = new Date(a.month + '-02').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                   const isCurrent = i === 0
                   return (
-                    <tr key={a.month}
-                      className="border-t border-stone-100"
+                    <tr key={a.month} className="border-t border-stone-100"
                       style={{ background: isCurrent ? 'rgba(233,160,32,0.04)' : undefined }}>
                       <td className="px-5 py-3.5 font-semibold text-[#0d1f35]">
                         {label}
@@ -231,38 +491,24 @@ export function OverviewClient() {
                         )}
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <div className="font-semibold text-[#0d1f35]">
-                          {a.kdp ? `$${a.kdp.totalRoyaltiesUSD}` : '—'}
-                        </div>
-                        {!isCurrent ? null : (
-                          <Trend curr={a.kdp?.totalRoyaltiesUSD} prev={prev?.kdp?.totalRoyaltiesUSD} />
-                        )}
+                        <div className="font-semibold text-[#0d1f35]">{a.kdp ? `$${a.kdp.totalRoyaltiesUSD}` : '—'}</div>
+                        {isCurrent && <Trend curr={a.kdp?.totalRoyaltiesUSD} prev={prev?.kdp?.totalRoyaltiesUSD} />}
                       </td>
                       <td className="px-4 py-3.5 text-right">
                         <div className="font-semibold text-[#0d1f35]">{fmt(a.kdp?.totalUnits)}</div>
-                        {!isCurrent ? null : (
-                          <Trend curr={a.kdp?.totalUnits} prev={prev?.kdp?.totalUnits} />
-                        )}
+                        {isCurrent && <Trend curr={a.kdp?.totalUnits} prev={prev?.kdp?.totalUnits} />}
                       </td>
                       <td className="px-4 py-3.5 text-right">
                         <div className="font-semibold text-[#0d1f35]">{fmt(a.kdp?.totalKENP)}</div>
-                        {!isCurrent ? null : (
-                          <Trend curr={a.kdp?.totalKENP} prev={prev?.kdp?.totalKENP} />
-                        )}
+                        {isCurrent && <Trend curr={a.kdp?.totalKENP} prev={prev?.kdp?.totalKENP} />}
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <div className="font-semibold text-[#0d1f35]">
-                          {a.meta ? `$${a.meta.totalSpend}` : '—'}
-                        </div>
-                        {!isCurrent ? null : (
-                          <Trend curr={a.meta?.totalSpend} prev={prev?.meta?.totalSpend} />
-                        )}
+                        <div className="font-semibold text-[#0d1f35]">{a.meta ? `$${a.meta.totalSpend}` : '—'}</div>
+                        {isCurrent && <Trend curr={a.meta?.totalSpend} prev={prev?.meta?.totalSpend} />}
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <div className="font-semibold text-[#0d1f35]">{fmt(a.mailerLite?.listSize)}</div>
-                        {!isCurrent ? null : (
-                          <Trend curr={a.mailerLite?.listSize} prev={prev?.mailerLite?.listSize} />
-                        )}
+                        {isCurrent && <Trend curr={a.mailerLite?.listSize} prev={prev?.mailerLite?.listSize} />}
                       </td>
                     </tr>
                   )
