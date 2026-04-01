@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    console.log('=== STEP 1: parsing body ===')
     const body = await req.json()
     const { kdp, meta, mailerLite, pinterest, month } = body as {
       kdp?: KDPData
@@ -23,17 +24,21 @@ export async function POST(req: NextRequest) {
       pinterest?: PinterestData
       month: string
     }
+    console.log('=== STEP 2: body parsed ===', { month, hasKdp: !!kdp, hasMeta: !!meta })
 
     // Fetch last 3 months of stored analyses for trend context
+    console.log('=== STEP 3: fetching historical ===')
     const historical = await db.analysis.findMany({
       where: { userId: session.user.id, month: { lt: month } },
       orderBy: { month: 'desc' },
       take: 3,
     })
+    console.log('=== STEP 4: historical fetched ===', historical.length, 'records')
 
     const dataSummary = buildDataSummary({ kdp, meta, mailerLite, pinterest })
     const historySummary = buildHistorySummary(historical)
 
+    console.log('=== STEP 5: calling Claude API ===')
     const message = await anthropic.messages.create({
       model: CLAUDE_MODEL,
       max_tokens: 4000,
@@ -84,6 +89,7 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       ],
     })
 
+    console.log('=== STEP 6: Claude responded ===')
     const responseText = message.content[0].type === 'text' ? message.content[0].text : ''
 
     let coachingData
@@ -95,8 +101,10 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
     }
 
     if (!coachingData) {
+      console.log('=== STEP 6 FAILED: could not parse Claude response ===')
       return NextResponse.json({ error: 'Failed to parse coaching response' }, { status: 500 })
     }
+    console.log('=== STEP 7: coaching data parsed OK ===')
 
     const analysis: Analysis & Record<string, unknown> = {
       month,
@@ -119,16 +127,27 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
 
     console.log('=== ABOUT TO SAVE ===', { userId: session.user.id, month })
 
-    const saved = await db.analysis.upsert({
-      where: { id: `${session.user.id}-${month}` },
-      update: { data: analysis as any },
-      create: {
-        id: `${session.user.id}-${month}`,
-        userId: session.user.id,
-        month,
-        data: analysis as any,
-      },
+    // findFirst + update/create avoids any upsert constraint edge cases
+    const existing = await db.analysis.findFirst({
+      where: { userId: session.user.id, month },
     })
+    console.log('=== EXISTING RECORD ===', existing?.id ?? 'none — will create')
+
+    let saved
+    if (existing) {
+      saved = await db.analysis.update({
+        where: { id: existing.id },
+        data: { data: analysis as any },
+      })
+    } else {
+      saved = await db.analysis.create({
+        data: {
+          userId: session.user.id,
+          month,
+          data: analysis as any,
+        },
+      })
+    }
 
     console.log('=== SAVED ===', saved.id)
 
