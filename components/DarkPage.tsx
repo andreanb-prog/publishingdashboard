@@ -20,7 +20,7 @@ export function DarkPage({ title, subtitle, backHref = '/dashboard', children }:
       <div className="flex items-end justify-between mb-7 pb-5"
         style={{ borderBottom: '1px solid #F0E0C8' }}>
         <div>
-          <h1 className="font-serif text-[26px] tracking-tight" style={{ color: '#1E2D3D' }}>
+          <h1 className="text-[24px] font-semibold tracking-tight" style={{ color: '#1E2D3D' }}>
             {title}
           </h1>
           {subtitle && <p className="text-[12px] mt-1" style={{ color: '#6B7280' }}>{subtitle}</p>}
@@ -82,7 +82,7 @@ export function DarkKPIStrip({ items, cols = 4 }: DarkKPIProps) {
             style={{ color: '#6B7280' }}>
             {item.label}
           </div>
-          <div className="font-mono text-[26px] font-medium leading-none mb-1.5"
+          <div className="text-[32px] md:text-[32px] font-semibold leading-none tracking-tight mb-1.5"
             style={{ color: item.color || '#E9A020' }}>
             {item.value}
           </div>

@@ -107,7 +107,7 @@ export default function PinterestPage() {
             <div className="absolute bottom-0 left-0 right-0 h-[3px]"
               style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
             <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2" style={{ color: '#6B7280' }}>{item.label}</div>
-            <div className="font-mono text-[28px] font-medium leading-none mb-1.5" style={{ color: item.color }}>{item.value}</div>
+            <div className="text-[32px] font-semibold leading-none tracking-tight mb-1.5" style={{ color: item.color }}>{item.value}</div>
             <div className="text-[11px]" style={{ color: '#6B7280' }}>{item.sub}</div>
           </div>
         ))}

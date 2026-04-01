@@ -523,7 +523,7 @@ export default function MetaPage() {
                   style={{ color: '#6B7280' }}>
                   {item.label}
                 </div>
-                <div className="font-mono text-[24px] font-medium leading-none mb-1.5"
+                <div className="text-[32px] font-semibold leading-none tracking-tight mb-1.5"
                   style={{ color: item.color }}>
                   {item.value}
                 </div>

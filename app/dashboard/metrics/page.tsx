@@ -104,7 +104,7 @@ function MetricCard({ title, value, valueColor, sub, coach, children }: {
         {title}
       </div>
       {value && (
-        <div className="font-mono text-[28px] font-bold leading-none mb-1"
+        <div className="text-[32px] font-semibold leading-none tracking-tight mb-1"
           style={{ color: valueColor || '#E9A020' }}>
           {value}
         </div>
@@ -712,7 +712,7 @@ export default function MetricsPage() {
               background: '#F5F5F4',
               border: `1px solid ${statusColor(arcPct, 25, 15)}40`,
             }}>
-              <div className="font-mono text-[34px] font-bold leading-none"
+              <div className="text-[34px] font-semibold leading-none tracking-tight"
                 style={{ color: statusColor(arcPct, 25, 15) }}>
                 {arcPct.toFixed(1)}%
               </div>

@@ -27,7 +27,7 @@ export function ViewingBar({
       </span>
       <span style={{ color: '#D6D3D1' }}>·</span>
       <span
-        className="text-[12.5px] font-mono font-semibold"
+        className="text-[12.5px] font-semibold"
         style={{ color: '#1E2D3D' }}
       >
         {start} – {end}
