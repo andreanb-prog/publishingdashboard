@@ -10,13 +10,14 @@ export async function GET() {
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { columnPrefs: true, onboardingDismissed: true, goals: true },
+    select: { columnPrefs: true, onboardingDismissed: true, goals: true, layoutPrefs: true },
   })
 
   return NextResponse.json({
     columnPrefs: (user?.columnPrefs as Record<string, string[]>) ?? {},
     onboardingDismissed: user?.onboardingDismissed ?? false,
     goals: (user?.goals as Record<string, number>) ?? {},
+    layoutPrefs: (user?.layoutPrefs as Record<string, string[]>) ?? {},
   })
 }
 
@@ -47,6 +48,18 @@ export async function POST(req: NextRequest) {
   // Save goals
   if (body.action === 'save-goals' && body.goals && typeof body.goals === 'object') {
     await db.user.update({ where: { id: session.user.id }, data: { goals: body.goals } })
+    return NextResponse.json({ success: true })
+  }
+
+  // Save section layout order for a page
+  if (body.action === 'save-layout' && body.page && Array.isArray(body.order)) {
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { layoutPrefs: true },
+    })
+    const current = (user?.layoutPrefs as Record<string, string[]>) ?? {}
+    const updated = { ...current, [body.page]: body.order }
+    await db.user.update({ where: { id: session.user.id }, data: { layoutPrefs: updated } })
     return NextResponse.json({ success: true })
   }
 

@@ -9,6 +9,7 @@ const COACH_TITLE_OVERVIEW = getCoachTitle('overview')
 import { ActionItem } from '@/components/ui'
 import { FreshBanner } from '@/components/FreshBanner'
 import { OnboardingBanner } from '@/components/OnboardingBanner'
+import { SortablePage } from '@/components/SortablePage'
 
 const CHANNEL_CARDS = [
   { key: 'kdp',        href: '/dashboard/kdp',        icon: '📚', name: 'KDP',        colorClass: 'border-t-amber-brand' },
@@ -294,90 +295,106 @@ export function OverviewClient() {
         </div>
       </div>
 
-      {/* Channel Cards */}
-      <div className="mb-1">
-        <h2 className="font-serif text-[18px] text-[#0d1f35] mb-1">
-          Your channels — click any for the full deep dive
-        </h2>
-        <p className="text-[12px] text-stone-400 mb-4">
-          Each channel has a detailed analysis with your coach's recommendations
-        </p>
-      </div>
-      <div className="grid grid-cols-5 gap-3 mb-7">
-        {CHANNEL_CARDS.map(card => {
-          const score = channelScoreMap.get(card.key) as ChannelScore | undefined
-          const badge = (score?.status ? STATUS_BADGE[score.status] : null) ?? STATUS_BADGE.NEW
-          return (
-            <Link key={card.key} href={card.href}
-              className={`card p-4 cursor-pointer hover:-translate-y-0.5 transition-all
-                          border-t-[3px] ${card.colorClass} no-underline animate-fade-up`}>
-              <span className="text-2xl mb-2.5 block">{card.icon}</span>
-              <div className="text-[10.5px] font-bold tracking-[0.8px] uppercase text-stone-400 mb-1">
-                {card.name}
+      <SortablePage
+        page="overview"
+        theme="light"
+        sections={[
+          {
+            id: 'channel-cards',
+            content: (
+              <div>
+                <div className="mb-1">
+                  <h2 className="font-serif text-[18px] text-[#0d1f35] mb-1">
+                    Your channels — click any for the full deep dive
+                  </h2>
+                  <p className="text-[12px] text-stone-400 mb-4">
+                    Each channel has a detailed analysis with your coach&apos;s recommendations
+                  </p>
+                </div>
+                <div className="grid grid-cols-5 gap-3 mb-7">
+                  {CHANNEL_CARDS.map(card => {
+                    const score = channelScoreMap.get(card.key) as ChannelScore | undefined
+                    const badge = (score?.status ? STATUS_BADGE[score.status] : null) ?? STATUS_BADGE.NEW
+                    return (
+                      <Link key={card.key} href={card.href}
+                        className={`card p-4 cursor-pointer hover:-translate-y-0.5 transition-all
+                                    border-t-[3px] ${card.colorClass} no-underline animate-fade-up`}>
+                        <span className="text-2xl mb-2.5 block">{card.icon}</span>
+                        <div className="text-[10.5px] font-bold tracking-[0.8px] uppercase text-stone-400 mb-1">
+                          {card.name}
+                        </div>
+                        <div className="font-serif text-[22px] text-[#0d1f35] tracking-tight leading-none mb-1.5">
+                          {score?.metric || '—'}
+                        </div>
+                        <div className="text-[11px] text-stone-500 leading-snug mb-2.5">
+                          {score?.subline || 'Add your files to see this'}
+                        </div>
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
+                          {badge.label}
+                        </span>
+                      </Link>
+                    )
+                  })}
+                </div>
               </div>
-              <div className="font-serif text-[22px] text-[#0d1f35] tracking-tight leading-none mb-1.5">
-                {score?.metric || '—'}
+            ),
+          },
+          {
+            id: 'action-plan',
+            content: (
+              <div>
+                <div className="flex items-baseline justify-between mb-4">
+                  <h2 className="font-serif text-[18px] text-[#0d1f35]">Your action plan — do these in order</h2>
+                  <span className="text-[12px] text-stone-400">Based on your real data</span>
+                </div>
+                {loading ? (
+                  <div className="card p-8 text-center">
+                    <div className="text-[14px] font-serif text-[#0d1f35] animate-pulse">
+                      {COACH_TITLE_OVERVIEW.replace(' says', '')} is reading everything…
+                    </div>
+                  </div>
+                ) : !analysis?.actionPlan?.length ? (
+                  <div className="card p-8 text-center">
+                    <div className="text-2xl mb-3">⚡</div>
+                    <div className="font-serif text-lg text-[#0d1f35] mb-2">
+                      Upload your files to get your coaching session
+                    </div>
+                    <p className="text-sm text-stone-500 mb-4">
+                      Drop your KDP report, Meta export, and Pinterest CSV to get a personalized action plan.
+                    </p>
+                    <Link href="/dashboard/upload" className="btn-primary no-underline inline-block">
+                      Upload Files →
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="card overflow-hidden mb-7">
+                    <div className="px-5 py-3.5" style={{ background: '#0d1f35' }}>
+                      <div className="font-serif text-[16px] text-white">
+                        {COACH_TITLE_OVERVIEW.replace(' says', '')} reviewed everything. Here&apos;s what to do next.
+                      </div>
+                      <div className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                        Ranked by priority · Based on your real numbers
+                      </div>
+                    </div>
+                    <div>
+                      {(analysis.actionPlan as CoachingInsight[]).map((item: CoachingInsight, i: number) => (
+                        <ActionItem
+                          key={i}
+                          priority={item.priority}
+                          type={item.type}
+                          title={item.title}
+                          body={item.body}
+                          action={item.action}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="text-[11px] text-stone-500 leading-snug mb-2.5">
-                {score?.subline || 'Add your files to see this'}
-              </div>
-              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
-                {badge.label}
-              </span>
-            </Link>
-          )
-        })}
-      </div>
-
-      {/* Action Plan */}
-      <div className="flex items-baseline justify-between mb-4">
-        <h2 className="font-serif text-[18px] text-[#0d1f35]">Your action plan — do these in order</h2>
-        <span className="text-[12px] text-stone-400">Based on your real data</span>
-      </div>
-
-      {loading ? (
-        <div className="card p-8 text-center">
-          <div className="text-[14px] font-serif text-[#0d1f35] animate-pulse">
-            {COACH_TITLE_OVERVIEW.replace(' says', '')} is reading everything…
-          </div>
-        </div>
-      ) : !analysis?.actionPlan?.length ? (
-        <div className="card p-8 text-center">
-          <div className="text-2xl mb-3">⚡</div>
-          <div className="font-serif text-lg text-[#0d1f35] mb-2">
-            Upload your files to get your coaching session
-          </div>
-          <p className="text-sm text-stone-500 mb-4">
-            Drop your KDP report, Meta export, and Pinterest CSV to get a personalized action plan.
-          </p>
-          <Link href="/dashboard/upload" className="btn-primary no-underline inline-block">
-            Upload Files →
-          </Link>
-        </div>
-      ) : (
-        <div className="card overflow-hidden mb-7">
-          <div className="px-5 py-3.5" style={{ background: '#0d1f35' }}>
-            <div className="font-serif text-[16px] text-white">
-              {COACH_TITLE_OVERVIEW.replace(' says', '')} reviewed everything. Here&apos;s what to do next.
-            </div>
-            <div className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              Ranked by priority · Based on your real numbers
-            </div>
-          </div>
-          <div>
-            {(analysis.actionPlan as CoachingInsight[]).map((item: CoachingInsight, i: number) => (
-              <ActionItem
-                key={i}
-                priority={item.priority}
-                type={item.type}
-                title={item.title}
-                body={item.body}
-                action={item.action}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+            ),
+          },
+        ]}
+      />
 
       {/* History table — only shown when we have 2+ months */}
       {analyses.length >= 2 && (

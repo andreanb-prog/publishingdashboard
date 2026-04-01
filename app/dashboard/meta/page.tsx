@@ -5,6 +5,7 @@ import { DarkPage, DarkKPIStrip, DarkCoachBox } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { ViewingBar } from '@/components/ViewingBar'
 import { GoalSection } from '@/components/GoalSection'
+import { SortablePage } from '@/components/SortablePage'
 import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis, MetaAd } from '@/types'
 
@@ -373,20 +374,27 @@ export default function MetaPage() {
             />
           )}
 
-          {/* Download coaching tracker */}
-          <div className="flex justify-end mb-3">
-            <a
-              href="/api/export/ad-tracker"
-              download
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold no-underline transition-all"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#78716c' }}
-            >
-              ⬇ Download Coaching Tracker
-            </a>
-          </div>
-
-          {/* ── Ads table with column picker ─────────────────────────────── */}
-          <div className="relative mb-5" ref={pickerRef}>
+          <SortablePage
+            page="meta"
+            theme="dark"
+            sections={[
+              {
+                id: 'ads-table',
+                content: (
+                  <div>
+                    {/* Download coaching tracker */}
+                    <div className="flex justify-end mb-3">
+                      <a
+                        href="/api/export/ad-tracker"
+                        download
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold no-underline transition-all"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#78716c' }}
+                      >
+                        ⬇ Download Coaching Tracker
+                      </a>
+                    </div>
+                    {/* ── Ads table with column picker ────────────────────── */}
+                    <div className="relative mb-5" ref={pickerRef}>
             {/* Header row: label + customize button */}
             <div className="flex items-center justify-between mb-2.5">
               <div className="text-[11px] font-bold uppercase tracking-[1.2px]" style={{ color: '#57534e' }}>
@@ -498,68 +506,76 @@ export default function MetaPage() {
             </div>
           </div>
 
-          {/* Rescue panels */}
-          {rescueAds.length > 0 && (
-            <div className="mb-5">
-              <div className="text-[11px] font-bold uppercase tracking-[1.5px] mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                🚨 Ads needing attention ({rescueAds.length})
-              </div>
-              <div className="space-y-4">
-                {rescueAds.map((ad, i) => <RescuePanel key={i} ad={ad} />)}
-              </div>
-            </div>
-          )}
-
-          {/* Action grid */}
-          <div className="grid grid-cols-4 gap-3">
-            {[
-              {
-                type: 'scale', title: '↑ Scale', color: '#34d399',
-                bg: 'rgba(52,211,153,0.05)', border: 'rgba(52,211,153,0.2)',
-                items: [
-                  'Put $10+/day behind your best ad only',
-                  'You have a proven winner — fund it',
-                  `${meta.bestAd?.name || 'Best ad'} at ${meta.bestAd?.ctr || 0}% CTR — extraordinary`,
-                ],
-              },
-              {
-                type: 'cut', title: '✕ Cut Now', color: '#fb7185',
-                bg: 'rgba(251,113,133,0.05)', border: 'rgba(251,113,133,0.2)',
-                items: meta.worstAds.map(a =>
-                  `${a.name} — ${a.clicks === 0 ? 'zero clicks in 30 days' : 'underperforming'}`
+                    {/* Rescue panels */}
+                    {rescueAds.length > 0 && (
+                      <div className="mb-5">
+                        <div className="text-[11px] font-bold uppercase tracking-[1.5px] mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                          🚨 Ads needing attention ({rescueAds.length})
+                        </div>
+                        <div className="space-y-4">
+                          {rescueAds.map((ad, i) => <RescuePanel key={i} ad={ad} />)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ),
               },
               {
-                type: 'fix', title: '⚠ Fix', color: '#fbbf24',
-                bg: 'rgba(251,191,36,0.05)', border: 'rgba(251,191,36,0.2)',
-                items: [
-                  `Increase daily budget from $${(meta.totalSpend / 30).toFixed(2)}/day to $10+/day`,
-                  'Facebook needs volume to optimize',
-                  'One winner + real budget = results',
-                ],
+                id: 'action-grid',
+                content: (
+                  <div className="grid grid-cols-4 gap-3 mt-5">
+                    {[
+                      {
+                        type: 'scale', title: '↑ Scale', color: '#34d399',
+                        bg: 'rgba(52,211,153,0.05)', border: 'rgba(52,211,153,0.2)',
+                        items: [
+                          'Put $10+/day behind your best ad only',
+                          'You have a proven winner — fund it',
+                          `${meta.bestAd?.name || 'Best ad'} at ${meta.bestAd?.ctr || 0}% CTR — extraordinary`,
+                        ],
+                      },
+                      {
+                        type: 'cut', title: '✕ Cut Now', color: '#fb7185',
+                        bg: 'rgba(251,113,133,0.05)', border: 'rgba(251,113,133,0.2)',
+                        items: meta.worstAds.map(a =>
+                          `${a.name} — ${a.clicks === 0 ? 'zero clicks in 30 days' : 'underperforming'}`
+                        ),
+                      },
+                      {
+                        type: 'fix', title: '⚠ Fix', color: '#fbbf24',
+                        bg: 'rgba(251,191,36,0.05)', border: 'rgba(251,191,36,0.2)',
+                        items: [
+                          `Increase daily budget from $${(meta.totalSpend / 30).toFixed(2)}/day to $10+/day`,
+                          'Facebook needs volume to optimize',
+                          'One winner + real budget = results',
+                        ],
+                      },
+                      {
+                        type: 'test', title: '◇ Test Next', color: '#38bdf8',
+                        bg: 'rgba(56,189,248,0.05)', border: 'rgba(56,189,248,0.2)',
+                        items: [
+                          'Test a new hook angle your best ad doesn\'t use',
+                          'Carousel version of your top performer',
+                          'Check Ad Library for what\'s working in your genre',
+                        ],
+                      },
+                    ].map(card => (
+                      <div key={card.type} className="rounded-xl p-4"
+                        style={{ background: card.bg, border: `1px solid ${card.border}` }}>
+                        <h3 className="text-[11px] font-bold uppercase tracking-[1px] mb-3"
+                          style={{ color: card.color }}>{card.title}</h3>
+                        <ul className="list-none p-0 space-y-1.5">
+                          {card.items.map((item, j) => (
+                            <li key={j} className="text-[12px] leading-snug" style={{ color: '#d6d3d1' }}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                ),
               },
-              {
-                type: 'test', title: '◇ Test Next', color: '#38bdf8',
-                bg: 'rgba(56,189,248,0.05)', border: 'rgba(56,189,248,0.2)',
-                items: [
-                  'Test a new hook angle your best ad doesn\'t use',
-                  'Carousel version of your top performer',
-                  'Check Ad Library for what\'s working in your genre',
-                ],
-              },
-            ].map(card => (
-              <div key={card.type} className="rounded-xl p-4"
-                style={{ background: card.bg, border: `1px solid ${card.border}` }}>
-                <h3 className="text-[11px] font-bold uppercase tracking-[1px] mb-3"
-                  style={{ color: card.color }}>{card.title}</h3>
-                <ul className="list-none p-0 space-y-1.5">
-                  {card.items.map((item, i) => (
-                    <li key={i} className="text-[12px] leading-snug" style={{ color: '#d6d3d1' }}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+            ]}
+          />
         </>
       )}
     </DarkPage>

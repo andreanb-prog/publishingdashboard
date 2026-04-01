@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npx tsx -e \":*)",
       "Bash(git add:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(node -e \"require\\(''''@dnd-kit/core''''\\)\")",
+      "Bash(npx prisma:*)"
     ]
   }
 }
