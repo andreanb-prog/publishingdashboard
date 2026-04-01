@@ -19,9 +19,9 @@ async function sendToNotion({
   userName: string
   userEmail: string
 }) {
-  const notionKey = process.env.NOTION_API_KEY
+  const notionKey = process.env.NOTION_API_KEY || process.env.NOTION
   if (!notionKey) {
-    console.warn('[Feedback] NOTION_API_KEY not set — Notion sync skipped')
+    console.warn('[Feedback] NOTION_API_KEY / NOTION not set — Notion sync skipped')
     return
   }
 
