@@ -95,11 +95,34 @@ export default function MailerLitePage() {
           {analysis && <InsightCallouts analysis={analysis} page="mailerlite" />}
           {coach && <DarkCoachBox color="#34d399" title={coachTitle}>{coach}</DarkCoachBox>}
 
-          {/* Benchmarks table */}
+          {/* Email Health Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+            {(() => {
+              const emailsSent = ml.campaigns.reduce((sum, c) => sum + 1, 0)
+              const avgUnsubs = ml.campaigns.length > 0
+                ? Math.round(ml.campaigns.reduce((s, c) => s + c.unsubscribes, 0) / ml.campaigns.length * 10) / 10
+                : 0
+              const topCampaign = [...ml.campaigns].sort((a, b) => b.openRate - a.openRate)[0]
+              const metrics = [
+                { label: 'Campaigns This Period', value: String(emailsSent), sub: `${ml.campaigns.length} tracked`, color: '#38bdf8' },
+                { label: 'Avg Unsubs / Campaign', value: String(avgUnsubs), sub: avgUnsubs > 5 ? 'Higher than ideal' : 'Healthy range', color: avgUnsubs > 5 ? '#F97B6B' : '#6EBF8B' },
+                { label: 'Best Open Rate', value: topCampaign ? `${topCampaign.openRate}%` : '—', sub: topCampaign ? topCampaign.name : 'No campaigns', color: '#E9A020' },
+              ]
+              return metrics.map((m, i) => (
+                <div key={i} className="rounded-xl p-4" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+                  <div className="text-[10px] font-bold tracking-[1px] uppercase mb-1.5" style={{ color: '#9CA3AF' }}>{m.label}</div>
+                  <div className="text-[24px] font-semibold tracking-tight leading-none mb-1" style={{ color: m.color }}>{m.value}</div>
+                  <div className="text-[11px]" style={{ color: '#6B7280' }}>{m.sub}</div>
+                </div>
+              ))
+            })()}
+          </div>
+
+          {/* Your Audience, Benchmarked */}
           <div className="rounded-xl overflow-x-auto mb-5"
             style={{ background: 'white', border: '1px solid #EEEBE6' }}>
             <div className="px-5 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #EEEBE6' }}>
-              <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>How you compare</span>
+              <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Your Audience, Benchmarked</span>
               <span className="text-[11px] px-2 py-0.5 rounded-full cursor-default"
                 title="Based on email marketing data for indie authors and fiction publishers. Your genre may vary."
                 style={{ background: 'rgba(0,0,0,0.06)', color: '#6B7280' }}>
@@ -279,6 +302,41 @@ export default function MailerLitePage() {
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Campaign Open Rate Trend */}
+          {ml.campaigns.length >= 3 && (
+            <div className="rounded-xl overflow-hidden mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+              <div className="px-5 py-3 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
+                Daily Email Opens — Recent Campaigns
+              </div>
+              <div className="px-5 py-4">
+                <div className="flex items-end gap-1.5" style={{ height: 120 }}>
+                  {ml.campaigns.slice(0, 10).reverse().map((c, i) => {
+                    const maxRate = Math.max(...ml.campaigns.slice(0, 10).map(x => x.openRate), 1)
+                    const h = Math.max((c.openRate / maxRate) * 100, 4)
+                    const isGood = c.openRate >= openTarget
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1" title={`${c.name}: ${c.openRate}%`}>
+                        <span className="text-[9px] font-mono font-bold" style={{ color: isGood ? '#6EBF8B' : '#E9A020' }}>
+                          {c.openRate}%
+                        </span>
+                        <div className="w-full rounded-t-md transition-all" style={{
+                          height: `${h}%`,
+                          background: isGood ? 'linear-gradient(180deg, #6EBF8B, rgba(110,191,139,0.3))' : 'linear-gradient(180deg, #E9A020, rgba(233,160,32,0.3))',
+                        }} />
+                        <span className="text-[8px] truncate w-full text-center" style={{ color: '#9CA3AF' }}>
+                          {c.sentAt ? new Date(c.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="mt-2 text-[10px] text-right" style={{ color: '#9CA3AF' }}>
+                  Green = above your {openTarget}% target
+                </div>
+              </div>
             </div>
           )}
 
