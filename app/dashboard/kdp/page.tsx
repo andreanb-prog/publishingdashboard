@@ -438,12 +438,12 @@ export default function KDPPage() {
   }
 
   return (
-    <DarkPage title="📚 KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties">
+    <DarkPage title="KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties">
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {!kdp ? (
         <div className="text-center py-16" style={{ color: '#9CA3AF' }}>
           <div className="text-4xl mb-4">📚</div>
-          <div className="font-serif text-xl mb-2" style={{ color: '#1E2D3D' }}>No KDP data yet</div>
+          <div className="text-xl font-semibold mb-2" style={{ color: '#1E2D3D' }}>No KDP data yet</div>
           <p className="text-sm mb-4">Upload your KDP Excel report to see your analysis</p>
           <a href="/dashboard/upload" className="inline-block px-6 py-2.5 rounded-lg font-semibold text-sm no-underline"
             style={{ background: '#e9a020', color: '#0d1f35' }}>
@@ -461,30 +461,77 @@ export default function KDPPage() {
             }}
           />
 
-          <DarkKPIStrip cols={5} items={[
-            { label: 'Total Royalties',  value: `$${kdp.totalRoyaltiesUSD}`,         sub: 'USD this month',         color: '#fb7185' },
-            { label: 'Units (range)',    value: filteredTotalUnits.toLocaleString(),   sub: 'eBooks + paperback',     color: '#38bdf8' },
-            { label: 'KENP (range)',     value: filteredTotalKENP.toLocaleString(),    sub: `~$${Math.round(filteredTotalKENP * 0.0045)} est. KU earnings`, color: '#fbbf24' },
-            { label: 'MOLR Units',       value: kdp.books.find(b => b.asin === 'B0GSC2RTF8')?.units || 0,  sub: 'My Off-Limits Roommate',  color: '#34d399' },
-            { label: 'FDMBP Units',      value: kdp.books.find(b => b.asin === 'B0GQD4J6VT')?.units || 0,  sub: 'Fake Dating Billionaire', color: '#a78bfa' },
-          ]} />
+          {/* KPI Strip — equal grid */}
+          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+            {[
+              { label: 'Total Royalties',  value: `$${kdp.totalRoyaltiesUSD}`,         sub: 'USD this month',         color: '#fb7185' },
+              { label: 'Units (range)',    value: filteredTotalUnits.toLocaleString(),   sub: 'eBooks + paperback',     color: '#38bdf8' },
+              { label: 'KENP (range)',     value: filteredTotalKENP.toLocaleString(),    sub: `~$${Math.round(filteredTotalKENP * 0.0045)} est. KU earnings`, color: '#fbbf24' },
+              { label: 'MOLR Units',       value: String(kdp.books.find(b => b.asin === 'B0GSC2RTF8')?.units || 0),  sub: 'My Off-Limits Roommate',  color: '#34d399' },
+              { label: 'FDMBP Units',      value: String(kdp.books.find(b => b.asin === 'B0GQD4J6VT')?.units || 0),  sub: 'Fake Dating Billionaire', color: '#a78bfa' },
+            ].map((item, i) => (
+              <div key={i} className="rounded-xl relative overflow-hidden"
+                style={{ background: 'white', border: '1px solid #F0E0C8', padding: 16, minHeight: 100 }}>
+                <div className="absolute bottom-0 left-0 right-0 h-[3px]"
+                  style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
+                <div className="text-[11px] font-bold tracking-[1.2px] uppercase mb-2"
+                  style={{ color: '#9CA3AF' }}>
+                  {item.label}
+                </div>
+                <div className="text-[32px] font-semibold leading-none tracking-tight mb-1.5"
+                  style={{ color: item.color }}>
+                  {item.value}
+                </div>
+                <div className="text-[12px]" style={{ color: '#6B7280' }}>{item.sub}</div>
+              </div>
+            ))}
+          </div>
 
           {coach && <DarkCoachBox color="#fbbf24" title={coachTitle}>{coach}</DarkCoachBox>}
 
-          <div className="grid grid-cols-2 gap-4 mb-5">
-            <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
-              <h3 className="text-[13.5px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>Units by Book</h3>
-              <BarChart
-                items={kdp.books.map(b => ({ label: b.shortTitle, value: b.units, formatted: `${b.units}` }))}
-                color="#fb7185"
-              />
+          {/* Chart cards — equal 1fr 1fr grid */}
+          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <div className="rounded-xl" style={{ background: 'white', border: '1px solid #F0E0C8', padding: 20 }}>
+              <h3 className="text-[16px] font-medium mb-4" style={{ color: '#1E2D3D' }}>Units by Book</h3>
+              <div className="space-y-2.5">
+                {kdp.books.map((b, i) => {
+                  const maxVal = Math.max(...kdp.books.map(x => x.units), 1)
+                  const colors = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5']
+                  const color = colors[i] || '#9CA3AF'
+                  return (
+                    <div key={b.asin || i}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[12px]" style={{ color: '#6B7280' }}>{b.shortTitle}</span>
+                        <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>{b.units}</span>
+                      </div>
+                      <div className="rounded-full overflow-hidden" style={{ height: 28, background: '#F0E0C8' }}>
+                        <div className="h-full rounded-full transition-all" style={{ width: `${(b.units / maxVal) * 100}%`, background: color }} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-            <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
-              <h3 className="text-[13.5px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>KENP by Book</h3>
-              <BarChart
-                items={kdp.books.map(b => ({ label: b.shortTitle, value: b.kenp, formatted: b.kenp.toLocaleString() }))}
-                color="#fbbf24"
-              />
+            <div className="rounded-xl" style={{ background: 'white', border: '1px solid #F0E0C8', padding: 20 }}>
+              <h3 className="text-[16px] font-medium mb-4" style={{ color: '#1E2D3D' }}>KENP by Book</h3>
+              <div className="space-y-2.5">
+                {kdp.books.map((b, i) => {
+                  const maxVal = Math.max(...kdp.books.map(x => x.kenp), 1)
+                  const colors = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5']
+                  const color = colors[i] || '#9CA3AF'
+                  return (
+                    <div key={b.asin || i}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[12px]" style={{ color: '#6B7280' }}>{b.shortTitle}</span>
+                        <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>{b.kenp.toLocaleString()}</span>
+                      </div>
+                      <div className="rounded-full overflow-hidden" style={{ height: 28, background: '#F0E0C8' }}>
+                        <div className="h-full rounded-full transition-all" style={{ width: `${(b.kenp / maxVal) * 100}%`, background: color }} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
 
