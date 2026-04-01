@@ -431,7 +431,7 @@ export default function KDPPage() {
 
   if (loading) {
     return (
-      <DarkPage title="📚 KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties">
+      <DarkPage title="KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties">
         <PageSkeleton cols={5} />
       </DarkPage>
     )

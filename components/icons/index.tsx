@@ -9,22 +9,29 @@ interface IconProps {
 
 export function IconKDP({ size = 24, color = '#E9A020', className }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
-      <rect x="4" y="3" width="10" height="14" rx="1.5" stroke={color} strokeWidth="1.8" />
-      <rect x="7" y="6" width="10" height="14" rx="1.5" fill={color} fillOpacity="0.15" stroke={color} strokeWidth="1.8" />
-      <rect x="10" y="9" width="10" height="14" rx="1.5" fill={color} fillOpacity="0.25" stroke={color} strokeWidth="1.8" />
-      <line x1="13" y1="13" x2="17" y2="13" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="13" y1="16" x2="16" y2="16" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" className={className}>
+      <rect x="5" y="14" width="18" height="20" rx="2" fill="#FFF8F0" stroke={color} strokeWidth="1.5" />
+      <rect x="9" y="10" width="18" height="20" rx="2" fill="#FFF4E0" stroke={color} strokeWidth="1.5" />
+      <rect x="13" y="6" width="18" height="20" rx="2" fill="#FFEBC0" stroke={color} strokeWidth="1.5" />
+      <line x1="16" y1="13" x2="28" y2="13" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+      <line x1="16" y1="17" x2="28" y2="17" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+      <line x1="16" y1="21" x2="24" y2="21" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.4" />
     </svg>
   )
 }
 
-export function IconMeta({ size = 24, color = '#38bdf8', className }: IconProps) {
+export function IconMeta({ size = 24, color = '#60A5FA', className }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
-      <polyline points="3,16 7,10 11,14 15,6 21,12" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <circle cx="18" cy="17" r="4" fill={color} fillOpacity="0.15" stroke={color} strokeWidth="1.5" />
-      <text x="18" y="19.5" fontSize="6" fontWeight="bold" fill={color} textAnchor="middle">$</text>
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" className={className}>
+      <polyline points="6,30 14,18 20,24 28,12 34,16" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="6" cy="30" r="2.5" fill={color} />
+      <circle cx="14" cy="18" r="2.5" fill={color} />
+      <circle cx="20" cy="24" r="2.5" fill={color} />
+      <circle cx="28" cy="12" r="2.5" fill={color} />
+      <circle cx="34" cy="16" r="2.5" fill={color} />
+      <path d="M6,30 L34,16 L34,30 Z" fill={color} opacity="0.08" />
+      <circle cx="32" cy="32" r="7" fill={color} />
+      <text x="32" y="35.5" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="sans-serif">$</text>
     </svg>
   )
 }

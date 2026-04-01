@@ -450,14 +450,14 @@ export default function MetaPage() {
 
   if (loading) {
     return (
-      <DarkPage title="📣 Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
+      <DarkPage title="Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
         <PageSkeleton cols={4} rows={3} />
       </DarkPage>
     )
   }
 
   return (
-    <DarkPage title="📣 Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
+    <DarkPage title="Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {!meta ? (
         <div className="text-center py-16" style={{ color: '#9CA3AF' }}>

@@ -15,7 +15,7 @@ import { OnboardingFlow } from '@/components/OnboardingFlow'
 
 const CHANNEL_CARDS = [
   { key: 'kdp',        href: '/dashboard/kdp',        icon: IconKDP,       iconColor: '#E9A020', name: 'KDP',        colorClass: 'border-t-amber-brand' },
-  { key: 'meta',       href: '/dashboard/meta',        icon: IconMeta,      iconColor: '#38bdf8', name: 'Meta Ads',   colorClass: 'border-t-blue-500' },
+  { key: 'meta',       href: '/dashboard/meta',        icon: IconMeta,      iconColor: '#60A5FA', name: 'Meta Ads',   colorClass: 'border-t-blue-500' },
   { key: 'mailerlite', href: '/dashboard/mailerlite',  icon: IconMailerLite, iconColor: '#34d399', name: 'MailerLite', colorClass: 'border-t-emerald-500' },
   { key: 'swaps',      href: '/dashboard/swaps',       icon: IconSwaps,     iconColor: '#E9A020', name: 'Swaps',      colorClass: 'border-t-amber-brand' },
   { key: 'pinterest',  href: '/dashboard/pinterest',   icon: IconPinterest, iconColor: '#fb7185', name: 'Pinterest',  colorClass: 'border-t-red-500' },

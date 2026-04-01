@@ -26,7 +26,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const CHANNEL_ITEMS: NavItem[] = [
   { label: 'KDP',              href: '/dashboard/kdp',        render: custom(IconKDP, '#E9A020') },
-  { label: 'Meta / Facebook',  href: '/dashboard/meta',       render: custom(IconMeta, '#38bdf8') },
+  { label: 'Meta / Facebook',  href: '/dashboard/meta',       render: custom(IconMeta, '#60A5FA') },
   { label: 'MailerLite',       href: '/dashboard/mailerlite',  render: custom(IconMailerLite, '#34d399') },
   { label: 'Newsletter Swaps', href: '/dashboard/swaps',      render: custom(IconSwaps, '#E9A020') },
   { label: 'Pinterest',        href: '/dashboard/pinterest',   render: custom(IconPinterest, '#fb7185') },

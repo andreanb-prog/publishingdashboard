@@ -28,7 +28,7 @@ const ALL_NAV: NavEntry[] = [
   { section: 'Overview', label: 'My Dashboard',   href: '/dashboard',              render: ph(House) },
   { label: 'Upload & Analyze',                    href: '/dashboard/upload',       render: ph(UploadSimple) },
   { section: 'Channels', label: 'KDP',            href: '/dashboard/kdp',          render: ic(IconKDP, '#E9A020') },
-  { label: 'Meta / Facebook',                     href: '/dashboard/meta',         render: ic(IconMeta, '#38bdf8') },
+  { label: 'Meta / Facebook',                     href: '/dashboard/meta',         render: ic(IconMeta, '#60A5FA') },
   { label: 'MailerLite',                           href: '/dashboard/mailerlite',   render: ic(IconMailerLite, '#34d399') },
   { label: 'Newsletter Swaps',                    href: '/dashboard/swaps',        render: ic(IconSwaps, '#E9A020') },
   { label: 'Pinterest',                            href: '/dashboard/pinterest',    render: ic(IconPinterest, '#fb7185') },
