@@ -49,11 +49,12 @@ model User {
   onboardingDismissed Boolean  @default(false)
   accounts      Account[]
   sessions      Session[]
-  rankLogs      RankLog[]
-  roasLogs      RoasLog[]
-  pinterestLogs PinterestLog[]
-  analyses      Analysis[]
-  feedback      Feedback[]
+  rankLogs          RankLog[]
+  roasLogs          RoasLog[]
+  pinterestLogs     PinterestLog[]
+  analyses          Analysis[]
+  feedback          Feedback[]
+  listBuildingLogs  ListBuildingLog[]
   createdAt     DateTime       @default(now())
 }
 
@@ -72,6 +73,7 @@ model RankLog {
   book      String   // 'MOLR' | 'FDMBP' | custom ASIN
   asin      String
   rank      Int
+  category  String?  // null = overall BSR; set = subcategory name
   date      DateTime @default(now())
   createdAt DateTime @default(now())
 
@@ -127,6 +129,21 @@ model Feedback {
   message   String
   page      String
   createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model ListBuildingLog {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaignName String
+  spend        Float
+  subscribers  Int
+  startDate    DateTime
+  endDate      DateTime
+  notes        String?
+  createdAt    DateTime @default(now())
 
   @@index([userId])
 }

@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   const logs = await db.roasLog.findMany({
     where: { userId: session.user.id },
     orderBy: { date: 'desc' },
-    take: 30,
+    take: 21,
   })
 
   return NextResponse.json({ logs })

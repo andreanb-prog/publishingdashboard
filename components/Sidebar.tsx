@@ -18,11 +18,12 @@ const CHANNEL_ITEMS = [
 ]
 
 const TOOL_ITEMS = [
-  { label: 'Advanced Metrics', href: '/dashboard/metrics', icon: '📊' },
-  { label: 'Rank Tracker',     href: '/dashboard/rank',    icon: '📈' },
-  { label: 'Daily ROAS Log',   href: '/dashboard/roas',    icon: '💰' },
-  { label: 'Learn the Terms',  href: '/dashboard/learn',   icon: '📖' },
-  { label: 'Settings',         href: '/dashboard/settings', icon: '⚙️' },
+  { label: 'Advanced Metrics',    href: '/dashboard/metrics',       icon: '📊' },
+  { label: 'Rank Tracker',        href: '/dashboard/rank',          icon: '📈' },
+  { label: 'Daily ROAS Log',      href: '/dashboard/roas',          icon: '💰' },
+  { label: 'List Building ROAS',  href: '/dashboard/list-building', icon: '📬' },
+  { label: 'Learn the Terms',     href: '/dashboard/learn',         icon: '📖' },
+  { label: 'Settings',            href: '/dashboard/settings',      icon: '⚙️' },
 ]
 
 const INACTIVE_COLOR  = 'rgba(255,255,255,0.70)'

@@ -1,12 +1,24 @@
 'use client'
-// app/(dashboard)/rank/page.tsx
-import { useEffect, useRef, useState } from 'react'
-import { CategoryTagInput } from '@/components/CategoryTagInput'
+// app/dashboard/rank/page.tsx
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 
-const BOOKS = [
-  { key: 'MOLR', title: 'My Off-Limits Roommate', asin: 'B0GSC2RTF8', launched: 'Mar 19, 2026', currentRank: 47907, movement: 1843 },
-  { key: 'FDMBP', title: 'Fake Dating My Billionaire Protector', asin: 'B0GQD4J6VT', launched: 'Mar 4, 2026', currentRank: 276953, movement: 34437 },
-]
+interface BookSetting {
+  id: string
+  title: string
+  asin: string
+  categories: string[]
+  series?: string
+  bookNumber?: string
+}
+
+interface RankLogEntry {
+  id: string
+  book: string
+  rank: number
+  category: string | null
+  date: string
+}
 
 function getRankColor(rank: number) {
   if (rank < 50000) return '#34d399'
@@ -20,119 +32,141 @@ function getRankLabel(rank: number) {
   return '🔴 Run a promo'
 }
 
-export default function RankPage() {
-  const [logs, setLogs] = useState<Record<string, any[]>>({ MOLR: [], FDMBP: [] })
-  const [inputs, setInputs] = useState<Record<string, string>>({ MOLR: '', FDMBP: '' })
-  const [saving, setSaving] = useState<Record<string, boolean>>({ MOLR: false, FDMBP: false })
-  const [feedback, setFeedback] = useState<Record<string, string>>({ MOLR: '', FDMBP: '' })
+function Sparkline({ points, color }: { points: number[]; color: string }) {
+  if (points.length < 2) return null
+  // Invert: lower rank = higher on chart (better)
+  const max = Math.max(...points)
+  const min = Math.min(...points)
+  const range = max - min || 1
+  return (
+    <div className="flex items-end gap-px" style={{ height: 32 }}>
+      {points.map((v, i) => {
+        const pct = ((max - v) / range) * 100
+        return (
+          <div
+            key={i}
+            className="flex-1 rounded-t-sm min-w-[3px] opacity-70 hover:opacity-100 transition-opacity"
+            style={{ height: `${Math.max(pct, 5)}%`, background: color }}
+            title={`#${v.toLocaleString()}`}
+          />
+        )
+      })}
+    </div>
+  )
+}
 
-  // Categories per book (keyed by ASIN)
-  const [categories, setCategories] = useState<Record<string, string[]>>({})
-  const [catSaving, setCatSaving] = useState(false)
-  const catSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+export default function RankPage() {
+  const [books, setBooks] = useState<BookSetting[]>([])
+  const [logs, setLogs] = useState<Record<string, RankLogEntry[]>>({})
+  // inputs keyed by `${bookKey}::${category|'overall'}`
+  const [inputs, setInputs] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState<Record<string, boolean>>({})
+  const [feedback, setFeedback] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Load rank logs
-    BOOKS.forEach(async book => {
-      const res = await fetch(`/api/rank?book=${book.key}`)
-      const data = await res.json()
-      if (data.logs) {
-        setLogs(prev => ({ ...prev, [book.key]: data.logs }))
-      }
-    })
-
-    // Load saved book categories from settings
     fetch('/api/settings')
       .then(r => r.json())
       .then(d => {
-        if (!Array.isArray(d.books)) return
-        const catMap: Record<string, string[]> = {}
-        for (const b of d.books as Array<{ asin?: string; categories?: string[]; category?: string }>) {
-          if (!b.asin) continue
-          catMap[b.asin] = Array.isArray(b.categories)
-            ? b.categories
-            : b.category
-            ? [b.category]
-            : []
-        }
-        setCategories(catMap)
+        if (!Array.isArray(d.books)) { setLoading(false); return }
+        const settingsBooks: BookSetting[] = d.books.map((b: any) => ({
+          ...b,
+          categories: Array.isArray(b.categories) ? b.categories : b.category ? [b.category] : [],
+        }))
+        setBooks(settingsBooks)
+
+        // Load logs for each book
+        settingsBooks.forEach(async book => {
+          const key = book.asin || book.id
+          const res = await fetch(`/api/rank?book=${key}`)
+          const data = await res.json()
+          if (data.logs) {
+            setLogs(prev => ({ ...prev, [key]: data.logs }))
+          }
+        })
+        setLoading(false)
       })
-      .catch(() => {})
+      .catch(() => setLoading(false))
   }, [])
 
-  function updateCategories(asin: string, newCats: string[]) {
-    setCategories(prev => ({ ...prev, [asin]: newCats }))
-
-    // Debounced save: merge with the full books list from settings
-    if (catSaveTimer.current) clearTimeout(catSaveTimer.current)
-    catSaveTimer.current = setTimeout(async () => {
-      setCatSaving(true)
-      try {
-        // Fetch current books, then update the matching entry (or create one)
-        const res = await fetch('/api/settings')
-        const d = await res.json()
-        const existingBooks: Array<Record<string, unknown>> = Array.isArray(d.books) ? d.books : []
-
-        const match = BOOKS.find(b => b.asin === asin)
-        const updatedBooks = existingBooks.some((b: Record<string, unknown>) => b.asin === asin)
-          ? existingBooks.map((b: Record<string, unknown>) =>
-              b.asin === asin ? { ...b, categories: newCats } : b
-            )
-          : [
-              ...existingBooks,
-              {
-                id: crypto.randomUUID(),
-                title: match?.title ?? '',
-                asin,
-                categories: newCats,
-                series: '',
-                bookNumber: '',
-              },
-            ]
-
-        await fetch('/api/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save-books', books: updatedBooks }),
-        })
-      } catch {
-        // silently fail
-      } finally {
-        setCatSaving(false)
-      }
-    }, 800)
+  function inputKey(bookKey: string, category: string | null) {
+    return `${bookKey}::${category ?? 'overall'}`
   }
 
-  async function handleLog(book: typeof BOOKS[0]) {
-    const rank = parseInt(inputs[book.key])
-    if (!rank || rank < 1) return
+  async function logRank(book: BookSetting, category: string | null) {
+    const key = book.asin || book.id
+    const iKey = inputKey(key, category)
+    const rankVal = parseInt(inputs[iKey] || '')
+    if (!rankVal || rankVal < 1) return
 
-    setSaving(s => ({ ...s, [book.key]: true }))
+    setSaving(s => ({ ...s, [iKey]: true }))
     try {
       const res = await fetch('/api/rank', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ book: book.key, asin: book.asin, rank }),
+        body: JSON.stringify({ book: key, asin: book.asin || '', rank: rankVal, category }),
       })
       const json = await res.json()
       if (json.success) {
-        setLogs(prev => ({ ...prev, [book.key]: [json.log, ...prev[book.key]] }))
-        setInputs(i => ({ ...i, [book.key]: '' }))
-        const prevRank = logs[book.key][0]?.rank || book.currentRank
-        const movement = prevRank - rank
-        setFeedback(f => ({
-          ...f,
-          [book.key]: movement > 0
-            ? `↑ Up ${movement.toLocaleString()} spots — great! ${getRankLabel(rank)}`
-            : movement < 0
-              ? `↓ Down ${Math.abs(movement).toLocaleString()} spots. Run a promo to push it back up.`
-              : `Rank unchanged at #${rank.toLocaleString()}`,
-        }))
-        setTimeout(() => setFeedback(f => ({ ...f, [book.key]: '' })), 4000)
+        setLogs(prev => ({ ...prev, [key]: [json.log, ...(prev[key] || [])] }))
+        setInputs(i => ({ ...i, [iKey]: '' }))
+        const label = category ?? 'Overall BSR'
+        const prevLog = (logs[key] || []).find(l => (l.category ?? null) === category)
+        const prevRank = prevLog?.rank ?? rankVal
+        const diff = prevRank - rankVal
+        const msg = diff > 0
+          ? `↑ Up ${diff.toLocaleString()} spots — ${label}`
+          : diff < 0
+          ? `↓ Down ${Math.abs(diff).toLocaleString()} spots — ${label}`
+          : `Rank unchanged at #${rankVal.toLocaleString()} — ${label}`
+        setFeedback(f => ({ ...f, [key]: msg }))
+        setTimeout(() => setFeedback(f => ({ ...f, [key]: '' })), 4000)
       }
     } finally {
-      setSaving(s => ({ ...s, [book.key]: false }))
+      setSaving(s => ({ ...s, [iKey]: false }))
     }
+  }
+
+  async function logAll(book: BookSetting) {
+    const key = book.asin || book.id
+    const rows: Array<string | null> = [null, ...book.categories]
+    for (const cat of rows) {
+      const iKey = inputKey(key, cat)
+      if (inputs[iKey]) await logRank(book, cat)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-8 max-w-[1200px]">
+        <div className="animate-pulse text-stone-400 text-[13px]">Loading your books…</div>
+      </div>
+    )
+  }
+
+  if (books.length === 0) {
+    return (
+      <div className="p-8 max-w-[1200px]">
+        <div className="mb-6">
+          <h1 className="font-serif text-[22px] text-[#0d1f35] mb-1">Sales Rank Tracker</h1>
+          <p className="text-[12.5px] text-stone-400">Track your Amazon BSR and subcategory ranks daily.</p>
+        </div>
+        <div className="card p-8 text-center">
+          <div className="text-4xl mb-3">📚</div>
+          <div className="text-[15px] font-bold text-[#0d1f35] mb-2">No books set up yet</div>
+          <p className="text-[13px] text-stone-500 mb-5">
+            Add your books in Settings first, then come back to log ranks.
+          </p>
+          <Link
+            href="/dashboard/settings"
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-[13px] font-bold text-white"
+            style={{ background: '#0d1f35' }}
+          >
+            Go to Settings →
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -140,96 +174,144 @@ export default function RankPage() {
       <div className="mb-6">
         <h1 className="font-serif text-[22px] text-[#0d1f35] mb-1">Sales Rank Tracker</h1>
         <p className="text-[12.5px] text-stone-400">
-          Log your rank every morning — takes 10 seconds. Over 30 days you'll see exactly which promo days moved the needle.
+          Log your rank every morning — takes 10 seconds. Over time you'll see exactly which days move the needle.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-5 mb-6">
-        {BOOKS.map(book => {
-          const bookLogs = logs[book.key] || []
-          const latestRank = bookLogs[0]?.rank || book.currentRank
-          const prevRank = bookLogs[1]?.rank || book.currentRank + book.movement
-          const diff = prevRank - latestRank
-          const rankColor = getRankColor(latestRank)
-          const bookCats = categories[book.asin] ?? []
+      <div className="space-y-5 mb-6">
+        {books.map(book => {
+          const key = book.asin || book.id
+          const bookLogs = logs[key] || []
+          const overallLogs = bookLogs.filter(l => l.category === null)
+          const latestOverall = overallLogs[0]?.rank ?? null
+          const hasBestseller = bookLogs.some(l => l.rank < 100)
+
+          // All rows: overall + per category
+          const rows: Array<{ label: string; category: string | null }> = [
+            { label: 'Overall BSR', category: null },
+            ...book.categories.map(c => ({ label: c, category: c })),
+          ]
+
+          const hasAnyInput = rows.some(r => !!inputs[inputKey(key, r.category)])
 
           return (
-            <div key={book.key} className="card p-6">
-              <div className="text-[13px] font-bold text-[#0d1f35] mb-0.5">{book.title}</div>
-              <div className="text-[10.5px] text-stone-400 mb-3">{book.asin} · Launched {book.launched}</div>
-
-              {/* Category tags */}
-              <div className="mb-4">
-                <div className="text-[10px] font-bold uppercase tracking-[0.8px] text-stone-400 mb-1.5">
-                  Categories
-                  {catSaving && <span className="ml-2 font-normal normal-case text-stone-300">saving…</span>}
+            <div key={key} className="card p-6">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-2.5 mb-0.5">
+                    <div className="text-[14px] font-bold text-[#0d1f35]">{book.title || 'Untitled'}</div>
+                    {hasBestseller && (
+                      <span className="text-[10.5px] font-bold px-2.5 py-0.5 rounded-full"
+                        style={{ background: 'rgba(233,160,32,0.15)', color: '#92400e' }}>
+                        🏆 Bestseller!
+                      </span>
+                    )}
+                  </div>
+                  {book.asin && (
+                    <div className="text-[10.5px] text-stone-400 font-mono">{book.asin}</div>
+                  )}
                 </div>
-                <CategoryTagInput
-                  value={bookCats}
-                  onChange={v => updateCategories(book.asin, v)}
-                />
-              </div>
-
-              <div className="font-serif mb-1" style={{ fontSize: '42px', color: '#0d1f35', letterSpacing: '-2px', lineHeight: 1 }}>
-                #{latestRank.toLocaleString()}
-              </div>
-              <div className="text-[12.5px] font-semibold mb-4"
-                style={{ color: diff >= 0 ? '#1a9e68' : '#c73c3c' }}>
-                {diff >= 0 ? '↑' : '↓'} {Math.abs(diff).toLocaleString()} spots since last log
-              </div>
-
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full mb-4"
-                style={{ background: `${rankColor}15`, color: rankColor }}>
-                {getRankLabel(latestRank)}
-              </span>
-
-              {/* Log form */}
-              <div className="border-t border-stone-100 pt-4">
-                <div className="text-[10.5px] font-bold uppercase tracking-[0.8px] text-stone-400 mb-2">
-                  Log today's rank
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder={`e.g. ${(latestRank * 0.95).toFixed(0)}`}
-                    value={inputs[book.key]}
-                    onChange={e => setInputs(i => ({ ...i, [book.key]: e.target.value }))}
-                    onKeyDown={e => e.key === 'Enter' && handleLog(book)}
-                    className="input-field flex-1"
-                  />
-                  <button
-                    onClick={() => handleLog(book)}
-                    disabled={saving[book.key] || !inputs[book.key]}
-                    className="px-4 py-2.5 rounded-lg text-[13px] font-bold text-white transition-all disabled:opacity-40"
-                    style={{ background: '#0d1f35', border: 'none', cursor: 'pointer' }}
-                  >
-                    {saving[book.key] ? '...' : 'Log It'}
-                  </button>
-                </div>
-                {feedback[book.key] && (
-                  <div className="mt-2 text-[12px] font-semibold px-3 py-2 rounded-lg"
-                    style={{ background: '#eaf7f1', color: '#0f6b46' }}>
-                    {feedback[book.key]}
+                {latestOverall !== null && (
+                  <div className="text-right">
+                    <div className="font-serif text-[30px] leading-none tracking-tight"
+                      style={{ color: getRankColor(latestOverall) }}>
+                      #{latestOverall.toLocaleString()}
+                    </div>
+                    <div className="text-[10.5px] mt-0.5" style={{ color: getRankColor(latestOverall) }}>
+                      {getRankLabel(latestOverall)}
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Mini history */}
-              {bookLogs.length > 0 && (
-                <div className="mt-3 border-t border-stone-100 pt-3">
-                  <div className="text-[10px] uppercase tracking-[0.8px] text-stone-400 mb-2 font-bold">Recent logs</div>
-                  <div className="space-y-1">
-                    {bookLogs.slice(0, 5).map((log, i) => (
-                      <div key={i} className="flex items-center justify-between text-[11.5px]">
-                        <span className="text-stone-400">{new Date(log.date).toLocaleDateString()}</span>
-                        <span className="font-mono font-semibold" style={{ color: getRankColor(log.rank) }}>
-                          #{log.rank.toLocaleString()}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+              {/* No categories hint */}
+              {book.categories.length === 0 && (
+                <div className="mb-4 text-[12px] text-stone-400 flex items-center gap-1.5">
+                  <span>💡 No subcategories set.</span>
+                  <Link href="/dashboard/settings" className="text-amber-600 font-semibold hover:underline">
+                    Add categories in Settings →
+                  </Link>
                 </div>
               )}
+
+              {/* Input rows */}
+              <div className="space-y-2.5 mb-4">
+                {rows.map(({ label, category }) => {
+                  const iKey = inputKey(key, category)
+                  const catLogs = bookLogs.filter(l => (l.category ?? null) === category)
+                  const latest = catLogs[0]?.rank
+                  const isSaving = saving[iKey]
+
+                  return (
+                    <div key={iKey} className="flex items-center gap-3">
+                      <div className="w-44 flex-shrink-0">
+                        <div className="text-[11.5px] font-semibold text-stone-600 truncate">{label}</div>
+                        {latest !== undefined && (
+                          <div className="text-[10.5px] font-mono" style={{ color: getRankColor(latest) }}>
+                            Last: #{latest.toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="e.g. 45000"
+                        value={inputs[iKey] || ''}
+                        onChange={e => setInputs(i => ({ ...i, [iKey]: e.target.value }))}
+                        onKeyDown={e => e.key === 'Enter' && logRank(book, category)}
+                        className="input-field flex-1"
+                        style={{ maxWidth: 160 }}
+                      />
+                      <button
+                        onClick={() => logRank(book, category)}
+                        disabled={isSaving || !inputs[iKey]}
+                        className="px-3.5 py-2 rounded-lg text-[12.5px] font-bold text-white transition-all disabled:opacity-40"
+                        style={{ background: '#0d1f35', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      >
+                        {isSaving ? '…' : 'Log It'}
+                      </button>
+
+                      {/* Mini sparkline inline */}
+                      {catLogs.length >= 2 && (
+                        <div className="w-20 flex-shrink-0">
+                          <Sparkline
+                            points={[...catLogs].reverse().slice(-14).map(l => l.rank)}
+                            color={getRankColor(catLogs[0].rank)}
+                          />
+                        </div>
+                      )}
+
+                      {/* Bestseller badge per row */}
+                      {latest !== undefined && latest < 100 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                          style={{ background: 'rgba(233,160,32,0.15)', color: '#92400e' }}>
+                          🏆 #1 Bestseller!
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Log All + feedback */}
+              <div className="flex items-center gap-3 border-t border-stone-100 pt-4">
+                {hasAnyInput && (
+                  <button
+                    onClick={() => logAll(book)}
+                    className="px-5 py-2 rounded-lg text-[12.5px] font-bold transition-all"
+                    style={{ background: 'rgba(233,160,32,0.15)', color: '#92400e', border: 'none', cursor: 'pointer' }}
+                  >
+                    Log All →
+                  </button>
+                )}
+                {feedback[key] && (
+                  <div className="text-[12px] font-semibold px-3 py-1.5 rounded-lg"
+                    style={{ background: '#eaf7f1', color: '#0f6b46' }}>
+                    {feedback[key]}
+                  </div>
+                )}
+              </div>
             </div>
           )
         })}

@@ -143,9 +143,9 @@ export default function ROASPage() {
   const totalSpend    = logs.reduce((s, l) => s + l.spend, 0)
   const totalEarnings = logs.reduce((s, l) => s + l.earnings, 0)
 
-  // Last 30 days ROAS values for sparkline (only days with earnings)
+  // Last 21 days ROAS values for sparkline (only days with earnings)
   const sparkValues = useMemo(() =>
-    logs.slice(0, 30).reverse().filter(l => l.earnings > 0).map(l => l.roas),
+    logs.slice(0, 21).reverse().filter(l => l.earnings > 0).map(l => l.roas),
   [logs])
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -338,7 +338,7 @@ export default function ROASPage() {
       {logs.length > 0 && (
         <div className="card overflow-hidden">
           <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
-            <div className="text-[13.5px] font-semibold text-[#0d1f35]">Last 30 days</div>
+            <div className="text-[13.5px] font-semibold text-[#0d1f35]">Last 21 days</div>
             {sparkValues.length >= 2 && (
               <div className="flex items-center gap-3">
                 <div className="text-[10.5px] text-stone-400">ROAS trend</div>
@@ -355,7 +355,7 @@ export default function ROASPage() {
               </tr>
             </thead>
             <tbody>
-              {logs.slice(0, 30).map((log, i) => {
+              {logs.slice(0, 21).map((log, i) => {
                 const hasEarnings = log.earnings > 0
                 const { text, color } = roasLabel(log.roas, hasEarnings)
                 return (

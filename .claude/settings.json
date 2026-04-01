@@ -5,7 +5,11 @@
       "Bash(git add:*)",
       "Bash(npx tsc:*)",
       "Bash(node -e \"require\\(''''@dnd-kit/core''''\\)\")",
-      "Bash(npx prisma:*)"
+      "Bash(npx prisma:*)",
+      "Bash(npm install:*)",
+      "Bash(node -e \":*)",
+      "Bash(gh issue:*)",
+      "Bash(brew list:*)"
     ]
   }
 }
