@@ -121,6 +121,213 @@ function MetricCard({ title, value, valueColor, sub, coach, children }: {
   )
 }
 
+// ── Reader Funnel ────────────────────────────────────────────────────────────
+type FunnelStage = {
+  label: string
+  value: string
+  raw: number
+  sub: string
+  available: boolean
+  leakPct?: number
+  leakStatus?: 'green' | 'amber' | 'red'
+  leakNote?: string
+}
+
+function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
+  meta?: Analysis['meta']
+  kdp?: Analysis['kdp']
+  ml?: Analysis['mailerLite']
+  booksSorted: NonNullable<Analysis['kdp']>['books']
+}) {
+  const impressions = meta?.totalImpressions ?? 0
+  const clicks = meta?.totalClicks ?? 0
+  const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0
+  const totalUnits = kdp?.totalUnits ?? 0
+  const estimatedBorrows = kdp ? Math.round((kdp.totalKENP ?? 0) / AVG_ROMANCE_PAGES) : 0
+  const readers = totalUnits + estimatedBorrows
+  const costPerClick = meta && clicks > 0 ? meta.totalSpend / clicks : 0
+  const costPerReader = meta && readers > 0 ? meta.totalSpend / readers : 0
+  const listSize = ml?.listSize ?? 0
+  const costPerSub = meta && listSize > 0 ? meta.totalSpend / listSize : 0
+
+  // Series continuation: compare book 1 KENP to book 2 KENP
+  const b1kenp = booksSorted[0]?.kenp ?? 0
+  const b2kenp = booksSorted[1]?.kenp ?? 0
+  const readThroughPct = b1kenp > 0 && booksSorted.length > 1 ? (b2kenp / b1kenp) * 100 : 0
+
+  const stages: FunnelStage[] = [
+    {
+      label: 'Ad Impressions',
+      value: impressions > 0 ? impressions.toLocaleString() : '—',
+      raw: impressions,
+      sub: 'Source: Meta ads data',
+      available: !!meta,
+    },
+    {
+      label: 'Clicks',
+      value: clicks > 0 ? clicks.toLocaleString() : '—',
+      raw: clicks,
+      sub: `${ctr.toFixed(1)}% CTR`,
+      available: !!meta,
+      leakPct: impressions > 0 ? 100 - ctr : undefined,
+      leakStatus: ctr >= 2 ? 'green' : ctr >= 1 ? 'amber' : 'red',
+      leakNote: ctr < 1 ? 'Low CTR — your ad creative may need a stronger hook' : undefined,
+    },
+    {
+      label: 'Book Page Visits',
+      value: clicks > 0 ? `~${clicks.toLocaleString()}` : '—',
+      raw: clicks,
+      sub: "Amazon doesn't share page visits — estimated from clicks",
+      available: !!meta,
+    },
+    {
+      label: 'Readers',
+      value: readers > 0 ? readers.toLocaleString() : '—',
+      raw: readers,
+      sub: readers > 0 ? `${totalUnits} units + ~${estimatedBorrows} KU borrows · $${costPerReader.toFixed(2)}/reader` : 'Source: KDP data',
+      available: !!kdp,
+      leakPct: clicks > 0 ? (1 - readers / clicks) * 100 : undefined,
+      leakStatus: clicks > 0 ? (readers / clicks >= 0.3 ? 'green' : readers / clicks >= 0.15 ? 'amber' : 'red') : undefined,
+      leakNote: clicks > 0 && readers / clicks < 0.15 ? 'Low conversion — your book page may need a stronger blurb or cover' : undefined,
+    },
+    {
+      label: 'Series Continuation',
+      value: readThroughPct > 0 ? `${readThroughPct.toFixed(0)}% read-through` : '—',
+      raw: readThroughPct,
+      sub: booksSorted.length > 1 ? `Book 2 KENP vs Book 1 KENP` : 'Need 2+ books for read-through',
+      available: booksSorted.length > 1,
+      leakPct: readThroughPct > 0 ? 100 - readThroughPct : undefined,
+      leakStatus: readThroughPct >= 60 ? 'green' : readThroughPct >= 35 ? 'amber' : 'red',
+      leakNote: readThroughPct > 0 && readThroughPct < 35 ? 'Low read-through — check your back matter links and cliffhanger ending' : undefined,
+    },
+    {
+      label: 'Email Subscribers',
+      value: listSize > 0 ? listSize.toLocaleString() : '0',
+      raw: listSize,
+      sub: listSize === 0 && readers > 0
+        ? `${readers.toLocaleString()} readers never captured — THIS IS YOUR LEAK`
+        : listSize > 0 ? `$${costPerSub.toFixed(2)} per subscriber` : 'Source: MailerLite',
+      available: true,
+      leakStatus: listSize === 0 && readers > 0 ? 'red' : listSize > 0 ? 'green' : undefined,
+      leakNote: listSize === 0 && readers > 0 ? 'You have readers but no email capture — build a reader magnet and landing page immediately' : undefined,
+    },
+  ]
+
+  const LEAK_COLORS = {
+    green: { bg: 'rgba(52,211,153,0.08)', color: '#34d399', label: 'Healthy' },
+    amber: { bg: 'rgba(251,191,36,0.08)', color: '#fbbf24', label: 'Monitor' },
+    red:   { bg: 'rgba(251,113,133,0.08)', color: '#fb7185', label: 'Leak' },
+  }
+
+  // Funnel metrics strip
+  const metrics = [
+    { label: 'Cost per Click', value: costPerClick > 0 ? `$${costPerClick.toFixed(2)}` : '—', color: '#38bdf8' },
+    { label: 'Cost per Reader', value: costPerReader > 0 ? `$${costPerReader.toFixed(2)}` : '—', color: '#34d399' },
+    { label: 'Cost per Subscriber', value: costPerSub > 0 ? `$${costPerSub.toFixed(2)}` : '—', color: '#a78bfa' },
+    { label: 'Readers This Month', value: readers > 0 ? readers.toLocaleString() : '—', color: '#e9a020' },
+  ]
+
+  // Coach summary
+  const coachLines: string[] = []
+  if (listSize === 0 && readers > 0) coachLines.push(`Your biggest leak: ${readers} readers came through but none were captured to your email list. A simple reader magnet could fix this.`)
+  if (ctr > 0 && ctr < 1) coachLines.push(`Your ad CTR of ${ctr.toFixed(1)}% is below 1% — the creative needs a stronger hook or the targeting is off.`)
+  if (ctr >= 2) coachLines.push(`Your ${ctr.toFixed(1)}% CTR is strong — your ad creative is resonating.`)
+  if (readThroughPct >= 60) coachLines.push(`${readThroughPct.toFixed(0)}% read-through is excellent — readers are hooked on your series.`)
+  else if (readThroughPct > 0 && readThroughPct < 35) coachLines.push(`Read-through at ${readThroughPct.toFixed(0)}% could be improved — check your back matter links.`)
+  if (coachLines.length === 0) coachLines.push('Upload your KDP and Meta data to see your full funnel analysis.')
+
+  return (
+    <div className="mb-8">
+      {/* Metrics strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        {metrics.map(m => (
+          <div key={m.label} className="rounded-xl p-4" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+            <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-1.5" style={{ color: '#9CA3AF' }}>{m.label}</div>
+            <div className="text-[28px] font-semibold leading-none tracking-tight" style={{ color: m.color }}>{m.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Funnel visualization */}
+      <div className="rounded-xl p-5 md:p-6" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+        <div className="space-y-0">
+          {stages.map((stage, i) => {
+            // Trapezoid width: narrower as we go down
+            const widthPct = 100 - (i * 12)
+            const leak = stage.leakStatus ? LEAK_COLORS[stage.leakStatus] : null
+
+            return (
+              <div key={stage.label}>
+                {/* Stage */}
+                <div className="mx-auto transition-all" style={{ maxWidth: `${widthPct}%` }}>
+                  <div className="rounded-lg px-4 py-3 md:px-5 md:py-4 relative"
+                    style={{
+                      background: stage.available ? '#F5F0E8' : '#FAFAFA',
+                      border: stage.available ? '1px solid #E8DDD0' : '1px dashed #D6D3D1',
+                      opacity: stage.available ? 1 : 0.6,
+                    }}>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <div className="text-[10px] font-bold tracking-[1px] uppercase mb-0.5"
+                          style={{ color: '#9CA3AF' }}>
+                          {stage.label}
+                        </div>
+                        <div className="text-[22px] md:text-[26px] font-semibold leading-none tracking-tight"
+                          style={{ color: stage.available ? '#1E2D3D' : '#9CA3AF' }}>
+                          {stage.value}
+                        </div>
+                      </div>
+                      <div className="text-[11px] text-right" style={{ color: '#6B7280' }}>
+                        {stage.sub}
+                      </div>
+                    </div>
+
+                    {!stage.available && (
+                      <div className="mt-2 text-[11px]" style={{ color: '#e9a020' }}>
+                        Upload data to fill this stage →
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Arrow + leak indicator between stages */}
+                {i < stages.length - 1 && (
+                  <div className="flex items-center justify-center gap-2 py-1.5">
+                    <span className="text-[16px]" style={{ color: '#E8DDD0' }}>▼</span>
+                    {leak && stage.leakPct != null && stage.leakPct > 0 && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: leak.bg, color: leak.color }}>
+                        {stage.leakPct.toFixed(0)}% drop · {leak.label}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Leak coach note */}
+                {stage.leakNote && (
+                  <div className="mx-auto mb-1" style={{ maxWidth: `${widthPct}%` }}>
+                    <div className="rounded-lg px-3 py-2 text-[11.5px]"
+                      style={{ background: 'rgba(251,113,133,0.05)', border: '1px solid rgba(251,113,133,0.15)', color: '#fb7185' }}>
+                      💬 {stage.leakNote}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Coach summary */}
+        <div className="mt-5 pt-4 text-[12.5px] leading-relaxed"
+          style={{ borderTop: '1px solid #F0E0C8', color: '#374151' }}>
+          <span className="font-bold" style={{ color: '#e9a020' }}>Funnel analysis:</span>{' '}
+          {coachLines.join(' ')}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function MetricsPage() {
   const [analyses,    setAnalyses]    = useState<Analysis[]>([])
@@ -246,6 +453,10 @@ export default function MetricsPage() {
 
   return (
     <DarkPage title="📊 Advanced Metrics" subtitle="Deep performance analysis across all channels">
+
+      {/* ── READER FUNNEL CHECKER ─────────────────────────────────────────── */}
+      <DarkSectionHeader title="Reader Funnel Checker" badge="Full pipeline" badgeColor="#fb7185" />
+      <ReaderFunnel meta={meta} kdp={kdp} ml={ml} booksSorted={booksSorted} />
 
       {/* ── SELL-THROUGH & REVENUE HEALTH ──────────────────────────────────── */}
       <DarkSectionHeader title="Sell-Through & Revenue Health" badge="KDP + Ads" badgeColor="#fbbf24" />
