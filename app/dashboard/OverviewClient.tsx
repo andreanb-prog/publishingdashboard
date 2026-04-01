@@ -191,17 +191,17 @@ export function OverviewClient() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/analyze').then(r => r.json()).catch(() => ({})),
-      fetch('/api/rank').then(r => r.json()).catch(() => ({ logs: [] })),
-      fetch('/api/roas').then(r => r.json()).catch(() => ({ logs: [] })),
+      fetch('/api/analyze').then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({})),
+      fetch('/api/rank').then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({ logs: [] })),
+      fetch('/api/roas').then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({ logs: [] })),
     ]).then(([analyzeData, rankData, roasData]) => {
-      // Read the single analysis data blob directly
-      const a = analyzeData.analysis ?? null
-      console.log('[Overview] analysis keys:', a ? Object.keys(a) : 'null')
-      console.log('[Overview] kdp:', a?.kdp ? `units=${a.kdp.totalUnits}` : 'MISSING')
-      if (a) setAnalysis(a)
+      // Read the single latest analysis blob
+      const analysis = analyzeData.analysis ?? null
+      console.log('[Overview] analysis keys:', analysis ? Object.keys(analysis) : 'null')
+      console.log('[Overview] kdp:', analysis?.kdp ? `units=${analysis.kdp.totalUnits} kenp=${analysis.kdp.totalKENP} royalties=${analysis.kdp.totalRoyaltiesUSD}` : 'MISSING')
+      setAnalysis(analysis)
 
-      // Keep analyses array for history table
+      // Keep analyses array for history table — each item's .data field has the blob
       const rows: Analysis[] = (analyzeData.analyses ?? [])
         .map((r: { data?: Analysis }) => r.data)
         .filter((d: unknown): d is Analysis => !!d && typeof d === 'object' && 'month' in (d as object))

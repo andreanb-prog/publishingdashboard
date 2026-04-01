@@ -115,6 +115,7 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       generatedAt: new Date().toISOString(),
     }
 
+    console.log('Session userId:', session.user.id)
     console.log('[POST] upserting id:', `${session.user.id}-${month}`, '| kdp:', !!kdp, '| meta:', !!meta, '| mailerLite:', !!mailerLite, '| pinterest:', !!pinterest)
 
     const saved = await db.analysis.upsert({
@@ -192,18 +193,27 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  console.log('[GET] session userId:', session.user.id)
+
   const { searchParams } = new URL(req.url)
   const month = searchParams.get('month')
 
-  const analyses = await db.analysis.findMany({
+  // findFirst for the single latest record — used by Overview banner and KDP/Meta deep dives
+  const record = await db.analysis.findFirst({
     where: { userId: session.user.id, ...(month ? { month } : {}) },
+    orderBy: { createdAt: 'desc' },
+  })
+  const analysis = (record?.data ?? null) as any
+
+  // findMany for historical data — used by charts and history tables
+  const analyses = await db.analysis.findMany({
+    where: { userId: session.user.id },
     orderBy: { createdAt: 'desc' },
     take: 6,
   })
 
-  const analysis = (analyses[0]?.data ?? null) as any
-  console.log('[GET] records:', analyses.length, '| latest keys:', analysis ? Object.keys(analysis) : 'none')
+  console.log('[GET] records:', analyses.length, '| latest record id:', record?.id ?? 'NONE')
   console.log('[GET] kdp:', analysis?.kdp ? `units=${analysis.kdp.totalUnits} kenp=${analysis.kdp.totalKENP}` : 'MISSING')
 
-  return NextResponse.json({ analyses, analysis })
+  return NextResponse.json({ analyses, analysis: analysis || null })
 }
