@@ -22,7 +22,15 @@ export async function POST(req: NextRequest) {
       month: string
     }
 
+    // Fetch last 3 months of stored analyses for trend context
+    const historical = await db.analysis.findMany({
+      where: { userId: session.user.id, month: { lt: month } },
+      orderBy: { month: 'desc' },
+      take: 3,
+    })
+
     const dataSummary = buildDataSummary({ kdp, meta, mailerLite, pinterest })
+    const historySummary = buildHistorySummary(historical)
 
     const message = await anthropic.messages.create({
       model: CLAUDE_MODEL,
@@ -33,7 +41,7 @@ export async function POST(req: NextRequest) {
           role: 'user',
           content: `Analyze this publishing marketing data and produce a complete coaching session.
 
-${dataSummary}
+${dataSummary}${historySummary}
 
 Respond with a JSON object in exactly this structure (no markdown, raw JSON only):
 {
@@ -145,10 +153,28 @@ List: ${mailerLite.listSize} subscribers | Open rate: ${mailerLite.openRate}% | 
 
   if (pinterest) {
     parts.push(`## Pinterest Data
-Impressions: ${pinterest.totalImpressions} | Saves: ${pinterest.totalSaves} | Pins: ${pinterest.pinCount} | Account age: ${pinterest.accountAge} (very new)`)
+Impressions: ${pinterest.totalImpressions} | Saves: ${pinterest.totalSaves} | Pins: ${pinterest.pinCount} | Account age: ${pinterest.accountAge}`)
   }
 
   return parts.join('\n\n')
+}
+
+function buildHistorySummary(historical: { month: string; data: unknown }[]): string {
+  if (!historical.length) return ''
+
+  const lines: string[] = ['\n\n## Your Last 3 Months (for spotting trends)']
+  for (const row of historical) {
+    const d = row.data as Analysis
+    const parts: string[] = [`### ${row.month}`]
+    if (d.kdp) parts.push(`KDP: $${d.kdp.totalRoyaltiesUSD} royalties, ${d.kdp.totalUnits} units, ${d.kdp.totalKENP?.toLocaleString()} KENP`)
+    if (d.meta) parts.push(`Meta: $${d.meta.totalSpend} spend, ${d.meta.totalClicks} clicks, ${d.meta.avgCTR}% CTR`)
+    if (d.mailerLite) parts.push(`Email: ${d.mailerLite.listSize} subscribers, ${d.mailerLite.openRate}% open rate`)
+    if (d.pinterest) parts.push(`Pinterest: ${d.pinterest.totalImpressions} impressions, ${d.pinterest.pinCount} pins`)
+    lines.push(parts.join('\n'))
+  }
+  lines.push('Use this history to identify trends and call them out in your coaching.')
+
+  return lines.join('\n')
 }
 
 export async function GET(req: NextRequest) {
