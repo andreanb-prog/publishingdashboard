@@ -13,7 +13,7 @@ export function TopBar({ user }: TopBarProps) {
   return (
     <header
       className="px-8 h-[56px] flex items-center justify-between flex-shrink-0"
-      style={{ background: '#FAF8F5', borderBottom: '1px solid #EEEBE6' }}
+      style={{ background: '#FFFFFF', borderBottom: '1px solid #EEEBE6' }}
     >
       <div>
         <div className="font-serif text-[17px] tracking-tight leading-none" style={{ color: '#1E2D3D' }}>

@@ -133,7 +133,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
 
             <a href="https://kdp.amazon.com/en_US/reports" target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-[14px] font-semibold no-underline mb-5 transition-all hover:opacity-90"
-              style={{ background: '#FAF8F5', border: '1px solid #EEEBE6', color: '#1E2D3D' }}>
+              style={{ background: '#FFFFFF', border: '1px solid #EEEBE6', color: '#1E2D3D' }}>
               Open KDP Reports in new tab →
             </a>
 

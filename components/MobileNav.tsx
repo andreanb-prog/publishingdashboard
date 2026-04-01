@@ -54,7 +54,7 @@ export function MobileNav() {
     <>
       {/* Mobile header */}
       <div className="md:hidden flex items-center justify-between px-4 h-[52px] flex-shrink-0"
-        style={{ background: '#FAF8F5', borderBottom: '1px solid #EEEBE6' }}>
+        style={{ background: '#FFFFFF', borderBottom: '1px solid #EEEBE6' }}>
         <button
           onClick={() => setOpen(true)}
           className="w-10 h-10 flex items-center justify-center rounded-lg bg-transparent border-none cursor-pointer"
@@ -87,7 +87,7 @@ export function MobileNav() {
           {/* Drawer */}
           <nav
             className="absolute top-0 left-0 bottom-0 w-[280px] overflow-y-auto"
-            style={{ background: '#FAF8F5' }}
+            style={{ background: '#FFFFFF' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Drawer header */}

@@ -178,7 +178,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
               <div key={stage.label}>
                 <div className="mx-auto" style={{ maxWidth: `${widthPct}%` }}>
                   <div className="rounded-lg px-4 py-3 md:px-5 md:py-4"
-                    style={{ background: stage.available ? '#FAF8F5' : '#FAFAFA', border: stage.available ? '1px solid #EEEBE6' : '1px dashed #D6D3D1', opacity: stage.available ? 1 : 0.6 }}>
+                    style={{ background: stage.available ? '#F9F9F8' : '#FAFAFA', border: stage.available ? '1px solid #EEEBE6' : '1px dashed #D6D3D1', opacity: stage.available ? 1 : 0.6 }}>
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div>
                         <div className="text-[10px] font-bold tracking-[1px] uppercase mb-0.5" style={{ color: '#9CA3AF' }}>{stage.label}</div>
