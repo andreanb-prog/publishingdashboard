@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { DarkPage, DarkSectionHeader } from '@/components/DarkPage'
 import { BOOK_COLORS } from '@/lib/bookColors'
-import type { Analysis } from '@/types'
+import type { Analysis, RankLog, RoasLog } from '@/types'
 const AVG_ROMANCE_PAGES = 300
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -22,17 +22,6 @@ function statusColor(value: number, good: number, bad: number, higherIsBetter = 
     if (value <= bad)  return '#fbbf24'
     return '#fb7185'
   }
-}
-
-function TrendArrow({ curr, prev }: { curr: number; prev: number }) {
-  if (prev === 0) return <span style={{ color: '#9CA3AF' }}>—</span>
-  const pct = ((curr - prev) / prev) * 100
-  const up  = pct >= 0
-  return (
-    <span className="text-[12px] font-bold ml-2" style={{ color: up ? '#34d399' : '#fb7185' }}>
-      {up ? '▲' : '▼'} {Math.abs(pct).toFixed(1)}%
-    </span>
-  )
 }
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
@@ -70,7 +59,7 @@ function FunnelBar({ label, pct, count, color, benchmark }: {
       <div className="flex items-baseline justify-between mb-1.5">
         <div className="text-[12.5px] font-semibold" style={{ color: '#1E2D3D' }}>{label}</div>
         <div className="flex items-baseline gap-2">
-          <span className="font-mono text-[20px] font-bold" style={{ color: barColor }}>
+          <span className="text-[20px] font-semibold tracking-tight" style={{ color: barColor }}>
             {pct.toFixed(0)}%
           </span>
           <span className="text-[11px]" style={{ color: '#6B7280' }}>{fmtInt(count)} pages</span>
@@ -123,20 +112,12 @@ function MetricCard({ title, value, valueColor, sub, coach, children }: {
 
 // ── Reader Funnel ────────────────────────────────────────────────────────────
 type FunnelStage = {
-  label: string
-  value: string
-  raw: number
-  sub: string
-  available: boolean
-  leakPct?: number
-  leakStatus?: 'green' | 'amber' | 'red'
-  leakNote?: string
+  label: string; value: string; raw: number; sub: string; available: boolean
+  leakPct?: number; leakStatus?: 'green' | 'amber' | 'red'; leakNote?: string
 }
 
 function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
-  meta?: Analysis['meta']
-  kdp?: Analysis['kdp']
-  ml?: Analysis['mailerLite']
+  meta?: Analysis['meta']; kdp?: Analysis['kdp']; ml?: Analysis['mailerLite']
   booksSorted: NonNullable<Analysis['kdp']>['books']
 }) {
   const impressions = meta?.totalImpressions ?? 0
@@ -149,77 +130,21 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
   const costPerReader = meta && readers > 0 ? meta.totalSpend / readers : 0
   const listSize = ml?.listSize ?? 0
   const costPerSub = meta && listSize > 0 ? meta.totalSpend / listSize : 0
-
-  // Series continuation: compare book 1 KENP to book 2 KENP
   const b1kenp = booksSorted[0]?.kenp ?? 0
   const b2kenp = booksSorted[1]?.kenp ?? 0
   const readThroughPct = b1kenp > 0 && booksSorted.length > 1 ? (b2kenp / b1kenp) * 100 : 0
 
   const stages: FunnelStage[] = [
-    {
-      label: 'Ad Impressions',
-      value: impressions > 0 ? impressions.toLocaleString() : '—',
-      raw: impressions,
-      sub: 'Source: Meta ads data',
-      available: !!meta,
-    },
-    {
-      label: 'Clicks',
-      value: clicks > 0 ? clicks.toLocaleString() : '—',
-      raw: clicks,
-      sub: `${ctr.toFixed(1)}% CTR`,
-      available: !!meta,
-      leakPct: impressions > 0 ? 100 - ctr : undefined,
-      leakStatus: ctr >= 2 ? 'green' : ctr >= 1 ? 'amber' : 'red',
-      leakNote: ctr < 1 ? 'Low CTR — your ad creative may need a stronger hook' : undefined,
-    },
-    {
-      label: 'Book Page Visits',
-      value: clicks > 0 ? `~${clicks.toLocaleString()}` : '—',
-      raw: clicks,
-      sub: "Amazon doesn't share page visits — estimated from clicks",
-      available: !!meta,
-    },
-    {
-      label: 'Readers',
-      value: readers > 0 ? readers.toLocaleString() : '—',
-      raw: readers,
-      sub: readers > 0 ? `${totalUnits} units + ~${estimatedBorrows} KU borrows · $${costPerReader.toFixed(2)}/reader` : 'Source: KDP data',
-      available: !!kdp,
-      leakPct: clicks > 0 ? (1 - readers / clicks) * 100 : undefined,
-      leakStatus: clicks > 0 ? (readers / clicks >= 0.3 ? 'green' : readers / clicks >= 0.15 ? 'amber' : 'red') : undefined,
-      leakNote: clicks > 0 && readers / clicks < 0.15 ? 'Low conversion — your book page may need a stronger blurb or cover' : undefined,
-    },
-    {
-      label: 'Series Continuation',
-      value: readThroughPct > 0 ? `${readThroughPct.toFixed(0)}% read-through` : '—',
-      raw: readThroughPct,
-      sub: booksSorted.length > 1 ? `Book 2 KENP vs Book 1 KENP` : 'Need 2+ books for read-through',
-      available: booksSorted.length > 1,
-      leakPct: readThroughPct > 0 ? 100 - readThroughPct : undefined,
-      leakStatus: readThroughPct >= 60 ? 'green' : readThroughPct >= 35 ? 'amber' : 'red',
-      leakNote: readThroughPct > 0 && readThroughPct < 35 ? 'Low read-through — check your back matter links and cliffhanger ending' : undefined,
-    },
-    {
-      label: 'Email Subscribers',
-      value: listSize > 0 ? listSize.toLocaleString() : '0',
-      raw: listSize,
-      sub: listSize === 0 && readers > 0
-        ? `${readers.toLocaleString()} readers never captured — THIS IS YOUR LEAK`
-        : listSize > 0 ? `$${costPerSub.toFixed(2)} per subscriber` : 'Source: MailerLite',
-      available: true,
-      leakStatus: listSize === 0 && readers > 0 ? 'red' : listSize > 0 ? 'green' : undefined,
-      leakNote: listSize === 0 && readers > 0 ? 'You have readers but no email capture — build a reader magnet and landing page immediately' : undefined,
-    },
+    { label: 'Ad Impressions', value: impressions > 0 ? impressions.toLocaleString() : '—', raw: impressions, sub: 'Source: Meta ads', available: !!meta },
+    { label: 'Clicks', value: clicks > 0 ? clicks.toLocaleString() : '—', raw: clicks, sub: `${ctr.toFixed(1)}% CTR`, available: !!meta, leakPct: impressions > 0 ? 100 - ctr : undefined, leakStatus: ctr >= 2 ? 'green' : ctr >= 1 ? 'amber' : 'red', leakNote: ctr < 1 ? 'Low CTR — your ad creative may need a stronger hook' : undefined },
+    { label: 'Book Page Visits', value: clicks > 0 ? `~${clicks.toLocaleString()}` : '—', raw: clicks, sub: 'Estimated from clicks', available: !!meta },
+    { label: 'Readers', value: readers > 0 ? readers.toLocaleString() : '—', raw: readers, sub: readers > 0 ? `${totalUnits} units + ~${estimatedBorrows} KU · $${costPerReader.toFixed(2)}/reader` : 'Source: KDP', available: !!kdp, leakPct: clicks > 0 ? (1 - readers / clicks) * 100 : undefined, leakStatus: clicks > 0 ? (readers / clicks >= 0.3 ? 'green' : readers / clicks >= 0.15 ? 'amber' : 'red') : undefined, leakNote: clicks > 0 && readers / clicks < 0.15 ? 'Low conversion — improve your blurb or cover' : undefined },
+    { label: 'Series Continuation', value: readThroughPct > 0 ? `${readThroughPct.toFixed(0)}% read-through` : '—', raw: readThroughPct, sub: booksSorted.length > 1 ? 'Book 2 vs Book 1 KENP' : 'Need 2+ books', available: booksSorted.length > 1, leakPct: readThroughPct > 0 ? 100 - readThroughPct : undefined, leakStatus: readThroughPct >= 60 ? 'green' : readThroughPct >= 35 ? 'amber' : 'red', leakNote: readThroughPct > 0 && readThroughPct < 35 ? 'Low read-through — check back matter links' : undefined },
+    { label: 'Email Subscribers', value: listSize > 0 ? listSize.toLocaleString() : '0', raw: listSize, sub: listSize === 0 && readers > 0 ? `${readers.toLocaleString()} readers never captured — YOUR LEAK` : listSize > 0 ? `$${costPerSub.toFixed(2)}/subscriber` : 'Source: MailerLite', available: true, leakStatus: listSize === 0 && readers > 0 ? 'red' : listSize > 0 ? 'green' : undefined, leakNote: listSize === 0 && readers > 0 ? 'No email capture — build a reader magnet immediately' : undefined },
   ]
 
-  const LEAK_COLORS = {
-    green: { bg: 'rgba(52,211,153,0.08)', color: '#34d399', label: 'Healthy' },
-    amber: { bg: 'rgba(251,191,36,0.08)', color: '#fbbf24', label: 'Monitor' },
-    red:   { bg: 'rgba(251,113,133,0.08)', color: '#fb7185', label: 'Leak' },
-  }
+  const LEAK_COLORS = { green: { bg: 'rgba(52,211,153,0.08)', color: '#34d399', label: 'Healthy' }, amber: { bg: 'rgba(251,191,36,0.08)', color: '#fbbf24', label: 'Monitor' }, red: { bg: 'rgba(251,113,133,0.08)', color: '#fb7185', label: 'Leak' } }
 
-  // Funnel metrics strip
   const metrics = [
     { label: 'Cost per Click', value: costPerClick > 0 ? `$${costPerClick.toFixed(2)}` : '—', color: '#38bdf8' },
     { label: 'Cost per Reader', value: costPerReader > 0 ? `$${costPerReader.toFixed(2)}` : '—', color: '#34d399' },
@@ -227,18 +152,15 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
     { label: 'Readers This Month', value: readers > 0 ? readers.toLocaleString() : '—', color: '#e9a020' },
   ]
 
-  // Coach summary
   const coachLines: string[] = []
-  if (listSize === 0 && readers > 0) coachLines.push(`Your biggest leak: ${readers} readers came through but none were captured to your email list. A simple reader magnet could fix this.`)
-  if (ctr > 0 && ctr < 1) coachLines.push(`Your ad CTR of ${ctr.toFixed(1)}% is below 1% — the creative needs a stronger hook or the targeting is off.`)
-  if (ctr >= 2) coachLines.push(`Your ${ctr.toFixed(1)}% CTR is strong — your ad creative is resonating.`)
-  if (readThroughPct >= 60) coachLines.push(`${readThroughPct.toFixed(0)}% read-through is excellent — readers are hooked on your series.`)
-  else if (readThroughPct > 0 && readThroughPct < 35) coachLines.push(`Read-through at ${readThroughPct.toFixed(0)}% could be improved — check your back matter links.`)
-  if (coachLines.length === 0) coachLines.push('Upload your KDP and Meta data to see your full funnel analysis.')
+  if (listSize === 0 && readers > 0) coachLines.push(`Your biggest leak: ${readers} readers but none captured to email.`)
+  if (ctr > 0 && ctr < 1) coachLines.push(`Ad CTR of ${ctr.toFixed(1)}% is below 1% — creative needs a stronger hook.`)
+  if (ctr >= 2) coachLines.push(`${ctr.toFixed(1)}% CTR is strong.`)
+  if (readThroughPct >= 60) coachLines.push(`${readThroughPct.toFixed(0)}% read-through is excellent.`)
+  if (coachLines.length === 0) coachLines.push('Upload your KDP and Meta data to see your full funnel.')
 
   return (
     <div className="mb-8">
-      {/* Metrics strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {metrics.map(m => (
           <div key={m.label} className="rounded-xl p-4" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
@@ -247,81 +169,45 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
           </div>
         ))}
       </div>
-
-      {/* Funnel visualization */}
       <div className="rounded-xl p-5 md:p-6" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
         <div className="space-y-0">
           {stages.map((stage, i) => {
-            // Trapezoid width: narrower as we go down
             const widthPct = 100 - (i * 12)
             const leak = stage.leakStatus ? LEAK_COLORS[stage.leakStatus] : null
-
             return (
               <div key={stage.label}>
-                {/* Stage */}
-                <div className="mx-auto transition-all" style={{ maxWidth: `${widthPct}%` }}>
-                  <div className="rounded-lg px-4 py-3 md:px-5 md:py-4 relative"
-                    style={{
-                      background: stage.available ? '#F5F0E8' : '#FAFAFA',
-                      border: stage.available ? '1px solid #E8DDD0' : '1px dashed #D6D3D1',
-                      opacity: stage.available ? 1 : 0.6,
-                    }}>
+                <div className="mx-auto" style={{ maxWidth: `${widthPct}%` }}>
+                  <div className="rounded-lg px-4 py-3 md:px-5 md:py-4"
+                    style={{ background: stage.available ? '#F5F0E8' : '#FAFAFA', border: stage.available ? '1px solid #E8DDD0' : '1px dashed #D6D3D1', opacity: stage.available ? 1 : 0.6 }}>
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div>
-                        <div className="text-[10px] font-bold tracking-[1px] uppercase mb-0.5"
-                          style={{ color: '#9CA3AF' }}>
-                          {stage.label}
-                        </div>
-                        <div className="text-[22px] md:text-[26px] font-semibold leading-none tracking-tight"
-                          style={{ color: stage.available ? '#1E2D3D' : '#9CA3AF' }}>
-                          {stage.value}
-                        </div>
+                        <div className="text-[10px] font-bold tracking-[1px] uppercase mb-0.5" style={{ color: '#9CA3AF' }}>{stage.label}</div>
+                        <div className="text-[22px] md:text-[26px] font-semibold leading-none tracking-tight" style={{ color: stage.available ? '#1E2D3D' : '#9CA3AF' }}>{stage.value}</div>
                       </div>
-                      <div className="text-[11px] text-right" style={{ color: '#6B7280' }}>
-                        {stage.sub}
-                      </div>
+                      <div className="text-[11px] text-right" style={{ color: '#6B7280' }}>{stage.sub}</div>
                     </div>
-
-                    {!stage.available && (
-                      <div className="mt-2 text-[11px]" style={{ color: '#e9a020' }}>
-                        Upload data to fill this stage →
-                      </div>
-                    )}
+                    {!stage.available && <div className="mt-2 text-[11px]" style={{ color: '#e9a020' }}>Upload data to fill this stage →</div>}
                   </div>
                 </div>
-
-                {/* Arrow + leak indicator between stages */}
                 {i < stages.length - 1 && (
                   <div className="flex items-center justify-center gap-2 py-1.5">
                     <span className="text-[16px]" style={{ color: '#E8DDD0' }}>▼</span>
                     {leak && stage.leakPct != null && stage.leakPct > 0 && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: leak.bg, color: leak.color }}>
-                        {stage.leakPct.toFixed(0)}% drop · {leak.label}
-                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: leak.bg, color: leak.color }}>{stage.leakPct.toFixed(0)}% drop · {leak.label}</span>
                     )}
                   </div>
                 )}
-
-                {/* Leak coach note */}
                 {stage.leakNote && (
                   <div className="mx-auto mb-1" style={{ maxWidth: `${widthPct}%` }}>
-                    <div className="rounded-lg px-3 py-2 text-[11.5px]"
-                      style={{ background: 'rgba(251,113,133,0.05)', border: '1px solid rgba(251,113,133,0.15)', color: '#fb7185' }}>
-                      💬 {stage.leakNote}
-                    </div>
+                    <div className="rounded-lg px-3 py-2 text-[11.5px]" style={{ background: 'rgba(251,113,133,0.05)', border: '1px solid rgba(251,113,133,0.15)', color: '#fb7185' }}>💬 {stage.leakNote}</div>
                   </div>
                 )}
               </div>
             )
           })}
         </div>
-
-        {/* Coach summary */}
-        <div className="mt-5 pt-4 text-[12.5px] leading-relaxed"
-          style={{ borderTop: '1px solid #F0E0C8', color: '#374151' }}>
-          <span className="font-bold" style={{ color: '#e9a020' }}>Funnel analysis:</span>{' '}
-          {coachLines.join(' ')}
+        <div className="mt-5 pt-4 text-[12.5px] leading-relaxed" style={{ borderTop: '1px solid #F0E0C8', color: '#374151' }}>
+          <span className="font-bold" style={{ color: '#e9a020' }}>Funnel analysis:</span> {coachLines.join(' ')}
         </div>
       </div>
     </div>
@@ -331,26 +217,25 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function MetricsPage() {
   const [analyses,    setAnalyses]    = useState<Analysis[]>([])
+  const [rankLogs,    setRankLogs]    = useState<RankLog[]>([])
+  const [roasLogs,    setRoasLogs]    = useState<RoasLog[]>([])
   const [loading,     setLoading]     = useState(true)
   const [arcSent,     setArcSent]     = useState('')
   const [arcReceived, setArcReceived] = useState('')
-  const [goals,       setGoals]       = useState<Record<string, number>>({})
 
   useEffect(() => {
-    fetch('/api/analyze')
-      .then(r => r.json())
-      .then(d => {
-        const rows: Analysis[] = (d.analyses ?? [])
-          .map((a: { data?: Analysis }) => a.data)
-          .filter((x: unknown): x is Analysis => !!x && typeof x === 'object' && 'month' in (x as object))
-        setAnalyses(rows)
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false))
-    fetch('/api/prefs')
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (d.goals) setGoals(d.goals) })
-      .catch(() => {})
+    Promise.all([
+      fetch('/api/analyze').then(r => r.json()).catch(() => ({})),
+      fetch('/api/rank').then(r => r.ok ? r.json() : { logs: [] }).catch(() => ({ logs: [] })),
+      fetch('/api/roas').then(r => r.ok ? r.json() : { logs: [] }).catch(() => ({ logs: [] })),
+    ]).then(([analyzeData, rankData, roasData]) => {
+      const rows: Analysis[] = (analyzeData.analyses ?? [])
+        .map((a: { data?: Analysis }) => a.data)
+        .filter((x: unknown): x is Analysis => !!x && typeof x === 'object' && 'month' in (x as object))
+      setAnalyses(rows)
+      setRankLogs(rankData.logs ?? [])
+      setRoasLogs(roasData.logs ?? [])
+    }).catch(console.error).finally(() => setLoading(false))
   }, [])
 
   const analysis     = analyses[0] ?? null
@@ -359,587 +244,236 @@ export default function MetricsPage() {
   const meta = analysis?.meta
   const ml   = analysis?.mailerLite
 
-  // Custom targets from My Benchmarks settings (fall back to book ad averages)
-  const targetCTR = goals.meta_ctr ?? 1
-  const targetCPC = goals.meta_cpc ?? 0.5
-  const ctrLabel  = goals.meta_ctr  ? `Your target: ${goals.meta_ctr}%` : 'Book ad avg 1%+'
-  const cpcLabel  = goals.meta_cpc  ? `Your target: $${goals.meta_cpc}` : 'Book ad avg under $0.50'
-
-  // ── KENP velocity ──────────────────────────────────────────────────────────
-  const allDailyKENP = (kdp?.dailyKENP ?? []).slice().sort((a, b) => a.date.localeCompare(b.date))
-  const last7vals = allDailyKENP.slice(-7).map(d => d.value)
-  const prev7vals = allDailyKENP.slice(-14, -7).map(d => d.value)
-  const avg7      = last7vals.length ? last7vals.reduce((s, v) => s + v, 0) / last7vals.length : 0
-  const avgPrev7  = prev7vals.length ? prev7vals.reduce((s, v) => s + v, 0) / prev7vals.length : 0
-
-  // ── Revenue per subscriber ─────────────────────────────────────────────────
-  const revPerSub = (kdp && ml && ml.listSize > 0)
-    ? kdp.totalRoyaltiesUSD / ml.listSize
-    : null
-
-  // ── Cost per KENP ──────────────────────────────────────────────────────────
-  const costPerKENP = (meta && kdp && kdp.totalKENP > 0)
-    ? meta.totalSpend / kdp.totalKENP
-    : null
-
-  // ── Book-level metrics — sorted by KENP desc (most reads = Book 1) ─────────
   const booksSorted = [...(kdp?.books ?? [])].sort((a, b) => b.kenp - a.kenp)
-
-  // ── Read-through funnel ────────────────────────────────────────────────────
   const readThrough = booksSorted.map((book, i) => ({
     book,
     pct:   i === 0 ? 100 : booksSorted[0].kenp > 0 ? (book.kenp / booksSorted[0].kenp) * 100 : 0,
     color: BOOK_COLORS[i] || '#9CA3AF',
   }))
 
-  // ── Borrow rate vs buy rate ────────────────────────────────────────────────
-  const booksWithBorrow = booksSorted.map((book, i) => {
-    const estimatedBorrows = Math.round(book.kenp / AVG_ROMANCE_PAGES)
-    const total    = book.units + estimatedBorrows
-    const borrowPct = total > 0 ? (estimatedBorrows / total) * 100 : 0
-    return { book, estimatedBorrows, borrowPct, color: BOOK_COLORS[i] || '#9CA3AF' }
-  })
+  // ── Cross-channel correlation data ─────────────────────────────────────────
+  // Ad Spend vs Rank: did spending move rank?
+  const spendHistory = analyses.map(a => a.meta?.totalSpend ?? 0).reverse()
+  const recentRankByMonth = analyses.map(a => {
+    const month = a.month
+    const logsInMonth = rankLogs.filter(l => l.date.toString().startsWith(month))
+    return logsInMonth.length > 0 ? Math.min(...logsInMonth.map(l => l.rank)) : null
+  }).reverse()
 
-  // ── Email campaigns ────────────────────────────────────────────────────────
-  const campaigns     = ml?.campaigns ?? []
-  const swapCampaigns = campaigns.filter(c => /swap/i.test(c.name))
-  const ownCampaigns  = campaigns.filter(c => !/swap/i.test(c.name))
-  const avgSwapUnsub  = swapCampaigns.length
-    ? swapCampaigns.reduce((s, c) => s + c.unsubscribes, 0) / swapCampaigns.length
-    : null
-  const avgOwnUnsub   = ownCampaigns.length
-    ? ownCampaigns.reduce((s, c) => s + c.unsubscribes, 0) / ownCampaigns.length
-    : null
-  const sortedByOpen  = [...campaigns].sort((a, b) => b.openRate - a.openRate)
-  const bestCampaign  = sortedByOpen[0]
-  const worstCampaign = sortedByOpen[sortedByOpen.length - 1]
+  // Email open rate vs KDP units correlation
+  const emailOpenHistory = analyses.map(a => a.mailerLite?.openRate ?? 0).reverse()
+  const unitsHistory = analyses.map(a => a.kdp?.totalUnits ?? 0).reverse()
 
-  // ── Subscriber acquisition cost ────────────────────────────────────────────
-  const prevListSize = prevAnalysis?.mailerLite?.listSize ?? null
-  const newSubs      = (ml && prevListSize != null) ? ml.listSize - prevListSize : null
-  const subAcqCost   = (meta && newSubs != null && newSubs > 0)
-    ? meta.totalSpend / newSubs
-    : null
+  // Swap → KENP: compare KENP in months with swaps vs without
+  const kenpHistory = analyses.map(a => a.kdp?.totalKENP ?? 0).reverse()
 
-  // ── Ad trends (monthly from historical analyses) ───────────────────────────
-  const ctrHistory = analyses.map(a => a.meta?.avgCTR ?? 0).reverse()
-  const cpcHistory = analyses.map(a => a.meta?.avgCPC ?? 0).reverse()
-  const bestAd     = meta?.bestAd
-  const worstAd    = meta?.ads?.length
-    ? [...meta.ads].sort((a, b) => a.ctr - b.ctr)[0]
-    : null
+  // Series Health Score
+  const readThroughScore = readThrough.length >= 2 ? Math.min(readThrough[1].pct / 40 * 100, 100) : 0
+  const bestRank = rankLogs.length ? Math.min(...rankLogs.slice(-30).map(l => l.rank)) : null
+  const rankScore = bestRank ? (bestRank <= 50000 ? 100 : bestRank <= 200000 ? 60 : 20) : 0
+  const listGrowth = prevAnalysis?.mailerLite && ml ? ml.listSize - prevAnalysis.mailerLite.listSize : 0
+  const listScore = listGrowth > 50 ? 100 : listGrowth > 10 ? 60 : listGrowth > 0 ? 30 : 0
+  const seriesHealth = Math.round((readThroughScore + rankScore + listScore) / 3)
+  const seriesHealthColor = seriesHealth >= 70 ? '#34d399' : seriesHealth >= 40 ? '#fbbf24' : '#fb7185'
 
-  // ── Days since last upload ─────────────────────────────────────────────────
-  const daysSince = analysis?.generatedAt
-    ? Math.floor((Date.now() - new Date(analysis.generatedAt).getTime()) / (1000 * 60 * 60 * 24))
-    : null
-
-  // ── ARC calculator ─────────────────────────────────────────────────────────
+  // ARC calculator
   const arcPct = (arcSent && arcReceived && parseInt(arcSent) > 0)
     ? (parseInt(arcReceived) / parseInt(arcSent)) * 100
     : null
 
   if (loading) {
     return (
-      <DarkPage title="📊 Advanced Metrics" subtitle="Deep performance analysis across all channels">
+      <DarkPage title="Advanced Metrics" subtitle="Cross-channel insights that no single page can show">
         <div className="text-center py-16">
-          <div className="animate-pulse font-serif text-lg" style={{ color: '#1E2D3D' }}>
-            Reading your data…
-          </div>
+          <div className="animate-pulse text-lg" style={{ color: '#1E2D3D' }}>Reading your data…</div>
         </div>
       </DarkPage>
     )
   }
 
   return (
-    <DarkPage title="📊 Advanced Metrics" subtitle="Deep performance analysis across all channels">
+    <DarkPage title="Advanced Metrics" subtitle="Cross-channel insights that no single page can show">
 
-      {/* ── READER FUNNEL CHECKER ─────────────────────────────────────────── */}
+      {/* ── 1. READER FUNNEL CHECKER ───────────────────────────────────────── */}
       <DarkSectionHeader title="Reader Funnel Checker" badge="Full pipeline" badgeColor="#fb7185" />
       <ReaderFunnel meta={meta} kdp={kdp} ml={ml} booksSorted={booksSorted} />
 
-      {/* ── SELL-THROUGH & REVENUE HEALTH ──────────────────────────────────── */}
-      <DarkSectionHeader title="Sell-Through & Revenue Health" badge="KDP + Ads" badgeColor="#fbbf24" />
+      {/* ── 2. CROSS-CHANNEL CORRELATIONS ──────────────────────────────────── */}
+      <DarkSectionHeader title="Cross-Channel Correlations" badge="Multi-source" badgeColor="#38bdf8" />
 
-      <div className="grid grid-cols-3 gap-4 mb-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-7">
 
-        {/* KENP velocity */}
-        <MetricCard
-          title="Page Read Velocity"
-          value={avg7 > 0 ? `${avg7.toFixed(0)}/day` : '—'}
-          valueColor={avg7 > 0 ? statusColor(avg7, 500, 200) : '#9CA3AF'}
-          sub="7-day rolling average KENP reads"
-          coach={avg7 > 0
-            ? avg7 >= 500
-              ? `Strong velocity — ${avg7.toFixed(0)} pages/day means readers are actively inside your books. Keep ad spend consistent.`
-              : avg7 >= 200
-              ? `Moderate velocity at ${avg7.toFixed(0)} pages/day. A refreshed KU description or new cover can re-energize borrows.`
-              : `Low velocity at ${avg7.toFixed(0)} pages/day. Consider a Countdown Deal or price promo to resurface your books in KU.`
-            : 'Upload your KDP report to see KENP read velocity.'}
-        >
-          {avg7 > 0 && prev7vals.length > 0 && (
-            <div className="mb-2 flex items-center">
-              <span className="text-[11px]" style={{ color: '#6B7280' }}>vs previous 7 days</span>
-              <TrendArrow curr={avg7} prev={avgPrev7} />
+        {/* Ad Spend → Rank Correlation */}
+        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
+            Ad Spend → Rank Correlation
+          </div>
+          <div className="text-[12.5px] mb-3" style={{ color: '#1E2D3D' }}>
+            Did spending move your rank?
+          </div>
+          {spendHistory.filter(v => v > 0).length >= 2 && (
+            <div className="mb-3">
+              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>Spend trend</div>
+              <Sparkline data={spendHistory} color="#fb7185" />
             </div>
           )}
-          {allDailyKENP.length >= 2 && (
-            <div className="mt-2">
-              <Sparkline data={allDailyKENP.slice(-14).map(d => d.value)} color="#fbbf24" />
+          {recentRankByMonth.filter((v): v is number => v != null).length >= 2 && (
+            <div className="mb-3">
+              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>Best rank trend (lower = better)</div>
+              <Sparkline data={recentRankByMonth.map(v => v != null ? -v : 0)} color="#34d399" />
             </div>
           )}
-        </MetricCard>
-
-        {/* Revenue per subscriber */}
-        <MetricCard
-          title="Revenue Per Subscriber"
-          value={revPerSub != null ? `$${revPerSub.toFixed(2)}` : '—'}
-          valueColor={revPerSub != null ? statusColor(revPerSub, 0.5, 0.25) : '#9CA3AF'}
-          sub={`Royalties ÷ ${ml?.listSize?.toLocaleString() ?? '?'} subscribers · Benchmark $0.50+`}
-          coach={revPerSub != null
-            ? revPerSub >= 0.5
-              ? `$${revPerSub.toFixed(2)}/subscriber is healthy. Your list is earning — keep nurturing it with regular sends.`
-              : revPerSub >= 0.25
-              ? `$${revPerSub.toFixed(2)}/subscriber is below the $0.50 benchmark. Try more direct-to-book emails to warm up inactive subscribers.`
-              : `$${revPerSub.toFixed(2)}/subscriber needs attention. Schedule a "readers who haven't bought Book 2" targeted send.`
-            : 'Upload both KDP and MailerLite data to calculate revenue per subscriber.'}
-        />
-
-        {/* Cost per KENP */}
-        <MetricCard
-          title="Cost Per KENP Read"
-          value={costPerKENP != null ? `$${costPerKENP.toFixed(4)}` : '—'}
-          valueColor={costPerKENP != null ? statusColor(costPerKENP, 0.003, 0.007, false) : '#9CA3AF'}
-          sub="Ad spend ÷ KENP reads · Benchmark under $0.003"
-          coach={costPerKENP != null
-            ? costPerKENP <= 0.003
-              ? `$${costPerKENP.toFixed(4)}/page is excellent — your ads are driving reads efficiently, below the $0.003 benchmark.`
-              : costPerKENP <= 0.007
-              ? `$${costPerKENP.toFixed(4)}/page is acceptable. Tighten targeting or pause low-CTR ads to bring this down.`
-              : `$${costPerKENP.toFixed(4)}/page is above benchmark. Your ads may not be converting to KU borrows — review creative and audience.`
-            : 'Upload both KDP and Meta Ads data to calculate cost per KENP read.'}
-        />
-      </div>
-
-      {/* Book-level estimated revenue */}
-      {booksSorted.length > 0 && (
-        <div className="rounded-xl p-5 mb-7" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
-          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-4" style={{ color: '#6B7280' }}>
-            Estimated Revenue Per Book — Sales + KU
-          </div>
-          <div className="space-y-3">
-            {booksSorted.map((book, i) => {
-              const color            = BOOK_COLORS[i] || '#9CA3AF'
-              const estimatedBorrows = Math.round(book.kenp / AVG_ROMANCE_PAGES)
-              const kuEst            = estimatedBorrows * 0.0045 * AVG_ROMANCE_PAGES
-              const total            = book.royalties + kuEst
-              const maxTotal         = booksSorted.reduce((mx, b) => {
-                const e = Math.round(b.kenp / AVG_ROMANCE_PAGES) * 0.0045 * AVG_ROMANCE_PAGES
-                return Math.max(mx, b.royalties + e)
-              }, 1)
-              return (
-                <div key={book.asin || i} className="flex items-center gap-4">
-                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12.5px] font-semibold truncate" style={{ color: '#1E2D3D' }}>
-                      {book.shortTitle}
-                    </div>
-                    <div className="text-[11px]" style={{ color: '#6B7280' }}>
-                      {book.units} paid units · {fmtInt(book.kenp)} KENP · ~{estimatedBorrows} KU borrows
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="font-mono font-bold text-[18px]" style={{ color }}>
-                      ${total.toFixed(2)}
-                    </div>
-                    <div className="text-[10px]" style={{ color: '#9CA3AF' }}>
-                      ${book.royalties.toFixed(2)} sales + ${kuEst.toFixed(2)} KU est.
-                    </div>
-                  </div>
-                  <div className="w-24 h-1.5 rounded-full overflow-hidden flex-shrink-0"
-                    style={{ background: '#F0E0C8' }}>
-                    <div className="h-full rounded-full"
-                      style={{ width: `${Math.min((total / maxTotal) * 100, 100)}%`, background: color }} />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          <div className="mt-4 pt-3 text-[11.5px] leading-relaxed"
-            style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8' }}>
-            💬 KU earnings estimated at ~$0.0045/page. Your actual rate varies monthly with the KDP Select Global Fund — check your KDP dashboard for exact KU royalties.
+          <div className="text-[11.5px] leading-relaxed pt-3" style={{ borderTop: '1px solid #F0E0C8', color: '#6B7280' }}>
+            💬 {spendHistory.filter(v => v > 0).length >= 2
+              ? 'Compare the shapes above — if spend goes up and rank improves (lower number), your ads are driving discoverability.'
+              : 'Need 2+ months of Meta ads data and rank logs to see this correlation.'}
           </div>
         </div>
-      )}
 
-      {/* ── LIST & EMAIL PERFORMANCE ────────────────────────────────────────── */}
-      <DarkSectionHeader title="List & Email Performance" badge="MailerLite" badgeColor="#34d399" />
-
-      <div className="grid grid-cols-3 gap-4 mb-7">
-
-        {/* Unsub rate by campaign type */}
-        <MetricCard
-          title="Unsubs: Swap vs Own Sends"
-          coach={avgSwapUnsub != null && avgOwnUnsub != null
-            ? avgSwapUnsub > avgOwnUnsub * 1.5
-              ? `Swap emails average ${(avgSwapUnsub - avgOwnUnsub).toFixed(1)} more unsubs than your own content — that's normal. Focus on swaps with closely matched sub-genre authors.`
-              : `Your swap and own-send unsub rates are similar — your swap partners are well-matched to your audience. Keep targeting the same sub-genre.`
-            : campaigns.length === 0
-            ? 'Upload your MailerLite data and run analysis to see campaign breakdown.'
-            : 'Tag your swap campaigns with "Swap" in the name to split this metric.'}
-        >
-          {(avgSwapUnsub != null || avgOwnUnsub != null) && (
-            <div className="space-y-3 mb-2">
-              {avgSwapUnsub != null && (
-                <div>
-                  <div className="flex justify-between text-[11px] mb-1.5" style={{ color: '#6B7280' }}>
-                    <span>🔁 Swap campaigns ({swapCampaigns.length})</span>
-                    <span className="font-mono font-bold" style={{ color: '#fb7185' }}>
-                      {avgSwapUnsub.toFixed(1)} avg
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#F0E0C8' }}>
-                    <div className="h-full rounded-full"
-                      style={{ width: `${Math.min(avgSwapUnsub * 5, 100)}%`, background: '#fb7185' }} />
-                  </div>
-                </div>
-              )}
-              {avgOwnUnsub != null && (
-                <div>
-                  <div className="flex justify-between text-[11px] mb-1.5" style={{ color: '#6B7280' }}>
-                    <span>✉️ Own sends ({ownCampaigns.length})</span>
-                    <span className="font-mono font-bold" style={{ color: '#34d399' }}>
-                      {avgOwnUnsub.toFixed(1)} avg
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#F0E0C8' }}>
-                    <div className="h-full rounded-full"
-                      style={{ width: `${Math.min(avgOwnUnsub * 5, 100)}%`, background: '#34d399' }} />
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </MetricCard>
-
-        {/* Subscriber acquisition cost */}
-        <MetricCard
-          title="Subscriber Acquisition Cost"
-          value={subAcqCost != null ? `$${subAcqCost.toFixed(2)}` : '—'}
-          valueColor={subAcqCost != null ? statusColor(subAcqCost, 1, 3, false) : '#9CA3AF'}
-          sub={newSubs != null
-            ? `${newSubs >= 0 ? '+' : ''}${newSubs} subscribers vs last month`
-            : 'Need 2 months of MailerLite data'}
-          coach={subAcqCost != null
-            ? subAcqCost <= 1
-              ? `$${subAcqCost.toFixed(2)}/subscriber is excellent — your ads are building your list cost-effectively.`
-              : subAcqCost <= 3
-              ? `$${subAcqCost.toFixed(2)}/subscriber is reasonable. If each subscriber buys even one book you're profitable. Test a dedicated lead magnet ad.`
-              : `$${subAcqCost.toFixed(2)}/subscriber is high. Consider a reader magnet funnel instead of relying on general book ads.`
-            : newSubs === null
-            ? 'Upload two months of MailerLite data to calculate subscriber growth cost.'
-            : newSubs != null && newSubs <= 0
-            ? 'Your list shrank or stayed flat this month. Focus on a lead magnet to restart growth before increasing ad spend.'
-            : 'Upload Meta Ads data alongside MailerLite to calculate cost per new subscriber.'}
-        />
-
-        {/* Best vs worst campaign */}
-        <MetricCard
-          title="Campaign Open Rate: Best vs Worst"
-          coach={bestCampaign
-            ? `"${bestCampaign.name}" had a ${bestCampaign.openRate}% open rate${worstCampaign && worstCampaign !== bestCampaign ? ` vs "${worstCampaign.name}" at ${worstCampaign.openRate}%` : ''}. Study what made that subject line work and replicate the pattern.`
-            : 'Upload MailerLite data to compare campaign performance.'}
-        >
-          {bestCampaign && (
-            <div className="space-y-3 mb-2">
-              <div>
-                <div className="text-[10px] font-bold tracking-[1px] uppercase mb-1"
-                  style={{ color: '#34d399' }}>Best</div>
-                <div className="text-[12px] font-semibold truncate mb-0.5" style={{ color: '#1E2D3D' }}
-                  title={bestCampaign.name}>{bestCampaign.name}</div>
-                <div className="font-mono text-[18px] font-bold" style={{ color: '#34d399' }}>
-                  {bestCampaign.openRate}% open
-                </div>
-              </div>
-              {worstCampaign && worstCampaign !== bestCampaign && (
-                <div className="pt-3" style={{ borderTop: '1px solid #F0E0C8' }}>
-                  <div className="text-[10px] font-bold tracking-[1px] uppercase mb-1"
-                    style={{ color: '#fb7185' }}>Needs Work</div>
-                  <div className="text-[12px] font-semibold truncate mb-0.5" style={{ color: '#1E2D3D' }}
-                    title={worstCampaign.name}>{worstCampaign.name}</div>
-                  <div className="font-mono text-[18px] font-bold" style={{ color: '#fb7185' }}>
-                    {worstCampaign.openRate}% open
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </MetricCard>
-      </div>
-
-      {/* ── AD PERFORMANCE ──────────────────────────────────────────────────── */}
-      <DarkSectionHeader title="Ad Performance" badge="Meta Ads" badgeColor="#38bdf8" />
-
-      <div className="grid grid-cols-3 gap-4 mb-7">
-
-        {/* CTR trend */}
-        <MetricCard
-          title="CTR Trend (Monthly)"
-          value={meta ? `${meta.avgCTR}%` : '—'}
-          valueColor={meta ? statusColor(meta.avgCTR, targetCTR * 1.5, targetCTR * 0.8) : '#9CA3AF'}
-          sub={`Average click-through rate · ${ctrLabel}`}
-          coach={meta
-            ? meta.avgCTR >= targetCTR * 1.5
-              ? `${meta.avgCTR}% CTR is excellent — your creatives are resonating with romance readers.`
-              : meta.avgCTR >= targetCTR * 0.8
-              ? `${meta.avgCTR}% CTR is close to your target. Test 2–3 new hook angles to find a creative that breaks through.`
-              : `${meta.avgCTR}% CTR is below target. Lead with emotion over plot — show the feeling, not the synopsis.`
-            : 'Upload Meta Ads data to see your CTR trend.'}
-        >
-          {ctrHistory.filter(v => v > 0).length >= 2 && (
-            <div className="mt-2">
-              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>
-                Last {ctrHistory.length} months
-              </div>
-              <Sparkline data={ctrHistory} color="#38bdf8" />
-            </div>
-          )}
-        </MetricCard>
-
-        {/* CPC trend */}
-        <MetricCard
-          title="CPC Trend (Monthly)"
-          value={meta ? `$${meta.avgCPC}` : '—'}
-          valueColor={meta ? statusColor(meta.avgCPC, targetCPC, targetCPC * 2, false) : '#9CA3AF'}
-          sub={`Average cost per click · ${cpcLabel}`}
-          coach={meta
-            ? meta.avgCPC <= targetCPC
-              ? `$${meta.avgCPC} CPC is efficient. Reinvest savings into scaling your best ad.`
-              : meta.avgCPC <= targetCPC * 2
-              ? `$${meta.avgCPC} CPC is reasonable for romance. If it keeps rising, pause and retest creative.`
-              : `$${meta.avgCPC} CPC is high. Cut your lowest-CTR ads first — they're dragging your average cost up.`
-            : 'Upload Meta Ads data to see your CPC trend.'}
-        >
-          {cpcHistory.filter(v => v > 0).length >= 2 && (
-            <div className="mt-2">
-              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>
-                Last {cpcHistory.length} months
-              </div>
-              <Sparkline data={cpcHistory} color="#fbbf24" />
-            </div>
-          )}
-        </MetricCard>
-
-        {/* Best vs worst ad */}
-        <MetricCard
-          title="Best vs Worst Ad"
-          coach={bestAd && worstAd && bestAd !== worstAd
-            ? `"${bestAd.name}" is your winner at ${bestAd.ctr}% CTR. Cut "${worstAd.name}" at ${worstAd.ctr}% CTR and put that budget behind the winner.`
-            : meta?.ads?.length === 1
-            ? `You have one ad running. Add 2–3 more variations to find your best performer.`
-            : 'Upload Meta Ads data to compare your ad performance.'}
-        >
-          {bestAd && (
-            <div className="space-y-3 mb-2">
-              <div>
-                <div className="text-[10px] font-bold tracking-[1px] uppercase mb-1"
-                  style={{ color: '#34d399' }}>Best</div>
-                <div className="text-[12px] font-semibold truncate mb-0.5" style={{ color: '#1E2D3D' }}
-                  title={bestAd.name}>{bestAd.name}</div>
-                <div className="font-mono text-[16px] font-bold" style={{ color: '#34d399' }}>
-                  {bestAd.ctr}% CTR · ${bestAd.cpc} CPC
-                </div>
-              </div>
-              {worstAd && worstAd !== bestAd && (
-                <div className="pt-3" style={{ borderTop: '1px solid #F0E0C8' }}>
-                  <div className="text-[10px] font-bold tracking-[1px] uppercase mb-1"
-                    style={{ color: '#fb7185' }}>Weakest</div>
-                  <div className="text-[12px] font-semibold truncate mb-0.5" style={{ color: '#1E2D3D' }}
-                    title={worstAd.name}>{worstAd.name}</div>
-                  <div className="font-mono text-[16px] font-bold" style={{ color: '#fb7185' }}>
-                    {worstAd.ctr}% CTR · ${worstAd.cpc} CPC
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </MetricCard>
-      </div>
-
-      {/* ── SERIES & CATALOG HEALTH ─────────────────────────────────────────── */}
-      <DarkSectionHeader title="Series & Catalog Health" badge="KDP" badgeColor="#a78bfa" />
-
-      <div className="grid grid-cols-2 gap-4 mb-7">
-
-        {/* Read-through funnel */}
+        {/* Email → Sales Correlation */}
         <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
-          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-4" style={{ color: '#6B7280' }}>
-            Series Read-Through Rate
+          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
+            Email → Sales Correlation
           </div>
-          {readThrough.length >= 2 ? (
-            <>
+          <div className="text-[12.5px] mb-3" style={{ color: '#1E2D3D' }}>
+            Did high open-rate emails move units?
+          </div>
+          {emailOpenHistory.filter(v => v > 0).length >= 2 && (
+            <div className="mb-3">
+              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>Open rate trend</div>
+              <Sparkline data={emailOpenHistory} color="#34d399" />
+            </div>
+          )}
+          {unitsHistory.filter(v => v > 0).length >= 2 && (
+            <div className="mb-3">
+              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>Units sold trend</div>
+              <Sparkline data={unitsHistory} color="#e9a020" />
+            </div>
+          )}
+          <div className="text-[11.5px] leading-relaxed pt-3" style={{ borderTop: '1px solid #F0E0C8', color: '#6B7280' }}>
+            💬 {emailOpenHistory.filter(v => v > 0).length >= 2
+              ? 'When email opens spike and units follow, your list is converting. Months where opens are high but units flat may mean you need stronger CTAs in your emails.'
+              : 'Need 2+ months of MailerLite and KDP data to see this correlation.'}
+          </div>
+        </div>
+
+        {/* Swap → KENP Correlation */}
+        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
+            Swap → KENP Correlation
+          </div>
+          <div className="text-[12.5px] mb-3" style={{ color: '#1E2D3D' }}>
+            Did your swaps cause KENP spikes?
+          </div>
+          {kenpHistory.filter(v => v > 0).length >= 2 && (
+            <div className="mb-3">
+              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>KENP trend (monthly)</div>
+              <Sparkline data={kenpHistory} color="#a78bfa" width={200} />
+            </div>
+          )}
+          <div className="text-[11.5px] leading-relaxed pt-3" style={{ borderTop: '1px solid #F0E0C8', color: '#6B7280' }}>
+            💬 {kenpHistory.filter(v => v > 0).length >= 2
+              ? 'Look for KENP spikes in months with active swaps. A swap with a larger list should produce a visible bump in borrows within 1–2 weeks.'
+              : 'Need 2+ months of KDP data to spot swap-driven KENP patterns. Keep logging your swaps!'}
+          </div>
+        </div>
+
+        {/* Series Health Score */}
+        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
+            Series Health Score
+          </div>
+          <div className="text-[12.5px] mb-3" style={{ color: '#1E2D3D' }}>
+            Read-through + rank + list growth combined
+          </div>
+          <div className="text-center mb-4">
+            <div className="text-[48px] font-semibold leading-none tracking-tight" style={{ color: seriesHealthColor }}>
+              {seriesHealth}
+            </div>
+            <div className="text-[11px] mt-1" style={{ color: '#9CA3AF' }}>out of 100</div>
+          </div>
+          <div className="space-y-2 mb-3">
+            {[
+              { label: 'Read-through', score: readThroughScore, note: readThrough.length >= 2 ? `${readThrough[1].pct.toFixed(0)}% Book 1 → 2` : 'Need 2+ books' },
+              { label: 'Best Rank', score: rankScore, note: bestRank ? `#${bestRank.toLocaleString()}` : 'No rank data' },
+              { label: 'List Growth', score: listScore, note: `${listGrowth >= 0 ? '+' : ''}${listGrowth} subscribers` },
+            ].map(item => (
+              <div key={item.label} className="flex items-center gap-3">
+                <div className="text-[11px] w-24" style={{ color: '#6B7280' }}>{item.label}</div>
+                <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#F0E0C8' }}>
+                  <div className="h-full rounded-full" style={{ width: `${item.score}%`, background: item.score >= 70 ? '#34d399' : item.score >= 40 ? '#fbbf24' : '#fb7185' }} />
+                </div>
+                <div className="text-[10px] w-28 text-right" style={{ color: '#9CA3AF' }}>{item.note}</div>
+              </div>
+            ))}
+          </div>
+          <div className="text-[11.5px] leading-relaxed pt-3" style={{ borderTop: '1px solid #F0E0C8', color: '#6B7280' }}>
+            💬 {seriesHealth >= 70
+              ? 'Your series is healthy across all three dimensions. Keep the momentum.'
+              : seriesHealth >= 40
+              ? 'Some areas need attention. Focus on the lowest-scoring component first.'
+              : 'Multiple areas need work. Start with the biggest gap — usually email capture or read-through.'}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 3. SERIES READ-THROUGH FUNNEL ──────────────────────────────────── */}
+      <DarkSectionHeader title="Series Read-Through Funnel" badge="Cross-book" badgeColor="#a78bfa" />
+
+      <div className="rounded-xl p-5 mb-7" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+        {readThrough.length >= 2 ? (
+          <>
+            {readThrough.map((rt, i) => (
               <FunnelBar
-                label={`${readThrough[0].book.shortTitle} — Book 1`}
-                pct={100}
-                count={readThrough[0].book.kenp}
-                color={readThrough[0].color}
+                key={rt.book.asin || i}
+                label={`${rt.book.shortTitle} — Book ${i + 1}`}
+                pct={rt.pct}
+                count={rt.book.kenp}
+                color={rt.color}
+                benchmark={i > 0 ? 40 : undefined}
               />
-              {readThrough.slice(1).map((rt, i) => (
-                <FunnelBar
-                  key={rt.book.asin || i}
-                  label={`${rt.book.shortTitle} — Book ${i + 2}`}
-                  pct={rt.pct}
-                  count={rt.book.kenp}
-                  color={rt.color}
-                  benchmark={40}
-                />
-              ))}
-              <div className="mt-3 pt-3 text-[11.5px] leading-relaxed"
-                style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8' }}>
-                💬 {readThrough[1]
-                  ? readThrough[1].pct >= 40
-                    ? `${readThrough[1].pct.toFixed(0)}% of Book 1 readers went on to read Book 2 — above the 40% romance benchmark. Your series hook is working.`
-                    : `${readThrough[1].pct.toFixed(0)}% of Book 1 readers continued to Book 2. Add a direct link to Book 2 at the end of Book 1, or strengthen the cliffhanger.`
-                  : 'Read-through calculated from KENP ratios. More reads means more accurate data.'}
-              </div>
-            </>
-          ) : (
-            <div className="text-[12.5px] py-6 text-center" style={{ color: '#9CA3AF' }}>
-              {readThrough.length === 1
-                ? 'Only one book detected. Add more books to your KDP data to see series read-through.'
-                : 'Upload KDP data with multiple books to see your series read-through funnel.'}
+            ))}
+            <div className="mt-3 pt-3 text-[11.5px] leading-relaxed" style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8' }}>
+              💬 {readThrough[1].pct >= 40
+                ? `${readThrough[1].pct.toFixed(0)}% of Book 1 readers continued to Book 2 — above the 40% benchmark. Your series hook is working.`
+                : `${readThrough[1].pct.toFixed(0)}% continued to Book 2. Strengthen your cliffhanger and add a direct link at the end of Book 1.`}
             </div>
-          )}
-        </div>
-
-        {/* Borrow rate vs buy rate */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
-          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-4" style={{ color: '#6B7280' }}>
-            Borrow Rate vs Buy Rate (Estimated)
+          </>
+        ) : (
+          <div className="text-[12.5px] py-6 text-center" style={{ color: '#9CA3AF' }}>
+            Upload KDP data with 2+ books to see your series read-through funnel.
           </div>
-          {booksWithBorrow.length > 0 ? (
-            <>
-              {booksWithBorrow.map(({ book, estimatedBorrows, borrowPct, color }, i) => (
-                <div key={book.asin || i} className="mb-4">
-                  <div className="flex items-baseline justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-                      <span className="text-[12.5px] font-semibold" style={{ color: '#1E2D3D' }}>
-                        {book.shortTitle}
-                      </span>
-                    </div>
-                    <span className="text-[11px]" style={{ color: '#6B7280' }}>
-                      {book.units} paid · ~{estimatedBorrows} KU
-                    </span>
-                  </div>
-                  <div className="h-2.5 rounded-full overflow-hidden flex" style={{ background: '#F0E0C8' }}>
-                    <div className="h-full"
-                      style={{ width: `${100 - borrowPct}%`, background: color, opacity: 0.9 }} />
-                    <div className="h-full"
-                      style={{ width: `${borrowPct}%`, background: '#D6D3D1' }} />
-                  </div>
-                  <div className="flex justify-between mt-1 text-[10px]" style={{ color: '#9CA3AF' }}>
-                    <span style={{ color }}>{(100 - borrowPct).toFixed(0)}% paid sales</span>
-                    <span>{borrowPct.toFixed(0)}% KU borrows (est.)</span>
-                  </div>
-                </div>
-              ))}
-              <div className="mt-2 pt-3 text-[11.5px] leading-relaxed"
-                style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8' }}>
-                💬 KU borrows estimated from KENP ÷ 300 pages. A high borrow rate means readers prefer your books in KU — keep your series enrolled in KDP Select.
-              </div>
-            </>
-          ) : (
-            <div className="text-[12.5px] py-6 text-center" style={{ color: '#9CA3AF' }}>
-              Upload KDP data to see borrow vs buy rates per book.
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* ── OPERATIONAL INDICATORS ──────────────────────────────────────────── */}
-      <DarkSectionHeader title="Operational Indicators" badge="Housekeeping" badgeColor="#9CA3AF" />
+      {/* ── 4. ARC CALCULATOR ──────────────────────────────────────────────── */}
+      <DarkSectionHeader title="ARC Conversion Calculator" badge="Tool" badgeColor="#9CA3AF" />
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
-
-        {/* Days since last upload */}
-        <MetricCard
-          title="Days Since Last Upload"
-          value={daysSince != null ? `${daysSince}` : '—'}
-          valueColor={daysSince != null ? statusColor(daysSince, 7, 14, false) : '#9CA3AF'}
-          sub={analysis?.generatedAt
-            ? `Last analyzed ${new Date(analysis.generatedAt).toLocaleDateString('en-US', {
-                month: 'short', day: 'numeric', year: 'numeric',
-              })}`
-            : 'No analysis found yet'}
-          coach={daysSince != null
-            ? daysSince <= 7
-              ? 'Your data is fresh — great habit. Uploading weekly gives you trends before they become problems.'
-              : daysSince <= 14
-              ? `It's been ${daysSince} days. Monthly uploads are the minimum — weekly is better for catching ad fatigue early.`
-              : `It's been ${daysSince} days since your last upload. Stale data means stale decisions. Set a Monday reminder to upload your latest files.`
-            : 'Upload your first data set to start tracking freshness.'}
-        />
-
-        {/* ARC conversion calculator */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
-          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-4" style={{ color: '#6B7280' }}>
-            ARC Conversion Rate Calculator
+      <div className="rounded-xl p-5 mb-7 max-w-md" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+        <div className="flex gap-3 mb-4">
+          <div className="flex-1">
+            <label className="text-[10px] font-bold tracking-[1px] uppercase block mb-1.5" style={{ color: '#6B7280' }}>ARCs Sent</label>
+            <input type="number" min="0" value={arcSent} onChange={e => setArcSent(e.target.value)} placeholder="e.g. 50"
+              className="w-full px-3 py-2 rounded-lg text-[13px] outline-none" style={{ background: 'white', border: '1px solid #D6D3D1', color: '#1E2D3D' }} />
           </div>
-          <div className="flex gap-3 mb-4">
-            <div className="flex-1">
-              <label className="text-[10px] font-bold tracking-[1px] uppercase block mb-1.5"
-                style={{ color: '#6B7280' }}>
-                ARCs Sent
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={arcSent}
-                onChange={e => setArcSent(e.target.value)}
-                placeholder="e.g. 50"
-                className="w-full px-3 py-2 rounded-lg text-[13px] font-mono outline-none"
-                style={{ background: 'white', border: '1px solid #D6D3D1', color: '#1E2D3D' }}
-              />
-            </div>
-            <div className="flex-1">
-              <label className="text-[10px] font-bold tracking-[1px] uppercase block mb-1.5"
-                style={{ color: '#6B7280' }}>
-                Reviews Received
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={arcReceived}
-                onChange={e => setArcReceived(e.target.value)}
-                placeholder="e.g. 12"
-                className="w-full px-3 py-2 rounded-lg text-[13px] font-mono outline-none"
-                style={{ background: 'white', border: '1px solid #D6D3D1', color: '#1E2D3D' }}
-              />
-            </div>
+          <div className="flex-1">
+            <label className="text-[10px] font-bold tracking-[1px] uppercase block mb-1.5" style={{ color: '#6B7280' }}>Reviews Received</label>
+            <input type="number" min="0" value={arcReceived} onChange={e => setArcReceived(e.target.value)} placeholder="e.g. 12"
+              className="w-full px-3 py-2 rounded-lg text-[13px] outline-none" style={{ background: 'white', border: '1px solid #D6D3D1', color: '#1E2D3D' }} />
           </div>
-          {arcPct != null && !isNaN(arcPct) && (
-            <div className="rounded-lg px-4 py-3 mb-4 text-center" style={{
-              background: '#F5F5F4',
-              border: `1px solid ${statusColor(arcPct, 25, 15)}40`,
-            }}>
-              <div className="text-[34px] font-semibold leading-none tracking-tight"
-                style={{ color: statusColor(arcPct, 25, 15) }}>
-                {arcPct.toFixed(1)}%
-              </div>
-              <div className="text-[11px] mt-1" style={{ color: '#6B7280' }}>conversion rate</div>
-            </div>
-          )}
-          <div className="text-[11.5px] leading-relaxed"
-            style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8', paddingTop: 12 }}>
-            💬 {arcPct != null && !isNaN(arcPct)
-              ? arcPct >= 25
-                ? `${arcPct.toFixed(1)}% is above the 15–25% normal range — your ARC readers are engaged and following through.`
-                : arcPct >= 15
-                ? `${arcPct.toFixed(1)}% is within the normal 15–25% range. Follow up personally with non-reviewers 2 weeks post-launch.`
-                : `${arcPct.toFixed(1)}% is below the 15–25% benchmark. Use a smaller, curated ARC list of readers who have reviewed before.`
-              : '15–25% is a normal conversion rate for romance ARC programs. Enter your numbers above to see where you stand.'}
+        </div>
+        {arcPct != null && !isNaN(arcPct) && (
+          <div className="rounded-lg px-4 py-3 mb-4 text-center" style={{ background: '#F5F5F4', border: `1px solid ${statusColor(arcPct, 25, 15)}40` }}>
+            <div className="text-[34px] font-semibold leading-none tracking-tight" style={{ color: statusColor(arcPct, 25, 15) }}>{arcPct.toFixed(1)}%</div>
+            <div className="text-[11px] mt-1" style={{ color: '#6B7280' }}>conversion rate</div>
           </div>
+        )}
+        <div className="text-[11.5px] leading-relaxed" style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8', paddingTop: 12 }}>
+          💬 {arcPct != null && !isNaN(arcPct)
+            ? arcPct >= 25 ? `${arcPct.toFixed(1)}% is above the 15–25% normal range — your ARC readers are engaged.`
+              : arcPct >= 15 ? `${arcPct.toFixed(1)}% is within normal range. Follow up with non-reviewers 2 weeks post-launch.`
+              : `${arcPct.toFixed(1)}% is below benchmark. Use a smaller, curated ARC list.`
+            : '15–25% is normal for romance ARC programs. Enter your numbers above.'}
         </div>
       </div>
 
