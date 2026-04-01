@@ -20,28 +20,28 @@ function detectInsights(analysis: Analysis): Insight[] {
   if (kdp && kdp.totalRoyaltiesUSD === 0 && kdp.totalUnits > 0) {
     insights.push({
       mode: 'alarm',
-      text: `You sold **${kdp.totalUnits} units** this month but earned **$0 in royalties**. This usually means your books are priced at $0.00 or enrolled in a free promo. If that's intentional, great — but if not, check your KDP pricing immediately.`,
+      text: `You sold **${kdp.totalUnits} units** this month but earned **$0 in royalties**. This usually means your books are priced at $0.00 or enrolled in a free promo. If that's intentional, great — but if not, check your KDP pricing immediately. Every great story has a dark moment before the breakthrough — this is yours to fix.`,
     })
   }
 
   if (meta && meta.avgCTR < 0.8 && meta.ads.length >= 2) {
     insights.push({
       mode: 'alarm',
-      text: `Your average ad **CTR is ${meta.avgCTR}%**, which is below the 1% threshold most authors aim for. Low CTR means your ad creative or targeting isn't resonating. Consider testing new images or narrowing your audience.`,
+      text: `Your average ad **CTR is ${meta.avgCTR}%**, which is below the 1% threshold most authors aim for. Low CTR means your ad creative or targeting isn't resonating — consider testing new images or narrowing your audience. Think of this as your inciting incident — the moment that sets the next chapter in motion.`,
     })
   }
 
   if (ml && ml.unsubscribes > 50) {
     insights.push({
       mode: 'alarm',
-      text: `You've had **${ml.unsubscribes} unsubscribes** recently — that's higher than usual. Check if a recent campaign had a spike. Sometimes a subject line mismatch or too-frequent sends can trigger this.`,
+      text: `You've had **${ml.unsubscribes} unsubscribes** recently — that's higher than usual. Check if a recent campaign had a spike, sometimes a subject line mismatch or too-frequent sends can trigger this. Consider this your cliffhanger — the unresolved thread that needs attention before the next chapter.`,
     })
   }
 
   if (ml && ml.listSize === 0) {
     insights.push({
       mode: 'alarm',
-      text: `Your **email list size is 0**. This could mean your MailerLite API key isn't pulling data correctly, or you genuinely haven't started list building yet. Either way, this is your most important channel to grow.`,
+      text: `Your **email list size is 0**. This could mean your MailerLite API key isn't pulling data correctly, or you genuinely haven't started list building yet. Either way, this is the plot tension in your author journey — the good news is you're the author and you can rewrite it.`,
     })
   }
 
@@ -50,7 +50,7 @@ function detectInsights(analysis: Analysis): Insight[] {
     if (lowRoas.length >= 2) {
       insights.push({
         mode: 'alarm',
-        text: `**${lowRoas.length} ads** have a cost-per-click above $2.00. That's expensive for book marketing. Consider pausing these and reallocating budget to your better-performing ads.`,
+        text: `**${lowRoas.length} ads** have a cost-per-click above $2.00 — that's expensive for book marketing. Consider pausing these and reallocating budget to your better-performing ads. Every story needs editing, and sometimes the bravest revision is cutting what isn't working.`,
       })
     }
   }
@@ -59,21 +59,21 @@ function detectInsights(analysis: Analysis): Insight[] {
   if (ml && ml.openRate > 30) {
     insights.push({
       mode: 'cheer',
-      text: `Your **${ml.openRate}% open rate** is outstanding — well above the 20-25% author average. Your subject lines are clearly resonating with your readers. Keep doing what you're doing!`,
+      text: `Your **${ml.openRate}% open rate** is outstanding — well above the 20-25% author average. Your subject lines are clearly resonating with your readers, and they're leaning in every time you show up in their inbox. That's the mark of a great storyteller.`,
     })
   }
 
   if (ml && ml.clickRate > 4) {
     insights.push({
       mode: 'cheer',
-      text: `A **${ml.clickRate}% click rate** is exceptional. Your readers aren't just opening — they're taking action. This means your email content and CTAs are highly relevant.`,
+      text: `A **${ml.clickRate}% click rate** is exceptional. Your readers aren't just opening — they're taking action, following every thread you weave. This is your story's rising action, and it's working.`,
     })
   }
 
   if (meta && meta.bestAd && meta.bestAd.ctr > 2) {
     insights.push({
       mode: 'cheer',
-      text: `Your top ad "**${meta.bestAd.name}**" is crushing it with a **${meta.bestAd.ctr}% CTR**. That's well above average. Consider increasing its budget or creating similar variations.`,
+      text: `Plot twist — your top ad "**${meta.bestAd.name}**" is pulling a **${meta.bestAd.ctr}% CTR**, well above average. Your readers are showing up in a big way. Consider increasing its budget or creating similar variations to keep the momentum building.`,
     })
   }
 
@@ -82,7 +82,7 @@ function detectInsights(analysis: Analysis): Insight[] {
     if (perUnit > 3) {
       insights.push({
         mode: 'cheer',
-        text: `You're earning **$${perUnit.toFixed(2)} per unit** — that's a healthy royalty rate. Your pricing strategy is working well for your current genre and format mix.`,
+        text: `You're earning **$${perUnit.toFixed(2)} per unit** — that's a healthy royalty rate and your pricing strategy is landing exactly where it should. This is the moment your protagonist finds their power — keep going.`,
       })
     }
   }
