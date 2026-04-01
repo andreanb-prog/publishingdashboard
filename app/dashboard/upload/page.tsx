@@ -104,6 +104,97 @@ const FILE_HELP = [
   },
 ]
 
+// ── Cloud import buttons ─────────────────────────────────────────────────────
+const CLOUD_SERVICES = [
+  { key: 'gdrive',   label: 'Google Drive',  icon: '📁' },
+  { key: 'dropbox',  label: 'Dropbox',       icon: '📦' },
+  { key: 'icloud',   label: 'iCloud Drive',  icon: '☁️' },
+  { key: 'onedrive', label: 'OneDrive',      icon: '💾' },
+]
+
+function ImportFromCloud({ onFile }: { onFile: (files: FileList | null) => void }) {
+  const [showTip, setShowTip] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  function handleClick(key: string) {
+    if (key === 'icloud') {
+      setShowTip('icloud')
+      return
+    }
+    // For Google Drive, Dropbox, OneDrive — fall back to native file picker
+    // when API keys aren't configured (graceful degradation)
+    setShowTip(key)
+  }
+
+  return (
+    <div className="mb-5">
+      <div className="text-[11px] font-semibold uppercase tracking-wider mb-2.5"
+        style={{ color: 'rgba(255,255,255,0.3)' }}>
+        Or import from
+      </div>
+      <div className="flex flex-wrap gap-2 mb-2">
+        {CLOUD_SERVICES.map(s => (
+          <button
+            key={s.key}
+            onClick={() => handleClick(s.key)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold
+                       transition-all hover:bg-white/[0.06]"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              color: 'rgba(255,255,255,0.6)',
+            }}
+          >
+            <span className="text-[14px]">{s.icon}</span>
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {showTip === 'icloud' && (
+        <div className="rounded-lg p-3 mb-2 text-[12px] leading-relaxed"
+          style={{ background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)', color: 'rgba(255,255,255,0.6)' }}>
+          <strong style={{ color: '#38bdf8' }}>iCloud Drive:</strong> Open the Files app on your Mac → iCloud Drive → find your file → drag it into the box above. Takes 10 seconds!
+          <button onClick={() => setShowTip(null)} className="ml-2 text-[10px] opacity-50" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>dismiss</button>
+        </div>
+      )}
+
+      {(showTip === 'gdrive' || showTip === 'dropbox' || showTip === 'onedrive') && (
+        <div className="rounded-lg p-3 mb-2 text-[12px] leading-relaxed"
+          style={{ background: 'rgba(233,160,32,0.08)', border: '1px solid rgba(233,160,32,0.2)', color: 'rgba(255,255,255,0.6)' }}>
+          <strong style={{ color: '#e9a020' }}>
+            {showTip === 'gdrive' ? 'Google Drive' : showTip === 'dropbox' ? 'Dropbox' : 'OneDrive'}:
+          </strong>{' '}
+          Download your file from {showTip === 'gdrive' ? 'Google Drive' : showTip === 'dropbox' ? 'Dropbox' : 'OneDrive'} to your computer first, then drag it here.
+          Once your admin connects the {showTip === 'gdrive' ? 'Google Drive' : showTip === 'dropbox' ? 'Dropbox' : 'OneDrive'} API, you&apos;ll be able to import directly.
+          <button onClick={() => { setShowTip(null); fileRef.current?.click() }}
+            className="ml-2 text-[11px] font-semibold underline" style={{ background: 'none', border: 'none', color: '#e9a020', cursor: 'pointer' }}>
+            Browse files instead →
+          </button>
+        </div>
+      )}
+
+      <input ref={fileRef} type="file" multiple accept=".xlsx,.xls,.csv" className="hidden"
+        onChange={e => { onFile(e.target.files); setShowTip(null) }} />
+
+      {/* Having trouble? */}
+      <details className="mt-3">
+        <summary className="text-[11px] font-semibold cursor-pointer"
+          style={{ color: 'rgba(255,255,255,0.3)' }}>
+          Having trouble finding your files?
+        </summary>
+        <div className="mt-2 rounded-lg p-3 space-y-1.5 text-[11.5px] leading-relaxed"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.45)' }}>
+          <div><strong style={{ color: 'rgba(255,255,255,0.6)' }}>KDP report:</strong> kdp.amazon.com → Reports → Download a report → Month-end report</div>
+          <div><strong style={{ color: 'rgba(255,255,255,0.6)' }}>Meta ads:</strong> Ads Manager → Export → CSV (set your date range first)</div>
+          <div><strong style={{ color: 'rgba(255,255,255,0.6)' }}>Pinterest:</strong> analytics.pinterest.com → Export</div>
+          <div><strong style={{ color: 'rgba(255,255,255,0.6)' }}>Ad Tracker:</strong> Wherever you saved your coaching Excel file</div>
+        </div>
+      </details>
+    </div>
+  )
+}
+
 export default function UploadPage() {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -532,6 +623,9 @@ export default function UploadPage() {
                 </div>
               </div>
             </div>
+
+            {/* Import from cloud row */}
+            <ImportFromCloud onFile={handleFiles} />
 
             {/* Collapsible: What files do I need? */}
             <div className="mb-5">
