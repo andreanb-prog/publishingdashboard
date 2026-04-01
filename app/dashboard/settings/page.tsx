@@ -1,7 +1,8 @@
 'use client'
 // app/dashboard/settings/page.tsx
-import { useState, useEffect, useRef, useId } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { CategoryTagInput } from '@/components/CategoryTagInput'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 type TestState = 'idle' | 'testing' | 'ok' | 'error'
@@ -10,231 +11,9 @@ interface BookEntry {
   id: string
   title: string
   asin: string
-  category: string
+  categories: string[]
   series: string
   bookNumber: string
-}
-
-// ── Category list ─────────────────────────────────────────────────────────────
-const CATEGORY_GROUPS: { group: string; categories: string[] }[] = [
-  {
-    group: 'Romance',
-    categories: [
-      'Contemporary Romance',
-      'Romantic Suspense',
-      'Historical Romance',
-      'Western Romance',
-      'Small Town Romance',
-      'Second Chance Romance',
-      'Enemies to Lovers Romance',
-      'Fake Dating Romance',
-      'Forced Proximity Romance',
-      'Sports Romance',
-      'Military Romance',
-      'Medical Romance',
-      'Office Romance',
-      'Age Gap Romance',
-      'Reverse Harem Romance',
-      'Dark Romance',
-      'Billionaire Romance',
-      'Royalty Romance',
-      'Holiday Romance',
-      'Clean & Wholesome Romance',
-      'Inspirational Romance',
-      'LGBTQ+ Romance',
-      'Interracial Romance',
-      'Plus Size Romance',
-      'New Adult & College Romance',
-    ],
-  },
-  {
-    group: 'Mafia & Dark Romance',
-    categories: [
-      'Mafia Romance',
-      'Dark Mafia Romance',
-      'Cartel Romance',
-      'Organized Crime Romance',
-      'Forbidden Dark Romance',
-      'Captive Romance',
-      'Bully Romance',
-    ],
-  },
-  {
-    group: 'Paranormal Romance',
-    categories: [
-      'Paranormal Romance',
-      'Vampire Romance',
-      'Werewolf Romance',
-      'Shifter Romance',
-      'Witch Romance',
-      'Fae Romance',
-      'Dragon Romance',
-      'Demon Romance',
-      'Angel Romance',
-      'Ghost Romance',
-      'Psychic Romance',
-      'Fantasy Romance',
-      'Dark Fantasy Romance',
-    ],
-  },
-  {
-    group: 'Cozy Mystery',
-    categories: [
-      'Cozy Mystery',
-      'Culinary Cozy Mystery',
-      'Pet Cozy Mystery',
-      'Craft Cozy Mystery',
-      'Bookshop Cozy Mystery',
-      'Paranormal Cozy Mystery',
-      'Small Town Cozy Mystery',
-    ],
-  },
-]
-
-const ALL_CATEGORIES = CATEGORY_GROUPS.flatMap(g => g.categories)
-
-// ── Category autocomplete ─────────────────────────────────────────────────────
-function CategoryInput({
-  value, onChange,
-}: {
-  value: string
-  onChange: (v: string) => void
-}) {
-  const [open,      setOpen]      = useState(false)
-  const [highlighted, setHighlighted] = useState(-1)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const listRef  = useRef<HTMLDivElement>(null)
-  const uid = useId()
-
-  const filtered = value.trim()
-    ? ALL_CATEGORIES.filter(c => c.toLowerCase().includes(value.toLowerCase()))
-    : ALL_CATEGORIES
-
-  // Group the filtered results
-  const filteredGroups = CATEGORY_GROUPS
-    .map(g => ({ ...g, categories: g.categories.filter(c => filtered.includes(c)) }))
-    .filter(g => g.categories.length > 0)
-
-  const flatFiltered = filteredGroups.flatMap(g => g.categories)
-
-  function selectItem(cat: string) {
-    onChange(cat)
-    setOpen(false)
-    setHighlighted(-1)
-    inputRef.current?.blur()
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-      setOpen(true)
-      return
-    }
-    if (e.key === 'Escape') { setOpen(false); setHighlighted(-1); return }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setHighlighted(h => Math.min(h + 1, flatFiltered.length - 1))
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setHighlighted(h => Math.max(h - 1, -1))
-    }
-    if (e.key === 'Enter') {
-      if (highlighted >= 0 && flatFiltered[highlighted]) {
-        e.preventDefault()
-        selectItem(flatFiltered[highlighted])
-      } else {
-        setOpen(false)
-      }
-    }
-  }
-
-  // Scroll highlighted item into view
-  useEffect(() => {
-    if (highlighted >= 0 && listRef.current) {
-      const el = listRef.current.querySelector(`[data-idx="${highlighted}"]`) as HTMLElement
-      el?.scrollIntoView({ block: 'nearest' })
-    }
-  }, [highlighted])
-
-  // Build flat index for highlighting across groups
-  let globalIdx = 0
-
-  return (
-    <div className="relative">
-      <input
-        ref={inputRef}
-        id={uid}
-        type="text"
-        value={value}
-        onChange={e => { onChange(e.target.value); setOpen(true); setHighlighted(-1) }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        onKeyDown={handleKeyDown}
-        placeholder="Type or choose a category…"
-        autoComplete="off"
-        className="w-full border border-stone-200 rounded-lg px-3 py-2 text-[13px]
-                   text-[#0d1f35] bg-white outline-none focus:border-amber-brand
-                   transition-colors duration-150"
-      />
-
-      {open && flatFiltered.length > 0 && (
-        <div
-          ref={listRef}
-          className="absolute z-50 left-0 right-0 mt-1 rounded-xl shadow-xl overflow-y-auto"
-          style={{
-            maxHeight: 300,
-            background: '#fff',
-            border: '1px solid #e7e5e4',
-            top: '100%',
-          }}
-        >
-          {filteredGroups.map(group => (
-            <div key={group.group}>
-              <div className="px-3 py-1.5 text-[9.5px] font-bold uppercase tracking-[1.2px]"
-                style={{ color: '#a8a29e', background: '#fafaf9', borderBottom: '1px solid #f5f5f4' }}>
-                {group.group}
-              </div>
-              {group.categories.map(cat => {
-                const idx = globalIdx++
-                const isHighlighted = idx === highlighted
-                return (
-                  <div
-                    key={cat}
-                    data-idx={idx}
-                    onMouseDown={() => selectItem(cat)}
-                    onMouseEnter={() => setHighlighted(idx)}
-                    className="px-3 py-2 text-[13px] cursor-pointer transition-colors duration-75"
-                    style={{
-                      color: isHighlighted ? '#0d1f35' : '#44403c',
-                      background: isHighlighted ? '#fef3c7' : 'transparent',
-                      fontWeight: isHighlighted ? 600 : 400,
-                    }}
-                  >
-                    {cat}
-                  </div>
-                )
-              })}
-            </div>
-          ))}
-          {/* Always allow custom entry if typed value isn't in the list */}
-          {value.trim() && !ALL_CATEGORIES.some(c => c.toLowerCase() === value.toLowerCase()) && (
-            <div
-              onMouseDown={() => selectItem(value.trim())}
-              onMouseEnter={() => setHighlighted(flatFiltered.length)}
-              className="px-3 py-2.5 text-[12.5px] cursor-pointer border-t"
-              style={{
-                color: '#e9a020',
-                background: highlighted === flatFiltered.length ? '#fef3c7' : 'transparent',
-                borderColor: '#f5f5f4',
-              }}
-            >
-              Use &ldquo;<strong>{value.trim()}</strong>&rdquo; as a custom category
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
 }
 
 // ── API key field ─────────────────────────────────────────────────────────────
@@ -272,7 +51,7 @@ function KeyField({
 
 // ── Blank book entry ──────────────────────────────────────────────────────────
 function blankBook(): BookEntry {
-  return { id: crypto.randomUUID(), title: '', asin: '', category: '', series: '', bookNumber: '' }
+  return { id: crypto.randomUUID(), title: '', asin: '', categories: [], series: '', bookNumber: '' }
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -297,9 +76,15 @@ export default function SettingsPage() {
         setHasSavedML(!!d.mailerLiteKey)
         setHasSavedClaude(!!d.claudeKey)
         if (Array.isArray(d.books)) {
-          setBooks(d.books.map((b: Omit<BookEntry, 'id'> & { id?: string }) => ({
+          setBooks(d.books.map((b: Omit<BookEntry, 'id'> & { id?: string; category?: string }) => ({
             ...b,
             id: b.id ?? crypto.randomUUID(),
+            // Normalize: old data may have single string `category`
+            categories: Array.isArray(b.categories)
+              ? b.categories
+              : b.category
+              ? [b.category]
+              : [],
           })))
         }
       })
@@ -359,7 +144,7 @@ export default function SettingsPage() {
     setEditingId(b.id)
   }
 
-  function updateBook(id: string, field: keyof BookEntry, val: string) {
+  function updateBook(id: string, field: keyof BookEntry, val: string | string[]) {
     setBooks(prev => prev.map(b => b.id === id ? { ...b, [field]: val } : b))
   }
 
@@ -428,12 +213,12 @@ export default function SettingsPage() {
                       {book.title || <span className="text-stone-400 font-normal">Untitled book</span>}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      {book.category && (
-                        <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full"
+                      {book.categories?.map(cat => (
+                        <span key={cat} className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full"
                           style={{ background: 'rgba(233,160,32,0.12)', color: '#92400e' }}>
-                          {book.category}
+                          {cat}
                         </span>
-                      )}
+                      ))}
                       {book.series && (
                         <span className="text-[11px] text-stone-400">
                           {book.series}{book.bookNumber ? ` #${book.bookNumber}` : ''}
@@ -477,11 +262,11 @@ export default function SettingsPage() {
                     </div>
                     <div className="col-span-2">
                       <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
-                        Category
+                        Categories <span className="normal-case font-normal text-stone-400">(up to 8)</span>
                       </label>
-                      <CategoryInput
-                        value={book.category}
-                        onChange={v => updateBook(book.id, 'category', v)}
+                      <CategoryTagInput
+                        value={book.categories ?? []}
+                        onChange={v => updateBook(book.id, 'categories', v)}
                       />
                     </div>
                     <div>

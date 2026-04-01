@@ -1,6 +1,7 @@
 'use client'
 // app/(dashboard)/rank/page.tsx
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { CategoryTagInput } from '@/components/CategoryTagInput'
 
 const BOOKS = [
   { key: 'MOLR', title: 'My Off-Limits Roommate', asin: 'B0GSC2RTF8', launched: 'Mar 19, 2026', currentRank: 47907, movement: 1843 },
@@ -25,7 +26,13 @@ export default function RankPage() {
   const [saving, setSaving] = useState<Record<string, boolean>>({ MOLR: false, FDMBP: false })
   const [feedback, setFeedback] = useState<Record<string, string>>({ MOLR: '', FDMBP: '' })
 
+  // Categories per book (keyed by ASIN)
+  const [categories, setCategories] = useState<Record<string, string[]>>({})
+  const [catSaving, setCatSaving] = useState(false)
+  const catSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   useEffect(() => {
+    // Load rank logs
     BOOKS.forEach(async book => {
       const res = await fetch(`/api/rank?book=${book.key}`)
       const data = await res.json()
@@ -33,7 +40,68 @@ export default function RankPage() {
         setLogs(prev => ({ ...prev, [book.key]: data.logs }))
       }
     })
+
+    // Load saved book categories from settings
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(d => {
+        if (!Array.isArray(d.books)) return
+        const catMap: Record<string, string[]> = {}
+        for (const b of d.books as Array<{ asin?: string; categories?: string[]; category?: string }>) {
+          if (!b.asin) continue
+          catMap[b.asin] = Array.isArray(b.categories)
+            ? b.categories
+            : b.category
+            ? [b.category]
+            : []
+        }
+        setCategories(catMap)
+      })
+      .catch(() => {})
   }, [])
+
+  function updateCategories(asin: string, newCats: string[]) {
+    setCategories(prev => ({ ...prev, [asin]: newCats }))
+
+    // Debounced save: merge with the full books list from settings
+    if (catSaveTimer.current) clearTimeout(catSaveTimer.current)
+    catSaveTimer.current = setTimeout(async () => {
+      setCatSaving(true)
+      try {
+        // Fetch current books, then update the matching entry (or create one)
+        const res = await fetch('/api/settings')
+        const d = await res.json()
+        const existingBooks: Array<Record<string, unknown>> = Array.isArray(d.books) ? d.books : []
+
+        const match = BOOKS.find(b => b.asin === asin)
+        const updatedBooks = existingBooks.some((b: Record<string, unknown>) => b.asin === asin)
+          ? existingBooks.map((b: Record<string, unknown>) =>
+              b.asin === asin ? { ...b, categories: newCats } : b
+            )
+          : [
+              ...existingBooks,
+              {
+                id: crypto.randomUUID(),
+                title: match?.title ?? '',
+                asin,
+                categories: newCats,
+                series: '',
+                bookNumber: '',
+              },
+            ]
+
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save-books', books: updatedBooks }),
+        })
+      } catch {
+        // silently fail
+      } finally {
+        setCatSaving(false)
+      }
+    }, 800)
+  }
 
   async function handleLog(book: typeof BOOKS[0]) {
     const rank = parseInt(inputs[book.key])
@@ -83,11 +151,24 @@ export default function RankPage() {
           const prevRank = bookLogs[1]?.rank || book.currentRank + book.movement
           const diff = prevRank - latestRank
           const rankColor = getRankColor(latestRank)
+          const bookCats = categories[book.asin] ?? []
 
           return (
             <div key={book.key} className="card p-6">
               <div className="text-[13px] font-bold text-[#0d1f35] mb-0.5">{book.title}</div>
-              <div className="text-[10.5px] text-stone-400 mb-4">{book.asin} · Launched {book.launched}</div>
+              <div className="text-[10.5px] text-stone-400 mb-3">{book.asin} · Launched {book.launched}</div>
+
+              {/* Category tags */}
+              <div className="mb-4">
+                <div className="text-[10px] font-bold uppercase tracking-[0.8px] text-stone-400 mb-1.5">
+                  Categories
+                  {catSaving && <span className="ml-2 font-normal normal-case text-stone-300">saving…</span>}
+                </div>
+                <CategoryTagInput
+                  value={bookCats}
+                  onChange={v => updateCategories(book.asin, v)}
+                />
+              </div>
 
               <div className="font-serif mb-1" style={{ fontSize: '42px', color: '#0d1f35', letterSpacing: '-2px', lineHeight: 1 }}>
                 #{latestRank.toLocaleString()}
