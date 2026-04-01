@@ -13,17 +13,17 @@ module.exports = {
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
-        navy: {
-          DEFAULT: '#0d1f35',
-          2: '#162d47',
-          3: '#243d5c',
-        },
-        amber: {
-          brand: '#e9a020',
-          light: '#f5c55a',
-          pale: '#fdf5e3',
-        },
-        cream: '#f7f5f1',
+  navy: {
+    DEFAULT: '#0d1f35',
+    2: '#162d47',
+    3: '#243d5c',
+  },
+  amber: {
+    brand: '#e9a020',
+    light: '#f5c55a',
+    pale: '#fdf5e3',
+  },
+  cream: '#f7f5f1',
         // Dark theme
         dk: {
           bg: '#0c0a09',

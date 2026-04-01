@@ -1,0 +1,168 @@
+// app/api/analyze/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { anthropic, CLAUDE_MODEL, COACHING_SYSTEM_PROMPT } from '@/lib/anthropic'
+import { db } from '@/lib/db'
+import type { KDPData, MetaData, MailerLiteData, PinterestData, Analysis } from '@/types'
+
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const body = await req.json()
+    const { kdp, meta, mailerLite, pinterest, month } = body as {
+      kdp?: KDPData
+      meta?: MetaData
+      mailerLite?: MailerLiteData
+      pinterest?: PinterestData
+      month: string
+    }
+
+    const dataSummary = buildDataSummary({ kdp, meta, mailerLite, pinterest })
+
+    const message = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 4000,
+      system: COACHING_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: `Analyze this publishing marketing data and produce a complete coaching session.
+
+${dataSummary}
+
+Respond with a JSON object in exactly this structure (no markdown, raw JSON only):
+{
+  "overview": {
+    "headline": "one sentence summary of the month",
+    "subline": "one supporting sentence",
+    "mood": "POSITIVE"
+  },
+  "channelScores": [
+    {
+      "channel": "kdp",
+      "status": "GREEN",
+      "headline": "key number",
+      "subline": "one plain-English sentence",
+      "metric": "$70.93",
+      "badge": "Growing"
+    }
+  ],
+  "actionPlan": [
+    {
+      "priority": 1,
+      "type": "RED",
+      "title": "action title",
+      "body": "plain English explanation with specific numbers from the data",
+      "action": "CTA text",
+      "channel": "meta"
+    }
+  ],
+  "insights": {
+    "kdp": "2-3 sentence KDP coaching paragraph",
+    "meta": "2-3 sentence Meta coaching paragraph",
+    "email": "2-3 sentence email coaching paragraph",
+    "pinterest": "2-3 sentence Pinterest coaching paragraph",
+    "swaps": "2-3 sentence swaps coaching paragraph"
+  }
+}`,
+        },
+      ],
+    })
+
+    const responseText = message.content[0].type === 'text' ? message.content[0].text : ''
+
+    let coachingData
+    try {
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+      coachingData = jsonMatch ? JSON.parse(jsonMatch[0]) : null
+    } catch {
+      coachingData = null
+    }
+
+    if (!coachingData) {
+      return NextResponse.json({ error: 'Failed to parse coaching response' }, { status: 500 })
+    }
+
+    const analysis: Analysis = {
+      month,
+      kdp,
+      meta,
+      mailerLite,
+      pinterest,
+      insights: coachingData.actionPlan || [],
+      channelScores: coachingData.channelScores || [],
+      actionPlan: coachingData.actionPlan || [],
+      generatedAt: new Date().toISOString(),
+    }
+
+    await db.analysis.upsert({
+      where: { id: `${session.user.id}-${month}` },
+      update: { data: analysis as any },
+      create: {
+        id: `${session.user.id}-${month}`,
+        userId: session.user.id,
+        month,
+        data: analysis as any,
+      },
+    })
+
+    return NextResponse.json({ success: true, analysis, coaching: coachingData })
+  } catch (error) {
+    console.error('Analysis error:', error)
+    return NextResponse.json({ error: 'Analysis failed' }, { status: 500 })
+  }
+}
+
+function buildDataSummary({ kdp, meta, mailerLite, pinterest }: {
+  kdp?: KDPData; meta?: MetaData; mailerLite?: MailerLiteData; pinterest?: PinterestData
+}): string {
+  const parts: string[] = []
+
+  if (kdp) {
+    parts.push(`## KDP Data (${kdp.month})
+Total royalties: $${kdp.totalRoyaltiesUSD.toFixed(2)} USD
+Total units sold: ${kdp.totalUnits}
+Total KENP reads: ${kdp.totalKENP.toLocaleString()}
+Books: ${kdp.books.map(b => `${b.shortTitle}: ${b.units} units, ${b.kenp} KENP`).join(' | ')}`)
+  }
+
+  if (meta) {
+    parts.push(`## Meta Ads Data
+Total spend: $${meta.totalSpend} | Clicks: ${meta.totalClicks} | Avg CTR: ${meta.avgCTR}%
+Best ad: ${meta.bestAd?.name} (${meta.bestAd?.ctr}% CTR, $${meta.bestAd?.cpc} CPC)
+All ads: ${meta.ads.map(a => `${a.name}: $${a.spend}, ${a.clicks} clicks, ${a.ctr}% CTR — ${a.status}`).join(' | ')}`)
+  }
+
+  if (mailerLite) {
+    parts.push(`## Email Data
+List: ${mailerLite.listSize} subscribers | Open rate: ${mailerLite.openRate}% | Click rate: ${mailerLite.clickRate}% | Unsubscribes: ${mailerLite.unsubscribes}`)
+  }
+
+  if (pinterest) {
+    parts.push(`## Pinterest Data
+Impressions: ${pinterest.totalImpressions} | Saves: ${pinterest.totalSaves} | Pins: ${pinterest.pinCount} | Account age: ${pinterest.accountAge} (very new)`)
+  }
+
+  return parts.join('\n\n')
+}
+
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { searchParams } = new URL(req.url)
+  const month = searchParams.get('month')
+
+  const analyses = await db.analysis.findMany({
+    where: { userId: session.user.id, ...(month ? { month } : {}) },
+    orderBy: { createdAt: 'desc' },
+    take: 6,
+  })
+
+  return NextResponse.json({ analyses })
+}

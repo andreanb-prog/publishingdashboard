@@ -14,7 +14,7 @@ export function TopBar({ user }: TopBarProps) {
   return (
     <header className="bg-white border-b border-stone-200 px-8 h-[60px] flex items-center justify-between flex-shrink-0">
       <div>
-        <div className="font-serif text-[19px] text-navy-DEFAULT tracking-tight leading-none">
+        <div className="font-serif text-[19px] text-[#0d1f35] tracking-tight leading-none">
           Good morning{user.name ? `, ${user.name.split(' ')[0]}` : ''} 👋
         </div>
         <div className="text-[11px] text-stone-400 mt-0.5">{dateStr} · {timeStr}</div>

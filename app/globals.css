@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #0d1f35;
+  --amber: #e9a020;
+  --cream: #f7f5f1;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-cream text-[#0d1f35];
+  }
+
+  /* Dark scrollbar for dark sections */
+  .dark-section::-webkit-scrollbar {
+    width: 6px;
+  }
+  .dark-section::-webkit-scrollbar-track {
+    background: #1c1917;
+  }
+  .dark-section::-webkit-scrollbar-thumb {
+    background: #44403c;
+    border-radius: 3px;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-amber-brand text-[#0d1f35] font-bold px-5 py-2.5 rounded-lg text-sm
+           hover:bg-amber-light transition-all duration-150 cursor-pointer border-0
+           font-sans;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-[#0d1f35] font-semibold px-4 py-2 rounded-lg text-sm
+           border border-stone-200 hover:bg-cream transition-all duration-150 cursor-pointer
+           font-sans;
+  }
+
+  .card {
+    @apply bg-white border border-stone-200 rounded-xl;
+  }
+
+  .card-dark {
+    @apply bg-dk-surface border border-dk-surface2 rounded-xl;
+  }
+
+  .metric-value {
+    @apply font-serif text-3xl text-[#0d1f35] tracking-tight leading-none;
+  }
+
+  .metric-label {
+    @apply text-xs font-bold uppercase tracking-wider text-stone-400;
+  }
+
+  .badge-green {
+    @apply bg-emerald-50 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full;
+  }
+
+  .badge-amber {
+    @apply bg-amber-50 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full;
+  }
+
+  .badge-red {
+    @apply bg-red-50 text-red-800 text-xs font-bold px-2.5 py-1 rounded-full;
+  }
+
+  .badge-blue {
+    @apply bg-blue-50 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full;
+  }
+
+  /* Dark theme badges */
+  .dk-badge-scale {
+    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+    background: rgba(52,211,153,0.12);
+    color: #34d399;
+  }
+
+  .dk-badge-cut {
+    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+    background: rgba(251,113,133,0.12);
+    color: #fb7185;
+  }
+
+  .dk-badge-watch {
+    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+    background: rgba(251,191,36,0.12);
+    color: #fbbf24;
+  }
+
+  .dk-badge-test {
+    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+    background: rgba(56,189,248,0.12);
+    color: #38bdf8;
+  }
+
+  /* Input styles */
+  .input-field {
+    @apply w-full border border-stone-200 rounded-lg px-3 py-2.5 text-sm
+           font-sans text-[#0d1f35] bg-cream outline-none
+           focus:border-amber-brand transition-colors duration-150;
+  }
+
+  .input-field-dark {
+    @apply w-full rounded-lg px-3 py-2.5 text-sm font-sans outline-none transition-colors duration-150;
+    background: #292524;
+    border: 1.5px solid #44403c;
+    color: #fafaf9;
+  }
+
+  .input-field-dark:focus {
+    border-color: #e9a020;
+  }
+
+  .input-field-dark::placeholder {
+    color: #a8a29e;
+  }
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.4s ease-out both;
+}
+
+.animate-fade-up-delay-1 { animation-delay: 0.05s; }
+.animate-fade-up-delay-2 { animation-delay: 0.1s; }
+.animate-fade-up-delay-3 { animation-delay: 0.15s; }
+.animate-fade-up-delay-4 { animation-delay: 0.2s; }
+.animate-fade-up-delay-5 { animation-delay: 0.25s; }

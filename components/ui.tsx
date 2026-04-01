@@ -32,7 +32,7 @@ interface MetricCardProps {
 
 export function MetricCard({ label, value, sub, color = 'default', delay = 0 }: MetricCardProps) {
   const colorMap = {
-    default: 'text-navy-DEFAULT',
+    default: 'text-[#0d1f35]',
     green: 'text-emerald-600',
     amber: 'text-amber-600',
     red: 'text-red-600',
@@ -125,12 +125,12 @@ export function ActionItem({ priority, type, title, body, action, onAction }: Ac
         <div className={`inline-flex text-[10px] font-bold tracking-[0.8px] uppercase px-2 py-0.5 rounded-full mb-1.5 ${labelColors[type]}`}>
           {labelText[type]}
         </div>
-        <div className="text-[14px] font-bold text-navy-DEFAULT mb-1">{title}</div>
+        <div className="text-[14px] font-bold text-[#0d1f35] mb-1">{title}</div>
         <div className="text-[12.5px] text-stone-500 leading-[1.65]">{body}</div>
         {action && onAction && (
           <button
             onClick={onAction}
-            className="mt-2 text-[11.5px] font-bold text-amber-brand bg-none border-0 p-0 cursor-pointer hover:text-navy-DEFAULT transition-colors"
+            className="mt-2 text-[11.5px] font-bold text-amber-brand bg-none border-0 p-0 cursor-pointer hover:text-[#0d1f35] transition-colors"
           >
             {action} →
           </button>

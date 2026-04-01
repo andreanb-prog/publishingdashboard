@@ -154,6 +154,7 @@ export interface Analysis {
   meta?: MetaData
   mailerLite?: MailerLiteData
   pinterest?: PinterestData
+  overallVerdict?: string
   insights: CoachingInsight[]
   channelScores: ChannelScore[]
   actionPlan: CoachingInsight[]
