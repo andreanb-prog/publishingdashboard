@@ -2,10 +2,8 @@
 // app/dashboard/metrics/page.tsx
 import { useEffect, useState } from 'react'
 import { DarkPage, DarkSectionHeader } from '@/components/DarkPage'
+import { BOOK_COLORS } from '@/lib/bookColors'
 import type { Analysis } from '@/types'
-
-// B1=coral B2=peach B3=plum B4=teal B5=sky B6=rose — cycles back at Book 7+
-const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA', '#F472B6', '#F97B6B', '#F4A261']
 const AVG_ROMANCE_PAGES = 300
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -27,7 +25,7 @@ function statusColor(value: number, good: number, bad: number, higherIsBetter = 
 }
 
 function TrendArrow({ curr, prev }: { curr: number; prev: number }) {
-  if (prev === 0) return <span style={{ color: '#78716c' }}>—</span>
+  if (prev === 0) return <span style={{ color: '#9CA3AF' }}>—</span>
   const pct = ((curr - prev) / prev) * 100
   const up  = pct >= 0
   return (
@@ -42,7 +40,7 @@ function Sparkline({ data, color, width = 140, height = 32 }: {
   data: number[]; color: string; width?: number; height?: number
 }) {
   if (data.length < 2) {
-    return <span className="text-[11px]" style={{ color: '#57534e' }}>Not enough data</span>
+    return <span className="text-[11px]" style={{ color: '#9CA3AF' }}>Not enough data</span>
   }
   const min   = Math.min(...data)
   const max   = Math.max(...data)
@@ -70,20 +68,20 @@ function FunnelBar({ label, pct, count, color, benchmark }: {
   return (
     <div className="mb-4">
       <div className="flex items-baseline justify-between mb-1.5">
-        <div className="text-[12.5px] font-semibold" style={{ color: '#d6d3d1' }}>{label}</div>
+        <div className="text-[12.5px] font-semibold" style={{ color: '#1E2D3D' }}>{label}</div>
         <div className="flex items-baseline gap-2">
           <span className="font-mono text-[20px] font-bold" style={{ color: barColor }}>
             {pct.toFixed(0)}%
           </span>
-          <span className="text-[11px]" style={{ color: '#78716c' }}>{fmtInt(count)} pages</span>
+          <span className="text-[11px]" style={{ color: '#6B7280' }}>{fmtInt(count)} pages</span>
         </div>
       </div>
-      <div className="h-2.5 rounded-full overflow-hidden" style={{ background: '#292524' }}>
+      <div className="h-2.5 rounded-full overflow-hidden" style={{ background: '#F0E0C8' }}>
         <div className="h-full rounded-full transition-all duration-500"
           style={{ width: `${Math.min(pct, 100)}%`, background: barColor }} />
       </div>
       {benchmark && (
-        <div className="text-[10.5px] mt-1" style={{ color: '#57534e' }}>
+        <div className="text-[10.5px] mt-1" style={{ color: '#9CA3AF' }}>
           Benchmark: {benchmark}%+ is strong for romance
         </div>
       )}
@@ -101,22 +99,22 @@ function MetricCard({ title, value, valueColor, sub, coach, children }: {
   children?: React.ReactNode
 }) {
   return (
-    <div className="rounded-xl p-5" style={{ background: '#1c1917', border: '1px solid #292524' }}>
-      <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#78716c' }}>
+    <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+      <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
         {title}
       </div>
       {value && (
         <div className="font-mono text-[28px] font-bold leading-none mb-1"
-          style={{ color: valueColor || '#fbbf24' }}>
+          style={{ color: valueColor || '#E9A020' }}>
           {value}
         </div>
       )}
       {sub && (
-        <div className="text-[11px] mb-3" style={{ color: '#78716c' }}>{sub}</div>
+        <div className="text-[11px] mb-3" style={{ color: '#6B7280' }}>{sub}</div>
       )}
       {children}
       <div className="mt-3 pt-3 text-[11.5px] leading-relaxed"
-        style={{ color: '#a8a29e', borderTop: '1px solid #292524' }}>
+        style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8' }}>
         💬 {coach}
       </div>
     </div>
@@ -184,7 +182,7 @@ export default function MetricsPage() {
   const readThrough = booksSorted.map((book, i) => ({
     book,
     pct:   i === 0 ? 100 : booksSorted[0].kenp > 0 ? (book.kenp / booksSorted[0].kenp) * 100 : 0,
-    color: BOOK_COLORS[i] || '#78716c',
+    color: BOOK_COLORS[i] || '#9CA3AF',
   }))
 
   // ── Borrow rate vs buy rate ────────────────────────────────────────────────
@@ -192,7 +190,7 @@ export default function MetricsPage() {
     const estimatedBorrows = Math.round(book.kenp / AVG_ROMANCE_PAGES)
     const total    = book.units + estimatedBorrows
     const borrowPct = total > 0 ? (estimatedBorrows / total) * 100 : 0
-    return { book, estimatedBorrows, borrowPct, color: BOOK_COLORS[i] || '#78716c' }
+    return { book, estimatedBorrows, borrowPct, color: BOOK_COLORS[i] || '#9CA3AF' }
   })
 
   // ── Email campaigns ────────────────────────────────────────────────────────
@@ -238,7 +236,7 @@ export default function MetricsPage() {
     return (
       <DarkPage title="📊 Advanced Metrics" subtitle="Deep performance analysis across all channels">
         <div className="text-center py-16">
-          <div className="animate-pulse font-serif text-lg" style={{ color: '#fafaf9' }}>
+          <div className="animate-pulse font-serif text-lg" style={{ color: '#1E2D3D' }}>
             Reading your data…
           </div>
         </div>
@@ -258,7 +256,7 @@ export default function MetricsPage() {
         <MetricCard
           title="Page Read Velocity"
           value={avg7 > 0 ? `${avg7.toFixed(0)}/day` : '—'}
-          valueColor={avg7 > 0 ? statusColor(avg7, 500, 200) : '#78716c'}
+          valueColor={avg7 > 0 ? statusColor(avg7, 500, 200) : '#9CA3AF'}
           sub="7-day rolling average KENP reads"
           coach={avg7 > 0
             ? avg7 >= 500
@@ -270,7 +268,7 @@ export default function MetricsPage() {
         >
           {avg7 > 0 && prev7vals.length > 0 && (
             <div className="mb-2 flex items-center">
-              <span className="text-[11px]" style={{ color: '#78716c' }}>vs previous 7 days</span>
+              <span className="text-[11px]" style={{ color: '#6B7280' }}>vs previous 7 days</span>
               <TrendArrow curr={avg7} prev={avgPrev7} />
             </div>
           )}
@@ -285,7 +283,7 @@ export default function MetricsPage() {
         <MetricCard
           title="Revenue Per Subscriber"
           value={revPerSub != null ? `$${revPerSub.toFixed(2)}` : '—'}
-          valueColor={revPerSub != null ? statusColor(revPerSub, 0.5, 0.25) : '#78716c'}
+          valueColor={revPerSub != null ? statusColor(revPerSub, 0.5, 0.25) : '#9CA3AF'}
           sub={`Royalties ÷ ${ml?.listSize?.toLocaleString() ?? '?'} subscribers · Benchmark $0.50+`}
           coach={revPerSub != null
             ? revPerSub >= 0.5
@@ -300,7 +298,7 @@ export default function MetricsPage() {
         <MetricCard
           title="Cost Per KENP Read"
           value={costPerKENP != null ? `$${costPerKENP.toFixed(4)}` : '—'}
-          valueColor={costPerKENP != null ? statusColor(costPerKENP, 0.003, 0.007, false) : '#78716c'}
+          valueColor={costPerKENP != null ? statusColor(costPerKENP, 0.003, 0.007, false) : '#9CA3AF'}
           sub="Ad spend ÷ KENP reads · Benchmark under $0.003"
           coach={costPerKENP != null
             ? costPerKENP <= 0.003
@@ -314,13 +312,13 @@ export default function MetricsPage() {
 
       {/* Book-level estimated revenue */}
       {booksSorted.length > 0 && (
-        <div className="rounded-xl p-5 mb-7" style={{ background: '#1c1917', border: '1px solid #292524' }}>
-          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-4" style={{ color: '#78716c' }}>
+        <div className="rounded-xl p-5 mb-7" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-4" style={{ color: '#6B7280' }}>
             Estimated Revenue Per Book — Sales + KU
           </div>
           <div className="space-y-3">
             {booksSorted.map((book, i) => {
-              const color            = BOOK_COLORS[i] || '#78716c'
+              const color            = BOOK_COLORS[i] || '#9CA3AF'
               const estimatedBorrows = Math.round(book.kenp / AVG_ROMANCE_PAGES)
               const kuEst            = estimatedBorrows * 0.0045 * AVG_ROMANCE_PAGES
               const total            = book.royalties + kuEst
@@ -332,10 +330,10 @@ export default function MetricsPage() {
                 <div key={book.asin || i} className="flex items-center gap-4">
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[12.5px] font-semibold truncate" style={{ color: '#d6d3d1' }}>
+                    <div className="text-[12.5px] font-semibold truncate" style={{ color: '#1E2D3D' }}>
                       {book.shortTitle}
                     </div>
-                    <div className="text-[11px]" style={{ color: '#57534e' }}>
+                    <div className="text-[11px]" style={{ color: '#6B7280' }}>
                       {book.units} paid units · {fmtInt(book.kenp)} KENP · ~{estimatedBorrows} KU borrows
                     </div>
                   </div>
@@ -343,12 +341,12 @@ export default function MetricsPage() {
                     <div className="font-mono font-bold text-[18px]" style={{ color }}>
                       ${total.toFixed(2)}
                     </div>
-                    <div className="text-[10px]" style={{ color: '#57534e' }}>
+                    <div className="text-[10px]" style={{ color: '#9CA3AF' }}>
                       ${book.royalties.toFixed(2)} sales + ${kuEst.toFixed(2)} KU est.
                     </div>
                   </div>
                   <div className="w-24 h-1.5 rounded-full overflow-hidden flex-shrink-0"
-                    style={{ background: '#292524' }}>
+                    style={{ background: '#F0E0C8' }}>
                     <div className="h-full rounded-full"
                       style={{ width: `${Math.min((total / maxTotal) * 100, 100)}%`, background: color }} />
                   </div>
@@ -357,7 +355,7 @@ export default function MetricsPage() {
             })}
           </div>
           <div className="mt-4 pt-3 text-[11.5px] leading-relaxed"
-            style={{ color: '#a8a29e', borderTop: '1px solid #292524' }}>
+            style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8' }}>
             💬 KU earnings estimated at ~$0.0045/page. Your actual rate varies monthly with the KDP Select Global Fund — check your KDP dashboard for exact KU royalties.
           </div>
         </div>
@@ -383,13 +381,13 @@ export default function MetricsPage() {
             <div className="space-y-3 mb-2">
               {avgSwapUnsub != null && (
                 <div>
-                  <div className="flex justify-between text-[11px] mb-1.5" style={{ color: '#78716c' }}>
+                  <div className="flex justify-between text-[11px] mb-1.5" style={{ color: '#6B7280' }}>
                     <span>🔁 Swap campaigns ({swapCampaigns.length})</span>
                     <span className="font-mono font-bold" style={{ color: '#fb7185' }}>
                       {avgSwapUnsub.toFixed(1)} avg
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#292524' }}>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#F0E0C8' }}>
                     <div className="h-full rounded-full"
                       style={{ width: `${Math.min(avgSwapUnsub * 5, 100)}%`, background: '#fb7185' }} />
                   </div>
@@ -397,13 +395,13 @@ export default function MetricsPage() {
               )}
               {avgOwnUnsub != null && (
                 <div>
-                  <div className="flex justify-between text-[11px] mb-1.5" style={{ color: '#78716c' }}>
+                  <div className="flex justify-between text-[11px] mb-1.5" style={{ color: '#6B7280' }}>
                     <span>✉️ Own sends ({ownCampaigns.length})</span>
                     <span className="font-mono font-bold" style={{ color: '#34d399' }}>
                       {avgOwnUnsub.toFixed(1)} avg
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#292524' }}>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#F0E0C8' }}>
                     <div className="h-full rounded-full"
                       style={{ width: `${Math.min(avgOwnUnsub * 5, 100)}%`, background: '#34d399' }} />
                   </div>
@@ -417,7 +415,7 @@ export default function MetricsPage() {
         <MetricCard
           title="Subscriber Acquisition Cost"
           value={subAcqCost != null ? `$${subAcqCost.toFixed(2)}` : '—'}
-          valueColor={subAcqCost != null ? statusColor(subAcqCost, 1, 3, false) : '#78716c'}
+          valueColor={subAcqCost != null ? statusColor(subAcqCost, 1, 3, false) : '#9CA3AF'}
           sub={newSubs != null
             ? `${newSubs >= 0 ? '+' : ''}${newSubs} subscribers vs last month`
             : 'Need 2 months of MailerLite data'}
@@ -446,17 +444,17 @@ export default function MetricsPage() {
               <div>
                 <div className="text-[10px] font-bold tracking-[1px] uppercase mb-1"
                   style={{ color: '#34d399' }}>Best</div>
-                <div className="text-[12px] font-semibold truncate mb-0.5" style={{ color: '#d6d3d1' }}
+                <div className="text-[12px] font-semibold truncate mb-0.5" style={{ color: '#1E2D3D' }}
                   title={bestCampaign.name}>{bestCampaign.name}</div>
                 <div className="font-mono text-[18px] font-bold" style={{ color: '#34d399' }}>
                   {bestCampaign.openRate}% open
                 </div>
               </div>
               {worstCampaign && worstCampaign !== bestCampaign && (
-                <div className="pt-3" style={{ borderTop: '1px solid #292524' }}>
+                <div className="pt-3" style={{ borderTop: '1px solid #F0E0C8' }}>
                   <div className="text-[10px] font-bold tracking-[1px] uppercase mb-1"
                     style={{ color: '#fb7185' }}>Needs Work</div>
-                  <div className="text-[12px] font-semibold truncate mb-0.5" style={{ color: '#d6d3d1' }}
+                  <div className="text-[12px] font-semibold truncate mb-0.5" style={{ color: '#1E2D3D' }}
                     title={worstCampaign.name}>{worstCampaign.name}</div>
                   <div className="font-mono text-[18px] font-bold" style={{ color: '#fb7185' }}>
                     {worstCampaign.openRate}% open
@@ -477,7 +475,7 @@ export default function MetricsPage() {
         <MetricCard
           title="CTR Trend (Monthly)"
           value={meta ? `${meta.avgCTR}%` : '—'}
-          valueColor={meta ? statusColor(meta.avgCTR, targetCTR * 1.5, targetCTR * 0.8) : '#78716c'}
+          valueColor={meta ? statusColor(meta.avgCTR, targetCTR * 1.5, targetCTR * 0.8) : '#9CA3AF'}
           sub={`Average click-through rate · ${ctrLabel}`}
           coach={meta
             ? meta.avgCTR >= targetCTR * 1.5
@@ -489,7 +487,7 @@ export default function MetricsPage() {
         >
           {ctrHistory.filter(v => v > 0).length >= 2 && (
             <div className="mt-2">
-              <div className="text-[10px] mb-1" style={{ color: '#57534e' }}>
+              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>
                 Last {ctrHistory.length} months
               </div>
               <Sparkline data={ctrHistory} color="#38bdf8" />
@@ -501,7 +499,7 @@ export default function MetricsPage() {
         <MetricCard
           title="CPC Trend (Monthly)"
           value={meta ? `$${meta.avgCPC}` : '—'}
-          valueColor={meta ? statusColor(meta.avgCPC, targetCPC, targetCPC * 2, false) : '#78716c'}
+          valueColor={meta ? statusColor(meta.avgCPC, targetCPC, targetCPC * 2, false) : '#9CA3AF'}
           sub={`Average cost per click · ${cpcLabel}`}
           coach={meta
             ? meta.avgCPC <= targetCPC
@@ -513,7 +511,7 @@ export default function MetricsPage() {
         >
           {cpcHistory.filter(v => v > 0).length >= 2 && (
             <div className="mt-2">
-              <div className="text-[10px] mb-1" style={{ color: '#57534e' }}>
+              <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>
                 Last {cpcHistory.length} months
               </div>
               <Sparkline data={cpcHistory} color="#fbbf24" />
@@ -535,17 +533,17 @@ export default function MetricsPage() {
               <div>
                 <div className="text-[10px] font-bold tracking-[1px] uppercase mb-1"
                   style={{ color: '#34d399' }}>Best</div>
-                <div className="text-[12px] font-semibold truncate mb-0.5" style={{ color: '#d6d3d1' }}
+                <div className="text-[12px] font-semibold truncate mb-0.5" style={{ color: '#1E2D3D' }}
                   title={bestAd.name}>{bestAd.name}</div>
                 <div className="font-mono text-[16px] font-bold" style={{ color: '#34d399' }}>
                   {bestAd.ctr}% CTR · ${bestAd.cpc} CPC
                 </div>
               </div>
               {worstAd && worstAd !== bestAd && (
-                <div className="pt-3" style={{ borderTop: '1px solid #292524' }}>
+                <div className="pt-3" style={{ borderTop: '1px solid #F0E0C8' }}>
                   <div className="text-[10px] font-bold tracking-[1px] uppercase mb-1"
                     style={{ color: '#fb7185' }}>Weakest</div>
-                  <div className="text-[12px] font-semibold truncate mb-0.5" style={{ color: '#d6d3d1' }}
+                  <div className="text-[12px] font-semibold truncate mb-0.5" style={{ color: '#1E2D3D' }}
                     title={worstAd.name}>{worstAd.name}</div>
                   <div className="font-mono text-[16px] font-bold" style={{ color: '#fb7185' }}>
                     {worstAd.ctr}% CTR · ${worstAd.cpc} CPC
@@ -563,8 +561,8 @@ export default function MetricsPage() {
       <div className="grid grid-cols-2 gap-4 mb-7">
 
         {/* Read-through funnel */}
-        <div className="rounded-xl p-5" style={{ background: '#1c1917', border: '1px solid #292524' }}>
-          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-4" style={{ color: '#78716c' }}>
+        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-4" style={{ color: '#6B7280' }}>
             Series Read-Through Rate
           </div>
           {readThrough.length >= 2 ? (
@@ -586,7 +584,7 @@ export default function MetricsPage() {
                 />
               ))}
               <div className="mt-3 pt-3 text-[11.5px] leading-relaxed"
-                style={{ color: '#a8a29e', borderTop: '1px solid #292524' }}>
+                style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8' }}>
                 💬 {readThrough[1]
                   ? readThrough[1].pct >= 40
                     ? `${readThrough[1].pct.toFixed(0)}% of Book 1 readers went on to read Book 2 — above the 40% romance benchmark. Your series hook is working.`
@@ -595,7 +593,7 @@ export default function MetricsPage() {
               </div>
             </>
           ) : (
-            <div className="text-[12.5px] py-6 text-center" style={{ color: '#57534e' }}>
+            <div className="text-[12.5px] py-6 text-center" style={{ color: '#9CA3AF' }}>
               {readThrough.length === 1
                 ? 'Only one book detected. Add more books to your KDP data to see series read-through.'
                 : 'Upload KDP data with multiple books to see your series read-through funnel.'}
@@ -604,8 +602,8 @@ export default function MetricsPage() {
         </div>
 
         {/* Borrow rate vs buy rate */}
-        <div className="rounded-xl p-5" style={{ background: '#1c1917', border: '1px solid #292524' }}>
-          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-4" style={{ color: '#78716c' }}>
+        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-4" style={{ color: '#6B7280' }}>
             Borrow Rate vs Buy Rate (Estimated)
           </div>
           {booksWithBorrow.length > 0 ? (
@@ -615,33 +613,33 @@ export default function MetricsPage() {
                   <div className="flex items-baseline justify-between mb-1.5">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-                      <span className="text-[12.5px] font-semibold" style={{ color: '#d6d3d1' }}>
+                      <span className="text-[12.5px] font-semibold" style={{ color: '#1E2D3D' }}>
                         {book.shortTitle}
                       </span>
                     </div>
-                    <span className="text-[11px]" style={{ color: '#78716c' }}>
+                    <span className="text-[11px]" style={{ color: '#6B7280' }}>
                       {book.units} paid · ~{estimatedBorrows} KU
                     </span>
                   </div>
-                  <div className="h-2.5 rounded-full overflow-hidden flex" style={{ background: '#292524' }}>
+                  <div className="h-2.5 rounded-full overflow-hidden flex" style={{ background: '#F0E0C8' }}>
                     <div className="h-full"
                       style={{ width: `${100 - borrowPct}%`, background: color, opacity: 0.9 }} />
                     <div className="h-full"
-                      style={{ width: `${borrowPct}%`, background: '#57534e' }} />
+                      style={{ width: `${borrowPct}%`, background: '#D6D3D1' }} />
                   </div>
-                  <div className="flex justify-between mt-1 text-[10px]" style={{ color: '#57534e' }}>
+                  <div className="flex justify-between mt-1 text-[10px]" style={{ color: '#9CA3AF' }}>
                     <span style={{ color }}>{(100 - borrowPct).toFixed(0)}% paid sales</span>
                     <span>{borrowPct.toFixed(0)}% KU borrows (est.)</span>
                   </div>
                 </div>
               ))}
               <div className="mt-2 pt-3 text-[11.5px] leading-relaxed"
-                style={{ color: '#a8a29e', borderTop: '1px solid #292524' }}>
+                style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8' }}>
                 💬 KU borrows estimated from KENP ÷ 300 pages. A high borrow rate means readers prefer your books in KU — keep your series enrolled in KDP Select.
               </div>
             </>
           ) : (
-            <div className="text-[12.5px] py-6 text-center" style={{ color: '#57534e' }}>
+            <div className="text-[12.5px] py-6 text-center" style={{ color: '#9CA3AF' }}>
               Upload KDP data to see borrow vs buy rates per book.
             </div>
           )}
@@ -649,7 +647,7 @@ export default function MetricsPage() {
       </div>
 
       {/* ── OPERATIONAL INDICATORS ──────────────────────────────────────────── */}
-      <DarkSectionHeader title="Operational Indicators" badge="Housekeeping" badgeColor="#78716c" />
+      <DarkSectionHeader title="Operational Indicators" badge="Housekeeping" badgeColor="#9CA3AF" />
 
       <div className="grid grid-cols-2 gap-4 mb-8">
 
@@ -657,7 +655,7 @@ export default function MetricsPage() {
         <MetricCard
           title="Days Since Last Upload"
           value={daysSince != null ? `${daysSince}` : '—'}
-          valueColor={daysSince != null ? statusColor(daysSince, 7, 14, false) : '#78716c'}
+          valueColor={daysSince != null ? statusColor(daysSince, 7, 14, false) : '#9CA3AF'}
           sub={analysis?.generatedAt
             ? `Last analyzed ${new Date(analysis.generatedAt).toLocaleDateString('en-US', {
                 month: 'short', day: 'numeric', year: 'numeric',
@@ -673,14 +671,14 @@ export default function MetricsPage() {
         />
 
         {/* ARC conversion calculator */}
-        <div className="rounded-xl p-5" style={{ background: '#1c1917', border: '1px solid #292524' }}>
-          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-4" style={{ color: '#78716c' }}>
+        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-4" style={{ color: '#6B7280' }}>
             ARC Conversion Rate Calculator
           </div>
           <div className="flex gap-3 mb-4">
             <div className="flex-1">
               <label className="text-[10px] font-bold tracking-[1px] uppercase block mb-1.5"
-                style={{ color: '#57534e' }}>
+                style={{ color: '#6B7280' }}>
                 ARCs Sent
               </label>
               <input
@@ -690,12 +688,12 @@ export default function MetricsPage() {
                 onChange={e => setArcSent(e.target.value)}
                 placeholder="e.g. 50"
                 className="w-full px-3 py-2 rounded-lg text-[13px] font-mono outline-none"
-                style={{ background: '#292524', border: '1px solid #3c3836', color: '#fafaf9' }}
+                style={{ background: 'white', border: '1px solid #D6D3D1', color: '#1E2D3D' }}
               />
             </div>
             <div className="flex-1">
               <label className="text-[10px] font-bold tracking-[1px] uppercase block mb-1.5"
-                style={{ color: '#57534e' }}>
+                style={{ color: '#6B7280' }}>
                 Reviews Received
               </label>
               <input
@@ -705,24 +703,24 @@ export default function MetricsPage() {
                 onChange={e => setArcReceived(e.target.value)}
                 placeholder="e.g. 12"
                 className="w-full px-3 py-2 rounded-lg text-[13px] font-mono outline-none"
-                style={{ background: '#292524', border: '1px solid #3c3836', color: '#fafaf9' }}
+                style={{ background: 'white', border: '1px solid #D6D3D1', color: '#1E2D3D' }}
               />
             </div>
           </div>
           {arcPct != null && !isNaN(arcPct) && (
             <div className="rounded-lg px-4 py-3 mb-4 text-center" style={{
-              background: 'rgba(0,0,0,0.25)',
+              background: '#F5F5F4',
               border: `1px solid ${statusColor(arcPct, 25, 15)}40`,
             }}>
               <div className="font-mono text-[34px] font-bold leading-none"
                 style={{ color: statusColor(arcPct, 25, 15) }}>
                 {arcPct.toFixed(1)}%
               </div>
-              <div className="text-[11px] mt-1" style={{ color: '#78716c' }}>conversion rate</div>
+              <div className="text-[11px] mt-1" style={{ color: '#6B7280' }}>conversion rate</div>
             </div>
           )}
           <div className="text-[11.5px] leading-relaxed"
-            style={{ color: '#a8a29e', borderTop: '1px solid #292524', paddingTop: 12 }}>
+            style={{ color: '#6B7280', borderTop: '1px solid #F0E0C8', paddingTop: 12 }}>
             💬 {arcPct != null && !isNaN(arcPct)
               ? arcPct >= 25
                 ? `${arcPct.toFixed(1)}% is above the 15–25% normal range — your ARC readers are engaged and following through.`

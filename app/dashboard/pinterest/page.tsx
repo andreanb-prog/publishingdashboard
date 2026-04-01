@@ -94,12 +94,12 @@ export default function PinterestPage() {
           { label: 'Account Age', value: pin?.accountAge || '~6 weeks', sub: 'Active since mid-Feb 2026', color: '#fbbf24' },
         ].map((item, i) => (
           <div key={i} className="rounded-xl p-5 relative overflow-hidden"
-            style={{ background: '#1c1917', border: '1px solid #292524' }}>
+            style={{ background: 'white', border: '1px solid #F0E0C8' }}>
             <div className="absolute bottom-0 left-0 right-0 h-[3px]"
               style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
-            <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2" style={{ color: '#a8a29e' }}>{item.label}</div>
+            <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2" style={{ color: '#6B7280' }}>{item.label}</div>
             <div className="font-mono text-[28px] font-medium leading-none mb-1.5" style={{ color: item.color }}>{item.value}</div>
-            <div className="text-[11px]" style={{ color: '#a8a29e' }}>{item.sub}</div>
+            <div className="text-[11px]" style={{ color: '#6B7280' }}>{item.sub}</div>
           </div>
         ))}
       </div>
@@ -112,25 +112,25 @@ export default function PinterestPage() {
       {/* 30-day roadmap */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-4">
-          <h2 className="font-serif text-[19px]" style={{ color: '#fafaf9' }}>Your 30-Day Pinterest Launch Plan</h2>
-          <div className="flex-1 h-px" style={{ background: '#292524' }} />
+          <h2 className="font-serif text-[19px]" style={{ color: '#1E2D3D' }}>Your 30-Day Pinterest Launch Plan</h2>
+          <div className="flex-1 h-px" style={{ background: '#F0E0C8' }} />
         </div>
         <div className="grid grid-cols-3 gap-4">
           {ROADMAP.map((step, i) => (
-            <div key={i} className="rounded-xl p-5" style={{ background: '#1c1917', border: '1px solid #292524' }}>
+            <div key={i} className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
               <div className="text-[10px] font-bold tracking-[1px] uppercase mb-2" style={{ color: '#e60023' }}>
                 {step.week}
               </div>
-              <div className="text-[13.5px] font-bold mb-2" style={{ color: '#fafaf9' }}>{step.title}</div>
-              <div className="text-[12px] leading-[1.65]" style={{ color: '#a8a29e' }}>{step.body}</div>
+              <div className="text-[13.5px] font-bold mb-2" style={{ color: '#1E2D3D' }}>{step.title}</div>
+              <div className="text-[12px] leading-[1.65]" style={{ color: '#6B7280' }}>{step.body}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Weekly log form */}
-      <div className="rounded-xl p-5 mb-5" style={{ background: '#1c1917', border: '1px solid #292524' }}>
-        <div className="text-[13px] font-bold mb-4" style={{ color: '#d6d3d1' }}>
+      <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+        <div className="text-[13px] font-bold mb-4" style={{ color: '#1E2D3D' }}>
           Log your weekly Pinterest numbers — takes 30 seconds
         </div>
         <form onSubmit={handleLog}>
@@ -143,7 +143,7 @@ export default function PinterestPage() {
               { key: 'pinCount', label: 'Pins live', type: 'number', placeholder: '0' },
             ].map(field => (
               <div key={field.key}>
-                <label className="block text-[10.5px] font-semibold mb-1.5" style={{ color: '#a8a29e' }}>
+                <label className="block text-[10.5px] font-semibold mb-1.5" style={{ color: '#6B7280' }}>
                   {field.label}
                 </label>
                 <input
@@ -153,8 +153,8 @@ export default function PinterestPage() {
                   onChange={e => setLogForm(f => ({ ...f, [field.key]: e.target.value }))}
                   className="w-full rounded-lg px-3 py-2 text-[13px] font-sans outline-none transition-colors"
                   style={{
-                    background: '#292524', border: '1.5px solid #44403c',
-                    color: '#fafaf9',
+                    background: 'white', border: '1.5px solid #D6D3D1',
+                    color: '#1E2D3D',
                   }}
                 />
               </div>
@@ -180,25 +180,25 @@ export default function PinterestPage() {
 
       {/* History table */}
       <div className="rounded-xl overflow-hidden mb-6"
-        style={{ background: '#1c1917', border: '1px solid #292524' }}>
+        style={{ background: 'white', border: '1px solid #F0E0C8' }}>
         <table className="w-full border-collapse text-[12px]">
           <thead>
-            <tr style={{ background: '#292524' }}>
+            <tr style={{ background: '#F5F5F4' }}>
               {['Period', 'Impressions', 'Saves', 'Link Clicks', 'Pins', 'Save Rate', 'Trend'].map(h => (
                 <th key={h} className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.8px]"
-                  style={{ color: '#a8a29e' }}>{h}</th>
+                  style={{ color: '#6B7280' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {/* Baseline from file */}
-            <tr style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-              <td className="px-4 py-3 font-mono" style={{ color: '#a8a29e' }}>Feb 18 – Mar 31</td>
+            <tr style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+              <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>Feb 18 – Mar 31</td>
               <td className="px-4 py-3 font-mono" style={{ color: '#f472b6' }}>20</td>
-              <td className="px-4 py-3 font-mono" style={{ color: '#a8a29e' }}>0</td>
-              <td className="px-4 py-3 font-mono" style={{ color: '#a8a29e' }}>0</td>
-              <td className="px-4 py-3 font-mono" style={{ color: '#a8a29e' }}>2</td>
-              <td className="px-4 py-3 font-mono" style={{ color: '#a8a29e' }}>0%</td>
+              <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>0</td>
+              <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>0</td>
+              <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>2</td>
+              <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>0%</td>
               <td className="px-4 py-3">
                 <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full"
                   style={{ background: 'rgba(167,139,250,0.12)', color: '#a78bfa' }}>🔵 Just started</span>
@@ -208,15 +208,15 @@ export default function PinterestPage() {
               const sr = log.saveRate || 0
               const isGood = sr >= 2
               return (
-                <tr key={i} className="border-t hover:bg-white/[0.02]"
-                  style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-                  <td className="px-4 py-3 font-mono" style={{ color: '#a8a29e' }}>
+                <tr key={i} className="border-t hover:bg-stone-50"
+                  style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+                  <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>
                     {new Date(log.weekEnding).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 font-mono" style={{ color: '#f472b6' }}>{log.impressions}</td>
-                  <td className="px-4 py-3 font-mono" style={{ color: '#a8a29e' }}>{log.saves}</td>
-                  <td className="px-4 py-3 font-mono" style={{ color: '#a8a29e' }}>{log.clicks}</td>
-                  <td className="px-4 py-3 font-mono" style={{ color: '#a8a29e' }}>{log.pinCount}</td>
+                  <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>{log.saves}</td>
+                  <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>{log.clicks}</td>
+                  <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>{log.pinCount}</td>
                   <td className="px-4 py-3 font-mono" style={{ color: isGood ? '#34d399' : '#a8a29e' }}>{sr}%</td>
                   <td className="px-4 py-3">
                     <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full"
@@ -235,8 +235,8 @@ export default function PinterestPage() {
       </div>
 
       {/* Benchmarks */}
-      <div className="rounded-xl p-5" style={{ background: '#1c1917', border: '1px solid #292524' }}>
-        <div className="text-[11px] font-bold uppercase tracking-[1px] mb-3" style={{ color: '#a8a29e' }}>
+      <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+        <div className="text-[11px] font-bold uppercase tracking-[1px] mb-3" style={{ color: '#6B7280' }}>
           Pinterest Benchmarks for Romance Authors
         </div>
         <div className="grid grid-cols-3 gap-3">
@@ -244,8 +244,8 @@ export default function PinterestPage() {
             <div key={i} className="rounded-lg p-3"
               style={{ background: `${b.color}10` }}>
               <div className="text-[11.5px] font-bold mb-1" style={{ color: b.color }}>{b.period}</div>
-              <div className="text-[12px] font-semibold mb-1" style={{ color: '#fafaf9' }}>{b.range}</div>
-              <div className="text-[11px]" style={{ color: '#a8a29e' }}>{b.note}</div>
+              <div className="text-[12px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>{b.range}</div>
+              <div className="text-[11px]" style={{ color: '#6B7280' }}>{b.note}</div>
             </div>
           ))}
         </div>

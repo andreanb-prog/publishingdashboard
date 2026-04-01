@@ -94,10 +94,10 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
       <div className="flex items-start gap-3 mb-5">
         <span className="text-xl flex-shrink-0 mt-0.5">💛</span>
         <div>
-          <div className="font-semibold text-[13.5px] mb-1.5" style={{ color: '#fafaf9' }}>
+          <div className="font-semibold text-[13.5px] mb-1.5" style={{ color: '#1E2D3D' }}>
             {ad.name} isn&apos;t getting traction yet — that&apos;s fixable
           </div>
-          <p className="text-[12.5px] leading-relaxed m-0" style={{ color: '#a8a29e' }}>
+          <p className="text-[12.5px] leading-relaxed m-0" style={{ color: '#6B7280' }}>
             This ad has {problemText}. That&apos;s not a failure — it&apos;s data.
             Readers scroll fast. Most ads need 2–3 creative iterations to find their hook.
             Here&apos;s a clear path forward.
@@ -106,7 +106,7 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
       </div>
 
       <div className="mb-5">
-        <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#9CA3AF' }}>
           Guided next steps
         </div>
         <div className="space-y-3">
@@ -117,8 +117,8 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
                 {step.num}
               </div>
               <div className="flex-1">
-                <div className="text-[12.5px] font-semibold mb-0.5" style={{ color: '#d6d3d1' }}>{step.title}</div>
-                <p className="text-[12px] leading-relaxed m-0 mb-1.5" style={{ color: '#78716c' }}>{step.body}</p>
+                <div className="text-[12.5px] font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>{step.title}</div>
+                <p className="text-[12px] leading-relaxed m-0 mb-1.5" style={{ color: '#6B7280' }}>{step.body}</p>
                 {step.link && (
                   <a href={step.link.href}
                     target={step.link.href.startsWith('http') ? '_blank' : undefined}
@@ -134,14 +134,14 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
         </div>
       </div>
 
-      <div className="rounded-lg px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-2" style={{ color: 'rgba(255,255,255,0.25)' }}>
+      <div className="rounded-lg px-4 py-3" style={{ background: '#F9F9F9', border: '1px solid #F0E0C8' }}>
+        <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-2" style={{ color: '#9CA3AF' }}>
           Still stuck? Real humans who can help
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           {resources.map(r => (
             <a key={r.href} href={r.href} target="_blank" rel="noopener noreferrer"
-              className="text-[11.5px] no-underline hover:underline" style={{ color: '#57534e' }}>
+              className="text-[11.5px] no-underline hover:underline" style={{ color: '#6B7280' }}>
               {r.label} ↗
             </a>
           ))}
@@ -160,7 +160,7 @@ function CTRBar({ ctr, maxCTR }: { ctr: number; maxCTR: number }) {
       <div className="font-mono font-bold text-[22px] leading-none mb-1.5" style={{ color: barColor }}>
         {ctr}%
       </div>
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#292524', width: 80 }}>
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#F0E0C8', width: 80 }}>
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
       </div>
     </div>
@@ -183,12 +183,12 @@ function ColumnPicker({
     <div
       className="absolute right-0 top-9 z-20 rounded-xl p-4 shadow-2xl"
       style={{
-        background: '#1c1917',
-        border: '1px solid #44403c',
+        background: 'white',
+        border: '1px solid #E7E5E4',
         minWidth: 210,
       }}
     >
-      <div className="text-[10px] font-bold uppercase tracking-[1.2px] mb-3" style={{ color: '#57534e' }}>
+      <div className="text-[10px] font-bold uppercase tracking-[1.2px] mb-3" style={{ color: '#6B7280' }}>
         Show columns
       </div>
       {ALL_COLUMNS.map(col => {
@@ -202,17 +202,17 @@ function ColumnPicker({
               className="w-3.5 h-3.5 rounded"
               style={{ accentColor: '#e9a020' }}
             />
-            <span className="text-[12.5px]" style={{ color: isActive ? '#d6d3d1' : '#57534e' }}>
+            <span className="text-[12.5px]" style={{ color: isActive ? '#1E2D3D' : '#9CA3AF' }}>
               {col.label}
             </span>
           </label>
         )
       })}
-      <div className="mt-3 pt-3 flex justify-between items-center" style={{ borderTop: '1px solid #292524' }}>
+      <div className="mt-3 pt-3 flex justify-between items-center" style={{ borderTop: '1px solid #F0E0C8' }}>
         <button
           onClick={onReset}
           className="text-[11px] px-2.5 py-1 rounded-md"
-          style={{ background: 'rgba(255,255,255,0.05)', color: '#78716c' }}
+          style={{ background: '#F5F5F4', color: '#6B7280' }}
         >
           Reset defaults
         </button>
@@ -306,17 +306,17 @@ export default function MetaPage() {
   function renderCell(ad: MetaAd, key: ColKey) {
     switch (key) {
       case 'spend':
-        return <span className="font-mono text-[16px]" style={{ color: '#78716c' }}>${ad.spend}</span>
+        return <span className="font-mono text-[16px]" style={{ color: '#6B7280' }}>${ad.spend}</span>
       case 'impressions':
-        return <span className="font-mono text-[14px]" style={{ color: '#d6d3d1' }}>{ad.impressions.toLocaleString()}</span>
+        return <span className="font-mono text-[14px]" style={{ color: '#1E2D3D' }}>{ad.impressions.toLocaleString()}</span>
       case 'clicks':
         return <span className="font-mono font-bold text-[20px]" style={{ color: ad.clicks === 0 ? '#fb7185' : '#34d399' }}>{ad.clicks}</span>
       case 'ctr':
         return <CTRBar ctr={ad.ctr} maxCTR={maxCTR} />
       case 'cpc':
-        return <span className="font-mono text-[16px]" style={{ color: '#78716c' }}>{ad.cpc > 0 ? `$${ad.cpc}` : '—'}</span>
+        return <span className="font-mono text-[16px]" style={{ color: '#6B7280' }}>{ad.cpc > 0 ? `$${ad.cpc}` : '—'}</span>
       case 'reach':
-        return <span className="font-mono text-[14px]" style={{ color: '#d6d3d1' }}>{ad.reach > 0 ? ad.reach.toLocaleString() : '—'}</span>
+        return <span className="font-mono text-[14px]" style={{ color: '#1E2D3D' }}>{ad.reach > 0 ? ad.reach.toLocaleString() : '—'}</span>
       case 'status': {
         const s = STATUS_STYLE[ad.status]
         return (
@@ -327,7 +327,7 @@ export default function MetaPage() {
         )
       }
       default:
-        return <span style={{ color: '#44403c' }}>—</span>
+        return <span style={{ color: '#9CA3AF' }}>—</span>
     }
   }
 
@@ -335,9 +335,9 @@ export default function MetaPage() {
     <DarkPage title="📣 Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {!meta ? (
-        <div className="text-center py-16" style={{ color: '#a8a29e' }}>
+        <div className="text-center py-16" style={{ color: '#9CA3AF' }}>
           <div className="text-4xl mb-4">📣</div>
-          <div className="font-serif text-xl mb-2" style={{ color: '#fafaf9' }}>No Meta data yet</div>
+          <div className="font-serif text-xl mb-2" style={{ color: '#1E2D3D' }}>No Meta data yet</div>
           <p className="text-sm mb-4">Upload your Meta Ads CSV to see your ad analysis</p>
           <a href="/dashboard/upload" className="inline-block px-6 py-2.5 rounded-lg font-semibold text-sm no-underline"
             style={{ background: '#e9a020', color: '#0d1f35' }}>Upload Files →</a>
@@ -375,7 +375,7 @@ export default function MetaPage() {
 
           <SortablePage
             page="meta"
-            theme="dark"
+            theme="light"
             sections={[
               {
                 id: 'ads-table',
@@ -385,16 +385,16 @@ export default function MetaPage() {
                     <div className="relative mb-5" ref={pickerRef}>
             {/* Header row: label + customize button */}
             <div className="flex items-center justify-between mb-2.5">
-              <div className="text-[11px] font-bold uppercase tracking-[1.2px]" style={{ color: '#57534e' }}>
+              <div className="text-[11px] font-bold uppercase tracking-[1.2px]" style={{ color: '#6B7280' }}>
                 Ad Performance
               </div>
               <button
                 onClick={() => setPickerOpen(p => !p)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all"
                 style={{
-                  background: pickerOpen ? 'rgba(233,160,32,0.1)' : 'rgba(255,255,255,0.04)',
-                  border:     `1px solid ${pickerOpen ? 'rgba(233,160,32,0.4)' : 'rgba(255,255,255,0.08)'}`,
-                  color:      pickerOpen ? '#e9a020' : '#78716c',
+                  background: pickerOpen ? 'rgba(233,160,32,0.1)' : '#F5F5F4',
+                  border:     `1px solid ${pickerOpen ? 'rgba(233,160,32,0.4)' : '#E7E5E4'}`,
+                  color:      pickerOpen ? '#e9a020' : '#6B7280',
                 }}
               >
                 ⊞ Customize columns
@@ -413,18 +413,18 @@ export default function MetaPage() {
 
             {/* Table */}
             <div className="rounded-xl overflow-hidden"
-              style={{ background: '#1c1917', border: '1px solid #292524' }}>
+              style={{ background: 'white', border: '1px solid #F0E0C8' }}>
               <table className="w-full border-collapse">
                 <thead>
-                  <tr style={{ background: '#292524' }}>
+                  <tr style={{ background: '#F5F5F4' }}>
                     <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.5px]"
-                      style={{ color: '#78716c' }}>
+                      style={{ color: '#6B7280' }}>
                       Ad Name
                     </th>
                     {activeColDefs.map(col => (
                       <th key={col.key}
                         className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.5px]"
-                        style={{ color: '#78716c' }}>
+                        style={{ color: '#6B7280' }}>
                         {col.label}
                       </th>
                     ))}
@@ -435,9 +435,9 @@ export default function MetaPage() {
                         title="Add column"
                         className="w-6 h-6 rounded-md inline-flex items-center justify-center text-[14px] font-bold"
                         style={{
-                          background: 'rgba(255,255,255,0.06)',
-                          color:      '#78716c',
-                          border:     '1px solid rgba(255,255,255,0.08)',
+                          background: '#F5F5F4',
+                          color:      '#6B7280',
+                          border:     '1px solid #E7E5E4',
                         }}
                       >
                         +
@@ -454,7 +454,7 @@ export default function MetaPage() {
                         key={i}
                         className="border-t transition-colors"
                         style={{
-                          borderColor: 'rgba(255,255,255,0.05)',
+                          borderColor: 'rgba(0,0,0,0.06)',
                           opacity: isDead ? 0.55 : 1,
                         }}
                       >
@@ -463,7 +463,7 @@ export default function MetaPage() {
                           <div>
                             <span
                               className="block truncate text-[14px] font-semibold leading-snug"
-                              style={{ color: '#fafaf9', maxWidth: 260 }}
+                              style={{ color: '#1E2D3D', maxWidth: 260 }}
                               title={ad.name}
                             >
                               {ad.name}
@@ -497,7 +497,7 @@ export default function MetaPage() {
                     {/* Rescue panels */}
                     {rescueAds.length > 0 && (
                       <div className="mb-5">
-                        <div className="text-[11px] font-bold uppercase tracking-[1.5px] mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                        <div className="text-[11px] font-bold uppercase tracking-[1.5px] mb-3" style={{ color: '#9CA3AF' }}>
                           🚨 Ads needing attention ({rescueAds.length})
                         </div>
                         <div className="space-y-4">
@@ -554,7 +554,7 @@ export default function MetaPage() {
                           style={{ color: card.color }}>{card.title}</h3>
                         <ul className="list-none p-0 space-y-1.5">
                           {card.items.map((item, j) => (
-                            <li key={j} className="text-[12px] leading-snug" style={{ color: '#d6d3d1' }}>{item}</li>
+                            <li key={j} className="text-[12px] leading-snug" style={{ color: '#374151' }}>{item}</li>
                           ))}
                         </ul>
                       </div>

@@ -24,6 +24,7 @@ const TOOL_ITEMS = [
   { label: 'List Building ROAS',  href: '/dashboard/list-building', icon: '📬' },
   { label: 'Learn the Terms',     href: '/dashboard/learn',         icon: '📖' },
   { label: 'Settings',            href: '/dashboard/settings',      icon: '⚙️' },
+  { label: 'My Data',             href: '/dashboard/data-vault',    icon: '🔐' },
 ]
 
 const INACTIVE_COLOR  = 'rgba(255,255,255,0.70)'
