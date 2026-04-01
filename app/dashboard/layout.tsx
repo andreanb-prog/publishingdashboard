@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { Sidebar } from '@/components/Sidebar'
 import { TopBar } from '@/components/TopBar'
+import { FeedbackButton } from '@/components/FeedbackButton'
 
 export default async function DashboardLayout({
   children,
@@ -22,6 +23,7 @@ export default async function DashboardLayout({
           {children}
         </main>
       </div>
+      <FeedbackButton />
     </div>
   )
 }

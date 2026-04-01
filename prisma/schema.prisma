@@ -53,6 +53,7 @@ model User {
   roasLogs      RoasLog[]
   pinterestLogs PinterestLog[]
   analyses      Analysis[]
+  feedback      Feedback[]
   createdAt     DateTime       @default(now())
 }
 
@@ -116,4 +117,16 @@ model Analysis {
   createdAt DateTime @default(now())
 
   @@index([userId, month])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "bug" or "idea"
+  message   String
+  page      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
