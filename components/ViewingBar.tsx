@@ -15,35 +15,35 @@ export function ViewingBar({
     <div
       className="flex items-center gap-2 mb-5 px-4 py-2.5 rounded-lg"
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: '#F5F5F4',
+        border: '1px solid #F0E0C8',
       }}
     >
       <span
         className="text-[10.5px] font-bold uppercase tracking-[1.2px]"
-        style={{ color: '#57534e' }}
+        style={{ color: '#6B7280' }}
       >
         Viewing
       </span>
-      <span style={{ color: '#3c3836' }}>·</span>
+      <span style={{ color: '#D6D3D1' }}>·</span>
       <span
         className="text-[12.5px] font-mono font-semibold"
-        style={{ color: '#d6d3d1' }}
+        style={{ color: '#1E2D3D' }}
       >
         {start} – {end}
       </span>
       {days != null && (
         <>
-          <span style={{ color: '#3c3836' }}>·</span>
-          <span className="text-[12px]" style={{ color: '#78716c' }}>
+          <span style={{ color: '#D6D3D1' }}>·</span>
+          <span className="text-[12px]" style={{ color: '#6B7280' }}>
             {days} days
           </span>
         </>
       )}
       {summary && (
         <>
-          <span style={{ color: '#3c3836' }}>·</span>
-          <span className="text-[12px]" style={{ color: '#78716c' }}>
+          <span style={{ color: '#D6D3D1' }}>·</span>
+          <span className="text-[12px]" style={{ color: '#6B7280' }}>
             {summary}
           </span>
         </>

@@ -16,30 +16,50 @@ type ColKey =
   | 'uniqueClicks' | 'uniqueCtr' | 'frequency' | 'reach'
   | 'results' | 'costPerResult' | 'status'
 
-const ALL_COLUMNS: { key: ColKey; label: string; defaultOn: boolean }[] = [
-  { key: 'spend',         label: 'Spend',           defaultOn: true  },
-  { key: 'impressions',   label: 'Impressions',     defaultOn: false },
-  { key: 'clicks',        label: 'Clicks',          defaultOn: true  },
-  { key: 'ctr',           label: 'CTR',             defaultOn: true  },
-  { key: 'cpc',           label: 'CPC',             defaultOn: true  },
-  { key: 'uniqueClicks',  label: 'Unique Clicks',   defaultOn: false },
-  { key: 'uniqueCtr',     label: 'Unique CTR',      defaultOn: false },
-  { key: 'frequency',     label: 'Frequency',       defaultOn: false },
-  { key: 'reach',         label: 'Reach',           defaultOn: false },
-  { key: 'results',       label: 'Results',         defaultOn: false },
-  { key: 'costPerResult', label: 'Cost per Result', defaultOn: false },
-  { key: 'status',        label: 'Status',          defaultOn: true  },
+const ALL_COLUMNS: { key: ColKey; label: string; defaultOn: boolean; sortable: boolean }[] = [
+  { key: 'spend',         label: 'Spend',           defaultOn: true,  sortable: true  },
+  { key: 'impressions',   label: 'Impressions',     defaultOn: false, sortable: true  },
+  { key: 'clicks',        label: 'Clicks',          defaultOn: true,  sortable: true  },
+  { key: 'ctr',           label: 'CTR',             defaultOn: true,  sortable: true  },
+  { key: 'cpc',           label: 'CPC',             defaultOn: true,  sortable: true  },
+  { key: 'uniqueClicks',  label: 'Unique Clicks',   defaultOn: false, sortable: true  },
+  { key: 'uniqueCtr',     label: 'Unique CTR',      defaultOn: false, sortable: true  },
+  { key: 'frequency',     label: 'Frequency',       defaultOn: false, sortable: true  },
+  { key: 'reach',         label: 'Reach',           defaultOn: false, sortable: true  },
+  { key: 'results',       label: 'Results',         defaultOn: false, sortable: true  },
+  { key: 'costPerResult', label: 'Cost per Result', defaultOn: false, sortable: true  },
+  { key: 'status',        label: 'Status',          defaultOn: true,  sortable: false },
 ]
 
 const DEFAULT_COLS = new Set<ColKey>(ALL_COLUMNS.filter(c => c.defaultOn).map(c => c.key))
 
 // ── Status styles ─────────────────────────────────────────────────────────────
 const STATUS_STYLE: Record<MetaAd['status'], { bg: string; text: string; label: string }> = {
-  SCALE:    { bg: 'rgba(52,211,153,0.12)',  text: '#34d399', label: '🟢 Scale it' },
-  WATCH:    { bg: 'rgba(251,191,36,0.12)',  text: '#fbbf24', label: '🟡 Keep watching' },
-  CUT:      { bg: 'rgba(251,113,133,0.12)', text: '#fb7185', label: '🔴 Cut this' },
-  DELETE:   { bg: 'rgba(251,113,133,0.15)', text: '#fb7185', label: '🔴 Delete' },
-  LOW_DATA: { bg: 'rgba(56,189,248,0.12)',  text: '#38bdf8', label: '◇ Need more data' },
+  SCALE:    { bg: 'rgba(52,211,153,0.12)',  text: '#34d399', label: 'Scale it' },
+  WATCH:    { bg: 'rgba(251,191,36,0.12)',  text: '#fbbf24', label: 'Keep watching' },
+  CUT:      { bg: 'rgba(251,113,133,0.12)', text: '#fb7185', label: 'Cut this' },
+  DELETE:   { bg: 'rgba(251,113,133,0.15)', text: '#fb7185', label: 'Delete' },
+  LOW_DATA: { bg: 'rgba(56,189,248,0.12)',  text: '#38bdf8', label: 'Need more data' },
+}
+
+// ── Sort helpers ──────────────────────────────────────────────────────────────
+type SortDir = 'asc' | 'desc'
+
+function getSortValue(ad: MetaAd, key: ColKey): number {
+  switch (key) {
+    case 'spend': return ad.spend
+    case 'impressions': return ad.impressions
+    case 'clicks': return ad.clicks
+    case 'ctr': return ad.ctr
+    case 'cpc': return ad.cpc
+    case 'reach': return ad.reach
+    case 'uniqueClicks': return ad.uniqueClicks ?? -1
+    case 'uniqueCtr': return ad.uniqueCtr ?? -1
+    case 'frequency': return ad.frequency ?? -1
+    case 'results': return ad.results ?? -1
+    case 'costPerResult': return ad.costPerResult ?? -1
+    default: return 0
+  }
 }
 
 // ── Month range helper ────────────────────────────────────────────────────────
@@ -156,14 +176,68 @@ function CTRBar({ ctr, maxCTR }: { ctr: number; maxCTR: number }) {
   const barColor = ctr >= 15 ? '#34d399' : ctr >= 8 ? '#fbbf24' : '#fb7185'
   const pct      = maxCTR > 0 ? (ctr / maxCTR) * 100 : 0
   return (
-    <div>
-      <div className="font-mono font-bold text-[22px] leading-none mb-1.5" style={{ color: barColor }}>
-        {ctr}%
+    <div className="flex items-center gap-2">
+      <div>
+        <div className="font-mono font-bold text-[16px] leading-none" style={{ color: barColor }}>
+          {ctr}%
+        </div>
       </div>
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#F0E0C8', width: 80 }}>
+      <div className="h-1.5 rounded-full overflow-hidden flex-1 min-w-[48px]" style={{ background: '#F0E0C8' }}>
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
       </div>
     </div>
+  )
+}
+
+// ── Missing data cell with info icon ─────────────────────────────────────────
+function MissingCell({ colName }: { colName: string }) {
+  return (
+    <span
+      title={`Add '${colName}' to your Ads Manager export columns to see this data.`}
+      className="inline-flex items-center gap-1 text-[13px] cursor-help"
+      style={{ color: '#9CA3AF' }}
+    >
+      —
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="opacity-50">
+        <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M8 7v4M8 5h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    </span>
+  )
+}
+
+// ── Sortable column header ───────────────────────────────────────────────────
+function SortHeader({
+  label,
+  sortable,
+  active,
+  dir,
+  onClick,
+}: {
+  label: string
+  sortable: boolean
+  active: boolean
+  dir: SortDir
+  onClick: () => void
+}) {
+  if (!sortable) {
+    return (
+      <span className="text-[11px] font-bold tracking-[0.5px]" style={{ color: '#6B7280' }}>
+        {label}
+      </span>
+    )
+  }
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1 text-[11px] font-bold tracking-[0.5px] bg-transparent border-none cursor-pointer"
+      style={{ color: active ? '#1E2D3D' : '#6B7280', padding: 0 }}
+    >
+      {label}
+      <span className="text-[9px] leading-none" style={{ color: active ? '#e9a020' : '#D6D3D1' }}>
+        {active ? (dir === 'asc' ? '▲' : '▼') : '↕'}
+      </span>
+    </button>
   )
 }
 
@@ -232,8 +306,11 @@ function ColumnPicker({
 export default function MetaPage() {
   const [coachTitle]               = useState(() => getCoachTitle())
   const [analysis,   setAnalysis]  = useState<Analysis | null>(null)
+  const [goals,      setGoals]     = useState<Record<string, number>>({})
   const [activeCols, setActiveCols] = useState<Set<ColKey>>(DEFAULT_COLS)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [sortKey,    setSortKey]   = useState<ColKey | null>(null)
+  const [sortDir,    setSortDir]   = useState<SortDir>('desc')
   const [loading,    setLoading]   = useState(true)
   const pickerRef  = useRef<HTMLDivElement>(null)
   const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -251,6 +328,7 @@ export default function MetaPage() {
           if (Array.isArray(saved) && saved.length > 0) {
             setActiveCols(new Set<ColKey>(saved as ColKey[]))
           }
+          if (d.goals) setGoals(d.goals)
         })
         .catch(() => {}),
     ]).finally(() => setLoading(false))
@@ -294,6 +372,15 @@ export default function MetaPage() {
     }, 600)
   }
 
+  function handleSort(key: ColKey) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    } else {
+      setSortKey(key)
+      setSortDir('desc')
+    }
+  }
+
   const meta       = analysis?.meta
   const coach      = (analysis as any)?.metaCoach
   const rescueAds  = meta?.ads.filter(ad => ad.clicks === 0 || ad.ctr < 1) ?? []
@@ -301,56 +388,56 @@ export default function MetaPage() {
   const viewRange  = analysis?.month ? getMonthRange(analysis.month) : null
   const activeColDefs = ALL_COLUMNS.filter(c => activeCols.has(c.key))
 
-  function MissingCell({ tip }: { tip: string }) {
-    return (
-      <span
-        title={tip}
-        style={{ color: '#9CA3AF', cursor: 'help', borderBottom: '1px dashed #D6D3D1' }}
-        className="text-[13px]"
-      >
-        —
-      </span>
-    )
-  }
+  // Sort ads
+  const sortedAds = meta ? [...meta.ads].sort((a, b) => {
+    if (!sortKey) return 0
+    const va = getSortValue(a, sortKey)
+    const vb = getSortValue(b, sortKey)
+    return sortDir === 'desc' ? vb - va : va - vb
+  }) : []
+
+  // Goal comparison for KPI strip
+  const ctrGoal = goals.meta_ctr
+  const cpcGoal = goals.meta_cpc
 
   function renderCell(ad: MetaAd, key: ColKey) {
     switch (key) {
       case 'spend':
-        return <span className="font-mono text-[16px]" style={{ color: '#6B7280' }}>${ad.spend}</span>
+        return <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>${ad.spend}</span>
       case 'impressions':
         return <span className="font-mono text-[14px]" style={{ color: '#1E2D3D' }}>{ad.impressions.toLocaleString()}</span>
       case 'clicks':
-        return <span className="font-mono font-bold text-[20px]" style={{ color: ad.clicks === 0 ? '#fb7185' : '#34d399' }}>{ad.clicks}</span>
+        return <span className="font-mono font-bold text-[16px]" style={{ color: ad.clicks === 0 ? '#fb7185' : '#34d399' }}>{ad.clicks}</span>
       case 'ctr':
         return <CTRBar ctr={ad.ctr} maxCTR={maxCTR} />
       case 'cpc':
-        return <span className="font-mono text-[16px]" style={{ color: '#6B7280' }}>{ad.cpc > 0 ? `$${ad.cpc}` : '—'}</span>
+        return <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>{ad.cpc > 0 ? `$${ad.cpc}` : '—'}</span>
       case 'reach':
         return <span className="font-mono text-[14px]" style={{ color: '#1E2D3D' }}>{ad.reach > 0 ? ad.reach.toLocaleString() : '—'}</span>
       case 'uniqueClicks':
         return ad.uniqueClicks != null
           ? <span className="font-mono text-[14px]" style={{ color: '#1E2D3D' }}>{ad.uniqueClicks.toLocaleString()}</span>
-          : <MissingCell tip="Unique Clicks wasn't included in your Meta CSV export. Re-export your report and add the 'Unique clicks' column to see this." />
+          : <MissingCell colName="Unique clicks" />
       case 'uniqueCtr':
         return ad.uniqueCtr != null
           ? <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>{ad.uniqueCtr}%</span>
-          : <MissingCell tip="Unique CTR wasn't included in your Meta CSV export. Re-export your report and add the 'Unique CTR' column to see this." />
+          : <MissingCell colName="Unique CTR" />
       case 'frequency':
         return ad.frequency != null
           ? <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>{ad.frequency.toFixed(1)}×</span>
-          : <MissingCell tip="Frequency (avg times each person saw your ad) wasn't in this CSV export. Add the 'Frequency' column when re-exporting." />
+          : <MissingCell colName="Frequency" />
       case 'results':
         return ad.results != null
           ? <span className="font-mono text-[14px]" style={{ color: '#34d399' }}>{ad.results.toLocaleString()}</span>
-          : <MissingCell tip="Results depend on your campaign objective and weren't in this CSV export. Add the 'Results' column when re-exporting." />
+          : <MissingCell colName="Results" />
       case 'costPerResult':
         return ad.costPerResult != null
           ? <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>${ad.costPerResult.toFixed(2)}</span>
-          : <MissingCell tip="Cost per Result wasn't in this CSV export. Add the 'Cost per result' column when re-exporting from Meta." />
+          : <MissingCell colName="Cost per result" />
       case 'status': {
         const s = STATUS_STYLE[ad.status]
         return (
-          <span className="text-[11px] font-bold px-3 py-1.5 rounded-full"
+          <span className="text-[11px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap"
             style={{ background: s.bg, color: s.text }}>
             {s.label}
           </span>
@@ -392,12 +479,65 @@ export default function MetaPage() {
             }}
           />
 
-          <DarkKPIStrip cols={4} items={[
-            { label: 'Total Spend',  value: `$${meta.totalSpend}`,       sub: 'This period',            color: '#fb7185' },
-            { label: 'Best CTR',     value: `${meta.bestAd?.ctr || 0}%`, sub: meta.bestAd?.name || '—', color: '#34d399' },
-            { label: 'Best CPC',     value: `$${meta.bestAd?.cpc || 0}`, sub: 'Cost per click',         color: '#fbbf24' },
-            { label: 'Total Clicks', value: meta.totalClicks,             sub: `$${meta.avgCPC} avg CPC`, color: '#38bdf8' },
-          ]} />
+          {/* KPI strip with goal comparison */}
+          <div className="grid grid-cols-5 gap-3 mb-7">
+            {[
+              {
+                label: 'Total Spend',
+                value: `$${meta.totalSpend}`,
+                sub: 'This period',
+                color: '#fb7185',
+              },
+              {
+                label: 'Best CTR',
+                value: `${meta.bestAd?.ctr || 0}%`,
+                sub: ctrGoal ? `Goal: ${ctrGoal}%` : (meta.bestAd?.name || '—'),
+                color: '#34d399',
+                vsGoal: ctrGoal ? (meta.bestAd?.ctr || 0) >= ctrGoal : undefined,
+              },
+              {
+                label: 'Avg CPC',
+                value: `$${meta.avgCPC}`,
+                sub: cpcGoal ? `Goal: $${cpcGoal}` : 'Cost per click',
+                color: '#fbbf24',
+                vsGoal: cpcGoal ? meta.avgCPC <= cpcGoal : undefined,
+              },
+              {
+                label: 'Total Clicks',
+                value: meta.totalClicks.toLocaleString(),
+                sub: `$${meta.avgCPC} avg CPC`,
+                color: '#38bdf8',
+              },
+              {
+                label: 'Impressions',
+                value: meta.totalImpressions.toLocaleString(),
+                sub: `${meta.avgCTR}% avg CTR`,
+                color: '#a78bfa',
+              },
+            ].map((item, i) => (
+              <div key={i} className="rounded-xl p-4 relative overflow-hidden"
+                style={{ background: 'white', border: '1px solid #F0E0C8' }}>
+                <div className="absolute bottom-0 left-0 right-0 h-[3px]"
+                  style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
+                <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2"
+                  style={{ color: '#6B7280' }}>
+                  {item.label}
+                </div>
+                <div className="font-mono text-[24px] font-medium leading-none mb-1.5"
+                  style={{ color: item.color }}>
+                  {item.value}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px]" style={{ color: '#6B7280' }}>{item.sub}</span>
+                  {item.vsGoal !== undefined && (
+                    <span className="text-[10px] font-bold" style={{ color: item.vsGoal ? '#34d399' : '#fb7185' }}>
+                      {item.vsGoal ? '✓ on target' : '✗ below goal'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
 
           {coach && <DarkCoachBox color="#fb7185" title={coachTitle}>{coach}</DarkCoachBox>}
 
@@ -455,15 +595,24 @@ export default function MetaPage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr style={{ background: '#F5F5F4' }}>
-                    <th className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.5px]"
-                      style={{ color: '#6B7280' }}>
-                      Ad Name
+                    <th className="text-left px-5 py-3">
+                      <SortHeader
+                        label="Ad Name"
+                        sortable={false}
+                        active={false}
+                        dir="desc"
+                        onClick={() => {}}
+                      />
                     </th>
                     {activeColDefs.map(col => (
-                      <th key={col.key}
-                        className="text-left px-5 py-3 text-[11px] font-bold tracking-[0.5px]"
-                        style={{ color: '#6B7280' }}>
-                        {col.label}
+                      <th key={col.key} className="text-left px-5 py-3">
+                        <SortHeader
+                          label={col.label}
+                          sortable={col.sortable}
+                          active={sortKey === col.key}
+                          dir={sortKey === col.key ? sortDir : 'desc'}
+                          onClick={() => col.sortable && handleSort(col.key)}
+                        />
                       </th>
                     ))}
                     {/* + Add column button */}
@@ -484,24 +633,24 @@ export default function MetaPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {meta.ads.map((ad, i) => {
+                  {sortedAds.map((ad, i) => {
                     const isDead      = ad.clicks === 0 || ad.ctr < 1
                     const needsRescue = isDead
                     return (
                       <tr
                         key={i}
-                        className="border-t transition-colors"
+                        className="border-t transition-colors hover:bg-stone-50"
                         style={{
                           borderColor: 'rgba(0,0,0,0.06)',
                           opacity: isDead ? 0.55 : 1,
                         }}
                       >
                         {/* Ad Name — always shown */}
-                        <td className="px-5 py-5">
+                        <td className="px-5 py-4">
                           <div>
                             <span
-                              className="block truncate text-[14px] font-semibold leading-snug"
-                              style={{ color: '#1E2D3D', maxWidth: 260 }}
+                              className="block truncate text-[13px] font-semibold leading-snug"
+                              style={{ color: '#1E2D3D', maxWidth: 220 }}
                               title={ad.name}
                             >
                               {ad.name}
@@ -517,7 +666,7 @@ export default function MetaPage() {
 
                         {/* Dynamic columns */}
                         {activeColDefs.map(col => (
-                          <td key={col.key} className="px-5 py-5">
+                          <td key={col.key} className="px-5 py-4">
                             {renderCell(ad, col.key)}
                           </td>
                         ))}
@@ -536,7 +685,7 @@ export default function MetaPage() {
                     {rescueAds.length > 0 && (
                       <div className="mb-5">
                         <div className="text-[11px] font-bold uppercase tracking-[1.5px] mb-3" style={{ color: '#9CA3AF' }}>
-                          🚨 Ads needing attention ({rescueAds.length})
+                          Ads needing attention ({rescueAds.length})
                         </div>
                         <div className="space-y-4">
                           {rescueAds.map((ad, i) => <RescuePanel key={i} ad={ad} />)}
