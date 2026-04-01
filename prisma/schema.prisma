@@ -47,6 +47,7 @@ model User {
   goals         Json?          // Channel goals: { kdp_royalties: 500, meta_ctr: 15, ... }
   layoutPrefs   Json?          // Per-page section order: { overview: ['channel-cards', 'action-plan'], ... }
   onboardingDismissed Boolean  @default(false)
+  promoCodes    UserPromoCode[]
   accounts      Account[]
   sessions      Session[]
   rankLogs          RankLog[]
@@ -145,5 +146,30 @@ model ListBuildingLog {
   notes        String?
   createdAt    DateTime @default(now())
 
+  @@index([userId])
+}
+
+model PromoCode {
+  id              String          @id @default(cuid())
+  code            String          @unique
+  description     String
+  discountPercent Int?            // null = free
+  discountedPrice Float?          // fixed price override (e.g. 17.00)
+  maxUses         Int?            // null = unlimited
+  usedCount       Int             @default(0)
+  expiresAt       DateTime?
+  createdAt       DateTime        @default(now())
+  userPromoCodes  UserPromoCode[]
+}
+
+model UserPromoCode {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promoCodeId String
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id])
+  appliedAt   DateTime  @default(now())
+
+  @@unique([userId, promoCodeId])
   @@index([userId])
 }
