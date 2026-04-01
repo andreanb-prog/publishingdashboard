@@ -11,40 +11,49 @@ interface FileResult {
   type: string
 }
 
+const MAX_FILES = 10
+
 export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('welcome')
-  const [kdpFile, setKdpFile] = useState<FileResult | null>(null)
-  const [metaFile, setMetaFile] = useState<FileResult | null>(null)
+  const [kdpFiles, setKdpFiles] = useState<FileResult[]>([])
+  const [metaFiles, setMetaFiles] = useState<FileResult[]>([])
   const [uploading, setUploading] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysisDone, setAnalysisDone] = useState(false)
   const kdpRef = useRef<HTMLInputElement>(null)
   const metaRef = useRef<HTMLInputElement>(null)
 
-  const handleFile = useCallback(async (file: File, type: 'kdp' | 'meta') => {
-    setUploading(true)
-    const formData = new FormData()
-    formData.append('file', file)
+  const handleFiles = useCallback(async (files: File[], type: 'kdp' | 'meta') => {
+    const setter = type === 'kdp' ? setKdpFiles : setMetaFiles
+    const current = type === 'kdp' ? kdpFiles : metaFiles
+    const remaining = MAX_FILES - current.length
+    const batch = files.slice(0, remaining)
+    if (batch.length === 0) return
 
-    try {
-      const endpoint = type === 'kdp' ? '/api/parse-kdp' : '/api/parse-meta'
-      const res = await fetch(endpoint, { method: 'POST', body: formData })
-      if (res.ok) {
-        const data = await res.json()
-        const result: FileResult = {
-          filename: file.name,
-          summary: type === 'kdp'
-            ? `${data.data?.totalUnits ?? 0} units, $${data.data?.totalRoyaltiesUSD?.toFixed(2) ?? '0'} royalties`
-            : `${data.data?.ads?.length ?? 0} ads, $${data.data?.totalSpend ?? 0} spend`,
-          type,
+    setUploading(true)
+    const endpoint = type === 'kdp' ? '/api/parse-kdp' : '/api/parse-meta'
+
+    for (const file of batch) {
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch(endpoint, { method: 'POST', body: formData })
+        if (res.ok) {
+          const data = await res.json()
+          const result: FileResult = {
+            filename: file.name,
+            summary: type === 'kdp'
+              ? `${data.data?.totalUnits ?? 0} units, $${data.data?.totalRoyaltiesUSD?.toFixed(2) ?? '0'} royalties`
+              : `${data.data?.ads?.length ?? 0} ads, $${data.data?.totalSpend ?? 0} spend`,
+            type,
+          }
+          setter(prev => [...prev, result])
         }
-        if (type === 'kdp') setKdpFile(result)
-        else setMetaFile(result)
-      }
-    } catch { /* ignore */ }
+      } catch { /* ignore */ }
+    }
     setUploading(false)
-  }, [])
+  }, [kdpFiles, metaFiles])
 
   async function runAnalysis() {
     setAnalyzing(true)
@@ -71,9 +80,9 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
     e.preventDefault()
     if (type === 'kdp') setDragOverKdp(false)
     else setDragOverMeta(false)
-    const file = e.dataTransfer.files?.[0]
-    if (file) handleFile(file, type)
-  }, [handleFile])
+    const files = Array.from(e.dataTransfer.files || [])
+    if (files.length) handleFiles(files, type)
+  }, [handleFiles])
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -82,10 +91,10 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
       {/* File inputs always in DOM so refs are never null */}
-      <input ref={kdpRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
-        onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0], 'kdp'); e.target.value = '' }} />
-      <input ref={metaRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
-        onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0], 'meta'); e.target.value = '' }} />
+      <input ref={kdpRef} type="file" accept=".xlsx,.xls,.csv" multiple className="hidden"
+        onChange={e => { if (e.target.files?.length) handleFiles(Array.from(e.target.files), 'kdp'); e.target.value = '' }} />
+      <input ref={metaRef} type="file" accept=".csv,.xlsx,.xls" multiple className="hidden"
+        onChange={e => { if (e.target.files?.length) handleFiles(Array.from(e.target.files), 'meta'); e.target.value = '' }} />
 
       <div className="w-full max-w-lg">
 
@@ -157,16 +166,25 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
               Open KDP Reports in new tab →
             </a>
 
-            {/* Drop zone */}
-            {kdpFile ? (
-              <div className="rounded-xl p-5 text-center" style={{ background: 'rgba(52,211,153,0.06)', border: '1.5px solid rgba(52,211,153,0.3)' }}>
-                <div className="text-3xl mb-2">✅</div>
-                <div className="text-[14px] font-semibold mb-1" style={{ color: '#34d399' }}>
-                  Got it! KDP file ready
+            {/* Uploaded files list */}
+            {kdpFiles.length > 0 && (
+              <div className="rounded-xl p-4 mb-3" style={{ background: 'rgba(52,211,153,0.06)', border: '1.5px solid rgba(52,211,153,0.3)' }}>
+                <div className="text-[13px] font-semibold mb-2" style={{ color: '#34d399' }}>
+                  ✅ {kdpFiles.length} file{kdpFiles.length > 1 ? 's' : ''} ready
                 </div>
-                <div className="text-[12px]" style={{ color: '#6B7280' }}>{kdpFile.summary}</div>
+                <div className="space-y-1.5">
+                  {kdpFiles.map((f, i) => (
+                    <div key={i} className="flex items-center justify-between text-[12px]">
+                      <span style={{ color: '#374151' }}>{f.filename}</span>
+                      <span style={{ color: '#6B7280' }}>{f.summary}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ) : (
+            )}
+
+            {/* Drop zone */}
+            {kdpFiles.length < MAX_FILES && (
               <div
                 className="rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all hover:border-amber-400"
                 style={{ borderColor: dragOverKdp ? '#e9a020' : '#EEEBE6', background: dragOverKdp ? 'rgba(233,160,32,0.04)' : '#FAFAFA' }}
@@ -178,14 +196,14 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
               >
                 <div className="text-3xl mb-3">📂</div>
                 <div className="text-[15px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
-                  {uploading ? 'Reading your file...' : 'Drop your KDP file here'}
+                  {uploading ? 'Reading your files...' : kdpFiles.length > 0 ? 'Add more KDP files' : 'Drop your KDP files here'}
                 </div>
                 <div className="text-[12px] mb-4" style={{ color: '#9CA3AF' }}>
-                  or click anywhere in this box to browse
+                  {kdpFiles.length > 0 ? `${MAX_FILES - kdpFiles.length} more allowed` : 'Up to 10 files — click or drag & drop'}
                 </div>
                 <button className="px-5 py-2.5 rounded-lg text-[13px] font-bold border-none cursor-pointer"
                   style={{ background: '#e9a020', color: '#0d1f35' }}>
-                  Browse for file
+                  Browse for files
                 </button>
               </div>
             )}
@@ -198,9 +216,9 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
               <button
                 onClick={() => setStep('meta')}
                 className="px-6 py-2.5 rounded-lg text-[13px] font-bold border-none cursor-pointer transition-all"
-                style={{ background: kdpFile ? '#e9a020' : '#F5F5F4', color: kdpFile ? '#0d1f35' : '#9CA3AF' }}
+                style={{ background: kdpFiles.length > 0 ? '#e9a020' : '#F5F5F4', color: kdpFiles.length > 0 ? '#0d1f35' : '#9CA3AF' }}
               >
-                {kdpFile ? 'Next →' : 'Skip this step →'}
+                {kdpFiles.length > 0 ? 'Next →' : 'Skip this step →'}
               </button>
             </div>
           </div>
@@ -223,46 +241,54 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
               If you use Meta Ads Manager, we can analyze your ad performance too.
             </p>
 
-            {metaFile ? (
-              <div className="rounded-xl p-5 text-center mb-5" style={{ background: 'rgba(52,211,153,0.06)', border: '1.5px solid rgba(52,211,153,0.3)' }}>
-                <div className="text-3xl mb-2">✅</div>
-                <div className="text-[14px] font-semibold mb-1" style={{ color: '#34d399' }}>Meta Ads file ready</div>
-                <div className="text-[12px]" style={{ color: '#6B7280' }}>{metaFile.summary}</div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 mb-5">
-                <div
-                  className="rounded-xl p-5 text-center cursor-pointer transition-all hover:border-blue-300"
-                  style={{ background: dragOverMeta ? 'rgba(56,189,248,0.04)' : 'white', border: `1.5px solid ${dragOverMeta ? '#38bdf8' : '#EEEBE6'}` }}
-                  onClick={() => metaRef.current?.click()}
-                  onDrop={e => onDrop(e, 'meta')}
-                  onDragOver={onDragOver}
-                  onDragEnter={() => setDragOverMeta(true)}
-                  onDragLeave={() => setDragOverMeta(false)}
-                >
-                  <div className="text-2xl mb-2">📣</div>
-                  <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
-                    {uploading ? 'Reading...' : 'Yes, upload my ads'}
-                  </div>
-                  <div className="text-[11px] mt-1" style={{ color: '#9CA3AF' }}>
-                    Export CSV from Ads Manager
-                  </div>
+            {metaFiles.length > 0 && (
+              <div className="rounded-xl p-4 mb-3" style={{ background: 'rgba(52,211,153,0.06)', border: '1.5px solid rgba(52,211,153,0.3)' }}>
+                <div className="text-[13px] font-semibold mb-2" style={{ color: '#34d399' }}>
+                  ✅ {metaFiles.length} file{metaFiles.length > 1 ? 's' : ''} ready
                 </div>
-                <div
-                  className="rounded-xl p-5 text-center cursor-pointer transition-all hover:border-stone-300"
-                  style={{ background: '#FAFAFA', border: '1.5px solid #EEEBE6' }}
-                  onClick={() => setStep('done')}
-                >
-                  <div className="text-2xl mb-2">⏭️</div>
-                  <div className="text-[13px] font-semibold" style={{ color: '#6B7280' }}>
-                    Skip for now
-                  </div>
-                  <div className="text-[11px] mt-1" style={{ color: '#9CA3AF' }}>
-                    I don&apos;t run ads yet
-                  </div>
+                <div className="space-y-1.5">
+                  {metaFiles.map((f, i) => (
+                    <div key={i} className="flex items-center justify-between text-[12px]">
+                      <span style={{ color: '#374151' }}>{f.filename}</span>
+                      <span style={{ color: '#6B7280' }}>{f.summary}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
+
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <div
+                className="rounded-xl p-5 text-center cursor-pointer transition-all hover:border-blue-300"
+                style={{ background: dragOverMeta ? 'rgba(56,189,248,0.04)' : 'white', border: `1.5px solid ${dragOverMeta ? '#38bdf8' : '#EEEBE6'}` }}
+                onClick={() => metaRef.current?.click()}
+                onDrop={e => onDrop(e, 'meta')}
+                onDragOver={onDragOver}
+                onDragEnter={() => setDragOverMeta(true)}
+                onDragLeave={() => setDragOverMeta(false)}
+              >
+                <div className="text-2xl mb-2">📣</div>
+                <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
+                  {uploading ? 'Reading...' : metaFiles.length > 0 ? 'Add more files' : 'Yes, upload my ads'}
+                </div>
+                <div className="text-[11px] mt-1" style={{ color: '#9CA3AF' }}>
+                  {metaFiles.length > 0 ? `${MAX_FILES - metaFiles.length} more allowed` : 'Export CSV from Ads Manager'}
+                </div>
+              </div>
+              <div
+                className="rounded-xl p-5 text-center cursor-pointer transition-all hover:border-stone-300"
+                style={{ background: '#FAFAFA', border: '1.5px solid #EEEBE6' }}
+                onClick={() => setStep('done')}
+              >
+                <div className="text-2xl mb-2">⏭️</div>
+                <div className="text-[13px] font-semibold" style={{ color: '#6B7280' }}>
+                  {metaFiles.length > 0 ? 'Done' : 'Skip for now'}
+                </div>
+                <div className="text-[11px] mt-1" style={{ color: '#9CA3AF' }}>
+                  {metaFiles.length > 0 ? 'Continue to next step' : 'I don\'t run ads yet'}
+                </div>
+              </div>
+            </div>
 
             <div className="flex items-center justify-between mt-3">
               <button onClick={() => setStep('kdp')}
@@ -330,21 +356,21 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                 </h2>
 
                 <div className="space-y-2 mb-6 text-left max-w-sm mx-auto">
-                  {kdpFile && (
+                  {kdpFiles.length > 0 && (
                     <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(52,211,153,0.06)' }}>
                       <span style={{ color: '#34d399' }}>✅</span>
                       <div>
-                        <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>KDP Report</div>
-                        <div className="text-[11px]" style={{ color: '#6B7280' }}>{kdpFile.summary}</div>
+                        <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>KDP Reports ({kdpFiles.length})</div>
+                        <div className="text-[11px]" style={{ color: '#6B7280' }}>{kdpFiles.map(f => f.filename).join(', ')}</div>
                       </div>
                     </div>
                   )}
-                  {metaFile && (
+                  {metaFiles.length > 0 && (
                     <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(52,211,153,0.06)' }}>
                       <span style={{ color: '#34d399' }}>✅</span>
                       <div>
-                        <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Meta Ads</div>
-                        <div className="text-[11px]" style={{ color: '#6B7280' }}>{metaFile.summary}</div>
+                        <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Meta Ads ({metaFiles.length})</div>
+                        <div className="text-[11px]" style={{ color: '#6B7280' }}>{metaFiles.map(f => f.filename).join(', ')}</div>
                       </div>
                     </div>
                   )}
@@ -355,7 +381,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                       <div className="text-[11px]" style={{ color: '#6B7280' }}>Connected automatically (if API key set)</div>
                     </div>
                   </div>
-                  {!kdpFile && !metaFile && (
+                  {kdpFiles.length === 0 && metaFiles.length === 0 && (
                     <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(251,191,36,0.06)' }}>
                       <span style={{ color: '#fbbf24' }}>📂</span>
                       <div>
@@ -367,11 +393,11 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                 </div>
 
                 <button
-                  onClick={kdpFile || metaFile ? runAnalysis : () => router.push('/dashboard/upload')}
+                  onClick={kdpFiles.length > 0 || metaFiles.length > 0 ? runAnalysis : () => router.push('/dashboard/upload')}
                   className="px-8 py-3.5 rounded-xl text-[16px] font-bold border-none cursor-pointer transition-all hover:opacity-90"
                   style={{ background: '#e9a020', color: '#0d1f35' }}
                 >
-                  {kdpFile || metaFile ? 'Show me my dashboard →' : 'Go to Upload page →'}
+                  {kdpFiles.length > 0 || metaFiles.length > 0 ? 'Show me my dashboard →' : 'Go to Upload page →'}
                 </button>
               </>
             )}
