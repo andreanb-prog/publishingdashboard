@@ -11,6 +11,7 @@ import { FreshBanner } from '@/components/FreshBanner'
 import { OnboardingBanner } from '@/components/OnboardingBanner'
 import { SortablePage } from '@/components/SortablePage'
 import { IconKDP, IconMeta, IconMailerLite, IconSwaps, IconPinterest } from '@/components/icons'
+import { OnboardingFlow } from '@/components/OnboardingFlow'
 
 const CHANNEL_CARDS = [
   { key: 'kdp',        href: '/dashboard/kdp',        icon: IconKDP,       iconColor: '#E9A020', name: 'KDP',        colorClass: 'border-t-amber-brand' },
@@ -334,6 +335,7 @@ export function OverviewClient() {
   const [copied,      setCopied]      = useState(false)
   const [copying,     setCopying]     = useState(false)
   const [coachTitle]  = useState(() => getCoachTitle())
+  const [onboardingSkipped, setOnboardingSkipped] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -382,6 +384,17 @@ export function OverviewClient() {
     } finally {
       setCopying(false)
     }
+  }
+
+  // First-time user: show guided onboarding instead of empty dashboard
+  const isFirstVisit = !loading && analyses.length === 0 && !analysis && !onboardingSkipped
+
+  if (isFirstVisit) {
+    return (
+      <div className="p-4 md:p-8 max-w-[1400px]">
+        <OnboardingFlow onSkip={() => setOnboardingSkipped(true)} />
+      </div>
+    )
   }
 
   return (

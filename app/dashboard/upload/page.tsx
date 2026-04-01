@@ -1,6 +1,6 @@
 'use client'
 // app/dashboard/upload/page.tsx
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { KDPData, MetaData, PinterestData } from '@/types'
 import { getCoachTitle } from '@/lib/coachTitle'
@@ -39,50 +39,44 @@ const PLATFORM_ERRORS: Record<string, string> = {
   adtracker: "Couldn't import from this Ad Tracker file — check it has data within the last 21 days with spend > 0.",
 }
 
+function CyclingDots() {
+  const [dots, setDots] = useState(1)
+  useEffect(() => {
+    const id = setInterval(() => setDots(d => (d % 3) + 1), 500)
+    return () => clearInterval(id)
+  }, [])
+  return <span className="inline-block ml-0.5 w-4 text-left">{'.'.repeat(dots)}</span>
+}
+
 const ANALYSIS_STEPS = [
-  // Magical / enchanting
-  'Turning your spreadsheets into stories',
-  'Brewing up your monthly insights',
-  'Sprinkling some magic on those numbers',
-  'Weaving your data into a narrative',
-  // Fun / relatable author vibes
-  'Reading between the rows (get it?)',
-  'Doing the math so you don\'t have to',
-  'Your royalties are looking interesting',
+  // What's actually happening — crunching
+  'Crunching your KDP numbers',
+  'Tallying up your royalties',
   'Counting every single page read',
-  'Your ads have a story to tell',
-  // Book / writing themed
-  'Opening chapter one of your data story',
-  'Every number has a plot twist',
-  'Writing the next chapter of your growth',
-  'Turning raw exports into readable insights',
-  'Your marketing story is coming together',
-  // Coaching themed
-  'Checking what your readers are responding to',
-  'Finding the patterns you might have missed',
-  'Looking for your hidden strengths',
-  'Spotting the opportunities in your numbers',
-  'Building a game plan just for you',
+  'Adding up your ad spend',
+  'Cross-referencing your clicks',
+  'Calculating your cost per reader',
+  'Measuring your rank trajectory',
+  // Magical / enchanting
+  'Enchanting your spreadsheets into wisdom',
+  'Conjuring insights from your royalty data',
+  'Weaving your ad numbers into a story',
+  'Summoning your best performing tropes',
+  'Sprinkling dashboard magic on your KENP reads',
+  // Fun / personality
+  'Schlepping through your Meta export with great enthusiasm',
+  'Perusing every last click with enormous curiosity',
+  'Interrogating your underperforming ads',
+  'Having a stern word with your bounce rate',
+  'Convincing your data to tell the truth',
+  'Doing the math so you can do the writing',
   // Warm / encouraging
-  'Your books are out there doing their thing',
-  'Every sale started with a reader who found you',
-  'Your consistency is paying off — let\'s see how',
-  'Small wins are still wins',
-  'You\'re closer than you think',
-  // Playful
-  'Giving your spreadsheets a spa day',
-  'Asking your numbers what they\'ve been up to',
-  'Making sense of allll those columns',
-  'Connecting the dots across every channel',
-  'Putting your whole picture together',
-  'Almost there — polishing up your insights',
-  // Closing
-  'Finishing touches on your coaching session',
-  'Just a moment more',
-  `${getCoachTitle().replace(' says', '')} is connecting the dots`,
-  'Your dashboard is almost ready',
-  'Wrapping it all up with a bow',
-  'Here we go — almost done',
+  'Finding the good news hiding in your numbers',
+  'Spotting the pattern your future self will thank you for',
+  'Building your personalized action plan',
+  'Almost there — good things take a moment',
+  'Your coach is putting on her reading glasses',
+  'Translating spreadsheet chaos into clear next steps',
 ]
 
 const FILE_HELP = [
@@ -430,14 +424,21 @@ export default function UploadPage() {
               />
 
               {files.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+                <div className="flex flex-col items-center justify-center text-center px-6" style={{ minHeight: 300 }}>
                   <div className="text-5xl mb-4">📂</div>
-                  <div className="text-[16px] font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                  <div className="text-[18px] font-semibold mb-2" style={{ color: 'rgba(255,255,255,0.85)' }}>
                     Drop your files here
                   </div>
-                  <div className="text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                    or click to browse · up to 10 files · KDP, Meta Ads, Pinterest
+                  <div className="text-[13px] mb-5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    Click here to browse for your file · up to 10 files · KDP, Meta Ads, Pinterest
                   </div>
+                  <button
+                    className="px-6 py-3 rounded-xl text-[14px] font-bold border-none cursor-pointer transition-all hover:opacity-90"
+                    style={{ background: '#e9a020', color: '#0d1f35' }}
+                    onClick={e => { e.stopPropagation(); inputRef.current?.click() }}
+                  >
+                    Browse for file
+                  </button>
                 </div>
               ) : (
                 <div className="p-4" onClick={e => e.stopPropagation()}>
@@ -671,24 +672,48 @@ export default function UploadPage() {
             )}
           </>
         ) : (
-          <div className="text-center py-8">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl ${!done ? 'animate-pulse' : ''}`}
-              style={{ background: 'rgba(233,160,32,0.15)' }}>
-              {done ? '✅' : '⚙️'}
-            </div>
-            <div className="font-serif text-[22px] text-white mb-2">
-              {done ? 'Done! Opening your dashboard...' : `${getCoachTitle().replace(' says', '')} is reading everything…`}
-            </div>
-            <div className="text-[13px] mb-5 transition-opacity duration-200"
-              style={{ color: 'rgba(255,255,255,0.5)', opacity: stepFade ? 1 : 0 }}>
-              {shuffledSteps[step]}
-              <span className="inline-block animate-pulse ml-0.5">...</span>
-            </div>
-            <div className="max-w-[300px] mx-auto h-2 rounded-full overflow-hidden"
-              style={{ background: 'rgba(255,255,255,0.08)' }}>
-              <div className="h-full rounded-full transition-all duration-1000 ease-out"
-                style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #e9a020, #f4c542)' }} />
-            </div>
+          <div className="text-center py-10">
+            {done ? (
+              <>
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5 text-4xl"
+                  style={{ background: 'rgba(52,211,153,0.15)' }}>
+                  ✅
+                </div>
+                <div className="text-[24px] font-semibold text-white mb-2">
+                  Your dashboard is ready!
+                </div>
+                <p className="text-[14px] mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  Everything&apos;s been analyzed. Opening now...
+                </p>
+                <button
+                  onClick={() => router.push('/dashboard?fresh=1')}
+                  className="px-8 py-3.5 rounded-xl text-[15px] font-bold border-none cursor-pointer transition-all hover:opacity-90"
+                  style={{ background: '#e9a020', color: '#0d1f35' }}
+                >
+                  View my dashboard →
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl animate-pulse"
+                  style={{ background: 'rgba(233,160,32,0.15)' }}>
+                  ⚙️
+                </div>
+                <div className="text-[20px] font-semibold text-white mb-2">
+                  {`${getCoachTitle().replace(' says', '')} is reading everything…`}
+                </div>
+                <div className="text-[13px] mb-5 transition-opacity duration-200"
+                  style={{ color: 'rgba(255,255,255,0.5)', opacity: stepFade ? 1 : 0 }}>
+                  {shuffledSteps[step]}
+                  <CyclingDots />
+                </div>
+                <div className="max-w-[300px] mx-auto h-2 rounded-full overflow-hidden"
+                  style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  <div className="h-full rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #e9a020, #f4c542)' }} />
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

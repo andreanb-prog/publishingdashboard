@@ -6,6 +6,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { TopBar } from '@/components/TopBar'
 import { MobileNav } from '@/components/MobileNav'
 import { FeedbackButton } from '@/components/FeedbackButton'
+import { HelpDrawer } from '@/components/HelpDrawer'
 
 export default async function DashboardLayout({
   children,
@@ -27,6 +28,7 @@ export default async function DashboardLayout({
           {children}
         </main>
       </div>
+      <HelpDrawer />
       <FeedbackButton />
     </div>
   )
