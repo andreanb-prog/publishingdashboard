@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 interface DarkPageProps {
   title: string
-  subtitle: string
+  subtitle?: string
   backHref?: string
   children: React.ReactNode
 }
@@ -22,7 +22,7 @@ export function DarkPage({ title, subtitle, backHref = '/dashboard', children }:
           <h1 className="font-serif text-[26px] tracking-tight" style={{ color: '#fafaf9' }}>
             {title}
           </h1>
-          <p className="text-[12px] mt-1" style={{ color: '#a8a29e' }}>{subtitle}</p>
+          {subtitle && <p className="text-[12px] mt-1" style={{ color: '#a8a29e' }}>{subtitle}</p>}
         </div>
         <Link
           href={backHref}
