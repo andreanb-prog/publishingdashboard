@@ -481,7 +481,7 @@ export function OverviewClient() {
       {/* ══════ SECTION 2 — WHAT'S WORKING (metric tiles) ═════════ */}
       {analysis && (
         <div className="mb-7">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 md:divide-x divide-[#EEEBE6]">
             {(() => {
               const meta = analysis.meta
               const ml = analysis.mailerLite
@@ -492,7 +492,7 @@ export function OverviewClient() {
                 { stat: meta?.bestAd?.ctr ? `${meta.bestAd.ctr}%` : '—', label: 'TOP AD PERFORMER', sub: meta?.bestAd?.name ? meta.bestAd.name.slice(0, 40) : 'No data yet' },
               ]
               return tiles.map((t, i) => (
-                <div key={i}>
+                <div key={i} className="px-4 py-1 first:pl-0 last:pr-0">
                   <div className="text-[28px] font-bold leading-none tracking-tight mb-1" style={{ color: '#1E2D3D' }}>
                     {t.stat}
                   </div>
