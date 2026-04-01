@@ -463,41 +463,68 @@ export default function KDPPage() {
             }}
           />
 
-          {/* KPI Strip — equal grid with health bars + tooltips */}
+          {/* KPI Strip — derived metrics with health bars + tooltips */}
           {(() => {
             const readerDepth = kdp.totalUnits > 0 ? kdp.totalKENP / kdp.totalUnits : 0
             const estKu = Math.round(filteredTotalKENP * 0.0045 * 100) / 100
-            const kpiItems = [
-              { label: 'Total Royalties', value: `$${kdp.totalRoyaltiesUSD}`, sub: 'USD this month', color: '#fb7185', tooltip: 'totalRoyalties' as const },
-              { label: 'Units (range)', value: filteredTotalUnits.toLocaleString(), sub: 'eBooks + paperback', color: '#38bdf8', tooltip: 'totalUnits' as const },
-              { label: 'KENP (range)', value: filteredTotalKENP.toLocaleString(), sub: `~$${estKu} est. KU earnings`, color: '#fbbf24', tooltip: 'kenp' as const, projection: 'estKuEarnings' as const },
-              { label: 'Reader Depth', value: readerDepth > 0 ? `~${readerDepth.toFixed(1)}` : '—', sub: 'KENP per unit sold', color: '#34d399', tooltip: 'readerDepth' as const, projection: 'readerDepth' as const, benchmark: { metric: 'readerDepth', value: readerDepth } },
-              { label: 'Est. KU Earnings', value: `$${estKu}`, sub: '$0.0045 × KENP reads', color: '#a78bfa', tooltip: 'estKuEarnings' as const, projection: 'estKuEarnings' as const },
+            const totalEstRevenue = Math.round((kdp.totalRoyaltiesUSD + estKu) * 100) / 100
+            const daysInPeriod = kdp.dailyUnits?.length || 30
+            const dailyVelocity = daysInPeriod > 0 ? Math.round(filteredTotalKENP / daysInPeriod * 100) / 100 : 0
+            const kuShare = totalEstRevenue > 0 ? Math.round((estKu / totalEstRevenue) * 100) : 0
+
+            type KpiItem = {
+              label: string; value: string; sub: string; color: string
+              tooltip: string; projection?: string
+              benchmark?: { metric: string; value: number }
+              arrow?: 'up' | 'down' | null; warn?: boolean
+            }
+
+            const row1: KpiItem[] = [
+              { label: 'Est. KU Revenue', value: `$${estKu}`, sub: '$0.0045 × KENP reads', color: '#a78bfa', tooltip: 'estKuEarnings', projection: 'estKuEarnings' },
+              { label: 'Total Est. Revenue', value: `$${totalEstRevenue}`, sub: 'Royalties + KU estimate', color: '#fb7185', tooltip: 'totalEstRevenue', projection: 'totalEstRevenue' },
+              { label: 'Reader Depth', value: readerDepth > 0 ? `~${readerDepth.toFixed(1)}` : '—', sub: 'KENP per unit sold', color: '#34d399', tooltip: 'readerDepth', projection: 'readerDepth', benchmark: { metric: 'readerDepth', value: readerDepth } },
             ]
-            return (
-              <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-                {kpiItems.map((item, i) => (
-                  <div key={i} className="rounded-xl relative overflow-hidden"
-                    style={{ background: `linear-gradient(135deg, ${item.color}06, white 60%)`, border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)', padding: 16, minHeight: 100 }}>
-                    <div className="absolute bottom-0 left-0 right-0 h-[3px]"
-                      style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
-                    <div className="flex items-center gap-1 mb-2">
-                      <span className="text-[11px] font-bold tracking-[1.2px] uppercase" style={{ color: '#6B7280' }}>
-                        {item.label}
-                      </span>
-                      <MetricTooltip metric={item.tooltip} />
-                    </div>
-                    <div className="flex items-baseline gap-1 mb-1.5">
-                      <span className="text-[32px] font-semibold leading-none tracking-tight" style={{ color: item.color }}>
-                        {item.value}
-                      </span>
-                      {item.projection && <ProjectionBadge metric={item.projection} />}
-                    </div>
-                    <div className="text-[12px]" style={{ color: '#6B7280' }}>{item.sub}</div>
-                    {item.benchmark && <HealthBenchmarkBar metric={item.benchmark.metric} value={item.benchmark.value} />}
+
+            const row2: KpiItem[] = [
+              { label: 'Daily Read Velocity', value: dailyVelocity > 0 ? dailyVelocity.toLocaleString() : '—', sub: 'Pages/day average', color: '#38bdf8', tooltip: 'dailyReadVelocity' },
+              { label: 'KU Revenue Share', value: `${kuShare}%`, sub: kuShare > 80 ? 'High KU dependency' : 'Healthy mix', color: kuShare > 80 ? '#E9A020' : '#6EBF8B', tooltip: 'topBookShare', warn: kuShare > 80 },
+              { label: 'Units Sold', value: filteredTotalUnits.toLocaleString(), sub: 'eBooks + paperback', color: '#fbbf24', tooltip: 'totalUnits' },
+            ]
+
+            function renderCard(item: KpiItem, i: number) {
+              return (
+                <div key={i} className="rounded-xl relative overflow-hidden"
+                  style={{ background: `linear-gradient(135deg, ${item.color}06, white 60%)`, border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)', padding: 16, minHeight: 90 }}>
+                  <div className="absolute bottom-0 left-0 right-0 h-[3px]"
+                    style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
+                  <div className="flex items-center gap-1 mb-2">
+                    <span className="text-[10px] font-bold tracking-[1.2px] uppercase" style={{ color: '#6B7280' }}>
+                      {item.label}
+                    </span>
+                    <MetricTooltip metric={item.tooltip} />
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-baseline gap-1 mb-1">
+                    <span className="text-[28px] font-semibold leading-none tracking-tight" style={{ color: item.color }}>
+                      {item.value}
+                    </span>
+                    {item.projection && <ProjectionBadge metric={item.projection} />}
+                    {item.warn && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded ml-1" style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>⚠</span>}
+                  </div>
+                  <div className="text-[11px]" style={{ color: '#6B7280' }}>{item.sub}</div>
+                  {item.benchmark && <HealthBenchmarkBar metric={item.benchmark.metric} value={item.benchmark.value} />}
+                </div>
+              )
+            }
+
+            return (
+              <>
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                  {row1.map(renderCard)}
+                </div>
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  {row2.map(renderCard)}
+                </div>
+              </>
             )
           })()}
 
