@@ -233,7 +233,10 @@ export async function GET(req: NextRequest) {
   })
 
   console.log('[GET] records:', analyses.length, '| latest record id:', record?.id ?? 'NONE')
-  console.log('[GET] kdp:', analysis?.kdp ? `units=${analysis.kdp.totalUnits} kenp=${analysis.kdp.totalKENP}` : 'MISSING')
+  console.log('[GET] kdp:', analysis?.kdp ? `units=${analysis.kdp.totalUnits}` : 'MISSING')
+  console.log('[GET] meta:', analysis?.meta ? `spend=${analysis.meta.totalSpend}` : 'MISSING')
+  console.log('[GET] mailerLite:', analysis?.mailerLite ? `list=${analysis.mailerLite.listSize}` : 'MISSING')
+  console.log('[GET] pinterest:', analysis?.pinterest ? `impressions=${analysis.pinterest.totalImpressions}` : 'MISSING')
 
   return NextResponse.json({ analyses, analysis: analysis || null })
 }

@@ -14,13 +14,11 @@ export default function MailerLitePage() {
 
   useEffect(() => {
     fetch('/api/analyze')
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(d => {
-        const rows: Analysis[] = (d.analyses ?? [])
-          .map((a: { data?: Analysis }) => a.data)
-          .filter((x: unknown): x is Analysis => !!x && typeof x === 'object' && 'month' in (x as object))
-        if (rows[0]) setAnalysis(rows[0])
+        if (d.analysis) setAnalysis(d.analysis as Analysis)
       })
+      .catch(() => {})
   }, [])
 
   const ml = analysis?.mailerLite
