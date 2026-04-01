@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useMemo } from 'react'
 import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { InsightCallouts } from '@/components/InsightCallout'
+import { HealthBenchmarkBar, ProjectionBadge, MetricTooltip } from '@/components/MetricHealth'
 import { ViewingBar } from '@/components/ViewingBar'
 import { GoalSection } from '@/components/GoalSection'
 import { BarChart } from '@/components/ui'
@@ -462,31 +463,44 @@ export default function KDPPage() {
             }}
           />
 
-          {/* KPI Strip — equal grid */}
-          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-            {[
-              { label: 'Total Royalties',  value: `$${kdp.totalRoyaltiesUSD}`,         sub: 'USD this month',         color: '#fb7185' },
-              { label: 'Units (range)',    value: filteredTotalUnits.toLocaleString(),   sub: 'eBooks + paperback',     color: '#38bdf8' },
-              { label: 'KENP (range)',     value: filteredTotalKENP.toLocaleString(),    sub: `~$${Math.round(filteredTotalKENP * 0.0045)} est. KU earnings`, color: '#fbbf24' },
-              { label: 'MOLR Units',       value: String(kdp.books.find(b => b.asin === 'B0GSC2RTF8')?.units || 0),  sub: 'My Off-Limits Roommate',  color: '#34d399' },
-              { label: 'FDMBP Units',      value: String(kdp.books.find(b => b.asin === 'B0GQD4J6VT')?.units || 0),  sub: 'Fake Dating Billionaire', color: '#a78bfa' },
-            ].map((item, i) => (
-              <div key={i} className="rounded-xl relative overflow-hidden"
-                style={{ background: `linear-gradient(135deg, ${item.color}06, white 60%)`, border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)', padding: 16, minHeight: 100 }}>
-                <div className="absolute bottom-0 left-0 right-0 h-[3px]"
-                  style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
-                <div className="text-[11px] font-bold tracking-[1.2px] uppercase mb-2"
-                  style={{ color: '#6B7280' }}>
-                  {item.label}
-                </div>
-                <div className="text-[32px] font-semibold leading-none tracking-tight mb-1.5"
-                  style={{ color: item.color }}>
-                  {item.value}
-                </div>
-                <div className="text-[12px]" style={{ color: '#6B7280' }}>{item.sub}</div>
+          {/* KPI Strip — equal grid with health bars + tooltips */}
+          {(() => {
+            const readerDepth = kdp.totalUnits > 0 ? kdp.totalKENP / kdp.totalUnits : 0
+            const estKu = Math.round(filteredTotalKENP * 0.0045 * 100) / 100
+            const kpiItems = [
+              { label: 'Total Royalties', value: `$${kdp.totalRoyaltiesUSD}`, sub: 'USD this month', color: '#fb7185', tooltip: 'totalRoyalties' as const },
+              { label: 'Units (range)', value: filteredTotalUnits.toLocaleString(), sub: 'eBooks + paperback', color: '#38bdf8', tooltip: 'totalUnits' as const },
+              { label: 'KENP (range)', value: filteredTotalKENP.toLocaleString(), sub: `~$${estKu} est. KU earnings`, color: '#fbbf24', tooltip: 'kenp' as const, projection: 'estKuEarnings' as const },
+              { label: 'Reader Depth', value: readerDepth > 0 ? `~${readerDepth.toFixed(1)}` : '—', sub: 'KENP per unit sold', color: '#34d399', tooltip: 'readerDepth' as const, projection: 'readerDepth' as const, benchmark: { metric: 'readerDepth', value: readerDepth } },
+              { label: 'Est. KU Earnings', value: `$${estKu}`, sub: '$0.0045 × KENP reads', color: '#a78bfa', tooltip: 'estKuEarnings' as const, projection: 'estKuEarnings' as const },
+            ]
+            return (
+              <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+                {kpiItems.map((item, i) => (
+                  <div key={i} className="rounded-xl relative overflow-hidden"
+                    style={{ background: `linear-gradient(135deg, ${item.color}06, white 60%)`, border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)', padding: 16, minHeight: 100 }}>
+                    <div className="absolute bottom-0 left-0 right-0 h-[3px]"
+                      style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
+                    <div className="flex items-center gap-1 mb-2">
+                      <span className="text-[11px] font-bold tracking-[1.2px] uppercase" style={{ color: '#6B7280' }}>
+                        {item.label}
+                      </span>
+                      <MetricTooltip metric={item.tooltip} />
+                    </div>
+                    <div className="flex items-baseline gap-1 mb-1.5">
+                      <span className="text-[32px] font-semibold leading-none tracking-tight" style={{ color: item.color }}>
+                        {item.value}
+                      </span>
+                      {item.projection && <ProjectionBadge metric={item.projection} />}
+                    </div>
+                    <div className="text-[12px]" style={{ color: '#6B7280' }}>{item.sub}</div>
+                    {item.benchmark && <HealthBenchmarkBar metric={item.benchmark.metric} value={item.benchmark.value} />}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )
+          })()}
+
 
           {analysis && <InsightCallouts analysis={analysis} page="kdp" />}
           {coach && <DarkCoachBox color="#fbbf24" title={coachTitle}>{coach}</DarkCoachBox>}

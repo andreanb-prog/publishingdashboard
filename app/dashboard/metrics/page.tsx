@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { DarkPage, DarkSectionHeader } from '@/components/DarkPage'
 import { BOOK_COLORS } from '@/lib/bookColors'
+import { HealthBenchmarkBar, ProjectionBadge, MetricTooltip } from '@/components/MetricHealth'
 import type { Analysis, RankLog, RoasLog } from '@/types'
 const AVG_ROMANCE_PAGES = 300
 
@@ -146,10 +147,10 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
   const LEAK_COLORS = { green: { bg: 'rgba(52,211,153,0.08)', color: '#34d399', label: 'Healthy' }, amber: { bg: 'rgba(251,191,36,0.08)', color: '#fbbf24', label: 'Monitor' }, red: { bg: 'rgba(251,113,133,0.08)', color: '#fb7185', label: 'Leak' } }
 
   const metrics = [
-    { label: 'Cost per Click', value: costPerClick > 0 ? `$${costPerClick.toFixed(2)}` : '—', color: '#38bdf8' },
-    { label: 'Cost per Reader', value: costPerReader > 0 ? `$${costPerReader.toFixed(2)}` : '—', color: '#34d399' },
-    { label: 'Cost per Subscriber', value: costPerSub > 0 ? `$${costPerSub.toFixed(2)}` : '—', color: '#a78bfa' },
-    { label: 'Readers This Month', value: readers > 0 ? readers.toLocaleString() : '—', color: '#e9a020' },
+    { label: 'Cost per Click', value: costPerClick > 0 ? `$${costPerClick.toFixed(2)}` : '—', color: '#38bdf8', tooltip: 'costPerClick' as const, raw: costPerClick },
+    { label: 'Cost per Reader', value: costPerReader > 0 ? `$${costPerReader.toFixed(2)}` : '—', color: '#34d399', tooltip: 'costPerReader' as const, raw: costPerReader },
+    { label: 'Cost per Subscriber', value: costPerSub > 0 ? `$${costPerSub.toFixed(2)}` : '—', color: '#a78bfa', tooltip: 'costPerSub' as const, benchmark: 'costPerSub' as const, raw: costPerSub },
+    { label: 'Readers This Month', value: readers > 0 ? readers.toLocaleString() : '—', color: '#e9a020', raw: 0 },
   ]
 
   const coachLines: string[] = []
@@ -175,8 +176,12 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {metrics.map(m => (
           <div key={m.label} className="rounded-xl p-4" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-            <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-1.5" style={{ color: '#6B7280' }}>{m.label}</div>
+            <div className="flex items-center gap-1 mb-1.5">
+              <span className="text-[10px] font-bold tracking-[1.2px] uppercase" style={{ color: '#6B7280' }}>{m.label}</span>
+              {m.tooltip && <MetricTooltip metric={m.tooltip} />}
+            </div>
             <div className="text-[28px] font-semibold leading-none tracking-tight" style={{ color: m.color }}>{m.value}</div>
+            {m.benchmark && m.raw > 0 && <HealthBenchmarkBar metric={m.benchmark} value={m.raw} />}
           </div>
         ))}
       </div>
@@ -402,8 +407,11 @@ export default function MetricsPage() {
 
         {/* Series Health Score */}
         <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
-            Series Health Score
+          <div className="flex items-center gap-1 mb-3">
+            <span className="text-[10px] font-bold tracking-[1.5px] uppercase" style={{ color: '#6B7280' }}>
+              Series Health Score
+            </span>
+            <MetricTooltip metric="seriesHealth" />
           </div>
           <div className="text-[12.5px] mb-3" style={{ color: '#1E2D3D' }}>
             Read-through + rank + list growth combined
