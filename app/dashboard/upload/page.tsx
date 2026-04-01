@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { KDPData, MetaData, PinterestData } from '@/types'
-import { getCoachTitle } from '@/lib/coachTitle'
+
 
 type FileType = 'kdp' | 'meta' | 'pinterest' | 'adtracker' | 'unknown'
 type FileStatus = 'reading' | 'done' | 'error' | 'unknown' | 'reprocessing'
@@ -707,22 +707,21 @@ export default function UploadPage() {
               </>
             ) : (
               <>
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl animate-pulse"
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 text-3xl animate-pulse"
                   style={{ background: 'rgba(233,160,32,0.15)' }}>
-                  ⚙️
+                  ✨
                 </div>
-                <div className="text-[20px] font-semibold text-white mb-2">
-                  {`${getCoachTitle().replace(' says', '')} is reading everything…`}
+                <div className="text-[18px] font-semibold text-white mb-6 transition-opacity duration-300"
+                  style={{ opacity: stepFade ? 1 : 0 }}>
+                  {shuffledSteps[step]}<CyclingDots />
                 </div>
-                <div className="text-[13px] mb-5 transition-opacity duration-200"
-                  style={{ color: 'rgba(255,255,255,0.5)', opacity: stepFade ? 1 : 0 }}>
-                  {shuffledSteps[step]}
-                  <CyclingDots />
-                </div>
-                <div className="max-w-[300px] mx-auto h-2 rounded-full overflow-hidden"
+                <div className="max-w-[300px] mx-auto h-2 rounded-full overflow-hidden mb-4"
                   style={{ background: 'rgba(255,255,255,0.08)' }}>
                   <div className="h-full rounded-full transition-all duration-1000 ease-out"
                     style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #e9a020, #f4c542)' }} />
+                </div>
+                <div className="text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  This usually takes about 15 seconds
                 </div>
               </>
             )}
