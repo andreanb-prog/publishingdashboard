@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import type { KDPData, MetaData, PinterestData } from '@/types'
 import { getCoachTitle } from '@/lib/coachTitle'
 
-type FileType = 'kdp' | 'meta' | 'pinterest' | 'unknown'
-type FileStatus = 'reading' | 'done' | 'error'
+type FileType = 'kdp' | 'meta' | 'pinterest' | 'adtracker' | 'unknown'
+type FileStatus = 'reading' | 'done' | 'error' | 'unknown' | 'reprocessing'
 
 interface ParsedFile {
   id: string
@@ -15,12 +15,28 @@ interface ParsedFile {
   status: FileStatus
   data: KDPData | MetaData | PinterestData | null
   summary: string
+  reprocessError?: string
 }
 
 const TYPE_INFO: Record<Exclude<FileType, 'unknown'>, { icon: string; label: string }> = {
   kdp:       { icon: '📚', label: 'KDP Report' },
   meta:      { icon: '📣', label: 'Meta Ads' },
   pinterest: { icon: '📌', label: 'Pinterest' },
+  adtracker: { icon: '📊', label: 'Ad Tracker' },
+}
+
+const REPROCESS_OPTIONS: Array<{ label: string; type: FileType; hint: string }> = [
+  { label: 'This is my KDP Report',       type: 'kdp',       hint: 'Excel · kdp.amazon.com → Reports → Month-end Report' },
+  { label: 'This is my Meta Ads export',  type: 'meta',      hint: 'CSV · Ads Manager → Export' },
+  { label: 'This is my Ad Tracker',       type: 'adtracker', hint: 'Excel · AD_TRACKER_ file' },
+  { label: 'This is my Pinterest CSV',    type: 'pinterest',  hint: 'CSV · analytics.pinterest.com → Export' },
+]
+
+const PLATFORM_ERRORS: Record<string, string> = {
+  kdp:       "Couldn't read this as a KDP report. Make sure it's the Month-end Excel from kdp.amazon.com → Reports.",
+  meta:      "Couldn't read this as a Meta Ads export. Download as CSV from Ads Manager → select date range → Export.",
+  pinterest: "Couldn't read this as a Pinterest export. Use analytics.pinterest.com → Overview → Export → CSV.",
+  adtracker: "Couldn't import from this Ad Tracker file — check it has data within the last 21 days with spend > 0.",
 }
 
 const ANALYSIS_STEPS = [
@@ -36,19 +52,108 @@ const ANALYSIS_STEPS = [
   'Putting the finishing touches on your session...',
 ]
 
+const FILE_HELP = [
+  {
+    label: '📚 KDP Report',
+    steps: 'kdp.amazon.com → Reports → Month-end Report → Download Excel',
+  },
+  {
+    label: '📣 Meta Ads',
+    steps: 'Ads Manager → select your date range → Export → CSV',
+  },
+  {
+    label: '📌 Pinterest',
+    steps: 'analytics.pinterest.com → Overview → Export → select date range',
+  },
+  {
+    label: '📊 Ad Tracker',
+    steps: 'Your AD_TRACKER_ Excel file — the one you use to log daily ad spend',
+  },
+]
+
 export default function UploadPage() {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [files, setFiles] = useState<ParsedFile[]>([])
   const [analyzing, setAnalyzing] = useState(false)
-  const [step,      setStep]      = useState(0)
-  const [stepFade,  setStepFade]  = useState(true)
-  const [progress,  setProgress]  = useState(0)
-  const [done,      setDone]      = useState(false)
+  const [step, setStep] = useState(0)
+  const [stepFade, setStepFade] = useState(true)
+  const [progress, setProgress] = useState(0)
+  const [done, setDone] = useState(false)
+  const [showFileHelp, setShowFileHelp] = useState(false)
 
-  async function processFile(file: File) {
-    const id = `${file.name}-${Date.now()}-${Math.random()}`
+  async function reprocessAs(fileId: string, file: File | null, type: FileType) {
+    if (type === 'adtracker') {
+      if (!file) return
+      setFiles(prev => prev.map(f => f.id !== fileId ? f : {
+        ...f, status: 'reprocessing', reprocessError: undefined,
+      }))
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch('/api/parse-roas-import', { method: 'POST', body: formData })
+        const json = await res.json()
+        if (json.success) {
+          setFiles(prev => prev.map(f => f.id !== fileId ? f : {
+            ...f, type: 'adtracker', status: 'done', summary: json.message || `Imported ${json.imported} days`,
+          }))
+        } else {
+          setFiles(prev => prev.map(f => f.id !== fileId ? f : {
+            ...f, status: 'unknown', reprocessError: json.error || PLATFORM_ERRORS.adtracker,
+          }))
+        }
+      } catch {
+        setFiles(prev => prev.map(f => f.id !== fileId ? f : {
+          ...f, status: 'unknown', reprocessError: PLATFORM_ERRORS.adtracker,
+        }))
+      }
+      return
+    }
+
+    if (!file) return
+    setFiles(prev => prev.map(f => f.id !== fileId ? f : {
+      ...f, status: 'reprocessing', reprocessError: undefined,
+    }))
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('type', type)
+      const res = await fetch('/api/parse-typed', { method: 'POST', body: formData })
+      const json = await res.json()
+      if (json.success) {
+        setFiles(prev => prev.map(f => f.id !== fileId ? f : {
+          ...f, type: json.type as FileType, status: 'done', data: json.data, summary: json.summary || '',
+        }))
+      } else {
+        setFiles(prev => prev.map(f => f.id !== fileId ? f : {
+          ...f, status: 'unknown', reprocessError: PLATFORM_ERRORS[type] || 'Could not read this file.',
+        }))
+      }
+    } catch {
+      setFiles(prev => prev.map(f => f.id !== fileId ? f : {
+        ...f, status: 'unknown', reprocessError: PLATFORM_ERRORS[type] || 'Could not read this file.',
+      }))
+    }
+  }
+
+  // Store raw File objects to re-submit them
+  const rawFiles = useRef<Map<string, File>>(new Map())
+
+  const handleFiles = useCallback((incoming: FileList | null) => {
+    if (!incoming) return
+    Array.from(incoming).slice(0, 10).forEach(file => {
+      const id = `${file.name}-${Date.now()}-${Math.random()}`
+      rawFiles.current.set(id, file)
+      // processFile uses its own id generation — we need to link them
+      // So let's pass id directly
+      processFileWithId(file, id)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function processFileWithId(file: File, id: string) {
+    rawFiles.current.set(id, file)
     setFiles(prev => [...prev, {
       id, filename: file.name, type: 'unknown', status: 'reading', data: null, summary: '',
     }])
@@ -59,13 +164,20 @@ export default function UploadPage() {
     try {
       const res = await fetch('/api/parse-auto', { method: 'POST', body: formData })
       const json = await res.json()
-      setFiles(prev => prev.map(f => f.id !== id ? f : {
-        ...f,
-        type: json.type as FileType,
-        status: json.type === 'unknown' ? 'error' : 'done',
-        data: json.data,
-        summary: json.summary || '',
-      }))
+
+      if (json.type === 'unknown') {
+        setFiles(prev => prev.map(f => f.id !== id ? f : {
+          ...f, type: 'unknown', status: 'unknown', data: null, summary: '',
+        }))
+      } else {
+        setFiles(prev => prev.map(f => f.id !== id ? f : {
+          ...f,
+          type: json.type as FileType,
+          status: 'done',
+          data: json.data,
+          summary: json.summary || '',
+        }))
+      }
     } catch {
       setFiles(prev => prev.map(f => f.id !== id ? f : {
         ...f, status: 'error', summary: 'Something went wrong reading this file.',
@@ -73,23 +185,19 @@ export default function UploadPage() {
     }
   }
 
-  const handleFiles = useCallback((incoming: FileList | null) => {
-    if (!incoming) return
-    Array.from(incoming).slice(0, 10).forEach(processFile)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Last recognized file wins per type
+  // Last recognized file wins per type (exclude adtracker — it goes to ROAS, not analysis)
   const byType = new Map<FileType, ParsedFile>()
-  files.filter(f => f.status === 'done' && f.type !== 'unknown').forEach(f => byType.set(f.type, f))
-  const kdpData   = (byType.get('kdp')?.data as KDPData | undefined)           ?? null
-  const metaData  = (byType.get('meta')?.data as MetaData | undefined)         ?? null
-  const pinData   = (byType.get('pinterest')?.data as PinterestData | undefined) ?? null
-  const hasAny    = !!(kdpData || metaData || pinData)
-  const allReading = files.some(f => f.status === 'reading')
-  const allDone   = files.length > 0 && files.every(f => f.status === 'done' && f.type !== 'unknown')
+  files.filter(f => f.status === 'done' && f.type !== 'unknown' && f.type !== 'adtracker')
+    .forEach(f => byType.set(f.type, f))
+  const kdpData  = (byType.get('kdp')?.data as KDPData | undefined) ?? null
+  const metaData = (byType.get('meta')?.data as MetaData | undefined) ?? null
+  const pinData  = (byType.get('pinterest')?.data as PinterestData | undefined) ?? null
+  const hasAny   = !!(kdpData || metaData || pinData)
+  const allReading = files.some(f => f.status === 'reading' || f.status === 'reprocessing')
+  const allDone = files.length > 0 && files.every(f =>
+    (f.status === 'done' && f.type !== 'unknown') || f.status === 'unknown'
+  )
 
-  // Border color: green when all files recognized, amber while dragging, default otherwise
   const borderColor = allDone
     ? '#34d399'
     : dragging
@@ -112,10 +220,7 @@ export default function UploadPage() {
       stepIdx++
       if (stepIdx < ANALYSIS_STEPS.length) {
         setStepFade(false)
-        setTimeout(() => {
-          setStep(stepIdx)
-          setStepFade(true)
-        }, 250)
+        setTimeout(() => { setStep(stepIdx); setStepFade(true) }, 250)
         setProgress(Math.round((stepIdx / ANALYSIS_STEPS.length) * 100))
       } else {
         clearInterval(interval)
@@ -174,7 +279,7 @@ export default function UploadPage() {
 
         {!analyzing ? (
           <>
-            {/* Drop zone — expands to contain files */}
+            {/* Drop zone */}
             <div
               className="rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 mb-5"
               style={{ borderColor, background: bgColor }}
@@ -193,7 +298,6 @@ export default function UploadPage() {
               />
 
               {files.length === 0 ? (
-                /* ── Empty state ──────────────────────────────────────── */
                 <div className="flex flex-col items-center justify-center py-12 text-center px-6">
                   <div className="text-5xl mb-4">📂</div>
                   <div className="text-[16px] font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.85)' }}>
@@ -204,7 +308,6 @@ export default function UploadPage() {
                   </div>
                 </div>
               ) : (
-                /* ── Files inside the box ─────────────────────────────── */
                 <div className="p-4" onClick={e => e.stopPropagation()}>
                   {/* Header */}
                   <div className="flex items-center justify-between mb-3 px-1">
@@ -213,7 +316,6 @@ export default function UploadPage() {
                       {files.length} file{files.length !== 1 ? 's' : ''} added
                     </span>
                     <div className="flex items-center gap-3">
-                      {/* Add more — opens file picker without closing the zone */}
                       <button
                         onClick={e => { e.stopPropagation(); inputRef.current?.click() }}
                         className="text-[12px] font-semibold transition-colors"
@@ -222,7 +324,7 @@ export default function UploadPage() {
                         + Add more
                       </button>
                       <button
-                        onClick={() => setFiles([])}
+                        onClick={() => { setFiles([]); rawFiles.current.clear() }}
                         className="text-[12px] transition-colors hover:underline"
                         style={{ color: 'rgba(255,255,255,0.3)' }}
                       >
@@ -235,84 +337,139 @@ export default function UploadPage() {
                   <div className="space-y-2">
                     {files.map(f => {
                       const info = f.type !== 'unknown' ? TYPE_INFO[f.type as Exclude<FileType, 'unknown'>] : null
-                      const isReading = f.status === 'reading'
-                      const isError   = f.type === 'unknown' && f.status === 'error'
-                      const isReady   = f.status === 'done' && f.type !== 'unknown'
+                      const isReading     = f.status === 'reading'
+                      const isReprocessing = f.status === 'reprocessing'
+                      const isUnknown     = f.status === 'unknown'
+                      const isError       = f.status === 'error'
+                      const isReady       = f.status === 'done' && f.type !== 'unknown'
+                      const isAdTracker   = f.type === 'adtracker' && f.status === 'done'
 
                       return (
-                        <div
-                          key={f.id}
-                          className="flex items-center gap-3 rounded-lg px-4 py-3"
-                          style={{
-                            background: isReady
-                              ? 'rgba(52,211,153,0.07)'
-                              : isError
-                              ? 'rgba(251,113,133,0.07)'
-                              : 'rgba(255,255,255,0.05)',
-                            border: isReady
-                              ? '1px solid rgba(52,211,153,0.2)'
-                              : isError
-                              ? '1px solid rgba(251,113,133,0.2)'
-                              : '1px solid transparent',
-                          }}
-                        >
-                          {/* Status icon */}
-                          <span className="text-xl flex-shrink-0">
-                            {isReading ? (
-                              <span className="inline-block animate-spin">⏳</span>
-                            ) : isError ? (
-                              '❌'
-                            ) : (
-                              info?.icon ?? '✅'
-                            )}
-                          </span>
+                        <div key={f.id}>
+                          {/* File row */}
+                          <div
+                            className="flex items-center gap-3 rounded-lg px-4 py-3"
+                            style={{
+                              background: isReady
+                                ? 'rgba(52,211,153,0.07)'
+                                : isUnknown || isError
+                                ? 'rgba(251,191,36,0.07)'
+                                : 'rgba(255,255,255,0.05)',
+                              border: isReady
+                                ? '1px solid rgba(52,211,153,0.2)'
+                                : isUnknown || isError
+                                ? '1px solid rgba(251,191,36,0.25)'
+                                : '1px solid transparent',
+                            }}
+                          >
+                            <span className="text-xl flex-shrink-0">
+                              {isReading || isReprocessing ? (
+                                <span className="inline-block animate-spin">⏳</span>
+                              ) : isError ? '❌'
+                                : isUnknown ? '❓'
+                                : info?.icon ?? '✅'}
+                            </span>
 
-                          {/* File info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[13px] font-semibold truncate"
-                              style={{ color: 'rgba(255,255,255,0.8)' }}>
-                              {f.filename}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[13px] font-semibold truncate"
+                                style={{ color: 'rgba(255,255,255,0.8)' }}>
+                                {f.filename}
+                              </div>
+                              <div className="text-[11px] mt-0.5"
+                                style={{
+                                  color: isReading || isReprocessing
+                                    ? 'rgba(255,255,255,0.35)'
+                                    : isError
+                                    ? '#f87171'
+                                    : isUnknown
+                                    ? '#fbbf24'
+                                    : '#34d399',
+                                }}>
+                                {isReading ? 'Reading...'
+                                  : isReprocessing ? 'Reading your file...'
+                                  : isError ? f.summary
+                                  : isUnknown
+                                  ? (f.reprocessError || "We didn't recognize this file automatically — select what it is below")
+                                  : isAdTracker
+                                  ? `${info!.label} · ${f.summary} → saved to ROAS tracker`
+                                  : `${info!.label} · ${f.summary}`}
+                              </div>
                             </div>
-                            <div className="text-[11px] mt-0.5"
-                              style={{
-                                color: isReading
-                                  ? 'rgba(255,255,255,0.35)'
-                                  : isError
-                                  ? '#f87171'
-                                  : '#34d399',
-                              }}>
-                              {isReading
-                                ? 'Reading...'
-                                : isError
-                                ? "We couldn't recognize this file — check it's a KDP, Meta Ads, or Pinterest export"
-                                : `${info!.label} · ${f.summary}`}
-                            </div>
+
+                            {isReady && (
+                              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full flex-shrink-0"
+                                style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399' }}>
+                                Ready ✓
+                              </span>
+                            )}
+                            {isAdTracker && (
+                              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full flex-shrink-0"
+                                style={{ background: 'rgba(56,189,248,0.15)', color: '#38bdf8' }}>
+                                Imported ✓
+                              </span>
+                            )}
+
+                            <button
+                              onClick={() => {
+                                setFiles(prev => prev.filter(x => x.id !== f.id))
+                                rawFiles.current.delete(f.id)
+                              }}
+                              className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center
+                                         text-[14px] transition-all hover:bg-white/10"
+                              style={{ color: 'rgba(255,255,255,0.3)' }}
+                              title="Remove file"
+                            >
+                              ×
+                            </button>
                           </div>
 
-                          {/* Ready badge */}
-                          {isReady && (
-                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full flex-shrink-0"
-                              style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399' }}>
-                              Ready ✓
-                            </span>
+                          {/* "What is it?" panel — shown for unknown files */}
+                          {isUnknown && (
+                            <div className="mx-1 mt-1 mb-1 rounded-b-lg px-4 py-3"
+                              style={{ background: 'rgba(233,160,32,0.06)', border: '1px solid rgba(251,191,36,0.2)', borderTop: 'none' }}>
+                              <div className="text-[11px] font-bold uppercase tracking-[0.8px] mb-2.5"
+                                style={{ color: 'rgba(255,255,255,0.4)' }}>
+                                What is this file?
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {REPROCESS_OPTIONS.map(opt => (
+                                  <button
+                                    key={opt.type}
+                                    onClick={() => reprocessAs(f.id, rawFiles.current.get(f.id) ?? null, opt.type)}
+                                    className="flex flex-col items-start px-3 py-2 rounded-lg text-left transition-all hover:scale-[1.02]"
+                                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  >
+                                    <span className="text-[12px] font-semibold" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                                      {opt.label}
+                                    </span>
+                                    <span className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                                      {opt.hint}
+                                    </span>
+                                  </button>
+                                ))}
+                                <button
+                                  onClick={() => {
+                                    setFiles(prev => prev.filter(x => x.id !== f.id))
+                                    rawFiles.current.delete(f.id)
+                                  }}
+                                  className="flex flex-col items-start px-3 py-2 rounded-lg text-left transition-all hover:scale-[1.02]"
+                                  style={{ background: 'rgba(251,113,133,0.07)', border: '1px solid rgba(251,113,133,0.15)' }}
+                                >
+                                  <span className="text-[12px] font-semibold" style={{ color: '#f87171' }}>
+                                    Skip this file
+                                  </span>
+                                  <span className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                                    Remove from queue
+                                  </span>
+                                </button>
+                              </div>
+                            </div>
                           )}
-
-                          {/* Remove button */}
-                          <button
-                            onClick={() => setFiles(prev => prev.filter(x => x.id !== f.id))}
-                            className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center
-                                       text-[14px] transition-all hover:bg-white/10"
-                            style={{ color: 'rgba(255,255,255,0.3)' }}
-                            title="Remove file"
-                          >
-                            ×
-                          </button>
                         </div>
                       )
                     })}
                   </div>
 
-                  {/* Drop-more hint at bottom of box */}
                   <div className="mt-3 text-center text-[11px]" style={{ color: 'rgba(255,255,255,0.18)' }}>
                     Drop more files here or click "+ Add more"
                   </div>
@@ -321,7 +478,7 @@ export default function UploadPage() {
             </div>
 
             {/* MailerLite auto row */}
-            <div className="flex items-center gap-3 rounded-lg px-4 py-3 mb-6"
+            <div className="flex items-center gap-3 rounded-lg px-4 py-3 mb-4"
               style={{ background: 'rgba(255,255,255,0.05)' }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base"
                 style={{ background: 'rgba(233,160,32,0.15)' }}>⚡</div>
@@ -335,7 +492,31 @@ export default function UploadPage() {
               </div>
             </div>
 
-            {/* CTA — shown only when at least one file is ready */}
+            {/* Collapsible: What files do I need? */}
+            <div className="mb-5">
+              <button
+                onClick={() => setShowFileHelp(s => !s)}
+                className="flex items-center gap-2 text-[12px] font-semibold transition-colors"
+                style={{ color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                <span style={{ transform: showFileHelp ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s' }}>▶</span>
+                What files do I need?
+              </button>
+              {showFileHelp && (
+                <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                  {FILE_HELP.map((item, i) => (
+                    <div key={i} className="flex items-start gap-3 px-4 py-3"
+                      style={{ borderBottom: i < FILE_HELP.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none', background: 'rgba(255,255,255,0.03)' }}>
+                      <div className="text-[13px] font-semibold w-36 flex-shrink-0"
+                        style={{ color: 'rgba(255,255,255,0.7)' }}>{item.label}</div>
+                      <div className="text-[12px]" style={{ color: 'rgba(255,255,255,0.35)' }}>{item.steps}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* CTA */}
             {hasAny && (
               <button
                 className="flex items-center gap-2.5 px-8 py-3.5 rounded-lg text-[15px] font-bold
@@ -374,25 +555,6 @@ export default function UploadPage() {
             </div>
           </div>
         )}
-      </div>
-
-      {/* How to export */}
-      <div className="card p-5">
-        <div className="text-[13px] font-bold text-[#0d1f35] mb-3">Where to find your files</div>
-        <div className="space-y-2 text-[12.5px] text-stone-500 leading-relaxed">
-          <div>
-            <strong className="text-stone-700">📚 KDP:</strong>{' '}
-            kdp.amazon.com → Reports → Month-end Report → Download Excel
-          </div>
-          <div>
-            <strong className="text-stone-700">📣 Meta Ads:</strong>{' '}
-            Ads Manager → select your date range → Export → CSV
-          </div>
-          <div>
-            <strong className="text-stone-700">📌 Pinterest:</strong>{' '}
-            analytics.pinterest.com → Overview → Export → select date range
-          </div>
-        </div>
       </div>
     </div>
   )
