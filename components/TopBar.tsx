@@ -1,5 +1,5 @@
 'use client'
-// components/TopBar.tsx
+// components/TopBar.tsx — three-zone header: greeting | check-in + status + upload
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 
@@ -23,9 +23,16 @@ export function TopBar({ user }: TopBarProps) {
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
   const shortDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
+  // Daily Check-In state
   const [checks, setChecks] = useState<Record<string, boolean>>({})
-  const [open, setOpen] = useState(false)
-  const panelRef = useRef<HTMLDivElement>(null)
+  const [checkOpen, setCheckOpen] = useState(false)
+  const checkRef = useRef<HTMLDivElement>(null)
+
+  // Connection status
+  const [mlConnected, setMlConnected] = useState<boolean | null>(null)
+  const [mlSubs, setMlSubs] = useState(0)
+  const [statusOpen, setStatusOpen] = useState(false)
+  const statusRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const key = `daily-check-${getTodayKey()}`
@@ -33,147 +40,146 @@ export function TopBar({ user }: TopBarProps) {
       const stored = localStorage.getItem(key)
       if (stored) setChecks(JSON.parse(stored))
     } catch {}
+
+    // Check MailerLite connection
+    fetch('/api/mailerlite')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { setMlConnected(true); setMlSubs(d.data?.listSize ?? 0) })
+      .catch(() => setMlConnected(false))
   }, [])
 
-  // Close on outside click
+  // Close popovers on outside click
   useEffect(() => {
-    if (!open) return
     function handleClick(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) setOpen(false)
+      if (checkRef.current && !checkRef.current.contains(e.target as Node)) setCheckOpen(false)
+      if (statusRef.current && !statusRef.current.contains(e.target as Node)) setStatusOpen(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
+  }, [])
 
   function toggle(checkKey: string) {
     setChecks(prev => {
       const next = { ...prev, [checkKey]: !prev[checkKey] }
-      try {
-        localStorage.setItem(`daily-check-${getTodayKey()}`, JSON.stringify(next))
-      } catch {}
+      try { localStorage.setItem(`daily-check-${getTodayKey()}`, JSON.stringify(next)) } catch {}
       return next
     })
   }
 
   const doneCount = DAILY_CHECKS.filter(c => checks[c.key]).length
   const allDone = doneCount === DAILY_CHECKS.length
-  const dotColor = allDone ? '#6EBF8B' : doneCount === 0 ? 'transparent' : '#E9A020'
 
   return (
-    <header
-      className="px-8 flex-shrink-0"
-      style={{ background: '#FFFFFF', borderBottom: '1px solid #EEEBE6' }}
-    >
-      <div className="h-[56px] flex items-center justify-between">
-        <div>
-          <div className="font-serif text-[17px] tracking-tight leading-none" style={{ color: '#1E2D3D' }}>
+    <header className="flex-shrink-0" style={{ background: '#FFFFFF', borderBottom: '1px solid #EEEBE6' }}>
+      <div className="h-[56px] flex items-center px-6">
+
+        {/* Left zone: greeting */}
+        <div className="flex-1">
+          <div className="text-[16px] font-medium leading-none" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Good morning{user.name ? `, ${user.name.split(' ')[0]}` : ''}
           </div>
-          <div className="text-[11px] mt-0.5" style={{ color: '#6B7280' }}>
+          <div className="text-[11px] mt-1" style={{ color: '#6B7280' }}>
             {dateStr}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Daily Check-In — popover trigger */}
-          <div ref={panelRef} className="relative">
+        {/* Right zone: check-in, status, upload */}
+        <div className="flex items-center gap-2">
+
+          {/* Daily Check-In button + popover */}
+          <div ref={checkRef} className="relative">
             <button
-              onClick={() => setOpen(o => !o)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all hover:bg-stone-50"
+              onClick={() => setCheckOpen(o => !o)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all hover:bg-stone-50"
               style={{ background: 'white', border: '0.5px solid #EEEBE6', color: '#1E2D3D', cursor: 'pointer' }}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <rect x="1" y="1" width="10" height="10" rx="2" stroke="#1E2D3D" strokeWidth="1.2" />
                 {doneCount > 0 && <path d="M3.5 6L5.5 8L8.5 4" stroke="#E9A020" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />}
               </svg>
-              Daily Check-In
-              {doneCount > 0 && doneCount < DAILY_CHECKS.length && (
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#E9A020' }} />
-              )}
-              {allDone && (
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#6EBF8B' }} />
+              Check-In
+              {doneCount > 0 && (
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: allDone ? '#6EBF8B' : '#E9A020' }} />
               )}
             </button>
 
-            {/* Popover panel */}
-            {open && (
+            {checkOpen && (
               <div className="absolute right-0 top-full mt-2 z-50 rounded-xl shadow-lg"
-                style={{ width: 280, background: 'white', border: '0.5px solid #EEEBE6', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
+                style={{ width: 260, background: 'white', border: '0.5px solid #EEEBE6', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
                 <div className="px-4 pt-4 pb-2">
-                  <div className="text-[14px] font-medium mb-0.5" style={{ color: '#1E2D3D' }}>
-                    Daily Check-In
-                  </div>
-                  <div className="text-[12px]" style={{ color: '#6B7280' }}>
-                    {shortDate}
-                  </div>
+                  <div className="text-[14px] font-medium mb-0.5" style={{ color: '#1E2D3D' }}>Daily Check-In</div>
+                  <div className="text-[11px]" style={{ color: '#6B7280' }}>{shortDate}</div>
                 </div>
-
                 <div className="px-4 py-2 space-y-1">
                   {DAILY_CHECKS.map(c => {
                     const checked = !!checks[c.key]
                     return (
-                      <button
-                        key={c.key}
-                        onClick={() => toggle(c.key)}
+                      <button key={c.key} onClick={() => toggle(c.key)}
                         className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-left transition-all hover:bg-stone-50"
-                        style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
-                      >
-                        <span
-                          className="w-4.5 h-4.5 rounded flex items-center justify-center flex-shrink-0 transition-all"
-                          style={{
-                            width: 18, height: 18,
-                            background: checked ? '#E9A020' : 'transparent',
-                            border: checked ? '2px solid #E9A020' : '2px solid #D1D5DB',
-                            borderRadius: 4,
-                          }}
-                        >
-                          {checked && (
-                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                              <path d="M2 5L4 7L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          )}
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                        <span style={{ width: 16, height: 16, background: checked ? '#E9A020' : 'transparent', border: checked ? '2px solid #E9A020' : '2px solid #D1D5DB', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {checked && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5L4 7L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                         </span>
-                        <span className="text-[13px]" style={{
-                          color: checked ? '#6B7280' : '#1E2D3D',
-                          textDecoration: checked ? 'line-through' : 'none',
-                        }}>
-                          {c.label}
-                        </span>
+                        <span className="text-[13px]" style={{ color: checked ? '#6B7280' : '#1E2D3D', textDecoration: checked ? 'line-through' : 'none' }}>{c.label}</span>
                       </button>
                     )
                   })}
                 </div>
-
-                {/* Progress */}
-                <div className="px-4 pb-4 pt-2">
-                  <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: '#EEEBE6' }}>
-                    <div className="h-full rounded-full transition-all duration-300"
-                      style={{ width: `${(doneCount / DAILY_CHECKS.length) * 100}%`, background: allDone ? '#6EBF8B' : '#E9A020' }} />
+                <div className="px-4 pb-3 pt-2">
+                  <div className="h-1.5 rounded-full overflow-hidden mb-1.5" style={{ background: '#EEEBE6' }}>
+                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${(doneCount / DAILY_CHECKS.length) * 100}%`, background: allDone ? '#6EBF8B' : '#E9A020' }} />
                   </div>
-                  {allDone ? (
-                    <div className="text-[12px] font-medium text-center" style={{ color: '#6EBF8B' }}>
-                      All done for today! 🎉
-                    </div>
-                  ) : (
-                    <div className="text-[12px] text-center" style={{ color: '#6B7280' }}>
-                      {doneCount} of {DAILY_CHECKS.length} complete
-                    </div>
-                  )}
+                  <div className="text-[11px] text-center" style={{ color: allDone ? '#6EBF8B' : '#6B7280' }}>
+                    {allDone ? 'All done for today! 🎉' : `${doneCount} of ${DAILY_CHECKS.length} complete`}
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full"
-            style={{ background: 'rgba(52,211,153,0.1)', color: '#0f6b46' }}>
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            Connected
+          {/* Connection status */}
+          <div ref={statusRef} className="relative">
+            <button
+              onClick={() => setStatusOpen(o => !o)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all hover:bg-stone-50"
+              style={{ background: 'white', border: '0.5px solid #EEEBE6', color: '#1E2D3D', cursor: 'pointer' }}
+            >
+              <span className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ background: mlConnected === null ? '#D1D5DB' : mlConnected ? '#34d399' : '#E9A020' }} />
+              {mlConnected ? 'MailerLite' : mlConnected === false ? 'Check API' : '...'}
+            </button>
+
+            {statusOpen && (
+              <div className="absolute right-0 top-full mt-2 z-50 rounded-xl shadow-lg"
+                style={{ width: 240, background: 'white', border: '0.5px solid #EEEBE6', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
+                <div className="p-4">
+                  <div className="text-[13px] font-medium mb-3" style={{ color: '#1E2D3D' }}>Connections</div>
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: mlConnected ? '#34d399' : '#E9A020' }} />
+                    <div>
+                      <div className="text-[12px] font-medium" style={{ color: '#1E2D3D' }}>
+                        {mlConnected ? 'MailerLite connected' : 'MailerLite — check API key'}
+                      </div>
+                      {mlConnected && mlSubs > 0 && (
+                        <div className="text-[11px]" style={{ color: '#6B7280' }}>{mlSubs.toLocaleString()} subscribers</div>
+                      )}
+                      {!mlConnected && (
+                        <Link href="/dashboard/settings" className="text-[11px] font-semibold no-underline hover:underline" style={{ color: '#E9A020' }}>
+                          Fix in Settings →
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <Link
-            href="/dashboard/upload"
-            className="px-4 py-1.5 rounded-lg text-[12.5px] font-semibold no-underline transition-all"
-            style={{ background: '#e9a020', color: '#0d1f35' }}
-          >
+
+          {/* Upload button */}
+          <Link href="/dashboard/upload"
+            className="px-3 py-1.5 rounded-lg text-[12px] font-semibold no-underline transition-all hover:opacity-90"
+            style={{ background: '#E9A020', color: '#0d1f35' }}>
             Upload Files
           </Link>
         </div>
