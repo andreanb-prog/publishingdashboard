@@ -153,6 +153,20 @@ export interface ChannelScore {
   badge: string
 }
 
+export interface ExecutiveSummary {
+  headlineStat: string
+  whatsWorking: string[]
+  whereToStrengthen: string[]
+  topActions: { label: string; href: string }[]
+}
+
+export interface CrossChannelPlan {
+  scale: string[]
+  fix: string[]
+  cut: string[]
+  test: string[]
+}
+
 export interface Analysis {
   id?: string
   month: string
@@ -164,5 +178,7 @@ export interface Analysis {
   insights: CoachingInsight[]
   channelScores: ChannelScore[]
   actionPlan: CoachingInsight[]
+  executiveSummary?: ExecutiveSummary
+  crossChannelPlan?: CrossChannelPlan
   generatedAt: string
 }

@@ -83,6 +83,22 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
     "email": "2-3 sentence email coaching paragraph",
     "pinterest": "2-3 sentence Pinterest coaching paragraph",
     "swaps": "2-3 sentence swaps coaching paragraph"
+  },
+  "executiveSummary": {
+    "headlineStat": "bold summary like '49 books sold · $70 royalties · your best month yet'",
+    "whatsWorking": ["up to 4 bullet points of what's going well, bold the key term"],
+    "whereToStrengthen": ["up to 4 bullet points of areas to improve, bold the key term"],
+    "topActions": [
+      {"label": "short action label", "href": "/dashboard/kdp"},
+      {"label": "short action label", "href": "/dashboard/meta"},
+      {"label": "short action label", "href": "/dashboard/upload"}
+    ]
+  },
+  "crossChannelPlan": {
+    "scale": ["things working well to double down on — bold key terms"],
+    "fix": ["things that need attention or repair — bold key terms"],
+    "cut": ["things to stop doing or reduce — bold key terms"],
+    "test": ["new experiments to try next month — bold key terms"]
   }
 }`,
         },
@@ -124,6 +140,8 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       insights:      coachingData.actionPlan  || [],
       channelScores: coachingData.channelScores || [],
       actionPlan:    coachingData.actionPlan  || [],
+      executiveSummary: coachingData.executiveSummary || undefined,
+      crossChannelPlan: coachingData.crossChannelPlan || undefined,
       // Channel-specific coach paragraphs — used by deep-dive pages
       kdpCoach:      coachingData.insights?.kdp       || '',
       metaCoach:     coachingData.insights?.meta      || '',

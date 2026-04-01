@@ -1,12 +1,12 @@
 // app/layout.tsx
 import type { Metadata } from 'next'
-import { DM_Sans, Fraunces, JetBrains_Mono } from 'next/font/google'
+import { Plus_Jakarta_Sans, Fraunces, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 
-const dmSans = DM_Sans({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--font-dm-sans',
+  variable: '--font-plus-jakarta',
 })
 
 const fraunces = Fraunces({
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${fraunces.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${plusJakarta.variable} ${fraunces.variable} ${jetbrainsMono.variable}`}>
       <body className="font-sans bg-cream text-[#0d1f35] antialiased">
         <Providers>{children}</Providers>
       </body>

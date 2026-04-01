@@ -2,7 +2,7 @@
 // app/dashboard/OverviewClient.tsx
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
-import type { Analysis, RankLog, RoasLog, ChannelScore, CoachingInsight } from '@/types'
+import type { Analysis, RankLog, RoasLog, ChannelScore, CoachingInsight, ExecutiveSummary, CrossChannelPlan } from '@/types'
 import { getCoachTitle } from '@/lib/coachTitle'
 
 // coach title is set per-mount so it changes on every page load
@@ -454,6 +454,68 @@ export function OverviewClient() {
         </div>
       </div>
 
+      {/* ── Executive Summary (#33) ────────────────────────────────── */}
+      {analysis?.executiveSummary && (
+        <div className="card mb-6 overflow-hidden">
+          {/* Headline stat */}
+          <div className="px-6 py-5" style={{ background: '#FFF8F0', borderBottom: '1px solid #EEEBE6' }}>
+            <div className="font-sans text-[24px] font-bold tracking-tight" style={{ color: '#1E2D3D' }}>
+              {analysis.executiveSummary.headlineStat}
+            </div>
+          </div>
+
+          {/* Two columns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:divide-x divide-[#EEEBE6]">
+            {/* What's working */}
+            <div className="px-6 py-5">
+              <div className="text-[10px] font-bold tracking-[2px] uppercase mb-3" style={{ color: '#6EBF8B' }}>
+                What&apos;s working
+              </div>
+              <ul className="space-y-2 list-none p-0 m-0">
+                {analysis.executiveSummary.whatsWorking.map((item: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: '#374151' }}>
+                    <span className="mt-1 flex-shrink-0" style={{ color: '#6EBF8B' }}>▲</span>
+                    <span dangerouslySetInnerHTML={{ __html: item.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Where to strengthen */}
+            <div className="px-6 py-5 border-t md:border-t-0 border-[#EEEBE6]">
+              <div className="text-[10px] font-bold tracking-[2px] uppercase mb-3" style={{ color: '#E9A020' }}>
+                Where you can strengthen
+              </div>
+              <ul className="space-y-2 list-none p-0 m-0">
+                {analysis.executiveSummary.whereToStrengthen.map((item: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: '#374151' }}>
+                    <span className="mt-1 flex-shrink-0" style={{ color: '#E9A020' }}>◆</span>
+                    <span dangerouslySetInnerHTML={{ __html: item.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Action pills */}
+          {analysis.executiveSummary.topActions?.length > 0 && (
+            <div className="px-6 py-4 flex flex-wrap gap-2" style={{ borderTop: '1px solid #EEEBE6' }}>
+              {analysis.executiveSummary.topActions.map((action: { label: string; href: string }, i: number) => (
+                <Link key={i} href={action.href}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-[12px] font-bold no-underline transition-all hover:opacity-90"
+                  style={{ background: '#FFF8F0', border: '1px solid #EEEBE6', color: '#1E2D3D' }}>
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
+                    style={{ background: '#E9A020', color: '#0d1f35' }}>
+                    {i + 1}
+                  </span>
+                  {action.label}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <SortablePage
         page="overview"
         theme="light"
@@ -560,6 +622,48 @@ export function OverviewClient() {
           },
         ]}
       />
+
+      {/* ── Cross-Channel Action Plan (#30) ──────────────────────────── */}
+      <div className="mb-7">
+        <div className="flex items-baseline justify-between mb-4">
+          <h2 className="font-serif text-[18px] text-[#0d1f35]">Cross-Channel Action Plan</h2>
+          <span className="text-[12px] text-stone-400">AI-generated from your data</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { key: 'scale', label: 'SCALE',     icon: '▲', color: '#6EBF8B', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.scale },
+            { key: 'fix',   label: 'FIX',       icon: '⚠', color: '#E9A020', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.fix },
+            { key: 'cut',   label: 'CUT',       icon: '✕', color: '#F97B6B', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.cut },
+            { key: 'test',  label: 'TEST NEXT', icon: '◆', color: '#60A5FA', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.test },
+          ].map(col => (
+            <div key={col.key} className="rounded-xl overflow-hidden"
+              style={{ background: '#FFF8F0', border: '1px solid #EEEBE6', borderTop: `3px solid ${col.color}` }}>
+              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #EEEBE6' }}>
+                <span className="text-[14px]" style={{ color: col.color }}>{col.icon}</span>
+                <span className="text-[10px] font-bold tracking-[1.5px] uppercase" style={{ color: col.color }}>
+                  {col.label}
+                </span>
+              </div>
+              <div className="px-4 py-3">
+                {col.items?.length ? (
+                  <ul className="space-y-2 list-none p-0 m-0">
+                    {col.items.map((item: string, i: number) => (
+                      <li key={i} className="text-[12.5px] leading-relaxed" style={{ color: '#374151' }}>
+                        <span className="mr-1.5" style={{ color: col.color }}>•</span>
+                        <span dangerouslySetInnerHTML={{ __html: item.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-[12px] leading-relaxed" style={{ color: '#9CA3AF' }}>
+                    Upload your files to unlock this insight
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* History table — only shown when we have 2+ months */}
       {analyses.length >= 2 && (
