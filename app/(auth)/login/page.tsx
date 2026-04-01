@@ -40,8 +40,8 @@ export default function LoginPage() {
       <div className="hidden md:flex md:w-1/2 flex-col justify-center px-16"
         style={{ background: '#FFF8F0' }}>
         <div className="max-w-md">
-          <div className="font-serif text-[42px] leading-tight mb-4" style={{ color: '#1E2D3D' }}>
-            Author<span style={{ color: '#e9a020' }}>Dash</span>
+          <div className="text-[42px] leading-tight mb-4" style={{ color: '#4A7290', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 }}>
+            Author<span style={{ color: '#E9A020' }}>Dash</span>
           </div>
           <p className="text-[17px] leading-relaxed mb-6" style={{ color: '#374151' }}>
             Your marketing data, your coaching insights, your decisions.
@@ -78,8 +78,8 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Mobile-only logo */}
           <div className="md:hidden text-center mb-8">
-            <div className="font-serif text-[28px]" style={{ color: '#1E2D3D' }}>
-              Author<span style={{ color: '#e9a020' }}>Dash</span>
+            <div className="text-[28px]" style={{ color: '#4A7290', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 }}>
+              Author<span style={{ color: '#E9A020' }}>Dash</span>
             </div>
             <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
               Your indie author marketing coach

@@ -63,9 +63,9 @@ export function MobileNav() {
         >
           <List size={24} />
         </button>
-        <div className="font-serif text-[15px]">
-          <span style={{ color: '#1E2D3D' }}>Author</span>
-          <span style={{ color: '#e9a020' }}>Dash</span>
+        <div className="text-[15px]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <span style={{ color: '#4A7290', fontWeight: 700 }}>Author</span>
+          <span style={{ color: '#E9A020', fontWeight: 700 }}>Dash</span>
         </div>
         <Link
           href="/dashboard/upload"
@@ -93,9 +93,9 @@ export function MobileNav() {
             {/* Drawer header */}
             <div className="flex items-center justify-between px-5 py-4"
               style={{ borderBottom: '1px solid #EEEBE6' }}>
-              <div className="font-serif text-[16px]">
-                <span style={{ color: '#1E2D3D' }}>Author</span>
-                <span style={{ color: '#e9a020' }}>Dash</span>
+              <div className="text-[16px]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                <span style={{ color: '#4A7290', fontWeight: 700 }}>Author</span>
+                <span style={{ color: '#E9A020', fontWeight: 700 }}>Dash</span>
               </div>
               <button
                 onClick={() => setOpen(false)}

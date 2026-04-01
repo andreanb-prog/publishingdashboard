@@ -30,8 +30,11 @@ export const metadata: Metadata = {
     title: 'AuthorDash',
   },
   icons: {
-    icon: '/favicon.svg',
-    apple: '/apple-touch-icon.svg',
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', type: 'image/x-icon' },
+    ],
+    apple: '/favicon.svg',
   },
   themeColor: '#1E2D3D',
 }

@@ -88,8 +88,8 @@ export function Sidebar() {
       <Link href="/dashboard" className="block px-5 py-6 no-underline hover:opacity-80 transition-opacity"
         style={{ borderBottom: '1px solid #EEEBE6' }}>
         <div>
-          <span style={{ color: '#1E2D3D', fontWeight: 600, fontSize: '18px' }}>Author</span>
-          <span style={{ color: '#E9A020', fontWeight: 600, fontSize: '18px' }}>Dash</span>
+          <span style={{ color: '#4A7290', fontWeight: 700, fontSize: '18px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Author</span>
+          <span style={{ color: '#E9A020', fontWeight: 700, fontSize: '18px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Dash</span>
         </div>
         <span className="inline-block mt-1 text-[10px] font-semibold tracking-[0.05em]"
           style={{ background: '#FFF4E0', color: '#E9A020', padding: '2px 8px', borderRadius: 20 }}>
