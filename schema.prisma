@@ -1,0 +1,114 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String?
+  email         String?        @unique
+  emailVerified DateTime?
+  image         String?
+  apiKey        String?        // Claude API key (encrypted)
+  mailerLiteKey String?        // MailerLite API key
+  accounts      Account[]
+  sessions      Session[]
+  rankLogs      RankLog[]
+  roasLogs      RoasLog[]
+  pinterestLogs PinterestLog[]
+  analyses      Analysis[]
+  createdAt     DateTime       @default(now())
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model RankLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      String   // 'MOLR' | 'FDMBP' | custom ASIN
+  asin      String
+  rank      Int
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([userId, book])
+}
+
+model RoasLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime @default(now())
+  spend     Float
+  earnings  Float
+  roas      Float
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PinterestLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekEnding  DateTime
+  impressions Int      @default(0)
+  saves       Int      @default(0)
+  clicks      Int      @default(0)
+  pinCount    Int      @default(0)
+  saveRate    Float    @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Analysis {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  month     String   // e.g. "2026-03"
+  data      Json     // Full parsed + analyzed data
+  createdAt DateTime @default(now())
+
+  @@index([userId, month])
+}
