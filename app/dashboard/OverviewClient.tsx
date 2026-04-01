@@ -246,54 +246,64 @@ export function OverviewClient() {
       <OnboardingBanner analysesCount={analyses.length} />
 
       {/* Banner */}
-      <div className="rounded-xl p-6 mb-6 flex items-center justify-between"
-        style={{ background: '#0d1f35' }}>
-        <div>
-          <div className="text-[10px] font-bold tracking-[2px] uppercase mb-2" style={{ color: '#e9a020' }}>
-            {monthLabel}
+      <div className="rounded-xl mb-6 overflow-hidden" style={{ background: '#0d1f35' }}>
+        {/* KPI hero row */}
+        {analysis?.kdp && (
+          <div className="grid grid-cols-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            {[
+              { label: 'Units Sold',  value: fmt(analysis.kdp.totalUnits),              color: '#e9a020' },
+              { label: 'KENP Reads',  value: fmt(analysis.kdp.totalKENP),               color: '#38bdf8' },
+              { label: 'Royalties',   value: `$${analysis.kdp.totalRoyaltiesUSD}`,      color: '#34d399' },
+            ].map((stat, i) => (
+              <div key={stat.label} className="px-7 py-5 text-center"
+                style={{ borderRight: i < 2 ? '1px solid rgba(255,255,255,0.07)' : undefined }}>
+                <div className="font-serif text-[38px] font-medium leading-none tracking-tight mb-1.5"
+                  style={{ color: stat.color }}>
+                  {stat.value}
+                </div>
+                <div className="text-[10px] font-bold tracking-[1.5px] uppercase"
+                  style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  {stat.label}
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="font-serif text-[22px] text-white leading-snug mb-1">
-            {analysis?.overallVerdict || 'Your books are growing. One ad is your winner. Build on it.'}
+        )}
+        {/* Verdict + meta row */}
+        <div className="px-6 py-4 flex items-center justify-between">
+          <div>
+            <div className="text-[10px] font-bold tracking-[2px] uppercase mb-1.5" style={{ color: '#e9a020' }}>
+              {monthLabel}
+            </div>
+            <div className="font-serif text-[16px] text-white leading-snug">
+              {analysis?.overallVerdict || 'Upload your files to get your first analysis.'}
+            </div>
           </div>
-          <div className="text-[12.5px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            {analysis
-              ? `Analyzed ${new Date(analysis.generatedAt).toLocaleDateString()}`
-              : 'Upload your files to get started'}
-            {' · '}
-            <Link href="/dashboard/upload" className="text-amber-brand no-underline hover:underline">
+          <div className="text-right flex-shrink-0 ml-6">
+            <div className="text-[11.5px] mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              {analysis
+                ? `Analyzed ${new Date(analysis.generatedAt).toLocaleDateString()}`
+                : 'No analysis yet'}
+            </div>
+            <Link href="/dashboard/upload" className="text-[11px] font-semibold no-underline hover:underline"
+              style={{ color: '#e9a020' }}>
               Upload new files →
             </Link>
           </div>
         </div>
-        <div className="flex gap-2.5 items-center">
-          {analysis?.kdp ? (
-            <>
-              {[
-                { label: 'Units Sold', value: fmt(analysis.kdp.totalUnits) },
-                { label: 'KENP Reads', value: fmt(analysis.kdp.totalKENP) },
-                { label: 'Royalties',  value: `$${analysis.kdp.totalRoyaltiesUSD}` },
-              ].map(stat => (
-                <div key={stat.label} className="px-4 py-3 text-center rounded-lg"
-                  style={{ background: 'rgba(255,255,255,0.06)' }}>
-                  <div className="font-serif text-[22px] text-white tracking-tight">{stat.value}</div>
-                  <div className="text-[9.5px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{stat.label}</div>
-                </div>
-              ))}
-            </>
-          ) : analysis ? (
-            <div className="px-4 py-3 text-center rounded-lg"
-              style={{ background: 'rgba(255,255,255,0.06)' }}>
-              <div className="text-[11.5px] mb-1.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                No KDP data in this analysis
-              </div>
-              <Link href="/dashboard/upload"
-                className="text-[11px] font-semibold no-underline hover:underline"
+        {/* No-KDP fallback inside banner */}
+        {!analysis?.kdp && analysis && (
+          <div className="px-6 pb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11.5px]"
+              style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}>
+              No KDP data in this analysis ·{' '}
+              <Link href="/dashboard/upload" className="font-semibold no-underline hover:underline"
                 style={{ color: '#e9a020' }}>
                 Upload KDP report →
               </Link>
             </div>
-          ) : null}
-        </div>
+          </div>
+        )}
       </div>
 
       <SortablePage
