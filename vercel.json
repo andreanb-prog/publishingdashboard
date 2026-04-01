@@ -7,6 +7,10 @@
     {
       "path": "/api/reports/weekly",
       "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/health/digest",
+      "schedule": "0 17 * * *"
     }
   ]
 }

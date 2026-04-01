@@ -457,13 +457,19 @@ export function OverviewClient() {
                 : item.channel === 'email' ? '/dashboard/mailerlite'
                 : item.channel === 'pinterest' ? '/dashboard/pinterest'
                 : '/dashboard/upload'
+              const priorityColors = [
+                { border: '#F97B6B', bg: '#FFF5F4', badge: 'rgba(249,123,107,0.12)', badgeText: '#F97B6B' },
+                { border: '#E9A020', bg: '#FFFBF0', badge: 'rgba(233,160,32,0.12)', badgeText: '#E9A020' },
+                { border: '#60A5FA', bg: '#F0F7FF', badge: 'rgba(96,165,250,0.12)', badgeText: '#60A5FA' },
+              ]
+              const pc = priorityColors[i] ?? priorityColors[2]
               return (
                 <div key={i} className="rounded-xl px-5 py-4"
-                  style={{ background: '#FFF8F0', border: '1px solid #EEEBE6', borderLeft: '3px solid #E9A020' }}>
+                  style={{ background: pc.bg, border: '1px solid #EEEBE6', borderLeft: `3px solid ${pc.border}` }}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <span className="text-[9px] font-bold tracking-[1.5px] uppercase px-2 py-0.5 rounded mr-2"
-                        style={{ background: 'rgba(30,45,61,0.08)', color: '#1E2D3D' }}>
+                        style={{ background: pc.badge, color: pc.badgeText }}>
                         Priority {i + 1}
                       </span>
                       <div className="font-sans text-[14px] font-bold uppercase tracking-wide mt-2 mb-1.5" style={{ color: '#1E2D3D' }}>
@@ -473,14 +479,14 @@ export function OverviewClient() {
                         {item.body}
                         {item.action && (
                           <span className="ml-1">
-                            <strong style={{ color: '#E9A020' }}>Impact:</strong> {item.action}
+                            <strong style={{ color: pc.border }}>Impact:</strong> {item.action}
                           </span>
                         )}
                       </div>
                     </div>
                     <Link href={href}
                       className="flex-shrink-0 px-4 py-2 rounded-lg text-[11px] font-bold no-underline whitespace-nowrap transition-all hover:opacity-90"
-                      style={{ background: '#E9A020', color: '#0d1f35' }}>
+                      style={{ background: pc.border, color: 'white' }}>
                       Action →
                     </Link>
                   </div>
