@@ -66,6 +66,7 @@ model User {
   promoCodes    UserPromoCode[]
   accounts      Account[]
   sessions      Session[]
+  bookCatalog   Book[]
   rankLogs          RankLog[]
   roasLogs          RoasLog[]
   pinterestLogs     PinterestLog[]
@@ -73,6 +74,23 @@ model User {
   feedback          Feedback[]
   listBuildingLogs  ListBuildingLog[]
   createdAt     DateTime       @default(now())
+}
+
+model Book {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  asin         String?
+  seriesName   String?
+  seriesOrder  Int?
+  isLeadMagnet Boolean   @default(false)
+  coverUrl     String?   @db.Text
+  pubDate      DateTime?
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model VerificationToken {
