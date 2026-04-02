@@ -246,25 +246,41 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const month = searchParams.get('month')
 
-  // findFirst for the single latest record — used by Overview banner and KDP/Meta deep dives
-  const record = await db.analysis.findFirst({
-    where: { userId: session.user.id, ...(month ? { month } : {}) },
-    orderBy: { createdAt: 'desc' },
-  })
-  const analysis = (record?.data ?? null) as any
-
-  // findMany for historical data — used by charts and history tables
-  const analyses = await db.analysis.findMany({
+  // Fetch recent records — enough to backfill any missing channel data per-channel
+  const recentRecords = await db.analysis.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: 'desc' },
-    take: 6,
+    take: 12,
   })
 
-  console.log('[GET] records:', analyses.length, '| latest record id:', record?.id ?? 'NONE')
+  // First 6 for history charts/tables
+  const analyses = recentRecords.slice(0, 6)
+
+  // Latest record for the main analysis blob (optionally filtered by month)
+  const record = month
+    ? (recentRecords.find(r => r.month === month) ?? null)
+    : (recentRecords[0] ?? null)
+  let analysis = (record?.data ?? null) as any
+
+  // Backfill KDP from the most recent analysis that has it — this ensures the dashboard
+  // shows KDP data even if the user's latest analysis was run with only Meta/Pinterest files
+  let kdpLastUploadedAt: string | null = null
+  const kdpRecord = recentRecords.find(r => (r.data as any)?.kdp)
+  if (kdpRecord) {
+    kdpLastUploadedAt = kdpRecord.createdAt.toISOString()
+    if (!analysis?.kdp) {
+      analysis = analysis
+        ? { ...analysis, kdp: (kdpRecord.data as any).kdp }
+        : (kdpRecord.data as any)
+    }
+  }
+
+  console.log('[GET] records:', recentRecords.length, '| latest record id:', record?.id ?? 'NONE')
   console.log('[GET] kdp:', analysis?.kdp ? `units=${analysis.kdp.totalUnits}` : 'MISSING')
   console.log('[GET] meta:', analysis?.meta ? `spend=${analysis.meta.totalSpend}` : 'MISSING')
   console.log('[GET] mailerLite:', analysis?.mailerLite ? `list=${analysis.mailerLite.listSize}` : 'MISSING')
   console.log('[GET] pinterest:', analysis?.pinterest ? `impressions=${analysis.pinterest.totalImpressions}` : 'MISSING')
+  console.log('[GET] kdpLastUploadedAt:', kdpLastUploadedAt)
 
-  return NextResponse.json({ analyses, analysis: analysis || null })
+  return NextResponse.json({ analyses, analysis: analysis || null, kdpLastUploadedAt })
 }

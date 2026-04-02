@@ -332,6 +332,7 @@ export function OverviewClient() {
   const [rankLogs,  setRankLogs]  = useState<RankLog[]>([])
   const [roasLogs,  setRoasLogs]  = useState<RoasLog[]>([])
   const [loading,   setLoading]   = useState(true)
+  const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(null)
   const [copied,      setCopied]      = useState(false)
   const [copying,     setCopying]     = useState(false)
   const [coachTitle]  = useState(() => getCoachTitle())
@@ -349,6 +350,7 @@ export function OverviewClient() {
       console.log('[Overview] analysis keys:', analysis ? Object.keys(analysis) : 'null')
       console.log('[Overview] kdp:', analysis?.kdp ? `units=${analysis.kdp.totalUnits} kenp=${analysis.kdp.totalKENP} royalties=${analysis.kdp.totalRoyaltiesUSD}` : 'MISSING')
       setAnalysis(analysis)
+      setKdpLastUploadedAt(analyzeData.kdpLastUploadedAt ?? null)
 
       // Keep analyses array for history table — each item's .data field has the blob
       const rows: Analysis[] = (analyzeData.analyses ?? [])
@@ -385,6 +387,10 @@ export function OverviewClient() {
   // First-time user: show guided onboarding instead of empty dashboard
   const isFirstVisit = !loading && analyses.length === 0 && !analysis && !onboardingSkipped
 
+  // KDP data freshness — show amber warning if last KDP upload was more than 35 days ago
+  const isKdpStale = !!kdpLastUploadedAt &&
+    (Date.now() - new Date(kdpLastUploadedAt).getTime()) > 35 * 24 * 60 * 60 * 1000
+
   if (loading) {
     return (
       <div className="p-4 md:p-8 max-w-[1400px]">
@@ -412,6 +418,19 @@ export function OverviewClient() {
 
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <OnboardingBanner analysesCount={analyses.length} />
+
+      {isKdpStale && (
+        <div className="mb-4 rounded-xl px-5 py-3.5 flex items-center gap-3"
+          style={{ background: 'rgba(233,160,32,0.1)', border: '1px solid rgba(233,160,32,0.3)' }}>
+          <span className="text-[16px]">⚠️</span>
+          <span className="text-[13px] font-semibold" style={{ color: '#D97706' }}>
+            Data may be outdated —{' '}
+            <Link href="/dashboard/upload" className="underline hover:no-underline" style={{ color: '#E9A020' }}>
+              upload your latest KDP report
+            </Link>
+          </span>
+        </div>
+      )}
 
       {/* What Happened card */}
       {analyses.length >= 2 && <WhatHappenedCard current={analyses[0]} previous={analyses[1]} actionPlan={analysis?.actionPlan} />}
@@ -544,13 +563,14 @@ export function OverviewClient() {
         <div className="mb-7">
           <div className="grid grid-cols-2 md:grid-cols-4 md:divide-x divide-[#EEEBE6]">
             {(() => {
+              const kdp = analysis.kdp
               const meta = analysis.meta
               const ml = analysis.mailerLite
               const tiles = [
-                { stat: meta?.avgCTR ? `${meta.avgCTR}%` : '—', label: 'META ADS', sub: meta?.avgCTR && meta.avgCTR >= 2 ? 'Exceptional performance (top 10%)' : meta?.avgCTR ? 'Room to improve' : 'No data yet' },
+                { stat: kdp?.totalRoyaltiesUSD != null ? `$${kdp.totalRoyaltiesUSD}` : '—', label: 'KDP ROYALTIES', sub: kdp?.totalUnits ? `${kdp.totalUnits} units sold` : 'No data yet' },
+                { stat: meta?.avgCTR ? `${meta.avgCTR}%` : '—', label: 'META ADS CTR', sub: meta?.avgCTR && meta.avgCTR >= 2 ? 'Exceptional performance (top 10%)' : meta?.avgCTR ? 'Room to improve' : 'No data yet' },
                 { stat: ml?.openRate ? `${ml.openRate}%` : '—', label: 'EMAIL OPEN RATE', sub: ml?.openRate && ml.openRate >= 25 ? 'Well above 20–25% author average' : ml?.openRate ? 'Near author average' : 'No data yet' },
                 { stat: ml?.clickRate ? `${ml.clickRate}%` : '—', label: 'EMAIL CLICK RATE', sub: ml?.clickRate && ml.clickRate >= 4 ? 'Strong reader engagement' : ml?.clickRate ? 'Room to grow' : 'No data yet' },
-                { stat: meta?.bestAd?.ctr ? `${meta.bestAd.ctr}%` : '—', label: 'TOP AD PERFORMER', sub: meta?.bestAd?.name ? meta.bestAd.name.slice(0, 40) : 'No data yet' },
               ]
               return tiles.map((t, i) => (
                 <div key={i} className="px-4 py-1 first:pl-0 last:pr-0">

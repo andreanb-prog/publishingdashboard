@@ -22,7 +22,7 @@ function detectCSVType(text: string): 'meta' | 'pinterest' | 'unknown' {
   return 'unknown'
 }
 
-function detectExcelType(buffer: Buffer): 'kdp' | 'unknown' {
+function detectExcelType(buffer: Buffer): 'kdp' | 'meta' | 'unknown' {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const XLSX = require('xlsx')
@@ -30,6 +30,8 @@ function detectExcelType(buffer: Buffer): 'kdp' | 'unknown' {
     for (const sheetName of wb.SheetNames) {
       const csv: string = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName], { blankrows: false })
       if (csv.includes('KENP') || csv.includes('Royalty Date')) return 'kdp'
+      const metaSignals = ['Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'Campaign name', 'Ad set name']
+      if (metaSignals.filter(s => csv.includes(s)).length >= 2) return 'meta'
     }
   } catch { /* fall through */ }
   return 'unknown'
@@ -49,13 +51,28 @@ export async function POST(req: NextRequest) {
 
     if (isExcel) {
       const buffer = Buffer.from(await file.arrayBuffer())
-      if (detectExcelType(buffer) === 'kdp') {
+      const excelType = detectExcelType(buffer)
+
+      if (excelType === 'kdp') {
         const data = parseKDPFile(buffer)
         return NextResponse.json({
           success: true, type: 'kdp', data,
           summary: `${data.totalUnits} units · ${data.totalKENP?.toLocaleString()} KENP · $${data.totalRoyaltiesUSD} royalties`,
         })
       }
+
+      if (excelType === 'meta') {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const XLSX = require('xlsx')
+        const wb = XLSX.read(buffer, { type: 'buffer' })
+        const csvText: string = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]], { blankrows: false })
+        const data = parseMetaFile(csvText)
+        return NextResponse.json({
+          success: true, type: 'meta', data,
+          summary: `${data.ads.length} ads · $${data.totalSpend} spend · ${data.totalClicks} clicks`,
+        })
+      }
+
       return NextResponse.json({ success: true, type: 'unknown', data: null })
     }
 

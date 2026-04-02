@@ -29,8 +29,18 @@ export async function POST(req: NextRequest) {
     }
 
     if (type === 'meta') {
-      const text = await file.text()
-      const data = parseMetaFile(text)
+      const name = file.name.toLowerCase()
+      let csvText: string
+      if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+        const buffer = Buffer.from(await file.arrayBuffer())
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const XLSX = require('xlsx')
+        const wb = XLSX.read(buffer, { type: 'buffer' })
+        csvText = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]], { blankrows: false })
+      } else {
+        csvText = await file.text()
+      }
+      const data = parseMetaFile(csvText)
       return NextResponse.json({
         success: true, type: 'meta', data,
         summary: `${data.ads.length} ads · $${data.totalSpend} spend · ${data.totalClicks} clicks`,
