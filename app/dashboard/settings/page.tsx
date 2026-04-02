@@ -168,28 +168,37 @@ export default function SettingsPage() {
     }
   }, [])
 
-  // Listen for Meta OAuth popup completing
-  useEffect(() => {
-    async function handleMessage(event: MessageEvent) {
-      if (event.origin !== window.location.origin) return
-      if (event.data?.type !== 'META_CONNECTED') return
-      // Trigger immediate sync so ad data starts populating
-      setMetaSyncing(true)
-      try {
-        await fetch('/api/meta/sync', { method: 'POST' })
-      } catch {}
-      await loadSettings()
-      setMetaSyncing(false)
-      setMetaSuccess(true)
-      setTimeout(() => setMetaSuccess(false), 4000)
-    }
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   // ── Meta Ads handlers ─────────────────────────────────────────────────────
+  async function onMetaPopupClosed() {
+    // Re-fetch settings from DB to see if token was saved
+    setMetaSyncing(true)
+    try {
+      const d = await fetch('/api/settings').then(r => r.json())
+      if (d.metaConnected) {
+        setMetaConnected(true)
+        setMetaLastSync(d.metaLastSync ?? null)
+        // Kick off an immediate sync so ad data starts populating
+        try { await fetch('/api/meta/sync', { method: 'POST' }) } catch {}
+        // Refresh once more to pick up the new metaLastSync timestamp
+        const d2 = await fetch('/api/settings').then(r => r.json()).catch(() => d)
+        setMetaLastSync(d2.metaLastSync ?? null)
+        setMetaSuccess(true)
+        setTimeout(() => setMetaSuccess(false), 4000)
+      }
+    } catch {}
+    setMetaSyncing(false)
+  }
+
   function connectMeta() {
-    window.open('/api/meta/connect', 'meta_oauth', 'width=600,height=700,left=200,top=100')
+    const popup = window.open('/api/meta/connect', 'meta_oauth', 'width=600,height=700,left=200,top=100')
+    if (!popup) return
+    // Poll every 500ms — when popup closes, check DB for new token
+    const check = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(check)
+        onMetaPopupClosed()
+      }
+    }, 500)
   }
 
   async function handleMetaSync() {
