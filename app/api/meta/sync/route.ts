@@ -7,8 +7,8 @@ import type { MetaAd, MetaData } from '@/types'
 
 const GRAPH_URL = 'https://graph.facebook.com/v19.0'
 
-// Known Elle Wilder Books ad account — under Business Portfolio via Instagram login
-const ELLE_WILDER_AD_ACCOUNT = 'act_940232825191906'
+// Confirmed Elle Wilder Books ad account (act_898774062895926 — verified in /me/adaccounts)
+const ELLE_WILDER_AD_ACCOUNT = 'act_898774062895926'
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)

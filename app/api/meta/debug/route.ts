@@ -51,8 +51,8 @@ export async function GET() {
     debug.businesses = await bizRes.json()
   } catch (e) { debug.businessesError = String(e) }
 
-  const accountsToProbe = ['act_940232825191906']
-  if (user.metaAdAccountId && user.metaAdAccountId !== 'act_940232825191906') {
+  const accountsToProbe = ['act_898774062895926']
+  if (user.metaAdAccountId && user.metaAdAccountId !== 'act_898774062895926') {
     accountsToProbe.push(user.metaAdAccountId.startsWith('act_') ? user.metaAdAccountId : `act_${user.metaAdAccountId}`)
   }
   const insightsResults: Record<string, unknown> = {}
