@@ -47,6 +47,11 @@ model User {
   goals         Json?          // Channel goals: { kdp_royalties: 500, meta_ctr: 15, ... }
   layoutPrefs   Json?          // Per-page section order: { overview: ['channel-cards', 'action-plan'], ... }
   onboardingDismissed Boolean  @default(false)
+  // Author profile
+  penName        String?
+  genreCategory  String?
+  genreSubgenre  String?
+  referralSource String?
   // Stripe subscription
   stripeCustomerId     String?   @unique
   stripeSubscriptionId String?

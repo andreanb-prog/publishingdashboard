@@ -8,6 +8,12 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
+
+  // Redirect new users to profile setup if pen name not set
+  if (!session.user.penName) {
+    redirect('/dashboard/welcome')
+  }
+
   return (
     <ErrorBoundary fallbackTitle="Dashboard couldn't load">
       <OverviewClient />
