@@ -1,0 +1,13 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" fill="#1E2D3D"/>
+  <!-- Chat bubble -->
+  <g transform="translate(192, 152) scale(1.9)">
+    <path d="M233,45 L447,45 Q482,45 482,77 L482,240 Q482,272 447,272 L390,272 L408,308 L365,272 L233,272 Q198,272 198,240 L198,77 Q198,45 233,45 Z" fill="white" fill-opacity="0.15" stroke="none"/>
+    <!-- 5 bars -->
+    <rect x="250" y="175" width="28" height="72" rx="4" fill="#A8C4D8"/>
+    <rect x="288" y="152" width="28" height="95" rx="4" fill="#88AABF"/>
+    <rect x="326" y="128" width="28" height="119" rx="4" fill="#6890A8"/>
+    <rect x="364" y="104" width="28" height="143" rx="4" fill="#4A7290"/>
+    <rect x="402" y="80" width="28" height="167" rx="4" fill="#2E5470"/>
+  </g>
+</svg>

@@ -159,8 +159,13 @@ function PricingContent() {
         </div>
 
         {/* FAQ */}
-        <div className="text-center text-[13px]" style={{ color: '#6B7280' }}>
-          <p>Cancel anytime. No lock-ins. Questions? <a href="mailto:support@authordash.com" style={{ color: '#E9A020' }}>support@authordash.com</a></p>
+        <div className="text-center text-[13px] mb-8" style={{ color: '#6B7280' }}>
+          <p>Cancel anytime. No lock-ins. Questions? <a href="mailto:support@authordash.io" style={{ color: '#E9A020' }}>support@authordash.io</a></p>
+        </div>
+        <div className="flex justify-center gap-6 text-[12px]" style={{ color: '#6B7280' }}>
+          <a href="/privacy" className="no-underline hover:underline" style={{ color: '#6B7280' }}>Privacy</a>
+          <a href="/terms" className="no-underline hover:underline" style={{ color: '#6B7280' }}>Terms</a>
+          <a href="/data" className="no-underline hover:underline" style={{ color: '#6B7280' }}>Your Data</a>
         </div>
       </div>
     </div>

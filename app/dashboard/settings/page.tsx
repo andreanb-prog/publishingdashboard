@@ -642,17 +642,22 @@ export default function SettingsPage() {
       {/* Notifications */}
       <NotificationsSection />
 
-      {/* Legal links */}
-      <div className="flex items-center gap-5 mt-8 pt-6 border-t border-stone-100">
-        <Link href="/privacy"
-          className="text-[12px] text-stone-500 no-underline hover:underline hover:text-stone-600">
-          Privacy Policy
-        </Link>
-        <span className="text-stone-200">·</span>
-        <Link href="/terms"
-          className="text-[12px] text-stone-500 no-underline hover:underline hover:text-stone-600">
-          Terms of Service
-        </Link>
+      {/* Privacy & Data */}
+      <div className="card p-6 mb-4 mt-6">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+            style={{ background: 'rgba(30,45,61,0.06)' }}>🔒</div>
+          <div>
+            <div className="font-bold text-[#0d1f35] text-[14px]">Privacy & Data</div>
+            <div className="text-[11.5px] text-stone-500">Your data, your control</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <Link href="/privacy" className="text-[12px] font-semibold no-underline hover:underline" style={{ color: '#E9A020' }}>Privacy Policy</Link>
+          <Link href="/terms" className="text-[12px] font-semibold no-underline hover:underline" style={{ color: '#E9A020' }}>Terms of Service</Link>
+          <Link href="/data" className="text-[12px] font-semibold no-underline hover:underline" style={{ color: '#E9A020' }}>Your Data & Deletion</Link>
+          <Link href="/dashboard/settings/billing" className="text-[12px] font-semibold no-underline hover:underline" style={{ color: '#E9A020' }}>Billing</Link>
+        </div>
       </div>
     </div>
   )

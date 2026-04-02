@@ -6,99 +6,120 @@ export default function TermsPage() {
     <div className="min-h-screen bg-cream px-6 py-16">
       <div className="max-w-2xl mx-auto">
 
-        <Link href="/login"
-          className="text-[12px] font-semibold no-underline hover:underline mb-10 inline-block"
-          style={{ color: '#6B7280' }}>
-          ← Back to login
+        <Link href="/dashboard" className="text-[14px] font-medium no-underline hover:underline mb-8 inline-flex items-center gap-1"
+          style={{ color: '#4A7290', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 }}>
+          Author<span style={{ color: '#E9A020' }}>Dash</span>
         </Link>
 
-        <h1 className="font-serif text-[32px] text-[#1E2D3D] leading-tight mb-3">
+        <h1 className="text-[32px] font-bold tracking-tight leading-tight mb-3" style={{ color: '#1E2D3D' }}>
           Terms of Service
         </h1>
         <p className="text-[13px] mb-10" style={{ color: '#6B7280' }}>
-          Last updated: March 2025 · Plain English, no legal jargon
+          Last updated: April 1, 2026 · Plain English, no legal jargon
         </p>
 
         <div className="space-y-8" style={{ color: '#374151' }}>
-
           <section>
-            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">This is a beta product</h2>
+            <h2 className="text-[20px] font-semibold mb-3" style={{ color: '#1E2D3D' }}>Acceptance of Terms</h2>
             <p className="text-[14px] leading-relaxed">
-              AuthorDash is currently in beta. That means things might break, change, or
-              disappear. We're building this in public and improving it constantly based on
-              feedback from real authors. We'll always give you a heads-up before making
-              major changes.
+              By using AuthorDash, you agree to these terms. If you do not agree, please do not use the service.
             </p>
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">No guarantees of results</h2>
+            <h2 className="text-[20px] font-semibold mb-3" style={{ color: '#1E2D3D' }}>What AuthorDash Is</h2>
             <p className="text-[14px] leading-relaxed">
-              AuthorDash provides coaching and analysis based on your data. We do our best
-              to make it accurate and useful, but we can't guarantee specific results —
-              sales, KENP reads, CTR improvements, or anything else. The AI coaching is a
-              tool, not a promise. Your results depend on your books, your readers, and a
-              lot of other things outside our control.
+              AuthorDash is an analytics platform for indie authors. It helps you understand your publishing
+              marketing data across KDP, Meta Ads, email, and more. AI-generated insights are suggestions only —
+              you are the expert on your readers. We provide the data; you make the calls.
             </p>
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">You own your data</h2>
+            <h2 className="text-[20px] font-semibold mb-3" style={{ color: '#1E2D3D' }}>Your Account</h2>
             <p className="text-[14px] leading-relaxed">
-              Everything you upload — your KDP reports, your ad exports, your email
-              stats — belongs to you. We don't claim any ownership over your business data.
-              We just help you make sense of it.
+              You must provide accurate information when creating your account. Do not share your account with
+              others. You must be at least 18 years old to use AuthorDash. You are responsible for maintaining
+              the security of your account.
             </p>
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">Pricing</h2>
+            <h2 className="text-[20px] font-semibold mb-3" style={{ color: '#1E2D3D' }}>Subscription and Payment</h2>
             <p className="text-[14px] leading-relaxed">
-              AuthorDash will be a paid subscription product. Pricing will be announced
-              before the beta period ends. Beta users will receive advance notice before
-              any billing begins — you'll never be charged without warning.
+              AuthorDash offers two plans: $37/month (regular) and $17/month (FPA Circle rate). All payments
+              are processed through Stripe. Subscriptions auto-renew monthly. You can cancel anytime — no
+              lock-ins, no cancellation fees. Refunds are not provided for partial months. If you cancel,
+              you keep access until the end of your billing period.
             </p>
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">Cancel anytime</h2>
+            <h2 className="text-[20px] font-semibold mb-3" style={{ color: '#1E2D3D' }}>Your Data</h2>
             <p className="text-[14px] leading-relaxed">
-              When paid plans launch, you can cancel at any time. No lock-ins, no
-              cancellation fees. If you cancel, you keep access until the end of your
-              billing period.
+              You retain full ownership of all data you upload or connect to AuthorDash. We have a limited
+              license to process your data solely for the purpose of providing the service. We do not claim
+              ownership of your KDP reports, email stats, or ad data.
             </p>
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">Acceptable use</h2>
+            <h2 className="text-[20px] font-semibold mb-3" style={{ color: '#1E2D3D' }}>Acceptable Use</h2>
             <p className="text-[14px] leading-relaxed">
-              Use AuthorDash for your own publishing business. Don't use it to upload
-              other people's data without permission, attempt to reverse-engineer the
-              product, or do anything illegal. That's it — pretty simple.
+              Use AuthorDash for your own publishing business. Do not use it for illegal purposes, do not
+              attempt to access other users&apos; data, do not reverse-engineer the product, and do not resell
+              access to AuthorDash.
             </p>
           </section>
 
           <section>
-            <h2 className="font-serif text-[20px] text-[#1E2D3D] mb-3">Questions?</h2>
+            <h2 className="text-[20px] font-semibold mb-3" style={{ color: '#1E2D3D' }}>AI-Generated Insights</h2>
             <p className="text-[14px] leading-relaxed">
-              Email us at{' '}
-              <span style={{ color: '#e9a020' }}>support@authordash.com</span>.
-              We're a small team and we actually read every email.
+              The coaching insights and recommendations generated by AuthorDash are suggestions only. They are
+              not financial advice, legal advice, or guarantees of results. Always apply your own judgment.
+              Your results depend on your books, your readers, and many factors outside our control.
             </p>
           </section>
 
+          <section>
+            <h2 className="text-[20px] font-semibold mb-3" style={{ color: '#1E2D3D' }}>Service Availability</h2>
+            <p className="text-[14px] leading-relaxed">
+              We aim for high uptime but cannot guarantee uninterrupted access. We are not liable for losses
+              resulting from service downtime, data sync delays, or temporary unavailability.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-[20px] font-semibold mb-3" style={{ color: '#1E2D3D' }}>Termination</h2>
+            <p className="text-[14px] leading-relaxed">
+              We may suspend or terminate accounts that violate these terms. You may delete your account at
+              any time from your Settings page. Upon deletion, all your data is permanently removed.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-[20px] font-semibold mb-3" style={{ color: '#1E2D3D' }}>Changes to Terms</h2>
+            <p className="text-[14px] leading-relaxed">
+              We may update these terms from time to time. Continued use of AuthorDash after changes
+              constitutes acceptance of the updated terms.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-[20px] font-semibold mb-3" style={{ color: '#1E2D3D' }}>Contact</h2>
+            <p className="text-[14px] leading-relaxed">
+              Questions? Email us at{' '}
+              <a href="mailto:support@authordash.io" style={{ color: '#E9A020' }}>support@authordash.io</a>.
+              We are a small team and we actually read every email.
+            </p>
+          </section>
         </div>
 
-        <div className="mt-14 pt-8 flex gap-6 text-[12px]"
-          style={{ borderTop: '1px solid #EEEBE6', color: '#D4D0CB' }}>
-          <Link href="/login" className="no-underline hover:underline" style={{ color: '#6B7280' }}>
-            ← Back to login
-          </Link>
-          <Link href="/privacy" className="no-underline hover:underline" style={{ color: '#6B7280' }}>
-            Privacy Policy
-          </Link>
+        <div className="mt-14 pt-8 flex gap-6 text-[12px]" style={{ borderTop: '1px solid #EEEBE6' }}>
+          <Link href="/privacy" className="no-underline hover:underline" style={{ color: '#6B7280' }}>Privacy Policy</Link>
+          <Link href="/data" className="no-underline hover:underline" style={{ color: '#6B7280' }}>Your Data</Link>
+          <Link href="/dashboard" className="no-underline hover:underline" style={{ color: '#6B7280' }}>Back to Dashboard</Link>
         </div>
-
       </div>
     </div>
   )
