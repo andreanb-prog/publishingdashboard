@@ -60,9 +60,6 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const count = await db.book.count({ where: { userId: session.user.id } })
-  if (count >= 6) {
-    return NextResponse.json({ error: 'Maximum 6 books allowed' }, { status: 400 })
-  }
 
   const body = await req.json()
   const book = await db.book.create({

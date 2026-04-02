@@ -314,7 +314,7 @@ export default function SettingsPage() {
           <div className="flex-1">
             <div className="font-bold text-[#0d1f35] text-[14px]">My Books</div>
             <div className="text-[11.5px] text-stone-500">
-              Drag to reorder — position sets B1/B2/B3 colour assignment. Limit 6 books.
+              Drag to reorder — position sets B1/B2/B3 colour assignment.
             </div>
           </div>
         </div>

@@ -690,8 +690,6 @@ export function BookCatalog() {
     }
   }
 
-  const atLimit = books.length >= 6
-
   if (loading) {
     return (
       <div className="py-6 text-center text-[13px] text-stone-400">Loading your books…</div>
@@ -741,14 +739,10 @@ export function BookCatalog() {
       <div className="flex items-center gap-3">
         <button
           onClick={openAdd}
-          disabled={atLimit}
-          className="text-[12.5px] font-semibold px-4 py-2 rounded-lg border border-dashed border-stone-300 text-stone-500 hover:border-[#E9A020] hover:text-[#E9A020] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed bg-transparent cursor-pointer"
+          className="text-[12.5px] font-semibold px-4 py-2 rounded-lg border border-dashed border-stone-300 text-stone-500 hover:border-[#E9A020] hover:text-[#E9A020] transition-all duration-150 bg-transparent cursor-pointer"
         >
           + Add a book
         </button>
-        {atLimit && (
-          <span className="text-[11px] text-stone-400">Maximum 6 books (B1–B6)</span>
-        )}
       </div>
 
       {/* Modal */}
