@@ -84,12 +84,18 @@ export function ConnectionStatus() {
 
   useEffect(() => {
     const cached = getCached()
-    if (cached) { setHealth(cached); return }
+    if (cached) setHealth(cached)
+    // Always fetch fresh on mount
     fetch('/api/health/connections')
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => { setHealth(data); setCache(data) })
       .catch(() => {})
-  }, [])
+
+    // When Meta is disconnected from settings, force a fresh fetch
+    function onDisconnected() { refreshHealth() }
+    window.addEventListener('meta:disconnected', onDisconnected)
+    return () => window.removeEventListener('meta:disconnected', onDisconnected)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -151,7 +157,7 @@ export function ConnectionStatus() {
   return (
     <div ref={ref} className="relative">
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => { setOpen(o => { if (!o) refreshHealth(); return !o }) }}
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all hover:bg-stone-50"
         style={{ background: 'white', border: '0.5px solid #EEEBE6', cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
       >

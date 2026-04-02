@@ -225,6 +225,7 @@ export default function SettingsPage() {
     })
     setMetaConnected(false)
     setMetaLastSync(null)
+    window.dispatchEvent(new CustomEvent('meta:disconnected'))
   }
 
   // ── API key handlers ──────────────────────────────────────────────────────

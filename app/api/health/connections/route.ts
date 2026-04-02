@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { fetchMailerLiteStats } from '@/lib/mailerlite'
+import { getMailerLiteStats } from '@/lib/mailerlite'
 
 type IntegrationStatus = {
   status: 'green' | 'amber' | 'red'
@@ -49,7 +49,7 @@ export async function GET() {
     }
   } else {
     try {
-      const data = await fetchMailerLiteStats(mlKey)
+      const data = await getMailerLiteStats(mlKey)
       const subs = data?.listSize ?? 0
       if (subs > 0) {
         mailerlite = { status: 'green', text: `Connected · ${subs.toLocaleString()} subscribers` }

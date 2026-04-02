@@ -30,16 +30,21 @@ async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; dat
   }
 }
 
-export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteData> {
-  // ── Subscriber counts ──────────────────────────────────────────
+// ── Fast count-only helper (used by health checks and key tests) ─────────────
+export async function getMailerLiteStats(apiKey: string): Promise<{ listSize: number; unsubscribed: number }> {
   const [activeResult, unsubResult] = await Promise.all([
     mlFetch('/subscribers?filter[status]=active&limit=1', apiKey),
     mlFetch('/subscribers?filter[status]=unsubscribed&limit=1', apiKey),
   ])
+  const listSize = activeResult.data?.meta?.total ?? 0
+  const unsubscribed = unsubResult.data?.meta?.total ?? 0
+  console.log('[MailerLite] stats:', { active: listSize, unsub: unsubscribed })
+  return { listSize, unsubscribed }
+}
 
-  const listSize: number = activeResult.data?.meta?.total ?? 0
-  const totalUnsubscribes: number = unsubResult.data?.meta?.total ?? 0
-
+export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteData> {
+  // ── Subscriber counts ──────────────────────────────────────────
+  const { listSize, unsubscribed: totalUnsubscribes } = await getMailerLiteStats(apiKey)
   console.log('[MailerLite] listSize:', listSize, '| unsubscribed:', totalUnsubscribes)
 
   // ── Campaigns ──────────────────────────────────────────────────
