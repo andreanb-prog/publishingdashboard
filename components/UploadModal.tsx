@@ -160,20 +160,57 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
 
   async function processFile(file: File, id: string) {
     setFiles(prev => [...prev, { id, filename: file.name, type: 'unknown', status: 'reading', data: null }])
-    const formData = new FormData()
-    formData.append('file', file)
+    const update = (patch: Partial<ParsedFile>) =>
+      setFiles(prev => prev.map(f => f.id !== id ? f : { ...f, ...patch }))
+
+    const name = file.name.toLowerCase()
+    const isExcel = name.endsWith('.xlsx') || name.endsWith('.xls')
+
     try {
-      const res = await fetch('/api/parse-auto', { method: 'POST', body: formData })
-      const json = await res.json()
-      if (json.type === 'unknown') {
-        setFiles(prev => prev.map(f => f.id !== id ? f : { ...f, type: 'unknown', status: 'unknown', data: null }))
+      if (isExcel) {
+        // Lazily load xlsx so it only hits the bundle when an XLSX file is dropped
+        const XLSX = await import('xlsx')
+        const buf  = await file.arrayBuffer()
+        const wb   = XLSX.read(new Uint8Array(buf), { type: 'array', cellDates: true })
+
+        let detectedType: 'kdp' | 'meta' | null = null
+        for (const sheetName of wb.SheetNames) {
+          const csv = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName], { blankrows: false })
+          if (csv.includes('KENP') || csv.includes('Royalty Date')) { detectedType = 'kdp'; break }
+          const hits = ['Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'Campaign name', 'Ad set name']
+            .filter(s => csv.includes(s)).length
+          if (hits >= 2) { detectedType = 'meta'; break }
+        }
+
+        if (detectedType === 'kdp') {
+          const { parseKDPFile } = await import('@/lib/parsers/kdp')
+          update({ type: 'kdp', status: 'done', data: parseKDPFile(new Uint8Array(buf)) })
+        } else if (detectedType === 'meta') {
+          const { parseMetaFile } = await import('@/lib/parsers/meta')
+          const csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]], { blankrows: false })
+          update({ type: 'meta', status: 'done', data: parseMetaFile(csv) })
+        } else {
+          update({ type: 'unknown', status: 'unknown', data: null })
+        }
       } else {
-        setFiles(prev => prev.map(f => f.id !== id ? f : {
-          ...f, type: json.type as FileType, status: 'done', data: json.data,
-        }))
+        // CSV — parse entirely in the browser, no server round-trip
+        const text = await file.text()
+        const isPin = (text.trimStart().startsWith('Analytics overview') || text.includes('"Analytics overview"')) && text.includes('Impressions')
+        const metaHits = ['Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'Campaign name', 'Ad set name', 'Impressions']
+          .filter(s => text.includes(s)).length
+
+        if (isPin) {
+          const { parsePinterestFile } = await import('@/lib/parsers/pinterest')
+          update({ type: 'pinterest', status: 'done', data: parsePinterestFile(text) })
+        } else if (metaHits >= 2) {
+          const { parseMetaFile } = await import('@/lib/parsers/meta')
+          update({ type: 'meta', status: 'done', data: parseMetaFile(text) })
+        } else {
+          update({ type: 'unknown', status: 'unknown', data: null })
+        }
       }
     } catch {
-      setFiles(prev => prev.map(f => f.id !== id ? f : { ...f, status: 'error', data: null }))
+      update({ status: 'error', data: null })
     }
   }
 
@@ -223,40 +260,87 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
     setShowSlow(false)
 
     try {
-      await sleep(900)           // Stage 1: Reading
+      // Stages 1 & 2 are client-side (file parsing already done) — advance quickly for UX
+      await sleep(500)
       advanceToStage(2)
-      await sleep(1000)          // Stage 2: Detecting format
-      advanceToStage(3)          // Stage 3: Saving
-      startSlowTimer(3)
+      await sleep(400)
 
       const mlRes  = await fetch('/api/mailerlite').catch(() => null)
       const mlData = mlRes?.ok ? (await mlRes.json()).data : null
       const month  = new Date().toISOString().substring(0, 7)
 
-      advanceToStage(4)          // Stage 4: AI analysis
-      startSlowTimer(4)
+      // Store parsed data in sessionStorage so the dashboard can show optimistic numbers
+      // if the user navigates away before analysis completes
+      try {
+        sessionStorage.setItem('pendingUpload', JSON.stringify({
+          kdp: kdpData, meta: metaData, pinterest: pinData, mailerLite: mlData, month,
+          timestamp: Date.now(),
+        }))
+      } catch { /* storage unavailable */ }
 
+      // POST to analyze — server responds with SSE stream
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kdp: kdpData, meta: metaData, mailerLite: mlData, pinterest: pinData, month }),
       })
+      if (!res.ok || !res.body) throw new Error('analyze')
 
-      if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
-      if (!res.ok) throw new Error('analyze')
-
-      advanceToStage(5)          // Stage 5: Done!
+      // Read SSE events — server drives stage 3, 4, then complete/error
+      const reader = res.body.getReader()
+      const dec    = new TextDecoder()
+      let buf      = ''
+      let navigated = false
 
       const uploadedCount = [kdpData, metaData, pinData].filter(Boolean).length
       let redirectTo = '/dashboard'
-      if (uploadedCount === 0 && mlData) {
-        redirectTo = '/dashboard/mailerlite'
-      } else if (uploadedCount === 1) {
+      if (uploadedCount === 0 && mlData) redirectTo = '/dashboard/mailerlite'
+      else if (uploadedCount === 1) {
         if (metaData)     redirectTo = '/dashboard/meta'
         else if (kdpData) redirectTo = '/dashboard/kdp'
         else if (pinData) redirectTo = '/dashboard/pinterest'
       }
-      setTimeout(() => { onSuccess(); setTimeout(() => router.push(redirectTo + '?fresh=1'), 400) }, 1500)
+
+      outer: while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += dec.decode(value, { stream: true })
+
+        const lines = buf.split('\n')
+        buf = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const evt = JSON.parse(line.slice(6))
+
+            if (evt.type === 'stage') {
+              advanceToStage(evt.stage as StageId)
+              if (evt.stage === 3 || evt.stage === 4) startSlowTimer(evt.stage as StageId)
+            } else if (evt.type === 'complete') {
+              if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
+              advanceToStage(5)
+              navigated = true
+              setTimeout(() => {
+                try { sessionStorage.removeItem('pendingUpload') } catch { /* ignore */ }
+                onSuccess()
+                setTimeout(() => router.push(redirectTo + '?fresh=1'), 400)
+              }, 1500)
+              break outer
+            } else if (evt.type === 'error') {
+              throw new Error(evt.message || 'analyze')
+            }
+          } catch (parseErr) {
+            // Rethrow real errors; ignore malformed SSE lines
+            if (parseErr instanceof Error && parseErr.message !== 'analyze') {
+              const msg = parseErr.message
+              if (msg && msg !== 'Unexpected token') throw parseErr
+            }
+          }
+        }
+      }
+
+      if (!navigated) throw new Error('analyze')
 
     } catch {
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current)

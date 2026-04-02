@@ -6,47 +6,76 @@ import { anthropic, CLAUDE_MODEL, COACHING_SYSTEM_PROMPT } from '@/lib/anthropic
 import { db } from '@/lib/db'
 import type { KDPData, MetaData, MailerLiteData, PinterestData, Analysis } from '@/types'
 
+// ── Fingerprint: skip Claude if the same data was already analyzed ────────────
+function makeFingerprint(kdp?: KDPData, meta?: MetaData, pinterest?: PinterestData): string {
+  const parts = [
+    kdp       ? `k:${kdp.totalUnits}:${kdp.totalKENP}:${kdp.totalRoyaltiesUSD}`    : '',
+    meta      ? `m:${meta.totalSpend}:${meta.totalClicks}:${meta.ads?.length ?? 0}` : '',
+    pinterest ? `p:${pinterest.totalImpressions}:${pinterest.pinCount}`             : '',
+  ]
+  return parts.filter(Boolean).join('|')
+}
+
 export async function POST(req: NextRequest) {
-  console.log('=== ANALYZE POST CALLED ===')
   const session = await getServerSession(authOptions)
-  console.log('Session:', session?.user?.id)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Parse body eagerly so it's available inside the async stream worker
+  let body: { kdp?: KDPData; meta?: MetaData; mailerLite?: MailerLiteData; pinterest?: PinterestData; month: string }
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid body' }, { status: 400 }) }
+  const { kdp, meta, mailerLite, pinterest, month } = body
+
+  // ── SSE stream setup ──────────────────────────────────────────────────────
+  const encoder  = new TextEncoder()
+  const transform = new TransformStream<Uint8Array, Uint8Array>()
+  const writer   = transform.writable.getWriter()
+
+  const send = async (data: Record<string, unknown>) => {
+    try { await writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)) } catch { /* client gone */ }
   }
 
-  try {
-    console.log('=== STEP 1: parsing body ===')
-    const body = await req.json()
-    const { kdp, meta, mailerLite, pinterest, month } = body as {
-      kdp?: KDPData
-      meta?: MetaData
-      mailerLite?: MailerLiteData
-      pinterest?: PinterestData
-      month: string
-    }
-    console.log('=== STEP 2: body parsed ===', { month, hasKdp: !!kdp, hasMeta: !!meta })
+  // Run analysis asynchronously while streaming progress events to the client
+  ;(async () => {
+    try {
+      console.log('=== ANALYZE POST (SSE) ===', { month, hasKdp: !!kdp, hasMeta: !!meta })
 
-    // Fetch last 3 months of stored analyses for trend context
-    console.log('=== STEP 3: fetching historical ===')
-    const historical = await db.analysis.findMany({
-      where: { userId: session.user.id, month: { lt: month } },
-      orderBy: { month: 'desc' },
-      take: 3,
-    })
-    console.log('=== STEP 4: historical fetched ===', historical.length, 'records')
+      // ── Cache / skip-unchanged check ──────────────────────────────────────
+      const fp = makeFingerprint(kdp, meta, pinterest)
+      const existing = await db.analysis.findFirst({ where: { userId: session.user.id, month } })
+      if (existing) {
+        const ed = existing.data as any
+        if (ed?.fingerprint === fp && fp !== '' && (ed?.channelScores?.length ?? 0) > 0) {
+          console.log('=== FINGERPRINT HIT — returning cached analysis ===')
+          await send({ type: 'complete', analysis: ed, cached: true })
+          return
+        }
+      }
 
-    const dataSummary = buildDataSummary({ kdp, meta, mailerLite, pinterest })
-    const historySummary = buildHistorySummary(historical)
+      // Stage 3: Saving your data (history + pre-Claude work)
+      await send({ type: 'stage', stage: 3 })
 
-    console.log('=== STEP 5: calling Claude API ===')
-    const message = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 4000,
-      system: COACHING_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: `Analyze this publishing marketing data and produce a complete coaching session.
+      const historical = await db.analysis.findMany({
+        where: { userId: session.user.id, month: { lt: month } },
+        orderBy: { month: 'desc' },
+        take: 3,
+      })
+      console.log('=== historical fetched ===', historical.length, 'records')
+
+      const dataSummary   = buildDataSummary({ kdp, meta, mailerLite, pinterest })
+      const historySummary = buildHistorySummary(historical)
+
+      // Stage 4: Running AI analysis
+      await send({ type: 'stage', stage: 4 })
+      console.log('=== calling Claude API ===')
+
+      const message = await anthropic.messages.create({
+        model: CLAUDE_MODEL,
+        max_tokens: 4000,
+        system: COACHING_SYSTEM_PROMPT,
+        messages: [
+          {
+            role: 'user',
+            content: `Analyze this publishing marketing data and produce a complete coaching session.
 
 ${dataSummary}${historySummary}
 
@@ -101,89 +130,81 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
     "test": ["new experiments to try next month — bold key terms"]
   }
 }`,
-        },
-      ],
-    })
-
-    console.log('=== STEP 6: Claude responded ===')
-    const responseText = message.content[0].type === 'text' ? message.content[0].text : ''
-
-    let coachingData
-    try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
-      coachingData = jsonMatch ? JSON.parse(jsonMatch[0]) : null
-    } catch {
-      coachingData = null
-    }
-
-    if (!coachingData) {
-      console.log('=== STEP 6 FAILED: could not parse Claude response ===')
-      return NextResponse.json({ error: 'Failed to parse coaching response' }, { status: 500 })
-    }
-    console.log('=== STEP 7: coaching data parsed OK ===')
-
-    // ── Confidence scoring gate ───────────────────────────────────────
-    // Don't show confidence/impact scores unless we have enough data
-    const isNewUser = historical.length === 0
-    const totalAds = meta?.ads?.length ?? 0
-    // Approximate days of data from month range (full month = ~30 days)
-    const daysOfData = kdp || meta ? 30 : 0
-    const confidenceReady = !isNewUser && daysOfData >= 14 && totalAds >= 3
-
-    const analysis: Analysis & Record<string, unknown> = {
-      month,
-      kdp:        kdp        ?? undefined,
-      meta:       meta       ?? undefined,
-      mailerLite: mailerLite ?? undefined,
-      pinterest:  pinterest  ?? undefined,
-      overallVerdict: coachingData.overview?.headline || coachingData.overview?.subline || '',
-      insights:      coachingData.actionPlan  || [],
-      channelScores: coachingData.channelScores || [],
-      actionPlan:    coachingData.actionPlan  || [],
-      executiveSummary: coachingData.executiveSummary || undefined,
-      crossChannelPlan: coachingData.crossChannelPlan || undefined,
-      // Channel-specific coach paragraphs — used by deep-dive pages
-      kdpCoach:      coachingData.insights?.kdp       || '',
-      metaCoach:     coachingData.insights?.meta      || '',
-      emailCoach:    coachingData.insights?.email     || '',
-      pinterestCoach:coachingData.insights?.pinterest || '',
-      swapsCoach:    coachingData.insights?.swaps     || '',
-      confidenceReady,
-      confidenceNote: confidenceReady ? null : 'Confidence scoring unlocks after 14 days of data.',
-      generatedAt: new Date().toISOString(),
-    }
-
-    console.log('=== ABOUT TO SAVE ===', { userId: session.user.id, month })
-
-    // findFirst + update/create avoids any upsert constraint edge cases
-    const existing = await db.analysis.findFirst({
-      where: { userId: session.user.id, month },
-    })
-    console.log('=== EXISTING RECORD ===', existing?.id ?? 'none — will create')
-
-    let saved
-    if (existing) {
-      saved = await db.analysis.update({
-        where: { id: existing.id },
-        data: { data: analysis as any },
+          },
+        ],
       })
-    } else {
-      saved = await db.analysis.create({
-        data: {
-          userId: session.user.id,
-          month,
-          data: analysis as any,
-        },
-      })
+
+      console.log('=== Claude responded ===')
+      const responseText = message.content[0].type === 'text' ? message.content[0].text : ''
+
+      let coachingData
+      try {
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+        coachingData = jsonMatch ? JSON.parse(jsonMatch[0]) : null
+      } catch { coachingData = null }
+
+      if (!coachingData) {
+        console.log('=== could not parse Claude response ===')
+        await send({ type: 'error', message: 'Failed to parse coaching response' })
+        return
+      }
+
+      // ── Confidence scoring gate ───────────────────────────────────────────
+      const isNewUser      = historical.length === 0
+      const totalAds       = meta?.ads?.length ?? 0
+      const daysOfData     = kdp || meta ? 30 : 0
+      const confidenceReady = !isNewUser && daysOfData >= 14 && totalAds >= 3
+
+      const analysis: Analysis & Record<string, unknown> = {
+        month,
+        kdp:        kdp        ?? undefined,
+        meta:       meta       ?? undefined,
+        mailerLite: mailerLite ?? undefined,
+        pinterest:  pinterest  ?? undefined,
+        fingerprint: fp,
+        overallVerdict:  coachingData.overview?.headline || coachingData.overview?.subline || '',
+        insights:        coachingData.actionPlan  || [],
+        channelScores:   coachingData.channelScores || [],
+        actionPlan:      coachingData.actionPlan  || [],
+        executiveSummary: coachingData.executiveSummary || undefined,
+        crossChannelPlan: coachingData.crossChannelPlan || undefined,
+        kdpCoach:       coachingData.insights?.kdp       || '',
+        metaCoach:      coachingData.insights?.meta      || '',
+        emailCoach:     coachingData.insights?.email     || '',
+        pinterestCoach: coachingData.insights?.pinterest || '',
+        swapsCoach:     coachingData.insights?.swaps     || '',
+        confidenceReady,
+        confidenceNote: confidenceReady ? null : 'Confidence scoring unlocks after 14 days of data.',
+        generatedAt: new Date().toISOString(),
+      }
+
+      console.log('=== saving ===', { userId: session.user.id, month })
+
+      // findFirst + update/create avoids upsert constraint edge cases
+      const existingForSave = await db.analysis.findFirst({ where: { userId: session.user.id, month } })
+      if (existingForSave) {
+        await db.analysis.update({ where: { id: existingForSave.id }, data: { data: analysis as any } })
+      } else {
+        await db.analysis.create({ data: { userId: session.user.id, month, data: analysis as any } })
+      }
+
+      console.log('=== saved ===')
+      await send({ type: 'complete', analysis, success: true })
+    } catch (error) {
+      console.error('Analysis error (SSE):', error)
+      await send({ type: 'error', message: 'Analysis failed' })
+    } finally {
+      try { writer.close() } catch { /* already closed */ }
     }
+  })()
 
-    console.log('=== SAVED ===', saved.id)
-
-    return NextResponse.json({ success: true, analysis, coaching: coachingData })
-  } catch (error) {
-    console.error('Analysis error:', error)
-    return NextResponse.json({ error: 'Analysis failed' }, { status: 500 })
-  }
+  return new Response(transform.readable, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  })
 }
 
 function buildDataSummary({ kdp, meta, mailerLite, pinterest }: {

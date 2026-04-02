@@ -332,6 +332,7 @@ export function OverviewClient() {
   const [rankLogs,  setRankLogs]  = useState<RankLog[]>([])
   const [roasLogs,  setRoasLogs]  = useState<RoasLog[]>([])
   const [loading,   setLoading]   = useState(true)
+  const [generating, setGenerating] = useState(false)
   const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(null)
   const [copied,      setCopied]      = useState(false)
   const [copying,     setCopying]     = useState(false)
@@ -361,6 +362,62 @@ export function OverviewClient() {
       setRankLogs(rankData.logs ?? [])
       setRoasLogs(roasData.logs ?? [])
     }).catch(console.error).finally(() => setLoading(false))
+  }, [])
+
+  // ── Optimistic UI: if the user lands here right after uploading, show their
+  //    parsed numbers immediately while the AI analysis finishes in the background.
+  useEffect(() => {
+    const isAnalyzing = new URLSearchParams(window.location.search).get('analyzing') === '1'
+    if (!isAnalyzing) return
+
+    let pendingData: any
+    try {
+      const raw = sessionStorage.getItem('pendingUpload')
+      if (!raw) return
+      pendingData = JSON.parse(raw)
+    } catch { return }
+
+    setGenerating(true)
+    // Surface the raw parsed numbers before coaching arrives
+    setAnalysis((prev: any) => prev ?? {
+      month:      pendingData.month,
+      kdp:        pendingData.kdp        ?? undefined,
+      meta:       pendingData.meta       ?? undefined,
+      pinterest:  pendingData.pinterest  ?? undefined,
+      mailerLite: pendingData.mailerLite ?? undefined,
+      channelScores: [],
+      actionPlan:    [],
+      insights:      [],
+    })
+
+    let pollCount = 0
+    const pollId = setInterval(async () => {
+      try {
+        pollCount++
+        if (pollCount > 60) { // 3 min max
+          clearInterval(pollId)
+          setGenerating(false)
+          sessionStorage.removeItem('pendingUpload')
+          return
+        }
+        const res = await fetch('/api/analyze')
+        if (!res.ok) return
+        const data = await res.json()
+        const a = data.analysis
+        // Fresh analysis from Claude has channelScores populated
+        if (a?.channelScores?.length > 0) {
+          clearInterval(pollId)
+          setAnalysis(a)
+          setKdpLastUploadedAt(data.kdpLastUploadedAt ?? null)
+          setGenerating(false)
+          sessionStorage.removeItem('pendingUpload')
+          window.history.replaceState({}, '', window.location.pathname)
+        }
+      } catch { /* ignore poll errors */ }
+    }, 3000)
+
+    return () => clearInterval(pollId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Normalize channel keys: Claude returns "email" but our card key is "mailerlite"
@@ -418,6 +475,20 @@ export function OverviewClient() {
 
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <OnboardingBanner analysesCount={analyses.length} />
+
+      {/* Generating banner — shown while AI coaching is being created in the background */}
+      {generating && (
+        <div className="mb-4 rounded-xl px-5 py-3.5 flex items-center gap-3"
+          style={{ background: 'rgba(233,160,32,0.08)', border: '1px solid rgba(233,160,32,0.25)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <svg className="animate-spin flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ color: '#E9A020' }}>
+            <circle cx="8" cy="8" r="6.5" stroke="#F0EDEA" strokeWidth="1.8" />
+            <path d="M8 1.5a6.5 6.5 0 0 1 6.5 6.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+          <span className="text-[13px]" style={{ color: '#92400E' }}>
+            <strong>Generating your coaching session</strong> — your numbers are showing below. Insights will appear shortly.
+          </span>
+        </div>
+      )}
 
       {isKdpStale && (
         <div className="mb-4 rounded-xl px-5 py-3.5 flex items-center gap-3"
