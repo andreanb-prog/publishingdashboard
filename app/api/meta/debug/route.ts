@@ -45,8 +45,14 @@ export async function GET() {
   }
 
   // Raw insights using date_preset=last_30_days from stored + known account
-  const accountsToProbe = ['act_898774062895926']
-  if (user.metaAdAccountId && user.metaAdAccountId !== 'act_898774062895926') {
+  // Also check businesses/owned_ad_accounts
+  try {
+    const bizRes = await fetch(`${GRAPH_URL}/me/businesses?fields=id,name&limit=50&access_token=${token}`)
+    debug.businesses = await bizRes.json()
+  } catch (e) { debug.businessesError = String(e) }
+
+  const accountsToProbe = ['act_940232825191906']
+  if (user.metaAdAccountId && user.metaAdAccountId !== 'act_940232825191906') {
     accountsToProbe.push(user.metaAdAccountId.startsWith('act_') ? user.metaAdAccountId : `act_${user.metaAdAccountId}`)
   }
   const insightsResults: Record<string, unknown> = {}

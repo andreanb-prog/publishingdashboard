@@ -7,8 +7,8 @@ import type { MetaAd, MetaData } from '@/types'
 
 const GRAPH_URL = 'https://graph.facebook.com/v19.0'
 
-// Known fallback account (Elle Wilder Books) — tried if /me/adaccounts returns nothing useful
-const FALLBACK_ACCOUNT_ID = 'act_898774062895926'
+// Known Elle Wilder Books ad account — under Business Portfolio via Instagram login
+const ELLE_WILDER_AD_ACCOUNT = 'act_940232825191906'
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -33,24 +33,53 @@ export async function POST(req: NextRequest) {
 
     const token = user.metaAccessToken
 
-    // ── Discover all ad accounts with spend info ──────────────────────────────
-    const accountsRes = await fetch(
-      `${GRAPH_URL}/me/adaccounts?fields=id,name,account_status,amount_spent&limit=50&access_token=${token}`
-    )
-    const accountsJson = await accountsRes.json()
+    // ── Discover ad accounts via all paths ───────────────────────────────────
+    const discovered: { id: string; name: string; amount_spent?: string }[] = []
 
-    if (accountsJson.error) {
-      console.error('[Meta Sync] /me/adaccounts error:', accountsJson.error)
-      return NextResponse.json({ error: accountsJson.error.message || 'Failed to fetch ad accounts' }, { status: 400 })
+    // Path 1: direct ad accounts on the user
+    try {
+      const res = await fetch(`${GRAPH_URL}/me/adaccounts?fields=id,name,amount_spent&limit=50&access_token=${token}`)
+      const json = await res.json()
+      if (json.error) {
+        console.error('[Meta Sync] /me/adaccounts error:', json.error)
+      } else {
+        console.log(`[Meta Sync] Path 1 (/me/adaccounts): ${(json.data ?? []).length} accounts`)
+        for (const a of (json.data ?? [])) discovered.push(a)
+      }
+    } catch (e) {
+      console.error('[Meta Sync] Path 1 failed:', e)
     }
 
-    const discovered: { id: string; name: string; account_status: number; amount_spent?: string }[] =
-      accountsJson.data || []
+    // Path 2: business portfolio ad accounts
+    try {
+      const bizRes = await fetch(`${GRAPH_URL}/me/businesses?fields=id,name&limit=50&access_token=${token}`)
+      const bizJson = await bizRes.json()
+      if (bizJson.error) {
+        console.error('[Meta Sync] /me/businesses error:', bizJson.error)
+      } else {
+        const businesses: { id: string; name: string }[] = bizJson.data ?? []
+        console.log(`[Meta Sync] Path 2: found ${businesses.length} businesses`)
+        for (const biz of businesses) {
+          try {
+            const acctRes = await fetch(`${GRAPH_URL}/${biz.id}/owned_ad_accounts?fields=id,name,amount_spent&limit=50&access_token=${token}`)
+            const acctJson = await acctRes.json()
+            if (!acctJson.error) {
+              console.log(`  Business "${biz.name}" (${biz.id}): ${(acctJson.data ?? []).length} owned ad accounts`)
+              for (const a of (acctJson.data ?? [])) discovered.push(a)
+            }
+          } catch (e) {
+            console.error(`  Business ${biz.id} owned_ad_accounts failed:`, e)
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[Meta Sync] Path 2 failed:', e)
+    }
 
-    console.log(`[Meta Sync] Found ${discovered.length} ad accounts via /me/adaccounts:`)
+    console.log(`[Meta Sync] All discovered accounts (${discovered.length}):`)
     for (const a of discovered) {
       const id = a.id.startsWith('act_') ? a.id : `act_${a.id}`
-      console.log(`  ${id}  name="${a.name}"  amount_spent=${a.amount_spent ?? '?'}  status=${a.account_status}`)
+      console.log(`  ${id}  name="${a.name}"  amount_spent=${a.amount_spent ?? '?'}`)
     }
 
     // Build deduplicated list — always include the known Elle Wilder account + stored ID
@@ -62,8 +91,8 @@ export async function POST(req: NextRequest) {
       if (!seen.has(id)) { seen.add(id); allAccounts.push({ id, name }) }
     }
 
-    // Prefer the known account first so it's tried before any others
-    addAccount(FALLBACK_ACCOUNT_ID, 'Elle Wilder Books (hardcoded)')
+    // Prefer the known Elle Wilder Books account first
+    addAccount(ELLE_WILDER_AD_ACCOUNT, 'Elle Wilder Books (hardcoded)')
     for (const a of discovered) addAccount(a.id, a.name)
     if (user.metaAdAccountId) addAccount(user.metaAdAccountId, 'stored account')
 
