@@ -2,6 +2,7 @@
 // components/TopBar.tsx — three-zone header: greeting | check-in + status + upload
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { ConnectionStatus } from './ConnectionStatus'
 
 const DAILY_CHECKS = [
   { key: 'priorities', label: 'Review priorities' },
@@ -28,31 +29,18 @@ export function TopBar({ user }: TopBarProps) {
   const [checkOpen, setCheckOpen] = useState(false)
   const checkRef = useRef<HTMLDivElement>(null)
 
-  // Connection status
-  const [mlConnected, setMlConnected] = useState<boolean | null>(null)
-  const [mlSubs, setMlSubs] = useState(0)
-  const [statusOpen, setStatusOpen] = useState(false)
-  const statusRef = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
     const key = `daily-check-${getTodayKey()}`
     try {
       const stored = localStorage.getItem(key)
       if (stored) setChecks(JSON.parse(stored))
     } catch {}
-
-    // Check MailerLite connection
-    fetch('/api/mailerlite')
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { setMlConnected(true); setMlSubs(d.data?.listSize ?? 0) })
-      .catch(() => setMlConnected(false))
   }, [])
 
-  // Close popovers on outside click
+  // Close check-in popover on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (checkRef.current && !checkRef.current.contains(e.target as Node)) setCheckOpen(false)
-      if (statusRef.current && !statusRef.current.contains(e.target as Node)) setStatusOpen(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
@@ -138,43 +126,7 @@ export function TopBar({ user }: TopBarProps) {
           </div>
 
           {/* Connection status */}
-          <div ref={statusRef} className="relative">
-            <button
-              onClick={() => setStatusOpen(o => !o)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all hover:bg-stone-50"
-              style={{ background: 'white', border: '0.5px solid #EEEBE6', color: '#1E2D3D', cursor: 'pointer' }}
-            >
-              <span className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ background: mlConnected === null ? '#D1D5DB' : mlConnected ? '#34d399' : '#E9A020' }} />
-              {mlConnected ? 'MailerLite' : mlConnected === false ? 'Check API' : '...'}
-            </button>
-
-            {statusOpen && (
-              <div className="absolute right-0 top-full mt-2 z-50 rounded-xl shadow-lg"
-                style={{ width: 240, background: 'white', border: '0.5px solid #EEEBE6', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
-                <div className="p-4">
-                  <div className="text-[13px] font-medium mb-3" style={{ color: '#1E2D3D' }}>Connections</div>
-                  <div className="flex items-center gap-2.5 mb-2">
-                    <span className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ background: mlConnected ? '#34d399' : '#E9A020' }} />
-                    <div>
-                      <div className="text-[12px] font-medium" style={{ color: '#1E2D3D' }}>
-                        {mlConnected ? 'MailerLite connected' : 'MailerLite — check API key'}
-                      </div>
-                      {mlConnected && mlSubs > 0 && (
-                        <div className="text-[11px]" style={{ color: '#6B7280' }}>{mlSubs.toLocaleString()} subscribers</div>
-                      )}
-                      {!mlConnected && (
-                        <Link href="/dashboard/settings" className="text-[11px] font-semibold no-underline hover:underline" style={{ color: '#E9A020' }}>
-                          Fix in Settings →
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <ConnectionStatus />
 
           {/* Upload button */}
           <Link href="/dashboard/upload"
