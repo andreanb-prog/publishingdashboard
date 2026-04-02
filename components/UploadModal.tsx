@@ -273,7 +273,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                         or {isTouch ? 'tap' : 'click'} to browse
                       </div>
                       <div className="text-[11px] mt-2" style={{ color: '#9CA3AF' }}>
-                        KDP report · Meta CSV · Pinterest CSV
+                        KDP report · Meta .xlsx or .csv · Pinterest CSV
                       </div>
                     </div>
                   </div>
