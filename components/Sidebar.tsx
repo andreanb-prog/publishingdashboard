@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
-import { House, UploadSimple, GraduationCap, Gear, SignOut } from '@phosphor-icons/react'
+import { House, GraduationCap, Gear, SignOut } from '@phosphor-icons/react'
 import {
   IconKDP, IconMeta, IconMailerLite, IconPinterest, IconSwaps,
   IconMetrics, IconRank, IconROAS, IconListBuilding, IconMyData,
@@ -20,8 +20,7 @@ function custom(Icon: (props: { size?: number; color?: string }) => React.ReactN
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'My Dashboard',     href: '/dashboard',        render: phosphor(House) },
-  { label: 'Upload & Analyze', href: '/dashboard/upload',  render: phosphor(UploadSimple) },
+  { label: 'My Dashboard', href: '/dashboard', render: phosphor(House) },
 ]
 
 const CHANNEL_ITEMS: NavItem[] = [

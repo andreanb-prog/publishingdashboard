@@ -123,7 +123,7 @@ export async function GET() {
       status: 'red',
       text: 'No data yet',
       actionText: 'Upload →',
-      actionHref: '/dashboard/upload',
+      actionHref: '/dashboard?upload=1',
     }
   } else {
     const daysSince = (now.getTime() - latestAnalysis.createdAt.getTime()) / (1000 * 60 * 60 * 24)

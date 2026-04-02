@@ -523,7 +523,7 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                 </div>
 
                 <button
-                  onClick={kdpFiles.length > 0 || metaFiles.length > 0 ? runAnalysis : () => router.push('/dashboard/upload')}
+                  onClick={kdpFiles.length > 0 || metaFiles.length > 0 ? runAnalysis : () => router.push('/dashboard?upload=1')}
                   className="px-8 py-3.5 rounded-xl text-[16px] font-bold border-none cursor-pointer transition-all hover:opacity-90"
                   style={{ background: '#e9a020', color: '#0d1f35' }}
                 >

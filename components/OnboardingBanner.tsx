@@ -70,7 +70,7 @@ export function OnboardingBanner({ analysesCount }: { analysesCount: number }) {
         </p>
         <div className="flex items-center gap-4">
           <a
-            href="/dashboard/upload"
+            href="/dashboard?upload=1"
             className="inline-block px-5 py-2.5 rounded-lg text-[13.5px] font-semibold no-underline"
             style={{ background: '#e9a020', color: '#0d1f35' }}
           >

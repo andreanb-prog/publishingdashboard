@@ -105,7 +105,7 @@ export function DarkKPIStrip({ items, cols = 4 }: DarkKPIProps) {
                   <rect x="17" y="4" width="4" height="17" rx="1" fill="#1E2D3D" />
                 </svg>
                 <div className="text-[12px] mb-1" style={{ color: '#6B7280' }}>No data yet</div>
-                <Link href="/dashboard/upload" className="text-[11px] font-semibold no-underline hover:underline"
+                <Link href="/dashboard?upload=1" className="text-[11px] font-semibold no-underline hover:underline"
                   style={{ color: '#E9A020' }}>
                   Upload to unlock →
                 </Link>

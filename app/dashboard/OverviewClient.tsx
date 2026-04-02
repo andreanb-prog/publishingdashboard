@@ -425,7 +425,7 @@ export function OverviewClient() {
           <span className="text-[16px]">⚠️</span>
           <span className="text-[13px] font-semibold" style={{ color: '#D97706' }}>
             Data may be outdated —{' '}
-            <Link href="/dashboard/upload" className="underline hover:no-underline" style={{ color: '#E9A020' }}>
+            <Link href="/dashboard?upload=1" className="underline hover:no-underline" style={{ color: '#E9A020' }}>
               upload your latest KDP report
             </Link>
           </span>
@@ -467,7 +467,7 @@ export function OverviewClient() {
                     <rect x="17" y="4" width="4" height="17" rx="1" fill="#1E2D3D" />
                   </svg>
                   <div className="text-[12px] mb-1" style={{ color: '#6B7280' }}>No data yet</div>
-                  <Link href="/dashboard/upload" className="text-[11px] font-semibold no-underline hover:underline"
+                  <Link href="/dashboard?upload=1" className="text-[11px] font-semibold no-underline hover:underline"
                     style={{ color: '#E9A020' }}>
                     Upload to unlock →
                   </Link>
@@ -495,7 +495,7 @@ export function OverviewClient() {
                 : item.channel === 'meta' ? '/dashboard/meta'
                 : item.channel === 'email' ? '/dashboard/mailerlite'
                 : item.channel === 'pinterest' ? '/dashboard/pinterest'
-                : '/dashboard/upload'
+                : '/dashboard?upload=1'
               const colors = ['#F97B6B', '#E9A020', '#60A5FA']
               const color = colors[i] ?? colors[2]
               const isOpen = expandedPriority === i
@@ -687,7 +687,7 @@ export function OverviewClient() {
                     <p className="text-sm text-stone-500 mb-4">
                       Drop your KDP report, Meta export, and Pinterest CSV to get a personalized action plan.
                     </p>
-                    <Link href="/dashboard/upload" className="btn-primary no-underline inline-block">
+                    <Link href="/dashboard?upload=1" className="btn-primary no-underline inline-block">
                       Upload Files →
                     </Link>
                   </div>

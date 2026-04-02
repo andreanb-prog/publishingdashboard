@@ -4,6 +4,10 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { List, X, House, UploadSimple, GraduationCap, Gear } from '@phosphor-icons/react'
+
+function openUploadModal() {
+  window.dispatchEvent(new CustomEvent('open-upload-modal'))
+}
 import {
   IconKDP, IconMeta, IconMailerLite, IconSwaps, IconPinterest,
   IconMetrics, IconRank, IconROAS, IconListBuilding, IconMyData,
@@ -26,7 +30,6 @@ function ic(Icon: (props: { size?: number; color?: string }) => React.ReactNode,
 
 const ALL_NAV: NavEntry[] = [
   { section: 'Overview', label: 'My Dashboard',   href: '/dashboard',              render: ph(House) },
-  { label: 'Upload & Analyze',                    href: '/dashboard/upload',       render: ph(UploadSimple) },
   { section: 'Channels', label: 'KDP',            href: '/dashboard/kdp',          render: ic(IconKDP, '#E9A020') },
   { label: 'Meta / Facebook',                     href: '/dashboard/meta',         render: ic(IconMeta, '#60A5FA') },
   { label: 'MailerLite',                           href: '/dashboard/mailerlite',   render: ic(IconMailerLite, '#34d399') },
@@ -67,14 +70,14 @@ export function MobileNav() {
           <span style={{ color: '#4A7290', fontWeight: 700 }}>Author</span>
           <span style={{ color: '#E9A020', fontWeight: 700 }}>Dash</span>
         </div>
-        <Link
-          href="/dashboard/upload"
-          className="w-10 h-10 flex items-center justify-center rounded-lg no-underline"
-          style={{ background: '#e9a020', color: '#0d1f35' }}
+        <button
+          onClick={openUploadModal}
+          className="w-10 h-10 flex items-center justify-center rounded-lg"
+          style={{ background: '#e9a020', color: '#0d1f35', border: 'none', cursor: 'pointer' }}
           aria-label="Upload files"
         >
           <UploadSimple size={18} weight="bold" />
-        </Link>
+        </button>
       </div>
 
       {/* Overlay */}

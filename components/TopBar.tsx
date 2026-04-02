@@ -1,8 +1,8 @@
 'use client'
 // components/TopBar.tsx — three-zone header: greeting | check-in + status + upload
 import { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
 import { ConnectionStatus } from './ConnectionStatus'
+import { UploadModal } from './UploadModal'
 
 const DAILY_CHECKS = [
   { key: 'priorities', label: 'Review priorities' },
@@ -56,6 +56,34 @@ export function TopBar({ user }: TopBarProps) {
 
   const doneCount = DAILY_CHECKS.filter(c => checks[c.key]).length
   const allDone = doneCount === DAILY_CHECKS.length
+
+  // Upload modal state
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const [showToast, setShowToast] = useState(false)
+
+  // Open modal from custom event (fired by MobileNav or any other component)
+  useEffect(() => {
+    function onOpenUpload() { setUploadOpen(true) }
+    window.addEventListener('open-upload-modal', onOpenUpload)
+    return () => window.removeEventListener('open-upload-modal', onOpenUpload)
+  }, [])
+
+  // Open modal when ?upload=1 query param is present (used by "Upload to unlock" links)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('upload') === '1') {
+      setUploadOpen(true)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('upload')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [])
+
+  function handleUploadSuccess() {
+    setUploadOpen(false)
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 4000)
+  }
 
   return (
     <header className="flex-shrink-0" style={{ background: '#FFFFFF', borderBottom: '1px solid #EEEBE6' }}>
@@ -129,13 +157,41 @@ export function TopBar({ user }: TopBarProps) {
           <ConnectionStatus />
 
           {/* Upload button */}
-          <Link href="/dashboard/upload"
-            className="px-3 py-1.5 rounded-lg text-[12px] font-semibold no-underline transition-all hover:opacity-90"
-            style={{ background: '#E9A020', color: '#0d1f35' }}>
+          <button
+            onClick={() => setUploadOpen(true)}
+            className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all hover:opacity-90"
+            style={{ background: '#E9A020', color: '#0d1f35', border: 'none', cursor: 'pointer' }}>
             Upload Files
-          </Link>
+          </button>
         </div>
       </div>
+
+      {/* Toast — success notification */}
+      {showToast && (
+        <div
+          className="fixed bottom-6 left-1/2 z-[200] flex items-center gap-2.5 px-5 py-3 rounded-xl shadow-lg"
+          style={{
+            transform: 'translateX(-50%)',
+            background: '#6EBF8B',
+            color: 'white',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8L6.5 11.5L13 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Files analyzed! Dashboard updated.
+        </div>
+      )}
+
+      {/* Upload modal — always rendered so input stays in DOM */}
+      <UploadModal
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onSuccess={handleUploadSuccess}
+      />
     </header>
   )
 }

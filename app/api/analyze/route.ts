@@ -91,7 +91,7 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
     "topActions": [
       {"label": "short action label", "href": "/dashboard/kdp"},
       {"label": "short action label", "href": "/dashboard/meta"},
-      {"label": "short action label", "href": "/dashboard/upload"}
+      {"label": "short action label", "href": "/dashboard?upload=1"}
     ]
   },
   "crossChannelPlan": {

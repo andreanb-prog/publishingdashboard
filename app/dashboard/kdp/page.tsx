@@ -451,7 +451,7 @@ export default function KDPPage() {
           <div className="text-4xl mb-4">📚</div>
           <div className="text-xl font-semibold mb-2" style={{ color: '#1E2D3D' }}>No KDP data yet</div>
           <p className="text-sm mb-4">Upload your KDP Excel report to see your analysis</p>
-          <a href="/dashboard/upload" className="inline-block px-6 py-2.5 rounded-lg font-semibold text-sm no-underline"
+          <a href="/dashboard?upload=1" className="inline-block px-6 py-2.5 rounded-lg font-semibold text-sm no-underline"
             style={{ background: '#e9a020', color: '#0d1f35' }}>
             Upload Files →
           </a>

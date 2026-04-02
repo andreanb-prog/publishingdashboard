@@ -137,7 +137,7 @@ export default function DataVaultPage() {
               </div>
             </div>
             <a
-              href="/dashboard/upload"
+              href="/dashboard?upload=1"
               className="flex-shrink-0 px-4 py-2.5 rounded-lg text-[13px] font-bold no-underline transition-all"
               style={{ background: '#E9A020', color: '#0d1f35' }}
             >

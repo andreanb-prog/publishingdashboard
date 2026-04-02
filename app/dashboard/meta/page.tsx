@@ -91,7 +91,7 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
       num: '2',
       title: 'Upload those screenshots for analysis',
       body: 'Drop competitor screenshots into the Upload page. Your AI coach will break down what\'s working in your genre — hook type, image style, emotional pull — that you might not be doing yet.',
-      link: { label: 'Upload competitor ads →', href: '/dashboard/upload' },
+      link: { label: 'Upload competitor ads →', href: '/dashboard?upload=1' },
     },
     {
       num: '3',
@@ -474,7 +474,7 @@ export default function MetaPage() {
           <div className="text-4xl mb-4">📣</div>
           <div className="font-serif text-xl mb-2" style={{ color: '#1E2D3D' }}>No Meta data yet</div>
           <p className="text-sm mb-4">Upload your Meta Ads CSV to see your ad analysis</p>
-          <a href="/dashboard/upload" className="inline-block px-6 py-2.5 rounded-lg font-semibold text-sm no-underline"
+          <a href="/dashboard?upload=1" className="inline-block px-6 py-2.5 rounded-lg font-semibold text-sm no-underline"
             style={{ background: '#e9a020', color: '#0d1f35' }}>Upload Files →</a>
         </div>
       ) : (

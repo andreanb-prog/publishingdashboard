@@ -216,7 +216,7 @@ export function ConnectionStatus() {
               } else if (key === 'kdp') {
                 syncBtn = (
                   <Link
-                    href="/dashboard/upload"
+                    href="/dashboard?upload=1"
                     className="text-[10px] font-semibold no-underline hover:underline"
                     style={{ color: '#E9A020' }}
                     onClick={() => setOpen(false)}
