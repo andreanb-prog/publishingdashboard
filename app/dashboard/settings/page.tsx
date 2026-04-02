@@ -255,7 +255,7 @@ export default function SettingsPage() {
 
   useEffect(() => { loadSettings() }, [loadSettings]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Strip Facebook fragment + handle meta=error
+  // Strip Facebook fragment + handle meta=connected / meta=error
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (window.location.hash === '#_=_') {
@@ -263,37 +263,31 @@ export default function SettingsPage() {
         ? window.history.replaceState(null, '', window.location.href.split('#')[0])
         : (window.location.hash = '')
     }
+    if (window.location.search.includes('meta=connected')) {
+      setMetaConnected(true)
+      setMetaSuccess(true)
+      setTimeout(() => setMetaSuccess(false), 4000)
+      // Kick off a sync in the background
+      fetch('/api/meta/sync', { method: 'POST' }).catch(() => {})
+      const cleanUrl = window.location.pathname + window.location.search.replace(/[?&]?meta=connected/, '')
+      window.history.replaceState(null, '', cleanUrl || window.location.pathname)
+    }
     if (window.location.search.includes('meta=error')) {
       setMetaError(true)
-      const cleanUrl = window.location.pathname + window.location.search.replace(/[?&]meta=error/, '')
+      const cleanUrl = window.location.pathname + window.location.search.replace(/[?&]?meta=error/, '')
       window.history.replaceState(null, '', cleanUrl || window.location.pathname)
     }
   }, [])
 
   // ── Meta handlers ─────────────────────────────────────────────────────────
-  async function onMetaPopupClosed() {
-    setMetaSyncing(true)
-    try {
-      const d = await fetch('/api/settings').then(r => r.json())
-      if (d.metaConnected) {
-        setMetaConnected(true)
-        setMetaLastSync(d.metaLastSync ?? null)
-        try { await fetch('/api/meta/sync', { method: 'POST' }) } catch {}
-        const d2 = await fetch('/api/settings').then(r => r.json()).catch(() => d)
-        setMetaLastSync(d2.metaLastSync ?? null)
-        setMetaSuccess(true)
-        setTimeout(() => setMetaSuccess(false), 4000)
-      }
-    } catch {}
-    setMetaSyncing(false)
-  }
-
   function connectMeta() {
-    const popup = window.open('/api/meta/connect', 'meta_oauth', 'width=600,height=700,left=200,top=100')
-    if (!popup) return
-    const check = setInterval(() => {
-      if (popup.closed) { clearInterval(check); onMetaPopupClosed() }
-    }, 500)
+    console.log('[Meta] Connect button clicked — redirecting to OAuth')
+    try {
+      window.location.href = '/api/meta/connect'
+    } catch (err) {
+      console.error('[Meta] Failed to initiate OAuth redirect:', err)
+      showToast('Could not connect to Meta. Please try again.')
+    }
   }
 
   async function handleMetaSync() {
