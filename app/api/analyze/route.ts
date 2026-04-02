@@ -39,14 +39,16 @@ export async function POST(req: NextRequest) {
     try {
       console.log('=== ANALYZE POST (SSE) ===', { month, hasKdp: !!kdp, hasMeta: !!meta })
 
+      // ── Load existing record once — used for fingerprint cache AND data preservation ──
+      const existingRecord = await db.analysis.findFirst({ where: { userId: session.user.id, month } })
+      const existingData   = (existingRecord?.data as any) ?? {}
+
       // ── Cache / skip-unchanged check ──────────────────────────────────────
       const fp = makeFingerprint(kdp, meta, pinterest)
-      const existing = await db.analysis.findFirst({ where: { userId: session.user.id, month } })
-      if (existing) {
-        const ed = existing.data as any
-        if (ed?.fingerprint === fp && fp !== '' && (ed?.channelScores?.length ?? 0) > 0) {
+      if (existingRecord) {
+        if (existingData?.fingerprint === fp && fp !== '' && (existingData?.channelScores?.length ?? 0) > 0) {
           console.log('=== FINGERPRINT HIT — returning cached analysis ===')
-          await send({ type: 'complete', analysis: ed, cached: true })
+          await send({ type: 'complete', analysis: existingData, cached: true })
           return
         }
       }
@@ -149,18 +151,33 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
         return
       }
 
+      // ── Preserve existing channel data — never wipe unless new upload has ≥1 valid row ──
+      const kdpToSave = (kdp && (kdp.books?.length > 0 || kdp.totalUnits > 0))
+        ? kdp : (existingData.kdp ?? undefined)
+      const metaToSave = (meta && (meta.ads?.length > 0 || meta.totalClicks > 0))
+        ? meta : (existingData.meta ?? undefined)
+      const pinToSave = (pinterest && (pinterest.pinCount > 0 || pinterest.totalImpressions > 0))
+        ? pinterest : (existingData.pinterest ?? undefined)
+      const mlToSave = mailerLite ?? existingData.mailerLite ?? undefined
+
+      console.log('=== channel preservation ===', {
+        kdp:       kdpToSave  ? `${kdpToSave.totalUnits} units`  : 'none',
+        meta:      metaToSave ? `${metaToSave.totalClicks} clicks` : 'none',
+        pinterest: pinToSave  ? `${pinToSave.pinCount} pins`      : 'none',
+      })
+
       // ── Confidence scoring gate ───────────────────────────────────────────
       const isNewUser      = historical.length === 0
-      const totalAds       = meta?.ads?.length ?? 0
-      const daysOfData     = kdp || meta ? 30 : 0
+      const totalAds       = metaToSave?.ads?.length ?? 0
+      const daysOfData     = kdpToSave || metaToSave ? 30 : 0
       const confidenceReady = !isNewUser && daysOfData >= 14 && totalAds >= 3
 
       const analysis: Analysis & Record<string, unknown> = {
         month,
-        kdp:        kdp        ?? undefined,
-        meta:       meta       ?? undefined,
-        mailerLite: mailerLite ?? undefined,
-        pinterest:  pinterest  ?? undefined,
+        kdp:        kdpToSave  ?? undefined,
+        meta:       metaToSave ?? undefined,
+        mailerLite: mlToSave   ?? undefined,
+        pinterest:  pinToSave  ?? undefined,
         fingerprint: fp,
         overallVerdict:  coachingData.overview?.headline || coachingData.overview?.subline || '',
         insights:        coachingData.actionPlan  || [],
@@ -180,10 +197,9 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
 
       console.log('=== saving ===', { userId: session.user.id, month })
 
-      // findFirst + update/create avoids upsert constraint edge cases
-      const existingForSave = await db.analysis.findFirst({ where: { userId: session.user.id, month } })
-      if (existingForSave) {
-        await db.analysis.update({ where: { id: existingForSave.id }, data: { data: analysis as any } })
+      // Use the already-loaded existingRecord — no second DB round-trip needed
+      if (existingRecord) {
+        await db.analysis.update({ where: { id: existingRecord.id }, data: { data: analysis as any } })
       } else {
         await db.analysis.create({ data: { userId: session.user.id, month, data: analysis as any } })
       }
