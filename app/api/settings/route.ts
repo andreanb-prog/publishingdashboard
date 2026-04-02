@@ -20,10 +20,26 @@ export async function GET() {
     select: { apiKey: true, mailerLiteKey: true, books: true },
   })
 
+  // Check Meta connection via raw SQL (columns may not exist)
+  let metaConnected = false
+  let metaLastSync: string | null = null
+  try {
+    const rows = await db.$queryRawUnsafe<any[]>(
+      `SELECT "metaAccessToken", "metaLastSync" FROM "User" WHERE "id" = $1 LIMIT 1`,
+      session.user.id
+    )
+    if (rows[0]?.metaAccessToken) {
+      metaConnected = true
+      metaLastSync = rows[0].metaLastSync ? new Date(rows[0].metaLastSync).toISOString() : null
+    }
+  } catch { /* columns may not exist */ }
+
   return NextResponse.json({
     claudeKey:     user?.apiKey        ? mask(user.apiKey)        : null,
     mailerLiteKey: user?.mailerLiteKey ? mask(user.mailerLiteKey) : null,
     books:         user?.books ?? [],
+    metaConnected,
+    metaLastSync,
   })
 }
 

@@ -52,6 +52,11 @@ model User {
   genreCategory  String?
   genreSubgenre  String?
   referralSource String?
+  // Meta Ads
+  metaAccessToken  String?
+  metaAdAccountId  String?
+  metaTokenExpires DateTime?
+  metaLastSync     DateTime?
   // Stripe subscription
   stripeCustomerId     String?   @unique
   stripeSubscriptionId String?

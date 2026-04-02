@@ -134,6 +134,8 @@ export default function SettingsPage() {
   const [testState,      setTestState]      = useState<TestState>('idle')
   const [testResult,     setTestResult]     = useState<string>('')
 
+  const [metaConnected,  setMetaConnected]  = useState(false)
+  const [metaLastSync,   setMetaLastSync]   = useState<string | null>(null)
   const [books,          setBooks]          = useState<BookEntry[]>([])
   const [booksSaveState, setBooksSaveState] = useState<SaveState>('idle')
   const [editingId,      setEditingId]      = useState<string | null>(null)
@@ -149,6 +151,8 @@ export default function SettingsPage() {
       .then(d => {
         setHasSavedML(!!d.mailerLiteKey)
         setHasSavedClaude(!!d.claudeKey)
+        setMetaConnected(!!d.metaConnected)
+        setMetaLastSync(d.metaLastSync ?? null)
         // load benchmarks/goals
         fetch('/api/prefs').then(r => r.json()).then(p => {
           const g = p.goals ?? {}
@@ -548,6 +552,36 @@ export default function SettingsPage() {
             </span>
           )}
         </div>
+      </div>
+
+      {/* ─── Meta Ads ─────────────────────────────────────────────────── */}
+      <div className="card p-6 mb-4">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+            style={{ background: 'rgba(96,165,250,0.1)' }}>📣</div>
+          <div className="flex-1">
+            <div className="font-bold text-[#0d1f35] text-[14px]">Meta Ads</div>
+            <div className="text-[11.5px] text-stone-500">Connect to auto-sync your ad performance daily</div>
+          </div>
+          {metaConnected ? (
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full"
+              style={{ background: 'rgba(110,191,139,0.1)', color: '#6EBF8B' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#6EBF8B' }} />
+              Connected
+            </span>
+          ) : (
+            <a href="/api/meta/connect"
+              className="px-4 py-2 rounded-lg text-[12px] font-semibold no-underline transition-all hover:opacity-90"
+              style={{ background: '#60A5FA', color: 'white' }}>
+              Connect Meta Ads →
+            </a>
+          )}
+        </div>
+        {metaConnected && metaLastSync && (
+          <div className="text-[11px] px-3 py-2 rounded-lg" style={{ background: '#F5F5F4', color: '#6B7280' }}>
+            Last synced: {new Date(metaLastSync).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+          </div>
+        )}
       </div>
 
       {/* ─── Claude ──────────────────────────────────────────────────────── */}
