@@ -58,7 +58,11 @@ export async function GET(req: NextRequest) {
     )
 
     console.log('[Meta Callback] Saved for user:', userId)
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/dashboard/meta?connected=true`)
+
+    // Return HTML that closes the popup and notifies the parent window
+    const origin = process.env.NEXTAUTH_URL ?? 'https://authordash.io'
+    const html = `<!DOCTYPE html><html><body><script>if(window.opener){window.opener.postMessage({type:'META_CONNECTED',success:true},'${origin}');window.close()}else{window.location.href='/dashboard/settings?meta=connected'}<\/script><p style="font-family:sans-serif;color:#1E2D3D;padding:20px">Connected! Closing window...</p></body></html>`
+    return new Response(html, { headers: { 'Content-Type': 'text/html' } })
 
   } catch (err) {
     console.error('[Meta Callback] Error:', err)

@@ -50,6 +50,15 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
 
+  // Disconnect Meta Ads
+  if (body.action === 'disconnect-meta') {
+    await db.$executeRawUnsafe(
+      `UPDATE "User" SET "metaAccessToken" = NULL, "metaAdAccountId" = NULL, "metaTokenExpires" = NULL, "metaLastSync" = NULL WHERE "id" = $1`,
+      session.user.id
+    )
+    return NextResponse.json({ success: true })
+  }
+
   // Test a MailerLite key without saving it
   if (body.action === 'test-mailerlite') {
     const key = body.key?.trim()

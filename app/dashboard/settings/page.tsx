@@ -136,6 +136,8 @@ export default function SettingsPage() {
 
   const [metaConnected,  setMetaConnected]  = useState(false)
   const [metaLastSync,   setMetaLastSync]   = useState<string | null>(null)
+  const [metaSyncing,    setMetaSyncing]    = useState(false)
+  const [metaSuccess,    setMetaSuccess]    = useState(false)
   const [books,          setBooks]          = useState<BookEntry[]>([])
   const [booksSaveState, setBooksSaveState] = useState<SaveState>('idle')
   const [editingId,      setEditingId]      = useState<string | null>(null)
@@ -144,41 +146,78 @@ export default function SettingsPage() {
   const [benchmarks,      setBenchmarks]      = useState({ email_open_rate: '25', email_click_rate: '2', meta_cpc: '0.15', meta_ctr: '15' })
   const [benchmarksSave,  setBenchmarksSave]  = useState<SaveState>('idle')
 
-  // Load keys + books on mount
-  useEffect(() => {
-    fetch('/api/settings')
-      .then(r => r.json())
-      .then(d => {
-        setHasSavedML(!!d.mailerLiteKey)
-        setHasSavedClaude(!!d.claudeKey)
-        setMetaConnected(!!d.metaConnected)
-        setMetaLastSync(d.metaLastSync ?? null)
-        // load benchmarks/goals
-        fetch('/api/prefs').then(r => r.json()).then(p => {
-          const g = p.goals ?? {}
-          setBenchmarks({
-            email_open_rate: g.email_open_rate != null ? String(g.email_open_rate) : '25',
-            email_click_rate: g.email_click_rate != null ? String(g.email_click_rate) : '2',
-            meta_cpc: g.meta_cpc != null ? String(g.meta_cpc) : '0.15',
-            meta_ctr: g.meta_ctr != null ? String(g.meta_ctr) : '15',
-          })
-        }).catch(() => {})
+  // Load keys + meta status + books (called on mount and after OAuth)
+  async function loadSettings() {
+    try {
+      const d = await fetch('/api/settings').then(r => r.json())
+      setHasSavedML(!!d.mailerLiteKey)
+      setHasSavedClaude(!!d.claudeKey)
+      setMetaConnected(!!d.metaConnected)
+      setMetaLastSync(d.metaLastSync ?? null)
+      fetch('/api/prefs').then(r => r.json()).then(p => {
+        const g = p.goals ?? {}
+        setBenchmarks({
+          email_open_rate: g.email_open_rate != null ? String(g.email_open_rate) : '25',
+          email_click_rate: g.email_click_rate != null ? String(g.email_click_rate) : '2',
+          meta_cpc: g.meta_cpc != null ? String(g.meta_cpc) : '0.15',
+          meta_ctr: g.meta_ctr != null ? String(g.meta_ctr) : '15',
+        })
+      }).catch(() => {})
+      if (Array.isArray(d.books)) {
+        setBooks(d.books.map((b: Omit<BookEntry, 'id'> & { id?: string; category?: string }) => ({
+          ...b,
+          id: b.id ?? crypto.randomUUID(),
+          categories: Array.isArray(b.categories) ? b.categories : b.category ? [b.category] : [],
+        })))
+      }
+    } catch {}
+  }
 
-        if (Array.isArray(d.books)) {
-          setBooks(d.books.map((b: Omit<BookEntry, 'id'> & { id?: string; category?: string }) => ({
-            ...b,
-            id: b.id ?? crypto.randomUUID(),
-            // Normalize: old data may have single string `category`
-            categories: Array.isArray(b.categories)
-              ? b.categories
-              : b.category
-              ? [b.category]
-              : [],
-          })))
-        }
-      })
-      .catch(() => {})
-  }, [])
+  useEffect(() => { loadSettings() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for Meta OAuth popup completing
+  useEffect(() => {
+    async function handleMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return
+      if (event.data?.type !== 'META_CONNECTED') return
+      // Trigger immediate sync so ad data starts populating
+      setMetaSyncing(true)
+      try {
+        await fetch('/api/meta/sync', { method: 'POST' })
+      } catch {}
+      await loadSettings()
+      setMetaSyncing(false)
+      setMetaSuccess(true)
+      setTimeout(() => setMetaSuccess(false), 4000)
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Meta Ads handlers ─────────────────────────────────────────────────────
+  function connectMeta() {
+    window.open('/api/meta/connect', 'meta_oauth', 'width=600,height=700,left=200,top=100')
+  }
+
+  async function handleMetaSync() {
+    setMetaSyncing(true)
+    try {
+      await fetch('/api/meta/sync', { method: 'POST' })
+      await loadSettings()
+    } finally {
+      setMetaSyncing(false)
+    }
+  }
+
+  async function handleMetaDisconnect() {
+    await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'disconnect-meta' }),
+    })
+    setMetaConnected(false)
+    setMetaLastSync(null)
+  }
 
   // ── API key handlers ──────────────────────────────────────────────────────
   async function handleSave() {
@@ -556,7 +595,7 @@ export default function SettingsPage() {
 
       {/* ─── Meta Ads ─────────────────────────────────────────────────── */}
       <div className="card p-6 mb-4">
-        <div className="flex items-center gap-3 mb-5">
+        <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
             style={{ background: 'rgba(96,165,250,0.1)' }}>📣</div>
           <div className="flex-1">
@@ -570,16 +609,42 @@ export default function SettingsPage() {
               Connected
             </span>
           ) : (
-            <a href="/api/meta/connect"
-              className="px-4 py-2 rounded-lg text-[12px] font-semibold no-underline transition-all hover:opacity-90"
+            <button
+              onClick={connectMeta}
+              className="px-4 py-2 rounded-lg text-[12px] font-semibold transition-all hover:opacity-90 border-none cursor-pointer"
               style={{ background: '#60A5FA', color: 'white' }}>
               Connect Meta Ads →
-            </a>
+            </button>
           )}
         </div>
-        {metaConnected && metaLastSync && (
-          <div className="text-[11px] px-3 py-2 rounded-lg" style={{ background: '#F5F5F4', color: '#6B7280' }}>
-            Last synced: {new Date(metaLastSync).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+
+        {metaSuccess && (
+          <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg text-[12px] font-semibold"
+            style={{ background: 'rgba(110,191,139,0.1)', color: '#6EBF8B' }}>
+            <span>✓</span> Meta Ads connected! Syncing your ad data now...
+          </div>
+        )}
+
+        {metaConnected && (
+          <div className="flex items-center gap-4">
+            {metaLastSync && (
+              <span className="text-[11px]" style={{ color: '#6B7280' }}>
+                Last synced: {new Date(metaLastSync).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+              </span>
+            )}
+            <button
+              onClick={handleMetaSync}
+              disabled={metaSyncing}
+              className="text-[11px] font-semibold border-none bg-transparent cursor-pointer disabled:opacity-50 hover:underline p-0"
+              style={{ color: '#E9A020' }}>
+              {metaSyncing ? 'Syncing...' : 'Sync now'}
+            </button>
+            <button
+              onClick={handleMetaDisconnect}
+              className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline p-0"
+              style={{ color: '#9CA3AF' }}>
+              Disconnect
+            </button>
           </div>
         )}
       </div>
