@@ -1,12 +1,22 @@
 // lib/mailerlite.ts
 // MailerLite API v3 (connect.mailerlite.com) ONLY.
 // Header: Authorization: Bearer {key}
-// Active count:      GET /api/subscribers?filter[status]=active&limit=1       → meta.total
-// Unsubscribed count: GET /api/subscribers?filter[status]=unsubscribed&limit=1 → meta.total
 // DO NOT use: api.mailerlite.com/api/v2, X-MailerLite-ApiKey header, or any v2 endpoint.
+//
+// SUBSCRIBER COUNTS: The v3 subscribers endpoint uses cursor pagination and does NOT
+// return meta.total reliably. Instead, use GET /api/groups which returns active_count
+// and unsubscribed_count per group without pagination issues.
+//
+// Primary reader list: "Elle Wilder Readers" (group ID 181882019479815771)
+//   active_count: ~1565, unsubscribed_count: ~234
+// We use this group for list size and unsubscribe counts to avoid double-counting
+// subscribers who belong to multiple groups.
 import type { MailerLiteData, MailerLiteAutomation } from '@/types'
 
 const ML = 'https://connect.mailerlite.com/api'
+// Primary reader group — used for accurate subscriber counts
+const PRIMARY_GROUP_ID = '181882019479815771'
+const PRIMARY_GROUP_NAME = 'Elle Wilder Readers'
 
 async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; data: any }> {
   const url = `${ML}${path}`
@@ -31,14 +41,20 @@ async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; dat
 }
 
 // ── Fast count-only helper (used by health checks and key tests) ─────────────
+// Uses /groups endpoint because the subscribers endpoint uses cursor pagination
+// and does not reliably return meta.total.
 export async function getMailerLiteStats(apiKey: string): Promise<{ listSize: number; unsubscribed: number }> {
-  const [activeResult, unsubResult] = await Promise.all([
-    mlFetch('/subscribers?filter[status]=active&limit=1', apiKey),
-    mlFetch('/subscribers?filter[status]=unsubscribed&limit=1', apiKey),
-  ])
-  const listSize = activeResult.data?.meta?.total ?? 0
-  const unsubscribed = unsubResult.data?.meta?.total ?? 0
-  console.log('[MailerLite] stats:', { active: listSize, unsub: unsubscribed })
+  const result = await mlFetch('/groups?limit=100', apiKey)
+  const groups: any[] = result.data?.data ?? []
+
+  // Find primary group by ID first, fall back to name match
+  const primary =
+    groups.find((g: any) => String(g.id) === PRIMARY_GROUP_ID) ??
+    groups.find((g: any) => String(g.name ?? '').includes(PRIMARY_GROUP_NAME))
+
+  const listSize = primary?.active_count ?? 0
+  const unsubscribed = primary?.unsubscribed_count ?? 0
+  console.log('[MailerLite] stats from group:', primary?.name, { active: listSize, unsub: unsubscribed })
   return { listSize, unsubscribed }
 }
 
