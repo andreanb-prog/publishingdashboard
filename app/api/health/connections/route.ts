@@ -97,8 +97,11 @@ export async function GET() {
       } else {
         const hoursSinceSync = (now.getTime() - lastSync.getTime()) / (1000 * 60 * 60)
         if (hoursSinceSync <= 24) {
-          const h = Math.floor(hoursSinceSync)
-          meta = { status: 'green', text: `Connected · last synced ${h}h ago` }
+          const minsSince = hoursSinceSync * 60
+          const syncLabel = minsSince < 2 ? 'just now'
+            : minsSince < 60 ? `${Math.floor(minsSince)}m ago`
+            : `${Math.floor(hoursSinceSync)}h ago`
+          meta = { status: 'green', text: `Connected · last synced ${syncLabel}` }
         } else {
           meta = {
             status: 'amber',

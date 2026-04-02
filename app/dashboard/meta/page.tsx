@@ -316,12 +316,16 @@ export default function MetaPage() {
   const pickerRef  = useRef<HTMLDivElement>(null)
   const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  function loadMetaData() {
+    return fetch('/api/analyze')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => { if (d.analysis) setAnalysis(d.analysis as Analysis) })
+      .catch(() => {})
+  }
+
   useEffect(() => {
     Promise.all([
-      fetch('/api/analyze')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(d => { if (d.analysis) setAnalysis(d.analysis as Analysis) })
-        .catch(() => {}),
+      loadMetaData(),
       fetch('/api/prefs')
         .then(r => r.json())
         .then(d => {
@@ -333,7 +337,12 @@ export default function MetaPage() {
         })
         .catch(() => {}),
     ]).finally(() => setLoading(false))
-  }, [])
+
+    // Refresh data when a sync completes from the ConnectionStatus popover
+    function onSynced() { loadMetaData() }
+    window.addEventListener('meta:synced', onSynced)
+    return () => window.removeEventListener('meta:synced', onSynced)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close picker when clicking outside
   useEffect(() => {

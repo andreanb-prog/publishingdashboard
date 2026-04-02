@@ -548,6 +548,14 @@ export default function SettingsPage() {
                 </button>
               )}
             </div>
+            <div className="mt-3 px-3 py-2.5 rounded-lg text-[11.5px] leading-relaxed"
+              style={{ background: 'rgba(233,160,32,0.08)', border: '1px solid rgba(233,160,32,0.25)', color: '#92610a' }}>
+              <span className="font-bold">Meta Ads is in development mode</span> — only your Facebook account can connect right now.{' '}
+              <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer"
+                className="font-semibold hover:underline" style={{ color: '#e9a020' }}>
+                Submit for app review →
+              </a>{' '}to enable it for other users.
+            </div>
             {metaError && !metaConnected && (
               <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg text-[12px] font-semibold"
                 style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>

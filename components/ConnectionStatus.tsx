@@ -117,6 +117,7 @@ export function ConnectionStatus() {
       const res = await fetch('/api/meta/sync', { method: 'POST' })
       if (!res.ok) throw new Error()
       await refreshHealth()
+      window.dispatchEvent(new CustomEvent('meta:synced'))
       setMetaSync('ok')
       setTimeout(() => setMetaSync('idle'), 2500)
     } catch {
