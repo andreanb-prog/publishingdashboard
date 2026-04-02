@@ -122,19 +122,28 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 
 // ── Cover image display ───────────────────────────────────────────────────────
 
-function CoverThumb({ coverUrl, asin, title }: { coverUrl: string | null; asin: string | null; title: string }) {
+// Navy placeholder shown when a book has no cover yet
+function CoverPlaceholder({ color, width = 40, height = 60 }: { color: string; width?: number; height?: number }) {
+  return (
+    <div className="flex flex-col items-center shrink-0" style={{ width }}>
+      <div
+        className="rounded flex items-center justify-center"
+        style={{ width, height, background: '#1E2D3D' }}
+      >
+        <div className="rounded-full" style={{ width: 9, height: 9, background: color }} />
+      </div>
+      <span className="mt-1 text-[10px] text-stone-400 leading-none">Add cover</span>
+    </div>
+  )
+}
+
+function CoverThumb({ coverUrl, asin, title, colorIndex }: { coverUrl: string | null; asin: string | null; title: string; colorIndex: number }) {
   const [errored, setErrored] = useState(false)
   const src = coverUrl || (asin ? `https://images-na.ssl-images-amazon.com/images/P/${asin}.01.LZZZZZZZ.jpg` : null)
+  const color = colorForIndex(colorIndex)
 
   if (!src || errored) {
-    return (
-      <div
-        className="flex items-center justify-center rounded text-[16px] shrink-0"
-        style={{ width: 40, height: 60, background: 'rgba(233,160,32,0.1)', color: '#e9a020' }}
-      >
-        📖
-      </div>
-    )
+    return <CoverPlaceholder color={color} />
   }
   return (
     <img
@@ -189,7 +198,7 @@ function SortableBookCard({
       </button>
 
       {/* Cover */}
-      <CoverThumb coverUrl={book.coverUrl} asin={book.asin} title={book.title} />
+      <CoverThumb coverUrl={book.coverUrl} asin={book.asin} title={book.title} colorIndex={index} />
 
       {/* Info */}
       <div className="flex-1 min-w-0">
@@ -273,11 +282,13 @@ function BookModal({
   onClose,
   onSave,
   isSaving,
+  colorIndex,
 }: {
   editing: Book | null
   onClose: () => void
   onSave: (form: BookForm) => void
   isSaving: boolean
+  colorIndex: number
 }) {
   const [form, setForm] = useState<BookForm>(editing ? bookToForm(editing) : blankForm())
   const fileRef = useRef<HTMLInputElement>(null)
@@ -452,6 +463,38 @@ function BookModal({
               Cover Image
             </label>
 
+            {/* Persistent preview / placeholder */}
+            <div className="flex items-start gap-3 mb-3">
+              {previewSrc && !coverPreviewError ? (
+                <>
+                  <img
+                    src={previewSrc}
+                    alt="Cover preview"
+                    onError={() => setCoverPreviewError(true)}
+                    className="rounded object-cover border border-stone-200 shrink-0"
+                    style={{ width: 48, height: 72 }}
+                  />
+                  <div className="flex flex-col gap-1 pt-1">
+                    <span className="text-[11px] text-stone-500">Cover preview</span>
+                    <button
+                      type="button"
+                      onClick={() => { set('coverUrl', ''); setCoverPreviewError(false) }}
+                      className="text-[11px] text-stone-400 hover:text-red-500 transition-colors border-none bg-transparent cursor-pointer text-left p-0"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <CoverPlaceholder color={colorForIndex(colorIndex)} width={48} height={72} />
+                  <span className="text-[11px] text-stone-400 pt-1 leading-relaxed">
+                    No cover yet — upload a file, paste a URL, or pull from Amazon below.
+                  </span>
+                </>
+              )}
+            </div>
+
             {/* Tabs */}
             <div className="flex gap-1 mb-3 p-1 rounded-lg" style={{ background: 'rgba(30,45,61,0.05)' }}>
               {(['upload', 'url', ...(form.asin ? ['amazon'] : [])] as BookForm['coverTab'][]).map(tab => (
@@ -522,26 +565,6 @@ function BookModal({
               </div>
             )}
 
-            {/* Cover preview */}
-            {previewSrc && !coverPreviewError && (
-              <div className="mt-3 flex items-center gap-3">
-                <img
-                  src={previewSrc}
-                  alt="Cover preview"
-                  onError={() => setCoverPreviewError(true)}
-                  className="rounded object-cover border border-stone-200"
-                  style={{ width: 40, height: 60 }}
-                />
-                <span className="text-[11px] text-stone-500">Cover preview</span>
-                <button
-                  type="button"
-                  onClick={() => { set('coverUrl', ''); setCoverPreviewError(false) }}
-                  className="ml-auto text-[11px] text-stone-400 hover:text-red-500 transition-colors border-none bg-transparent cursor-pointer"
-                >
-                  Remove
-                </button>
-              </div>
-            )}
             {coverPreviewError && (
               <p className="mt-2 text-[11px] text-red-400">Could not load image — check the URL or try uploading instead.</p>
             )}
@@ -579,6 +602,7 @@ export function BookCatalog() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingBook, setEditingBook] = useState<Book | null>(null)
+  const [editingIndex, setEditingIndex] = useState(0)
   const [isSaving, setIsSaving] = useState(false)
   const [reorderSaving, setReorderSaving] = useState(false)
 
@@ -607,12 +631,14 @@ export function BookCatalog() {
   // Open add modal
   function openAdd() {
     setEditingBook(null)
+    setEditingIndex(books.length)
     setModalOpen(true)
   }
 
   // Open edit modal
   function openEdit(book: Book) {
     setEditingBook(book)
+    setEditingIndex(books.findIndex(b => b.id === book.id))
     setModalOpen(true)
   }
 
@@ -752,6 +778,7 @@ export function BookCatalog() {
           onClose={closeModal}
           onSave={handleSave}
           isSaving={isSaving}
+          colorIndex={editingIndex}
         />
       )}
     </div>

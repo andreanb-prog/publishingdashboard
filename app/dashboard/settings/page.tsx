@@ -126,6 +126,12 @@ export default function SettingsPage() {
   const [metaSuccess,    setMetaSuccess]    = useState(false)
   const [metaError,      setMetaError]      = useState(false)
 
+  // Expand key input on connected cards
+  const [showMLKey,     setShowMLKey]     = useState(false)
+  const [showClaudeKey, setShowClaudeKey] = useState(false)
+  const [mlSaveState,     setMLSaveState]     = useState<SaveState>('idle')
+  const [claudeSaveState, setClaudeSaveState] = useState<SaveState>('idle')
+
   // Benchmarks
   const [benchmarks,      setBenchmarks]      = useState({ email_open_rate: '25', email_click_rate: '2', meta_cpc: '0.15', meta_ctr: '15' })
   const [benchmarksSave,  setBenchmarksSave]  = useState<SaveState>('idle')
@@ -267,6 +273,50 @@ export default function SettingsPage() {
     }
   }
 
+  async function saveMLKey() {
+    const key = mailerLiteKey.trim()
+    if (!key) return
+    setMLSaveState('saving')
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mailerLiteKey: key }),
+      })
+      if (!res.ok) throw new Error()
+      setHasSavedML(true)
+      setMailerLiteKey('')
+      setShowMLKey(false)
+      setMLSaveState('saved')
+      setTimeout(() => setMLSaveState('idle'), 3000)
+    } catch {
+      setMLSaveState('error')
+      setTimeout(() => setMLSaveState('idle'), 3000)
+    }
+  }
+
+  async function saveClaudeKey() {
+    const key = claudeKey.trim()
+    if (!key) return
+    setClaudeSaveState('saving')
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ claudeKey: key }),
+      })
+      if (!res.ok) throw new Error()
+      setHasSavedClaude(true)
+      setClaudeKey('')
+      setShowClaudeKey(false)
+      setClaudeSaveState('saved')
+      setTimeout(() => setClaudeSaveState('idle'), 3000)
+    } catch {
+      setClaudeSaveState('error')
+      setTimeout(() => setClaudeSaveState('idle'), 3000)
+    }
+  }
+
   async function saveBenchmarks() {
     setBenchmarksSave('saving')
     try {
@@ -372,158 +422,248 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      {/* ─── MailerLite ──────────────────────────────────────────────────── */}
-      <div className="card p-6 mb-4">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-            style={{ background: 'rgba(52,211,153,0.1)' }}>📧</div>
-          <div>
-            <div className="font-bold text-[#0d1f35] text-[14px]">MailerLite</div>
-            <div className="text-[11.5px] text-stone-500">Pulls your email stats automatically</div>
-          </div>
-        </div>
-
-        <KeyField
-          label="MailerLite API Key"
-          hint="Go to MailerLite → Integrations → API → Create a new token. Paste it here."
-          placeholder="ml_••••••••••••••••••••••••••"
-          value={mailerLiteKey}
-          onChange={setMailerLiteKey}
-          saved={hasSavedML}
-        />
-
-        <div className="flex items-center gap-3 mt-3">
-          <button
-            onClick={handleTest}
-            disabled={testState === 'testing'}
-            className="text-[12.5px] font-semibold px-4 py-2 rounded-lg border border-stone-200
-                       text-stone-600 hover:bg-stone-50 transition-all duration-150
-                       disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {testState === 'testing' ? 'Checking...' : 'Test Connection'}
-          </button>
-          {testResult && (
-            <span className={`text-[12px] font-semibold ${testState === 'ok' ? 'text-emerald-600' : 'text-red-500'}`}>
-              {testState === 'ok' ? '✓ ' : '✕ '}{testResult}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* ─── Meta Ads ─────────────────────────────────────────────────── */}
-      <div className="card p-6 mb-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-            style={{ background: 'rgba(96,165,250,0.1)' }}>📣</div>
-          <div className="flex-1">
-            <div className="font-bold text-[#0d1f35] text-[14px]">Meta Ads</div>
-            <div className="text-[11.5px] text-stone-500">Connect to auto-sync your ad performance daily</div>
-          </div>
-          {metaConnected ? (
-            <span className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full"
-              style={{ background: 'rgba(110,191,139,0.1)', color: '#6EBF8B' }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#6EBF8B' }} />
+      {/* ─── Integrations — sorted: unconnected first, connected last ──── */}
+      {(() => {
+        // ── Connected header row (shared by compact cards) ────────────────
+        function ConnectedBadge() {
+          return (
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(110,191,139,0.15)', color: '#16a34a' }}>
+              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: '#16a34a' }} />
               Connected
             </span>
-          ) : (
-            <button
-              onClick={connectMeta}
-              className="px-4 py-2 rounded-lg text-[12px] font-semibold transition-all hover:opacity-90 border-none cursor-pointer"
-              style={{ background: '#60A5FA', color: 'white' }}>
-              Connect Meta Ads →
-            </button>
-          )}
-        </div>
+          )
+        }
 
-        {metaError && (
-          <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg text-[12px] font-semibold"
-            style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
-            <span>✕</span> Couldn't connect Meta Ads. Check you approved the right permissions and try again.
-          </div>
-        )}
+        // ── MailerLite card ───────────────────────────────────────────────
+        const mlConnected = hasSavedML && !showMLKey
+        const mailerLiteCard = (
+          <div key="mailerlite" className="card mb-4 transition-all"
+            style={{ background: mlConnected ? '#F0FBF5' : 'white', padding: mlConnected ? '14px 20px' : '24px' }}>
+            <div className="flex items-center gap-3" style={{ marginBottom: mlConnected ? 0 : 20 }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0"
+                style={{ background: mlConnected ? 'rgba(22,163,74,0.08)' : 'rgba(52,211,153,0.1)' }}>📧</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-[14px]" style={{ color: mlConnected ? '#374151' : '#0d1f35' }}>
+                  MailerLite
+                </div>
+                {!mlConnected && (
+                  <div className="text-[11.5px] text-stone-500">Pulls your email stats automatically</div>
+                )}
+              </div>
+              {mlConnected && (
+                <div className="flex items-center gap-3 shrink-0">
+                  <ConnectedBadge />
+                  <button
+                    onClick={() => setShowMLKey(true)}
+                    className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline p-0"
+                    style={{ color: '#9CA3AF' }}>
+                    Update key
+                  </button>
+                </div>
+              )}
+            </div>
 
-        {metaSuccess && (
-          <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg text-[12px] font-semibold"
-            style={{ background: 'rgba(110,191,139,0.1)', color: '#6EBF8B' }}>
-            <span>✓</span> Meta Ads connected! Syncing your ad data now...
-          </div>
-        )}
-
-        {metaConnected && (
-          <div className="flex items-center gap-4">
-            {metaLastSync && (
-              <span className="text-[11px]" style={{ color: '#6B7280' }}>
-                Last synced: {new Date(metaLastSync).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-              </span>
+            {!mlConnected && (
+              <>
+                <KeyField
+                  label="MailerLite API Key"
+                  hint="Go to MailerLite → Integrations → API → Create a new token. Paste it here."
+                  placeholder="ml_••••••••••••••••••••••••••"
+                  value={mailerLiteKey}
+                  onChange={setMailerLiteKey}
+                  saved={hasSavedML}
+                />
+                <div className="flex items-center gap-3 mt-3 flex-wrap">
+                  <button
+                    onClick={saveMLKey}
+                    disabled={!mailerLiteKey.trim() || mlSaveState === 'saving'}
+                    className="px-4 py-2 rounded-lg text-[12.5px] font-semibold border-none cursor-pointer transition-all disabled:opacity-40"
+                    style={{ background: '#E9A020', color: '#1E2D3D' }}>
+                    {mlSaveState === 'saving' ? 'Connecting…' : mlSaveState === 'saved' ? '✓ Connected!' : 'Connect →'}
+                  </button>
+                  <button
+                    onClick={handleTest}
+                    disabled={testState === 'testing' || !mailerLiteKey.trim()}
+                    className="text-[12.5px] font-semibold px-4 py-2 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {testState === 'testing' ? 'Checking…' : 'Test first'}
+                  </button>
+                  {testResult && (
+                    <span className={`text-[12px] font-semibold ${testState === 'ok' ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {testState === 'ok' ? '✓ ' : '✕ '}{testResult}
+                    </span>
+                  )}
+                  {showMLKey && (
+                    <button onClick={() => { setShowMLKey(false); setMailerLiteKey('') }}
+                      className="text-[11px] text-stone-400 hover:text-stone-600 border-none bg-transparent cursor-pointer ml-auto">
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </>
             )}
-            <button
-              onClick={handleMetaSync}
-              disabled={metaSyncing}
-              className="text-[11px] font-semibold border-none bg-transparent cursor-pointer disabled:opacity-50 hover:underline p-0"
-              style={{ color: '#E9A020' }}>
-              {metaSyncing ? 'Syncing...' : 'Sync now'}
-            </button>
-            <button
-              onClick={handleMetaDisconnect}
-              className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline p-0"
-              style={{ color: '#9CA3AF' }}>
-              Disconnect
-            </button>
           </div>
-        )}
-      </div>
+        )
 
-      {/* ─── Claude ──────────────────────────────────────────────────────── */}
-      <div className="card p-6 mb-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-            style={{ background: 'rgba(233,160,32,0.1)' }}>🤖</div>
-          <div>
-            <div className="font-bold text-[#0d1f35] text-[14px]">Claude AI</div>
-            <div className="text-[11.5px] text-stone-500">Powers your monthly coaching session</div>
+        // ── Meta Ads card ─────────────────────────────────────────────────
+        const metaCard = (
+          <div key="meta" className="card mb-4 transition-all"
+            style={{ background: metaConnected ? '#F0FBF5' : 'white', padding: metaConnected ? '14px 20px' : '24px' }}>
+            <div className="flex items-center gap-3" style={{ marginBottom: metaConnected ? 0 : 0 }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0"
+                style={{ background: metaConnected ? 'rgba(22,163,74,0.08)' : 'rgba(96,165,250,0.1)' }}>📣</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-[14px]" style={{ color: metaConnected ? '#374151' : '#0d1f35' }}>
+                  Meta Ads
+                </div>
+                {!metaConnected && (
+                  <div className="text-[11.5px] text-stone-500">Connect to auto-sync your ad performance daily</div>
+                )}
+              </div>
+              {metaConnected ? (
+                <div className="flex items-center gap-3 shrink-0 flex-wrap justify-end">
+                  <ConnectedBadge />
+                  {metaLastSync && (
+                    <span className="text-[11px]" style={{ color: '#9CA3AF' }}>
+                      Synced {new Date(metaLastSync).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  )}
+                  <button onClick={handleMetaSync} disabled={metaSyncing}
+                    className="text-[11px] font-semibold border-none bg-transparent cursor-pointer disabled:opacity-50 hover:underline p-0"
+                    style={{ color: '#E9A020' }}>
+                    {metaSyncing ? 'Syncing…' : 'Sync now'}
+                  </button>
+                  <button onClick={handleMetaDisconnect}
+                    className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline p-0"
+                    style={{ color: '#9CA3AF' }}>
+                    Disconnect
+                  </button>
+                </div>
+              ) : (
+                <button onClick={connectMeta}
+                  className="px-4 py-2 rounded-lg text-[12px] font-semibold transition-all hover:opacity-90 border-none cursor-pointer shrink-0"
+                  style={{ background: '#E9A020', color: '#1E2D3D' }}>
+                  Connect →
+                </button>
+              )}
+            </div>
+            {metaError && !metaConnected && (
+              <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg text-[12px] font-semibold"
+                style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
+                <span>✕</span> Couldn't connect — check permissions and try again.
+              </div>
+            )}
+            {metaSuccess && (
+              <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg text-[12px] font-semibold"
+                style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
+                <span>✓</span> Connected! Syncing your ad data now…
+              </div>
+            )}
           </div>
-        </div>
+        )
 
-        <KeyField
-          label="Claude API Key"
-          hint="Go to console.anthropic.com → API Keys → Create Key. Paste it here. It starts with sk-ant-."
-          placeholder="sk-ant-••••••••••••••••••••"
-          value={claudeKey}
-          onChange={setClaudeKey}
-          saved={hasSavedClaude}
-        />
+        // ── Claude card ───────────────────────────────────────────────────
+        const claudeConnected = hasSavedClaude && !showClaudeKey
+        const claudeCard = (
+          <div key="claude" className="card mb-4 transition-all"
+            style={{ background: claudeConnected ? '#F0FBF5' : 'white', padding: claudeConnected ? '14px 20px' : '24px' }}>
+            <div className="flex items-center gap-3" style={{ marginBottom: claudeConnected ? 0 : 20 }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0"
+                style={{ background: claudeConnected ? 'rgba(22,163,74,0.08)' : 'rgba(233,160,32,0.1)' }}>🤖</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-[14px]" style={{ color: claudeConnected ? '#374151' : '#0d1f35' }}>
+                  Claude AI
+                </div>
+                {!claudeConnected && (
+                  <div className="text-[11.5px] text-stone-500">Powers your monthly coaching session</div>
+                )}
+              </div>
+              {claudeConnected && (
+                <div className="flex items-center gap-3 shrink-0">
+                  <ConnectedBadge />
+                  <button onClick={() => setShowClaudeKey(true)}
+                    className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline p-0"
+                    style={{ color: '#9CA3AF' }}>
+                    Update key
+                  </button>
+                </div>
+              )}
+            </div>
 
-        <p className="text-[11.5px] text-stone-500 mt-3 leading-relaxed">
-          Each analysis costs roughly $0.05–$0.15 from your Anthropic account.
-          You control your own usage — we never charge you directly.
-        </p>
-      </div>
+            {!claudeConnected && (
+              <>
+                <KeyField
+                  label="Claude API Key"
+                  hint="Go to console.anthropic.com → API Keys → Create Key. It starts with sk-ant-."
+                  placeholder="sk-ant-••••••••••••••••••••"
+                  value={claudeKey}
+                  onChange={setClaudeKey}
+                  saved={hasSavedClaude}
+                />
+                <p className="text-[11.5px] text-stone-500 mt-2 leading-relaxed">
+                  Each analysis costs ~$0.05–$0.15 from your Anthropic account.
+                </p>
+                <div className="flex items-center gap-3 mt-3">
+                  <button
+                    onClick={saveClaudeKey}
+                    disabled={!claudeKey.trim() || claudeSaveState === 'saving'}
+                    className="px-4 py-2 rounded-lg text-[12.5px] font-semibold border-none cursor-pointer transition-all disabled:opacity-40"
+                    style={{ background: '#E9A020', color: '#1E2D3D' }}>
+                    {claudeSaveState === 'saving' ? 'Connecting…' : claudeSaveState === 'saved' ? '✓ Connected!' : 'Connect →'}
+                  </button>
+                  {showClaudeKey && (
+                    <button onClick={() => { setShowClaudeKey(false); setClaudeKey('') }}
+                      className="text-[11px] text-stone-400 hover:text-stone-600 border-none bg-transparent cursor-pointer">
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )
 
-      {/* Save keys button */}
-      <button
-        onClick={handleSave}
-        disabled={!canSave}
-        className="flex items-center gap-2 px-7 py-3 rounded-lg text-[14px] font-bold
-                   transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-        style={{ background: '#e9a020', color: '#0d1f35' }}
-      >
-        {saveState === 'saving' ? 'Saving...'
-          : saveState === 'saved' ? '✓ Saved!'
-          : saveState === 'error' ? 'Save failed — try again'
-          : 'Save settings'}
-      </button>
+        // Sort: unconnected first, stable
+        const cards = [
+          { connected: hasSavedML,     el: mailerLiteCard },
+          { connected: metaConnected,  el: metaCard },
+          { connected: hasSavedClaude, el: claudeCard },
+        ].sort((a, b) => Number(a.connected) - Number(b.connected))
+
+        const firstConnected = cards.findIndex(c => c.connected)
+
+        return (
+          <>
+            {cards.map((c, i) => (
+              <div key={i}>
+                {firstConnected > 0 && i === firstConnected && (
+                  <div className="flex items-center gap-3 my-4">
+                    <div className="flex-1 h-px" style={{ background: '#EEEBE6' }} />
+                    <span className="text-[10px] font-bold uppercase tracking-[1.5px]" style={{ color: '#C4BDB5' }}>
+                      Connected
+                    </span>
+                    <div className="flex-1 h-px" style={{ background: '#EEEBE6' }} />
+                  </div>
+                )}
+                {c.el}
+              </div>
+            ))}
+          </>
+        )
+      })()}
 
       {/* Help */}
-      <div className="mt-8 card p-5">
+      <div className="mt-2 mb-6 card p-5">
         <div className="text-[12.5px] font-bold text-[#0d1f35] mb-3">Need help finding your API keys?</div>
         <div className="space-y-2 text-[12px] text-stone-500 leading-relaxed">
           <div>
             <strong className="text-stone-700">MailerLite:</strong>{' '}
-            Log in → click your name in the top right → Integrations → API → Developer API → Create new token
+            Log in → click your name → Integrations → API → Developer API → Create new token
           </div>
           <div>
             <strong className="text-stone-700">Claude:</strong>{' '}
-            Go to console.anthropic.com → sign up or log in → click API Keys in the left menu → Create Key
+            Go to console.anthropic.com → API Keys → Create Key
           </div>
         </div>
       </div>
