@@ -4,12 +4,13 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 const GENRES: { category: string; subs: string[] }[] = [
-  { category: 'Romance — Steamy', subs: ['Contemporary', 'Dark Romance', 'Billionaire', 'Sports', 'Mafia', 'Second Chance', 'Age Gap', 'Reverse Harem'] },
-  { category: 'Romance — Clean', subs: ['Sweet Romance', 'Inspirational', 'Amish', 'Wholesome Contemporary'] },
-  { category: 'Mystery / Thriller', subs: ['Cozy Mystery', 'Psychological Thriller', 'Crime Fiction', 'Suspense', 'Legal Thriller'] },
-  { category: 'Fantasy / Paranormal', subs: ['Urban Fantasy', 'Paranormal Romance', 'Epic Fantasy', 'Fairy Tale Retelling', 'Shifter Romance'] },
-  { category: 'Sci-Fi', subs: ['Space Opera', 'Dystopian', 'Alien Romance', 'Time Travel'] },
-  { category: 'Other', subs: ['Literary Fiction', 'Horror', 'Historical Fiction', 'Non-Fiction', 'Other'] },
+  { category: 'Romance — Steamy', subs: ['Contemporary', 'Dark Romance', 'Billionaire', 'Sports', 'Mafia', 'Second Chance', 'Age Gap', 'Reverse Harem', 'Enemies to Lovers', 'Small Town'] },
+  { category: 'Romance — Clean & Wholesome', subs: ['Sweet Romance', 'Inspirational', 'Amish', 'Wholesome Contemporary', 'Christian Romance'] },
+  { category: 'Mystery / Thriller / Suspense', subs: ['Cozy Mystery', 'Psychological Thriller', 'Crime Fiction', 'Suspense', 'Legal Thriller', 'Domestic Thriller'] },
+  { category: 'Fantasy & Paranormal', subs: ['Urban Fantasy', 'Paranormal Romance', 'Epic Fantasy', 'Fairy Tale Retelling', 'Shifter Romance', 'Romantasy'] },
+  { category: 'Sci-Fi', subs: ['Space Opera', 'Dystopian', 'Alien Romance', 'Time Travel', 'Cyberpunk'] },
+  { category: 'Nonfiction', subs: ['Self-Help', 'Memoir', 'Business', 'Craft / Writing', 'Health & Wellness'] },
+  { category: 'Other', subs: [] },
 ]
 
 const REFERRALS = [
@@ -65,11 +66,19 @@ export default function WelcomePage() {
         {/* Card */}
         <div className="rounded-2xl p-8" style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
 
+          {/* Progress */}
+          <div className="flex items-center gap-2 mb-6">
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#EEEBE6' }}>
+              <div className="h-full rounded-full" style={{ width: '50%', background: '#E9A020' }} />
+            </div>
+            <span className="text-[11px] font-medium" style={{ color: '#6B7280' }}>Step 1 of 2</span>
+          </div>
+
           <h1 className="text-[24px] font-bold tracking-tight mb-2" style={{ color: '#1E2D3D' }}>
             Tell us a little about you
           </h1>
           <p className="text-[14px] mb-8" style={{ color: '#6B7280' }}>
-            This helps us personalize your dashboard and coaching insights to your genre and goals.
+            This helps us tailor your AI coaching insights to your genre, audience, and publishing goals.
           </p>
 
           {/* Pen Name */}
@@ -81,7 +90,7 @@ export default function WelcomePage() {
               type="text"
               value={penName}
               onChange={e => setPenName(e.target.value)}
-              placeholder="Your pen name or author name"
+              placeholder="e.g. Elle Wilder"
               className="w-full px-4 py-3 rounded-lg text-[14px] outline-none transition-all focus:ring-2 focus:ring-amber-200"
               style={{ border: '1px solid #EEEBE6', color: '#1E2D3D' }}
             />
@@ -111,8 +120,23 @@ export default function WelcomePage() {
             </div>
           </div>
 
-          {/* Sub-genre */}
-          {selectedGenre && (
+          {/* Sub-genre / custom input for Other */}
+          {selectedGenre && selectedGenre.subs.length === 0 && (
+            <div className="mb-6">
+              <label className="block text-[12px] font-medium uppercase mb-2" style={{ color: '#374151', letterSpacing: '0.5px' }}>
+                What genre do you write?
+              </label>
+              <input
+                type="text"
+                value={subgenre}
+                onChange={e => setSubgenre(e.target.value)}
+                placeholder="e.g. Historical Fiction, Horror, LitRPG"
+                className="w-full px-4 py-3 rounded-lg text-[14px] outline-none transition-all focus:ring-2 focus:ring-amber-200"
+                style={{ border: '1px solid #EEEBE6', color: '#1E2D3D' }}
+              />
+            </div>
+          )}
+          {selectedGenre && selectedGenre.subs.length > 0 && (
             <div className="mb-6">
               <label className="block text-[12px] font-medium uppercase mb-2" style={{ color: '#374151', letterSpacing: '0.5px' }}>
                 Sub-genre (optional)
@@ -181,7 +205,7 @@ export default function WelcomePage() {
             className="w-full mt-3 text-[12px] font-medium bg-transparent border-none cursor-pointer"
             style={{ color: '#6B7280' }}
           >
-            Skip for now
+            I&apos;ll do this later
           </button>
         </div>
       </div>

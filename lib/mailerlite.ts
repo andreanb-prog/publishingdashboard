@@ -153,25 +153,22 @@ export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteDa
   // ── Automations ────────────────────────────────────────────────
   let automations: MailerLiteAutomation[] = []
   try {
-    const autoUrl = usingClassic ? `${ML_CLASSIC}/groups` : `${ML_NEW}/automations?limit=25`
-    const autoResult = await tryFetch(autoUrl, headers)
+    // Always use the new API for automations (classic API doesn't have automations endpoint)
+    const autoUrl = `${ML_NEW}/automations?limit=25`
+    const autoResult = await tryFetch(autoUrl, newHeaders)
     if (autoResult.ok) {
       const autoList = autoResult.data?.data ?? autoResult.data ?? []
       automations = (Array.isArray(autoList) ? autoList : []).map((a: any) => {
-        const status = (a.status === 'active' || a.active) ? 'active' as const : 'paused' as const
-        const subscriberCount = a.stats?.completed_subscribers_count ?? a.stats?.subscribers_count ?? a.total ?? a.active_count ?? 0
+        const status = a.enabled ? 'active' as const : 'paused' as const
+        const subscriberCount = a.stats?.total ?? a.stats?.completed_subscribers_count ?? 0
         const rawOpen = a.stats?.open_rate?.float ?? a.stats?.open_rate ?? 0
         const rawClick = a.stats?.click_rate?.float ?? a.stats?.click_rate ?? 0
-        const openRate = usingClassic
-          ? (Number(rawOpen) > 0 && Number(rawOpen) < 1 ? Math.round(Number(rawOpen) * 1000) / 10 : Number(rawOpen))
-          : Math.round(Number(rawOpen) * 1000) / 10
-        const clickRate = usingClassic
-          ? (Number(rawClick) > 0 && Number(rawClick) < 1 ? Math.round(Number(rawClick) * 1000) / 10 : Number(rawClick))
-          : Math.round(Number(rawClick) * 1000) / 10
+        const openRate = Math.round(Number(rawOpen) * 1000) / 10
+        const clickRate = Math.round(Number(rawClick) * 1000) / 10
 
         let health: 'green' | 'amber' | 'red' = 'green'
         if (status === 'paused' || subscriberCount === 0) health = 'red'
-        else if (clickRate < 1) health = 'amber'
+        else if (clickRate < 1) health = 'amber' // click rate below 1% = needs attention
 
         return { name: a.name || 'Untitled', status, subscriberCount, openRate, clickRate, health }
       })
