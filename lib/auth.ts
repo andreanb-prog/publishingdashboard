@@ -17,38 +17,33 @@ export const authOptions: NextAuthOptions = {
       if (session?.user) {
         session.user.id = user.id
 
-        // Fetch subscription data (resilient to missing columns during migration)
+        // Try to fetch subscription data — gracefully skip if columns don't exist
         try {
-          const dbUser = await db.user.findUnique({
-            where: { id: user.id },
-            select: {
-              subscriptionStatus: true,
-              subscriptionPlan: true,
-              trialEndsAt: true,
-              createdAt: true,
-            },
-          })
+          const rows = await db.$queryRawUnsafe<any[]>(
+            `SELECT "subscriptionStatus", "subscriptionPlan", "trialEndsAt", "createdAt" FROM "User" WHERE "id" = $1 LIMIT 1`,
+            user.id
+          )
+          const row = rows[0]
+          if (row) {
+            session.user.subscriptionStatus = row.subscriptionStatus ?? null
+            session.user.subscriptionPlan = row.subscriptionPlan ?? null
+            session.user.trialEndsAt = row.trialEndsAt ? new Date(row.trialEndsAt).toISOString() : null
 
-          if (dbUser) {
-            session.user.subscriptionStatus = dbUser.subscriptionStatus ?? null
-            session.user.subscriptionPlan = dbUser.subscriptionPlan ?? null
-            session.user.trialEndsAt = dbUser.trialEndsAt?.toISOString() ?? null
-
-            // Auto-set trial for new users (14 days from account creation)
-            if (!dbUser.subscriptionStatus && !dbUser.trialEndsAt) {
+            // Auto-set trial for new users
+            if (!row.subscriptionStatus && !row.trialEndsAt && row.createdAt) {
               try {
-                const trialEnd = new Date(dbUser.createdAt.getTime() + 14 * 24 * 60 * 60 * 1000)
-                await db.user.update({
-                  where: { id: user.id },
-                  data: { subscriptionStatus: 'trialing', trialEndsAt: trialEnd },
-                })
+                const trialEnd = new Date(new Date(row.createdAt).getTime() + 14 * 24 * 60 * 60 * 1000)
+                await db.$executeRawUnsafe(
+                  `UPDATE "User" SET "subscriptionStatus" = 'trialing', "trialEndsAt" = $1 WHERE "id" = $2`,
+                  trialEnd, user.id
+                )
                 session.user.subscriptionStatus = 'trialing'
                 session.user.trialEndsAt = trialEnd.toISOString()
-              } catch { /* DB columns may not exist yet */ }
+              } catch { /* column may not exist */ }
             }
           }
         } catch {
-          // Subscription columns may not exist yet — allow access
+          // Columns don't exist yet — that's fine, user gets full access as beta user
         }
       }
       return session
