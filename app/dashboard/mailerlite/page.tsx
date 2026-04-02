@@ -255,6 +255,17 @@ export default function MailerLitePage() {
           )}
 
           {/* ── Automation Health (#31) ───────────────────────────────── */}
+          {ml!.automations && ml!.automations.length === 0 && (
+            <div className="rounded-xl mb-5 px-5 py-8 flex flex-col items-center gap-2" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+              <div className="text-[13px] font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>Automation Health</div>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mb-1" style={{ background: '#F5F5F4' }}>
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.5" stroke="#D1D5DB" strokeWidth="1.5" strokeDasharray="3 2"/><path d="M9 6v4M9 12h.01" stroke="#D1D5DB" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              </div>
+              <p className="text-[12px] text-center" style={{ color: '#6B7280' }}>
+                No automations found — create one in MailerLite to see health data here
+              </p>
+            </div>
+          )}
           {ml!.automations && ml!.automations.length > 0 && (
             <div className="rounded-xl overflow-hidden mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
               <div className="px-5 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #EEEBE6' }}>
