@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     const seen = new Set<string>()
     const allAccounts: { id: string; name: string }[] = []
 
-    function addAccount(rawId: string, name: string) {
+    const addAccount = (rawId: string, name: string) => {
       const id = rawId.startsWith('act_') ? rawId : `act_${rawId}`
       if (!seen.has(id)) { seen.add(id); allAccounts.push({ id, name }) }
     }
