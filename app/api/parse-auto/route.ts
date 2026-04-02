@@ -27,9 +27,17 @@ function detectExcelType(buffer: Buffer): 'kdp' | 'meta' | 'unknown' {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const XLSX = require('xlsx')
     const wb = XLSX.read(buffer, { type: 'buffer' })
+
+    // Sheet names are the most reliable KDP signal — check first
+    if (wb.SheetNames.some((n: string) => n === 'Orders Processed' || n === 'KENP Read' || n === 'Summary')) {
+      return 'kdp'
+    }
+
     for (const sheetName of wb.SheetNames) {
       const csv: string = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName], { blankrows: false })
-      if (csv.includes('KENP') || csv.includes('Royalty Date')) return 'kdp'
+      // KDP content signals (multi-sheet and flat format)
+      if (csv.includes('KENP') || csv.includes('Royalty Date') || csv.includes('Est. KU Royalty')) return 'kdp'
+      // Meta signals
       const metaSignals = ['Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'Campaign name', 'Ad set name']
       if (metaSignals.filter(s => csv.includes(s)).length >= 2) return 'meta'
     }
