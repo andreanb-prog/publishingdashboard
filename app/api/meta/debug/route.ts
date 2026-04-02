@@ -45,14 +45,21 @@ export async function GET() {
   }
 
   // Raw insights using date_preset=last_30_days from stored + known account
-  // Also check businesses/owned_ad_accounts
+  // Check businesses/owned_ad_accounts
   try {
     const bizRes = await fetch(`${GRAPH_URL}/me/businesses?fields=id,name&limit=50&access_token=${token}`)
     debug.businesses = await bizRes.json()
   } catch (e) { debug.businessesError = String(e) }
 
-  const accountsToProbe = ['act_898774062895926']
-  if (user.metaAdAccountId && user.metaAdAccountId !== 'act_898774062895926') {
+  // Check Instagram-linked accounts
+  try {
+    const igRes = await fetch(`${GRAPH_URL}/me/instagram_accounts?fields=id,name&limit=50&access_token=${token}`)
+    debug.instagramAccounts = await igRes.json()
+  } catch (e) { debug.instagramAccountsError = String(e) }
+
+  // Probe both known account IDs
+  const accountsToProbe = ['act_898774062895926', 'act_940232825191906']
+  if (user.metaAdAccountId && !accountsToProbe.includes(user.metaAdAccountId)) {
     accountsToProbe.push(user.metaAdAccountId.startsWith('act_') ? user.metaAdAccountId : `act_${user.metaAdAccountId}`)
   }
   const insightsResults: Record<string, unknown> = {}

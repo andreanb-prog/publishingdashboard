@@ -167,7 +167,7 @@ GitHub Issues:    3351503444438125aabae7ec7deba251
 ## Known Bugs / Watch Out For
 - File upload `<input type="file">` must NEVER be conditionally mounted â always in DOM, hidden with CSS
 - MailerLite API v3 ONLY: use `connect.mailerlite.com/api` with `Authorization: Bearer {key}` header. Active count: `/subscribers?filter[status]=active&limit=1` → `meta.total`. Unsubscribed: `/subscribers?filter[status]=unsubscribed&limit=1` → `meta.total`. NEVER use `api.mailerlite.com/api/v2`, `/api/v2/stats`, or `X-MailerLite-ApiKey` header.
-- Meta Ads sync: Elle Wilder Books ad account ID is `act_898774062895926` (confirmed via /me/adaccounts). Always try this first. Use `date_preset=last_30_days`. Discovery tries: /me/adaccounts, /me/businesses → owned_ad_accounts, and hardcoded fallback.
+- Meta Ads sync: TWO possible Elle Wilder Books accounts — `act_898774062895926` (Facebook-visible) and `act_940232825191906` (created via Instagram `ellewilderbooks`, may not appear in standard discovery). Always try both. Discovery paths: /me/adaccounts, /me/businesses → owned_ad_accounts, /me/instagram_accounts → adaccounts, plus hardcoded fallback. OAuth scope must include `instagram_basic`. Use `date_preset=last_30_days`.
 - Automation Health was pulling groups instead of automations â use `GET /api/automations` endpoint
 - Feedback button posts to Notion DB `694bfdad3ac34b61997f41be25d9dd33` â verify NOTION_API_KEY is set
 - All insight cards must load COLLAPSED by default on every page load

@@ -7,8 +7,8 @@ import type { MetaAd, MetaData } from '@/types'
 
 const GRAPH_URL = 'https://graph.facebook.com/v19.0'
 
-// Confirmed Elle Wilder Books ad account (act_898774062895926 — verified in /me/adaccounts)
-const ELLE_WILDER_AD_ACCOUNT = 'act_898774062895926'
+// Elle Wilder Books — created via Instagram login, may not appear in standard discovery
+const ELLE_WILDER_AD_ACCOUNT = 'act_940232825191906'
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -74,6 +74,32 @@ export async function POST(req: NextRequest) {
       }
     } catch (e) {
       console.error('[Meta Sync] Path 2 failed:', e)
+    }
+
+    // Path 3: Instagram-linked ad accounts
+    try {
+      const igRes = await fetch(`${GRAPH_URL}/me/instagram_accounts?fields=id,name&limit=50&access_token=${token}`)
+      const igJson = await igRes.json()
+      if (igJson.error) {
+        console.log('[Meta Sync] /me/instagram_accounts:', igJson.error.message)
+      } else {
+        const igAccounts: { id: string; name: string }[] = igJson.data ?? []
+        console.log(`[Meta Sync] Path 3 (/me/instagram_accounts): ${igAccounts.length} accounts`)
+        for (const ig of igAccounts) {
+          try {
+            const adRes = await fetch(`${GRAPH_URL}/${ig.id}/adaccounts?fields=id,name,amount_spent&access_token=${token}`)
+            const adJson = await adRes.json()
+            if (!adJson.error) {
+              console.log(`  Instagram "${ig.name}" (${ig.id}): ${(adJson.data ?? []).length} ad accounts`)
+              for (const a of (adJson.data ?? [])) discovered.push(a)
+            }
+          } catch (e) {
+            console.error(`  Instagram ${ig.id} adaccounts failed:`, e)
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[Meta Sync] Path 3 failed:', e)
     }
 
     console.log(`[Meta Sync] All discovered accounts (${discovered.length}):`)
