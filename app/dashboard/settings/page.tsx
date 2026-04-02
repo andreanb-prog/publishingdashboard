@@ -138,6 +138,7 @@ export default function SettingsPage() {
   const [metaLastSync,   setMetaLastSync]   = useState<string | null>(null)
   const [metaSyncing,    setMetaSyncing]    = useState(false)
   const [metaSuccess,    setMetaSuccess]    = useState(false)
+  const [metaError,      setMetaError]      = useState(false)
   const [books,          setBooks]          = useState<BookEntry[]>([])
   const [booksSaveState, setBooksSaveState] = useState<SaveState>('idle')
   const [editingId,      setEditingId]      = useState<string | null>(null)
@@ -174,6 +175,22 @@ export default function SettingsPage() {
   }
 
   useEffect(() => { loadSettings() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Strip Facebook's #_=_ fragment and handle ?meta=error in URL
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.location.hash === '#_=_') {
+      window.history.replaceState
+        ? window.history.replaceState(null, '', window.location.href.split('#')[0])
+        : (window.location.hash = '')
+    }
+    if (window.location.search.includes('meta=error')) {
+      setMetaError(true)
+      // Clean up URL without triggering a navigation
+      const cleanUrl = window.location.pathname + window.location.search.replace(/[?&]meta=error/, '')
+      window.history.replaceState(null, '', cleanUrl || window.location.pathname)
+    }
+  }, [])
 
   // Listen for Meta OAuth popup completing
   useEffect(() => {
@@ -617,6 +634,13 @@ export default function SettingsPage() {
             </button>
           )}
         </div>
+
+        {metaError && (
+          <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg text-[12px] font-semibold"
+            style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
+            <span>✕</span> Couldn't connect Meta Ads. Check you approved the right permissions and try again.
+          </div>
+        )}
 
         {metaSuccess && (
           <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg text-[12px] font-semibold"

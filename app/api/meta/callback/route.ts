@@ -9,8 +9,11 @@ export async function GET(req: NextRequest) {
   const error = searchParams.get('error')
 
   if (error || !code || !userId) {
-    console.error('[Meta Callback] Error:', error || 'Missing code/state')
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/dashboard/settings?meta=error`)
+    const reason = searchParams.get('error_description') || error || 'Authorization was cancelled or failed'
+    console.error('[Meta Callback] Error:', reason)
+    return NextResponse.redirect(
+      `${process.env.NEXTAUTH_URL}/dashboard/meta/error?reason=${encodeURIComponent(reason)}`
+    )
   }
 
   const appId = process.env.META_APP_ID!
@@ -26,8 +29,11 @@ export async function GET(req: NextRequest) {
     console.log('[Meta Callback] Token exchange:', tokenData.access_token ? 'success' : 'failed')
 
     if (!tokenData.access_token) {
+      const reason = tokenData.error?.message || 'Token exchange failed'
       console.error('[Meta Callback] Token error:', tokenData)
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/dashboard/settings?meta=error`)
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/dashboard/meta/error?reason=${encodeURIComponent(reason)}`
+      )
     }
 
     // Step 2: Exchange for long-lived token (60 days)
@@ -59,13 +65,15 @@ export async function GET(req: NextRequest) {
 
     console.log('[Meta Callback] Saved for user:', userId)
 
-    // Return HTML that closes the popup and notifies the parent window
+    // Return HTML that strips Facebook's #_=_ fragment, closes the popup, and notifies the parent
     const origin = process.env.NEXTAUTH_URL ?? 'https://authordash.io'
-    const html = `<!DOCTYPE html><html><body><script>if(window.opener){window.opener.postMessage({type:'META_CONNECTED',success:true},'${origin}');window.close()}else{window.location.href='/dashboard/settings?meta=connected'}<\/script><p style="font-family:sans-serif;color:#1E2D3D;padding:20px">Connected! Closing window...</p></body></html>`
+    const html = `<!DOCTYPE html><html><body><script>if(window.location.hash==='#_=_'){window.history.replaceState?window.history.replaceState(null,'',window.location.href.split('#')[0]):window.location.hash=''}if(window.opener){window.opener.postMessage({type:'META_CONNECTED',success:true},'${origin}');window.close()}else{window.location.href='/dashboard/settings?meta=connected'}<\/script><p style="font-family:sans-serif;color:#1E2D3D;padding:20px">Connected! Closing window...</p></body></html>`
     return new Response(html, { headers: { 'Content-Type': 'text/html' } })
 
   } catch (err) {
     console.error('[Meta Callback] Error:', err)
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/dashboard/settings?meta=error`)
+    return NextResponse.redirect(
+      `${process.env.NEXTAUTH_URL}/dashboard/meta/error?reason=${encodeURIComponent('An unexpected error occurred')}`
+    )
   }
 }
