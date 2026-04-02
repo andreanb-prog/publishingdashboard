@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
 
     // Return HTML that strips Facebook's #_=_ fragment, closes the popup, and notifies the parent
     const origin = process.env.NEXTAUTH_URL ?? 'https://authordash.io'
-    const html = `<!DOCTYPE html><html><body><script>if(window.location.hash==='#_=_'){window.history.replaceState?window.history.replaceState(null,'',window.location.href.split('#')[0]):window.location.hash=''}if(window.opener){window.opener.postMessage({type:'META_CONNECTED',success:true},'${origin}');window.close()}else{window.location.href='/dashboard/settings?meta=connected'}<\/script><p style="font-family:sans-serif;color:#1E2D3D;padding:20px">Connected! Closing window...</p></body></html>`
+    const html = `<!DOCTYPE html><html><body><script>if(window.location.hash==='#_=_'){window.history.replaceState?window.history.replaceState(null,'',window.location.href.split('#')[0]):window.location.hash=''}try{if(window.opener)window.opener.postMessage({type:'META_CONNECTED',success:true},'${origin}')}catch(e){}window.close();setTimeout(function(){if(!window.closed)window.location.href='/dashboard/settings?meta=connected'},500)<\/script><p style="font-family:sans-serif;color:#1E2D3D;padding:20px">Connected! Closing window...</p></body></html>`
     return new Response(html, { headers: { 'Content-Type': 'text/html' } })
 
   } catch (err) {
