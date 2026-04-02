@@ -152,8 +152,16 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       }
 
       // ── Preserve existing channel data — never wipe unless new upload has ≥1 valid row ──
-      const kdpToSave = (kdp && (kdp.books?.length > 0 || kdp.totalUnits > 0))
-        ? kdp : (existingData.kdp ?? undefined)
+      // Also protect existing data from bad parses: if new KDP has dramatically fewer
+      // units than existing (>50% reduction), treat it as a corrupted/wrong-file parse
+      // and keep the existing record instead.
+      const existingKdp = existingData.kdp as KDPData | undefined
+      const newKdpValid = kdp && kdp.books?.some((b: { units: number }) => b.units > 0)
+      const newKdpIsDowngrade = newKdpValid && existingKdp &&
+        kdp.totalUnits < existingKdp.totalUnits * 0.5
+      const kdpToSave = (newKdpValid && !newKdpIsDowngrade)
+        ? kdp : (existingKdp ?? undefined)
+
       const metaToSave = (meta && (meta.ads?.length > 0 || meta.totalClicks > 0))
         ? meta : (existingData.meta ?? undefined)
       const pinToSave = (pinterest && (pinterest.pinCount > 0 || pinterest.totalImpressions > 0))

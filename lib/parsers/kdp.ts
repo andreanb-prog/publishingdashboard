@@ -20,10 +20,52 @@ export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
     : parseFlatFormat(workbook)
 }
 
-// ── Multi-sheet format (standard KDP month-end report) ───────────────────
+// ── Header-name helpers ───────────────────────────────────────────────────────
+
+/**
+ * Find the index of the first header that matches any of the given variants
+ * (case-insensitive substring match, e.g. "Net Royalty" matches "net royalty").
+ * Returns -1 if none found.
+ */
+function findColIdx(headers: any[], ...variants: string[]): number {
+  const lower = variants.map(v => v.toLowerCase().trim())
+  for (let i = 0; i < headers.length; i++) {
+    const h = String(headers[i] ?? '').toLowerCase().trim()
+    if (h && lower.some(v => h === v || h.includes(v) || v.includes(h))) return i
+  }
+  return -1
+}
+
+/**
+ * Look up a value from a row object (from sheet_to_json) using multiple header
+ * name variants. Tries exact key first, then case-insensitive substring match.
+ */
+function pick(row: Record<string, unknown>, ...variants: string[]): unknown {
+  for (const v of variants) {
+    if (row[v] !== undefined) return row[v]
+  }
+  const keys = Object.keys(row)
+  for (const v of variants) {
+    const vl = v.toLowerCase().trim()
+    const key = keys.find(k => {
+      const kl = k.toLowerCase().trim()
+      return kl === vl || kl.includes(vl) || vl.includes(kl)
+    })
+    if (key !== undefined) return row[key]
+  }
+  return undefined
+}
+
+function num(v: unknown): number { return Number(v || 0) }
+function str(v: unknown): string { return String(v || '') }
+
+// ── Multi-sheet format (standard KDP month-end report) ───────────────────────
 function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
+  // ── Summary sheet: flexible column lookup by header name ─────────────────
   const summarySheet = workbook.Sheets['Summary']
-  const summaryData = summarySheet ? XLSX.utils.sheet_to_json(summarySheet, { header: 1 }) as any[][] : []
+  const summaryRows = summarySheet
+    ? (XLSX.utils.sheet_to_json(summarySheet, { header: 1 }) as any[][])
+    : []
 
   let month = 'Unknown'
   let totalRoyaltiesUSD = 0
@@ -32,30 +74,64 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
   let paperbackUnits = 0
   let totalKENP = 0
 
-  if (summaryData.length > 1) {
-    const row = summaryData[1]
-    if (row) {
-      month = String(row[0] || 'Unknown')
-      paidUnits = Number(row[1] || 0)
-      freeUnits = Number(row[2] || 0)
-      paperbackUnits = Number(row[3] || 0)
-      totalKENP = Number(row[7] || 0)
-      totalRoyaltiesUSD = Number(row[8] || 0)
+  if (summaryRows.length >= 2) {
+    const headers = summaryRows[0] ?? []
+    const data    = summaryRows[1] ?? []
+
+    // Log actual headers so we can debug future format changes
+    console.log('[KDP parser] Summary headers:', headers.map(String))
+
+    const iMonth     = findColIdx(headers, 'royalty date', 'month', 'period', 'date')
+    const iPaid      = findColIdx(headers, 'ebook paid units', 'paid units', 'units sold', 'paid unit')
+    const iFree      = findColIdx(headers, 'ebook free units', 'free units', 'free unit')
+    const iPaperback = findColIdx(headers, 'paperback paid units', 'paperback units', 'paperback paid', 'paperback')
+    const iKENP      = findColIdx(headers, 'kenp read', 'kenp pages read', 'ku pages read', 'ku read', 'kenp')
+    const iRoyalty   = findColIdx(headers,
+      'royalty', 'net royalty', 'est. royalty', 'royalties', 'net royalties',
+      'total royalty', 'total royalties', 'estimated royalty',
+    )
+
+    if (iMonth     >= 0) month             = str(data[iMonth])
+    if (iPaid      >= 0) paidUnits         = num(data[iPaid])
+    if (iFree      >= 0) freeUnits         = num(data[iFree])
+    if (iPaperback >= 0) paperbackUnits    = num(data[iPaperback])
+    if (iKENP      >= 0) totalKENP         = num(data[iKENP])
+    if (iRoyalty   >= 0) totalRoyaltiesUSD = num(data[iRoyalty])
+
+    // Warn on any columns we couldn't map
+    const missing: string[] = []
+    if (iMonth     < 0) missing.push('month')
+    if (iPaid      < 0) missing.push('paidUnits')
+    if (iKENP      < 0) missing.push('kenp')
+    if (iRoyalty   < 0) missing.push('royalties')
+    if (missing.length) {
+      console.warn('[KDP parser] Summary: could not find columns for:', missing.join(', '))
+      console.warn('[KDP parser] Actual headers were:', JSON.stringify(headers))
     }
   }
 
+  // ── Orders Processed sheet ────────────────────────────────────────────────
   const ordersSheet = workbook.Sheets['Orders Processed']
-  const ordersData = ordersSheet ? XLSX.utils.sheet_to_json(ordersSheet) as any[] : []
+  const ordersData  = ordersSheet
+    ? (XLSX.utils.sheet_to_json(ordersSheet) as Record<string, unknown>[])
+    : []
 
+  // ── KENP Read sheet ───────────────────────────────────────────────────────
   const kenpSheet = workbook.Sheets['KENP Read']
-  const kenpData = kenpSheet ? XLSX.utils.sheet_to_json(kenpSheet) as any[] : []
+  const kenpData  = kenpSheet
+    ? (XLSX.utils.sheet_to_json(kenpSheet) as Record<string, unknown>[])
+    : []
+
+  // Log per-sheet headers so we can debug field mapping issues
+  if (ordersData.length) console.log('[KDP parser] Orders headers:', Object.keys(ordersData[0]))
+  if (kenpData.length)   console.log('[KDP parser] KENP headers:',  Object.keys(kenpData[0]))
 
   const bookMap = new Map<string, BookData>()
 
   for (const row of ordersData) {
-    const asin = String(row['ASIN'] || '')
-    const title = String(row['Title'] || '')
-    const units = Number(row['Paid Units'] || 0)
+    const asin  = str(pick(row, 'ASIN', 'Asin', 'asin'))
+    const title = str(pick(row, 'Title', 'Book Title', 'title'))
+    const units = num(pick(row, 'Paid Units', 'Units Sold', 'Net Units Sold', 'Units'))
     if (!asin) continue
     if (!bookMap.has(asin)) {
       bookMap.set(asin, {
@@ -68,23 +144,30 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
   }
 
   for (const row of kenpData) {
-    const asin = String(row['ASIN'] || '')
-    const kenp = Number(row['Kindle Edition Normalized Page (KENP) Read'] || 0)
+    const asin = str(pick(row, 'ASIN', 'Asin', 'asin'))
+    const kenp = num(pick(row,
+      'Kindle Edition Normalized Page (KENP) Read',
+      'KENP Read', 'KENP Pages Read', 'KU Pages Read', 'Pages Read', 'KENP',
+    ))
     if (asin && bookMap.has(asin)) bookMap.get(asin)!.kenp += kenp
   }
 
+  // ── Daily breakdowns ──────────────────────────────────────────────────────
   const dailyUnitsMap = new Map<string, number>()
   for (const row of ordersData) {
-    const date = String(row['Date'] || '').split('T')[0]
-    const units = Number(row['Paid Units'] || 0)
-    if (date) dailyUnitsMap.set(date, (dailyUnitsMap.get(date) || 0) + units)
+    const date  = str(pick(row, 'Date', 'Royalty Date', 'Transaction Date')).split('T')[0]
+    const units = num(pick(row, 'Paid Units', 'Units Sold', 'Net Units Sold', 'Units'))
+    if (date) dailyUnitsMap.set(date, (dailyUnitsMap.get(date) ?? 0) + units)
   }
 
   const dailyKENPMap = new Map<string, number>()
   for (const row of kenpData) {
-    const date = String(row['Date'] || '').split('T')[0]
-    const kenp = Number(row['Kindle Edition Normalized Page (KENP) Read'] || 0)
-    if (date) dailyKENPMap.set(date, (dailyKENPMap.get(date) || 0) + kenp)
+    const date = str(pick(row, 'Date', 'Read Date')).split('T')[0]
+    const kenp = num(pick(row,
+      'Kindle Edition Normalized Page (KENP) Read',
+      'KENP Read', 'KENP Pages Read', 'KU Pages Read', 'Pages Read', 'KENP',
+    ))
+    if (date) dailyKENPMap.set(date, (dailyKENPMap.get(date) ?? 0) + kenp)
   }
 
   const dailyUnits: DailyData[] = Array.from(dailyUnitsMap.entries())
@@ -95,34 +178,46 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
     .map(([date, value]) => ({ date, value }))
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const books = Array.from(bookMap.values()).sort((a, b) => b.units - a.units)
+  const books      = Array.from(bookMap.values()).sort((a, b) => b.units - a.units)
   const totalUnits = books.reduce((sum, b) => sum + b.units, 0)
 
+  // Prefer per-book KENP sum (from named columns in KENP sheet) over the Summary
+  // row value, which can point to a rate column instead of the count column.
+  const kenpFromBooks = books.reduce((sum, b) => sum + b.kenp, 0)
+  const resolvedKENP  = kenpFromBooks > totalKENP ? kenpFromBooks : totalKENP
+
   return {
-    month, totalRoyaltiesUSD, totalUnits, totalKENP,
+    month, totalRoyaltiesUSD, totalUnits, totalKENP: resolvedKENP,
     books, dailyUnits, dailyKENP,
     summary: { paidUnits, freeUnits, paperbackUnits },
   }
 }
 
-// ── Flat format (KDP "By Month" or "By Title" report — single sheet) ─────
+// ── Flat format (KDP "By Month" or "By Title" report — single sheet) ─────────
 function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
   const sheetName = workbook.SheetNames[0]
-  const rows = sheetName ? XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[] : []
+  const rows = sheetName
+    ? (XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as Record<string, unknown>[])
+    : []
+
+  if (rows.length) console.log('[KDP parser] Flat headers:', Object.keys(rows[0]))
 
   const bookMap = new Map<string, BookData>()
-  let totalKENP = 0
+  let totalKENP         = 0
   let totalRoyaltiesUSD = 0
-  let paidUnits = 0
+  let paidUnits         = 0
 
   for (const row of rows) {
-    const asin  = String(row['ASIN']  || '')
-    const title = String(row['Title'] || row['Book Title'] || '')
+    const asin  = str(pick(row, 'ASIN', 'Asin', 'asin'))
+    const title = str(pick(row, 'Title', 'Book Title', 'title'))
     if (!asin && !title) continue
 
-    const units    = Number(row['Units Sold']    || row['Net Units Sold'] || row['Paid Units Sold'] || 0)
-    const kenp     = Number(row['KENP Read']     || row['KENP Pages Read'] || 0)
-    const royalty  = Number(row['Royalty']       || row['Est. KU Royalty'] || row['Total Royalties'] || 0)
+    const units   = num(pick(row, 'Units Sold', 'Net Units Sold', 'Paid Units Sold', 'Paid Units', 'Units'))
+    const kenp    = num(pick(row, 'KENP Read', 'KENP Pages Read', 'KU Pages Read', 'Pages Read', 'KENP'))
+    const royalty = num(pick(row,
+      'Royalty', 'Net Royalty', 'Est. Royalty', 'Royalties', 'Net Royalties',
+      'Total Royalty', 'Total Royalties', 'Est. KU Royalty', 'Estimated Royalty',
+    ))
 
     const key = asin || title
     if (!bookMap.has(key)) {
@@ -137,9 +232,9 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
     book.kenp      += kenp
     book.royalties += royalty
 
-    totalKENP          += kenp
-    totalRoyaltiesUSD  += royalty
-    paidUnits          += units
+    totalKENP         += kenp
+    totalRoyaltiesUSD += royalty
+    paidUnits         += units
   }
 
   const books      = Array.from(bookMap.values()).sort((a, b) => b.units - a.units)
