@@ -3,7 +3,7 @@
 // Full book catalog manager for the Settings page.
 // Drag-to-reorder cards, add/edit modal, cover image upload/URL/Amazon pull.
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -605,6 +605,8 @@ export function BookCatalog() {
   const [editingIndex, setEditingIndex] = useState(0)
   const [isSaving, setIsSaving] = useState(false)
   const [reorderSaving, setReorderSaving] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortOrder, setSortOrder] = useState<'position' | 'az'>('position')
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -627,6 +629,24 @@ export function BookCatalog() {
   }, [])
 
   useEffect(() => { loadBooks() }, [loadBooks])
+
+  // Filtered + sorted view (DnD only active when position order + no search)
+  const displayedBooks = useMemo(() => {
+    let result = [...books]
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(b =>
+        b.title.toLowerCase().includes(q) ||
+        (b.asin?.toLowerCase().includes(q) ?? false)
+      )
+    }
+    if (sortOrder === 'az') {
+      result = [...result].sort((a, b) => a.title.localeCompare(b.title))
+    }
+    return result
+  }, [books, searchQuery, sortOrder])
+
+  const isDndActive = !searchQuery.trim() && sortOrder === 'position'
 
   // Open add modal
   function openAdd() {
@@ -651,7 +671,6 @@ export function BookCatalog() {
   async function handleSave(form: BookForm) {
     setIsSaving(true)
     try {
-      // Determine actual coverUrl to persist
       let coverUrl = form.coverUrl || null
       if (form.coverTab === 'amazon' && form.asin) {
         coverUrl = `https://images-na.ssl-images-amazon.com/images/P/${form.asin.trim()}.01.LZZZZZZZ.jpg`
@@ -724,48 +743,133 @@ export function BookCatalog() {
 
   return (
     <div>
-      {/* Color legend */}
-      {books.length > 0 && (
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          {books.map((_, i) => (
-            <div key={i} className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full" style={{ background: colorForIndex(i) }} />
-              <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: colorForIndex(i) }}>
-                B{i + 1}
-              </span>
-            </div>
-          ))}
-          {reorderSaving && (
-            <span className="text-[10px] text-stone-400 ml-auto">Saving order…</span>
-          )}
-        </div>
-      )}
-
-      {/* Drag-and-drop book list */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={books.map(b => b.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2 mb-4">
-            {books.length === 0 && (
-              <p className="text-[12.5px] text-stone-500 py-2">No books yet.</p>
-            )}
-            {books.map((book, i) => (
-              <SortableBookCard
-                key={book.id}
-                book={book}
-                index={i}
-                onEdit={openEdit}
-                onDelete={handleDelete}
-              />
-            ))}
+      {/* Header row */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-3"
+        style={{ borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}>
+        <div>
+          <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Your catalog</div>
+          <div className="text-[10px]" style={{ color: '#9CA3AF' }}>
+            Drag to reorder — position sets B1–B6 color assignment
           </div>
-        </SortableContext>
-      </DndContext>
-
-      {/* Add button */}
-      <div className="flex items-center gap-3">
+        </div>
         <button
           onClick={openAdd}
-          className="text-[12.5px] font-semibold px-4 py-2 rounded-lg border border-dashed border-stone-300 text-stone-500 hover:border-[#E9A020] hover:text-[#E9A020] transition-all duration-150 bg-transparent cursor-pointer"
+          className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border-none cursor-pointer"
+          style={{ background: '#E9A020', color: '#1E2D3D' }}
+        >
+          + Add book
+        </button>
+      </div>
+
+      {/* Search + sort bar */}
+      <div className="flex items-center gap-2 px-4 py-2.5"
+        style={{ borderBottom: '0.5px solid rgba(30,45,61,0.06)' }}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search books..."
+          className="flex-1 text-[11px] px-2.5 py-1.5 rounded-md outline-none"
+          style={{
+            border: '0.5px solid rgba(30,45,61,0.15)',
+            background: '#FFF8F0',
+            color: '#1E2D3D',
+          }}
+        />
+        <select
+          value={sortOrder}
+          onChange={e => setSortOrder(e.target.value as 'position' | 'az')}
+          className="text-[11px] px-2 py-1.5 rounded-md outline-none cursor-pointer"
+          style={{
+            border: '0.5px solid rgba(30,45,61,0.15)',
+            background: '#FFF8F0',
+            color: '#1E2D3D',
+          }}
+        >
+          <option value="position">Position order</option>
+          <option value="az">A → Z</option>
+        </select>
+        {reorderSaving && (
+          <span className="text-[10px]" style={{ color: '#9CA3AF' }}>Saving…</span>
+        )}
+      </div>
+
+      {/* Scrollable book list */}
+      <div style={{ maxHeight: 340, overflowY: 'auto' }}
+        className="[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-stone-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+        {displayedBooks.length === 0 ? (
+          <p className="text-[12px] px-4 py-4" style={{ color: '#9CA3AF' }}>
+            {searchQuery ? 'No books match your search.' : 'No books yet — add your first book above.'}
+          </p>
+        ) : isDndActive ? (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={displayedBooks.map(b => b.id)} strategy={verticalListSortingStrategy}>
+              {displayedBooks.map((book, i) => {
+                const posIdx = books.findIndex(b => b.id === book.id)
+                return (
+                  <SortableBookCard
+                    key={book.id}
+                    book={book}
+                    index={posIdx >= 0 ? posIdx : i}
+                    onEdit={openEdit}
+                    onDelete={handleDelete}
+                  />
+                )
+              })}
+            </SortableContext>
+          </DndContext>
+        ) : (
+          <div>
+            {displayedBooks.map((book, i) => {
+              const posIdx = books.findIndex(b => b.id === book.id)
+              return (
+                <div key={book.id}
+                  className="flex items-center gap-3 px-4 py-3 group/card"
+                  style={{ borderBottom: i < displayedBooks.length - 1 ? '0.5px solid rgba(30,45,61,0.06)' : 'none' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#FFFBF5')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <CoverThumb coverUrl={book.coverUrl} asin={book.asin} title={book.title} colorIndex={posIdx >= 0 ? posIdx : i} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] font-medium truncate" style={{ color: '#1E2D3D' }}>{book.title}</div>
+                    {book.asin && <div className="text-[10px] font-mono" style={{ color: '#9CA3AF' }}>{book.asin}</div>}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <div className="w-2 h-2 rounded-full" style={{ background: colorForIndex(posIdx >= 0 ? posIdx : i) }} />
+                    <span className="text-[10px] font-bold" style={{ color: colorForIndex(posIdx >= 0 ? posIdx : i) }}>
+                      {COLOR_NAMES[posIdx >= 0 ? posIdx % COLOR_NAMES.length : i % COLOR_NAMES.length]}
+                    </span>
+                  </div>
+                  <button onClick={() => openEdit(book)}
+                    className="text-[11px] font-semibold border-none bg-transparent cursor-pointer px-2 py-1 rounded"
+                    style={{ color: '#6B7280' }}>Edit</button>
+                  <button onClick={() => handleDelete(book.id)}
+                    className="text-[11px] border-none bg-transparent cursor-pointer px-2 py-1 rounded"
+                    style={{ color: '#D1D5DB' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#F97B6B')}
+                    onMouseLeave={e => (e.currentTarget.style.color = '#D1D5DB')}
+                  >Delete</button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between px-4 py-2.5"
+        style={{ borderTop: '0.5px solid rgba(30,45,61,0.06)' }}>
+        <span className="text-[10px]" style={{ color: '#9CA3AF' }}>
+          {books.length} {books.length === 1 ? 'book' : 'books'} in catalog
+        </span>
+        <button
+          onClick={openAdd}
+          className="text-[11px] font-semibold px-3 py-1 rounded-lg cursor-pointer"
+          style={{
+            border: '1px dashed #E9A020',
+            color: '#E9A020',
+            background: 'transparent',
+          }}
         >
           + Add a book
         </button>

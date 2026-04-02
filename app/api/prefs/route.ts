@@ -51,6 +51,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true })
   }
 
+  // Save notification preferences
+  if (body.action === 'save-notifications') {
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { goals: true },
+    })
+    const current = (user?.goals as Record<string, unknown>) ?? {}
+    const updated = {
+      ...current,
+      weeklyDigest: body.weeklyDigest ?? true,
+      digestDays: Array.isArray(body.digestDays) ? body.digestDays : ['monday'],
+    }
+    await db.user.update({ where: { id: session.user.id }, data: { goals: updated } })
+    return NextResponse.json({ success: true })
+  }
+
   // Save section layout order for a page
   if (body.action === 'save-layout' && body.page && Array.isArray(body.order)) {
     const user = await db.user.findUnique({

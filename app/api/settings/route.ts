@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { fetchMailerLiteStats } from '@/lib/mailerlite'
+import { fetchMailerLiteStats, getMailerLiteStats } from '@/lib/mailerlite'
 
 function mask(key: string | null | undefined): string {
   if (!key || key.length < 8) return ''
@@ -34,12 +34,36 @@ export async function GET() {
     }
   } catch { /* columns may not exist */ }
 
+  // MailerLite subscriber count (fast group-only fetch)
+  let mlSubscribers: number | null = null
+  if (user?.mailerLiteKey) {
+    try {
+      const stats = await getMailerLiteStats(user.mailerLiteKey)
+      mlSubscribers = stats.listSize
+    } catch { /* key may be invalid or network error */ }
+  }
+
+  // KDP last upload — most recent analysis that has kdp data
+  let kdpLastUpload: string | null = null
+  try {
+    const lastAnalysis = await db.analysis.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true, data: true },
+    })
+    if (lastAnalysis && (lastAnalysis.data as any)?.kdp) {
+      kdpLastUpload = lastAnalysis.createdAt.toISOString()
+    }
+  } catch { /* table may be empty */ }
+
   return NextResponse.json({
     claudeKey:     user?.apiKey        ? mask(user.apiKey)        : null,
     mailerLiteKey: user?.mailerLiteKey ? mask(user.mailerLiteKey) : null,
     books:         user?.books ?? [],
     metaConnected,
     metaLastSync,
+    mlSubscribers,
+    kdpLastUpload,
   })
 }
 
