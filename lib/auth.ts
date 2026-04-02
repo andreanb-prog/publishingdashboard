@@ -17,32 +17,38 @@ export const authOptions: NextAuthOptions = {
       if (session?.user) {
         session.user.id = user.id
 
-        // Fetch subscription data
-        const dbUser = await db.user.findUnique({
-          where: { id: user.id },
-          select: {
-            subscriptionStatus: true,
-            subscriptionPlan: true,
-            trialEndsAt: true,
-            createdAt: true,
-          },
-        })
+        // Fetch subscription data (resilient to missing columns during migration)
+        try {
+          const dbUser = await db.user.findUnique({
+            where: { id: user.id },
+            select: {
+              subscriptionStatus: true,
+              subscriptionPlan: true,
+              trialEndsAt: true,
+              createdAt: true,
+            },
+          })
 
-        if (dbUser) {
-          session.user.subscriptionStatus = dbUser.subscriptionStatus ?? null
-          session.user.subscriptionPlan = dbUser.subscriptionPlan ?? null
-          session.user.trialEndsAt = dbUser.trialEndsAt?.toISOString() ?? null
+          if (dbUser) {
+            session.user.subscriptionStatus = dbUser.subscriptionStatus ?? null
+            session.user.subscriptionPlan = dbUser.subscriptionPlan ?? null
+            session.user.trialEndsAt = dbUser.trialEndsAt?.toISOString() ?? null
 
-          // Auto-set trial for new users (14 days from account creation)
-          if (!dbUser.subscriptionStatus && !dbUser.trialEndsAt) {
-            const trialEnd = new Date(dbUser.createdAt.getTime() + 14 * 24 * 60 * 60 * 1000)
-            await db.user.update({
-              where: { id: user.id },
-              data: { subscriptionStatus: 'trialing', trialEndsAt: trialEnd },
-            })
-            session.user.subscriptionStatus = 'trialing'
-            session.user.trialEndsAt = trialEnd.toISOString()
+            // Auto-set trial for new users (14 days from account creation)
+            if (!dbUser.subscriptionStatus && !dbUser.trialEndsAt) {
+              try {
+                const trialEnd = new Date(dbUser.createdAt.getTime() + 14 * 24 * 60 * 60 * 1000)
+                await db.user.update({
+                  where: { id: user.id },
+                  data: { subscriptionStatus: 'trialing', trialEndsAt: trialEnd },
+                })
+                session.user.subscriptionStatus = 'trialing'
+                session.user.trialEndsAt = trialEnd.toISOString()
+              } catch { /* DB columns may not exist yet */ }
+            }
           }
+        } catch {
+          // Subscription columns may not exist yet — allow access
         }
       }
       return session

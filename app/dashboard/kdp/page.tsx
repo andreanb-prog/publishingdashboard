@@ -351,6 +351,7 @@ export default function KDPPage() {
   const [customEnd,   setCustomEnd]   = useState('')
   const [compareMode, setCompareMode] = useState(false)
   const [loading,     setLoading]     = useState(true)
+  const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set()) // empty = all
 
   useEffect(() => {
     Promise.all([
@@ -466,101 +467,75 @@ export default function KDPPage() {
             }}
           />
 
-          {/* KPI Strip — derived metrics with health bars + tooltips */}
+          {/* KPI Strip — 5-column grid with trend deltas */}
           {(() => {
             const readerDepth = kdp.totalUnits > 0 ? kdp.totalKENP / kdp.totalUnits : 0
             const estKu = Math.round(filteredTotalKENP * 0.0045 * 100) / 100
             const totalEstRevenue = Math.round((kdp.totalRoyaltiesUSD + estKu) * 100) / 100
-            const daysInPeriod = kdp.dailyUnits?.length || 30
-            const dailyVelocity = daysInPeriod > 0 ? Math.round(filteredTotalKENP / daysInPeriod * 100) / 100 : 0
-            const kuShare = totalEstRevenue > 0 ? Math.round((estKu / totalEstRevenue) * 100) : 0
 
-            type KpiItem = {
-              label: string; value: string; sub: string; color: string
-              tooltip: string; projection?: string
-              benchmark?: { metric: string; value: number }
-              arrow?: 'up' | 'down' | null; warn?: boolean
-            }
+            // Trend deltas from previous analysis
+            const prev = allAnalyses[1]?.kdp
+            const unitsDelta = prev ? filteredTotalUnits - prev.totalUnits : null
+            const kenpDelta = prev ? filteredTotalKENP - prev.totalKENP : null
+            const revDelta = prev ? totalEstRevenue - Math.round((prev.totalRoyaltiesUSD + prev.totalKENP * 0.0045) * 100) / 100 : null
 
-            const row1: KpiItem[] = [
-              { label: 'Est. KU Revenue', value: `$${estKu}`, sub: '$0.0045 × KENP reads', color: '#a78bfa', tooltip: 'estKuEarnings', projection: 'estKuEarnings' },
-              { label: 'Total Est. Revenue', value: `$${totalEstRevenue}`, sub: 'Royalties + KU estimate', color: '#fb7185', tooltip: 'totalEstRevenue', projection: 'totalEstRevenue' },
-              { label: 'Reader Depth', value: readerDepth > 0 ? `~${readerDepth.toFixed(1)}` : '—', sub: 'KENP per unit sold', color: '#34d399', tooltip: 'readerDepth', projection: 'readerDepth', benchmark: { metric: 'readerDepth', value: readerDepth } },
+            const kpis = [
+              { label: 'Units Sold', value: filteredTotalUnits.toLocaleString(), delta: unitsDelta, color: '#38bdf8', tooltip: 'totalUnits' },
+              { label: 'KENP Reads', value: filteredTotalKENP.toLocaleString(), delta: kenpDelta, color: '#fbbf24', tooltip: 'kenp' },
+              { label: 'Est. KU Revenue', value: `$${estKu}`, delta: null, color: '#a78bfa', tooltip: 'estKuEarnings', projection: true },
+              { label: 'Total Est. Revenue', value: `$${totalEstRevenue}`, delta: revDelta, color: '#fb7185', tooltip: 'totalEstRevenue', projection: true },
+              { label: 'Reader Depth', value: readerDepth > 0 ? `~${readerDepth.toFixed(1)}` : '—', delta: null, color: '#34d399', tooltip: 'readerDepth', benchmark: { metric: 'readerDepth', value: readerDepth } },
             ]
-
-            const row2: KpiItem[] = [
-              { label: 'Daily Read Velocity', value: dailyVelocity > 0 ? dailyVelocity.toLocaleString() : '—', sub: 'Pages/day average', color: '#38bdf8', tooltip: 'dailyReadVelocity' },
-              { label: 'KU Revenue Share', value: `${kuShare}%`, sub: kuShare > 80 ? 'High KU dependency' : 'Healthy mix', color: kuShare > 80 ? '#E9A020' : '#6EBF8B', tooltip: 'topBookShare', warn: kuShare > 80 },
-              { label: 'Units Sold', value: filteredTotalUnits.toLocaleString(), sub: 'eBooks + paperback', color: '#fbbf24', tooltip: 'totalUnits' },
-            ]
-
-            function renderCard(item: KpiItem, i: number) {
-              const val = String(item.value)
-              const isEmpty = val === '—' || val === '0' || val === '$0' || val === '0%' || val === '$0.00' || val === '~0.0'
-              return (
-                <div key={i} className="rounded-xl relative overflow-hidden transition-colors"
-                  style={{ background: `linear-gradient(135deg, ${item.color}06, white 60%)`, border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)', padding: 20 }}
-                  onMouseEnter={e => { if (isEmpty) e.currentTarget.style.background = '#FFF8F0' }}
-                  onMouseLeave={e => { if (isEmpty) e.currentTarget.style.background = `linear-gradient(135deg, ${item.color}06, white 60%)` }}>
-                  <div className="absolute bottom-0 left-0 right-0 h-[3px]"
-                    style={{ background: isEmpty ? '#EEEBE6' : `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
-                  <div className="flex items-center gap-1 mb-3">
-                    <span className="text-[12px] font-medium uppercase" style={{ color: '#374151', letterSpacing: '0.5px' }}>
-                      {item.label}
-                    </span>
-                    <MetricTooltip metric={item.tooltip} />
-                  </div>
-                  {isEmpty ? (
-                    <div className="flex flex-col items-start justify-center" style={{ minHeight: 60 }}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mb-2" style={{ opacity: 0.2 }}>
-                        <rect x="3" y="14" width="4" height="7" rx="1" fill="#1E2D3D" />
-                        <rect x="10" y="9" width="4" height="12" rx="1" fill="#1E2D3D" />
-                        <rect x="17" y="4" width="4" height="17" rx="1" fill="#1E2D3D" />
-                      </svg>
-                      <div className="text-[12px] mb-1" style={{ color: '#6B7280' }}>No data yet</div>
-                      <Link href="/dashboard/upload" className="text-[11px] font-semibold no-underline hover:underline"
-                        style={{ color: '#E9A020' }}>
-                        Upload to unlock →
-                      </Link>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="text-[28px] font-semibold leading-none tracking-tight mb-1"
-                        style={{ color: '#1E2D3D' }}>
-                        {item.value}
-                      </div>
-                      <div className="text-[12px] mt-1 mb-2" style={{ color: '#4B5563' }}>{item.sub}</div>
-                      {item.projection && (
-                        <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1"
-                          style={{
-                            background: item.projection === 'readerDepth' ? '#EFF6FF' : '#FEF3C7',
-                            color: item.projection === 'readerDepth' ? '#1E40AF' : '#92400E',
-                          }}>
-                          {item.projection === 'readerDepth' ? '~ Early indicator' : '⚠ Projection'}
-                        </span>
-                      )}
-                      {item.warn && (
-                        <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 ml-1"
-                          style={{ background: '#FEF3C7', color: '#92400E' }}>
-                          ⚠ High dependency
-                        </span>
-                      )}
-                      {item.benchmark && <HealthBenchmarkBar metric={item.benchmark.metric} value={item.benchmark.value} />}
-                    </>
-                  )}
-                </div>
-              )
-            }
 
             return (
-              <>
-                <div className="grid grid-cols-3 gap-3 mb-3">
-                  {row1.map(renderCard)}
-                </div>
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                  {row2.map(renderCard)}
-                </div>
-              </>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                {kpis.map((kpi, i) => {
+                  const isEmpty = kpi.value === '—' || kpi.value === '0' || kpi.value === '$0'
+                  return (
+                    <div key={i} className="rounded-xl relative overflow-hidden p-4"
+                      style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                      <div className="absolute bottom-0 left-0 right-0 h-[2px]"
+                        style={{ background: isEmpty ? '#EEEBE6' : kpi.color }} />
+                      <div className="flex items-center gap-1 mb-2">
+                        <span className="text-[11px] font-medium uppercase" style={{ color: '#6B7280', letterSpacing: '0.3px' }}>
+                          {kpi.label}
+                        </span>
+                        <MetricTooltip metric={kpi.tooltip} />
+                      </div>
+                      {isEmpty ? (
+                        <div className="flex flex-col items-start" style={{ minHeight: 40 }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="mb-1" style={{ opacity: 0.15 }}>
+                            <rect x="3" y="14" width="4" height="7" rx="1" fill="#1E2D3D" />
+                            <rect x="10" y="9" width="4" height="12" rx="1" fill="#1E2D3D" />
+                            <rect x="17" y="4" width="4" height="17" rx="1" fill="#1E2D3D" />
+                          </svg>
+                          <div className="text-[11px]" style={{ color: '#6B7280' }}>No data yet</div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-[24px] font-bold leading-none tracking-tight" style={{ color: '#1E2D3D' }}>
+                            {kpi.value}
+                          </div>
+                          {kpi.delta != null && kpi.delta !== 0 && (
+                            <div className="flex items-center gap-1 mt-1.5">
+                              <span className="text-[11px] font-semibold"
+                                style={{ color: kpi.delta > 0 ? '#6EBF8B' : '#F97B6B' }}>
+                                {kpi.delta > 0 ? '▲' : '▼'} {Math.abs(kpi.delta).toLocaleString()}
+                              </span>
+                              <span className="text-[10px]" style={{ color: '#6B7280' }}>vs prev</span>
+                            </div>
+                          )}
+                          {kpi.projection && (
+                            <span className="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-1.5"
+                              style={{ background: '#FEF3C7', color: '#92400E' }}>⚠ Estimate</span>
+                          )}
+                          {kpi.benchmark && <HealthBenchmarkBar metric={kpi.benchmark.metric} value={kpi.benchmark.value} />}
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             )
           })()}
 
@@ -568,51 +543,91 @@ export default function KDPPage() {
           {analysis && <InsightCallouts analysis={analysis} page="kdp" />}
           {coach && <DarkCoachBox color="#fbbf24" title={coachTitle}>{coach}</DarkCoachBox>}
 
-          {/* Chart cards — equal 1fr 1fr grid */}
-          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: '1fr 1fr' }}>
-            <div className="rounded-xl" style={{ background: 'white', border: '1px solid #EEEBE6', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
-              <h3 className="text-[16px] font-medium mb-4" style={{ color: '#1E2D3D' }}>Units by Book</h3>
-              <div className="space-y-2.5">
-                {kdp.books.map((b, i) => {
-                  const maxVal = Math.max(...kdp.books.map(x => x.units), 1)
-                  const colors = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5']
-                  const color = colors[i] || '#6B7280'
-                  return (
-                    <div key={b.asin || i}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[12px]" style={{ color: '#6B7280' }}>{b.shortTitle}</span>
-                        <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>{b.units}</span>
-                      </div>
-                      <div className="rounded-full overflow-hidden" style={{ height: 28, background: '#EEEBE6' }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${(b.units / maxVal) * 100}%`, background: color }} />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+          {/* Book Title Picker */}
+          {kdp.books.length > 1 && (
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <span className="text-[11px] font-medium uppercase" style={{ color: '#6B7280', letterSpacing: '0.3px' }}>Filter:</span>
+              <button
+                onClick={() => setSelectedBooks(new Set())}
+                className="px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
+                style={{
+                  background: selectedBooks.size === 0 ? '#E9A020' : '#FFF8F0',
+                  color: selectedBooks.size === 0 ? 'white' : '#1E2D3D',
+                  border: `0.5px solid ${selectedBooks.size === 0 ? '#E9A020' : '#EEEBE6'}`,
+                  cursor: 'pointer',
+                }}>
+                All Books
+              </button>
+              {kdp.books.map((b, i) => {
+                const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
+                const c = BOOK_COLORS[i] || '#6B7280'
+                const isSelected = selectedBooks.has(b.asin)
+                return (
+                  <button key={b.asin || i}
+                    onClick={() => setSelectedBooks(prev => {
+                      const next = new Set(prev)
+                      if (next.has(b.asin)) next.delete(b.asin); else next.add(b.asin)
+                      return next
+                    })}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
+                    style={{
+                      background: isSelected ? c : '#FFF8F0',
+                      color: isSelected ? 'white' : '#1E2D3D',
+                      border: `0.5px solid ${isSelected ? c : '#EEEBE6'}`,
+                      cursor: 'pointer',
+                    }}>
+                    <span className="w-2 h-2 rounded-full" style={{ background: isSelected ? 'white' : c }} />
+                    {b.shortTitle}
+                  </button>
+                )
+              })}
             </div>
-            <div className="rounded-xl" style={{ background: 'white', border: '1px solid #EEEBE6', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
-              <h3 className="text-[16px] font-medium mb-4" style={{ color: '#1E2D3D' }}>KENP by Book</h3>
-              <div className="space-y-2.5">
-                {kdp.books.map((b, i) => {
-                  const maxVal = Math.max(...kdp.books.map(x => x.kenp), 1)
-                  const colors = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5']
-                  const color = colors[i] || '#6B7280'
-                  return (
-                    <div key={b.asin || i}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[12px]" style={{ color: '#6B7280' }}>{b.shortTitle}</span>
-                        <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>{b.kenp.toLocaleString()}</span>
-                      </div>
-                      <div className="rounded-full overflow-hidden" style={{ height: 28, background: '#EEEBE6' }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${(b.kenp / maxVal) * 100}%`, background: color }} />
-                      </div>
-                    </div>
-                  )
-                })}
+          )}
+
+          {/* Book Performance Charts — fixed color per position */}
+          {(() => {
+            const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
+            const visibleBooks = selectedBooks.size > 0
+              ? kdp.books.filter(b => selectedBooks.has(b.asin))
+              : kdp.books
+
+            function BookBar({ books, metric, title }: { books: typeof visibleBooks; metric: 'units' | 'kenp'; title: string }) {
+              const maxVal = Math.max(...books.map(b => b[metric]), 1)
+              return (
+                <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                  <h3 className="text-[14px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>{title}</h3>
+                  <div className="space-y-3">
+                    {books.map((b) => {
+                      const origIdx = kdp!.books.findIndex(x => x.asin === b.asin)
+                      const color = BOOK_COLORS[origIdx] || '#6B7280'
+                      const val = b[metric]
+                      return (
+                        <div key={b.asin || b.shortTitle}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="flex items-center gap-1.5 text-[12px]" style={{ color: '#374151' }}>
+                              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                              {b.shortTitle}
+                            </span>
+                            <span className="text-[13px] font-bold" style={{ color: '#1E2D3D' }}>{val.toLocaleString()}</span>
+                          </div>
+                          <div className="rounded-full overflow-hidden" style={{ height: 24, background: '#F5F5F4' }}>
+                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(val / maxVal) * 100}%`, background: color }} />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <BookBar books={visibleBooks} metric="units" title="Sales by Title" />
+                <BookBar books={visibleBooks} metric="kenp" title="Reader Engagement by Title" />
               </div>
-            </div>
-          </div>
+            )
+          })()}
 
           {/* Viewing bar */}
           {range.start && range.end && (

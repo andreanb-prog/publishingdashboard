@@ -20,9 +20,10 @@ export default async function DashboardLayout({
   const status = session.user.subscriptionStatus
   const trialEndsAt = session.user.trialEndsAt
 
-  // Check if trial has expired and no active subscription
+  // Only gate access if user explicitly has an expired trial or canceled subscription
+  // Null status = beta user or new user (auto-trial set in session callback) — always allow
   const trialExpired = trialEndsAt && new Date(trialEndsAt) < new Date()
-  const needsSubscription = status !== 'active' && status !== 'trialing' && trialExpired
+  const needsSubscription = trialExpired && status !== 'active'
 
   if (needsSubscription) {
     redirect('/pricing?expired=true')
