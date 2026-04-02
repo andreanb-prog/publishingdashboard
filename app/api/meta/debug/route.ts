@@ -35,33 +35,33 @@ export async function GET() {
     debug.permissionsError = String(e)
   }
 
-  // List all ad accounts
+  // List all ad accounts with spend
   try {
-    const acctRes = await fetch(`${GRAPH_URL}/me/adaccounts?fields=id,name,account_status&limit=50&access_token=${token}`)
+    const acctRes = await fetch(`${GRAPH_URL}/me/adaccounts?fields=id,name,account_status,amount_spent&limit=50&access_token=${token}`)
     const acctData = await acctRes.json()
     debug.adAccounts = acctData
   } catch (e) {
     debug.adAccountsError = String(e)
   }
 
-  // Raw insights from stored account (last 30 days)
-  if (user.metaAdAccountId) {
-    const accountId = user.metaAdAccountId.startsWith('act_')
-      ? user.metaAdAccountId
-      : `act_${user.metaAdAccountId}`
+  // Raw insights using date_preset=last_30_days from stored + known account
+  const accountsToProbe = ['act_898774062895926']
+  if (user.metaAdAccountId && user.metaAdAccountId !== 'act_898774062895926') {
+    accountsToProbe.push(user.metaAdAccountId.startsWith('act_') ? user.metaAdAccountId : `act_${user.metaAdAccountId}`)
+  }
+  const insightsResults: Record<string, unknown> = {}
+  for (const accountId of accountsToProbe) {
     try {
-      const since = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
-      const until = new Date().toISOString().split('T')[0]
       const fields = 'campaign_name,spend,impressions,clicks,ctr,cpc'
       const insightsRes = await fetch(
-        `${GRAPH_URL}/${accountId}/insights?fields=${fields}&time_range={"since":"${since}","until":"${until}"}&level=campaign&limit=10&access_token=${token}`
+        `${GRAPH_URL}/${accountId}/insights?fields=${fields}&date_preset=last_30_days&level=campaign&limit=10&access_token=${token}`
       )
-      const insightsData = await insightsRes.json()
-      debug.insightsSample = insightsData
+      insightsResults[accountId] = await insightsRes.json()
     } catch (e) {
-      debug.insightsError = String(e)
+      insightsResults[accountId] = { error: String(e) }
     }
   }
+  debug.insightsSample = insightsResults
 
   return NextResponse.json(debug)
 }

@@ -7,11 +7,14 @@ import type { MetaAd, MetaData } from '@/types'
 
 const GRAPH_URL = 'https://graph.facebook.com/v19.0'
 
+// Known fallback account (Elle Wilder Books) — tried if /me/adaccounts returns nothing useful
+const FALLBACK_ACCOUNT_ID = 'act_898774062895926'
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { days = 30 } = await req.json().catch(() => ({ days: 30 }))
+  await req.json().catch(() => {}) // consume body
 
   try {
     const rows = await db.$queryRawUnsafe<any[]>(
@@ -30,9 +33,9 @@ export async function POST(req: NextRequest) {
 
     const token = user.metaAccessToken
 
-    // ── Discover all ad accounts ──────────────────────────────────────────────
+    // ── Discover all ad accounts with spend info ──────────────────────────────
     const accountsRes = await fetch(
-      `${GRAPH_URL}/me/adaccounts?fields=id,name,account_status&limit=50&access_token=${token}`
+      `${GRAPH_URL}/me/adaccounts?fields=id,name,account_status,amount_spent&limit=50&access_token=${token}`
     )
     const accountsJson = await accountsRes.json()
 
@@ -41,44 +44,66 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: accountsJson.error.message || 'Failed to fetch ad accounts' }, { status: 400 })
     }
 
-    const allAccounts: { id: string; name: string; account_status: number }[] = accountsJson.data || []
-    console.log(`[Meta Sync] Found ${allAccounts.length} ad accounts:`, allAccounts.map(a => `${a.id} (${a.name})`).join(', '))
+    const discovered: { id: string; name: string; account_status: number; amount_spent?: string }[] =
+      accountsJson.data || []
 
-    // Also include the stored ad account ID if it's not in the list (Business Manager edge case)
-    const storedId = user.metaAdAccountId
-    if (storedId && !allAccounts.find(a => a.id === storedId)) {
-      console.log(`[Meta Sync] Adding stored account ${storedId} not found in /me/adaccounts`)
-      allAccounts.push({ id: storedId, name: 'Stored account', account_status: 1 })
+    console.log(`[Meta Sync] Found ${discovered.length} ad accounts via /me/adaccounts:`)
+    for (const a of discovered) {
+      const id = a.id.startsWith('act_') ? a.id : `act_${a.id}`
+      console.log(`  ${id}  name="${a.name}"  amount_spent=${a.amount_spent ?? '?'}  status=${a.account_status}`)
     }
 
-    if (allAccounts.length === 0) {
-      console.warn('[Meta Sync] No ad accounts found — user may not have a Business ad account')
-      return NextResponse.json({ error: 'No ad accounts found. Make sure your Facebook account is linked to a Business ad account.' }, { status: 400 })
+    // Build deduplicated list — always include the known Elle Wilder account + stored ID
+    const seen = new Set<string>()
+    const allAccounts: { id: string; name: string }[] = []
+
+    function addAccount(rawId: string, name: string) {
+      const id = rawId.startsWith('act_') ? rawId : `act_${rawId}`
+      if (!seen.has(id)) { seen.add(id); allAccounts.push({ id, name }) }
     }
 
-    // ── Fetch insights from each account, keep the one(s) with spend ─────────
+    // Prefer the known account first so it's tried before any others
+    addAccount(FALLBACK_ACCOUNT_ID, 'Elle Wilder Books (hardcoded)')
+    for (const a of discovered) addAccount(a.id, a.name)
+    if (user.metaAdAccountId) addAccount(user.metaAdAccountId, 'stored account')
+
+    console.log(`[Meta Sync] Will try ${allAccounts.length} accounts: ${allAccounts.map(a => a.id).join(', ')}`)
+
+    // ── Fetch insights from each account, use date_preset=last_30_days ────────
     const allAds: MetaAd[] = []
     let totalSpend = 0
-    let accountsWithData = 0
+    let bestAccountId: string | null = null
+    let bestAccountSpend = -1
 
     for (const account of allAccounts) {
-      // Ensure act_ prefix
-      const accountId = account.id.startsWith('act_') ? account.id : `act_${account.id}`
       try {
-        const ads = await fetchAccountAds(token, accountId, days)
+        const ads = await fetchAccountAds(token, account.id)
         const accountSpend = ads.reduce((s, a) => s + a.spend, 0)
-        console.log(`[Meta Sync] Account ${accountId} (${account.name}): ${ads.length} campaigns, $${accountSpend.toFixed(2)} spend`)
+        console.log(`[Meta Sync] ${account.id} ("${account.name}"): ${ads.length} campaigns, $${accountSpend.toFixed(2)} spend`)
         if (ads.length > 0) {
           allAds.push(...ads)
           totalSpend += accountSpend
-          accountsWithData++
+          if (accountSpend > bestAccountSpend) {
+            bestAccountSpend = accountSpend
+            bestAccountId = account.id
+          }
         }
       } catch (err) {
-        console.error(`[Meta Sync] Error fetching account ${accountId}:`, err)
+        console.error(`[Meta Sync] Error fetching ${account.id}:`, err)
       }
     }
 
-    console.log(`[Meta Sync] Total: ${allAds.length} campaigns across ${accountsWithData} accounts with spend data`)
+    console.log(`[Meta Sync] Total: ${allAds.length} campaigns, $${totalSpend.toFixed(2)} spend. Best account: ${bestAccountId}`)
+
+    // Update stored ad account to the one with the most spend
+    if (bestAccountId) {
+      await db.$executeRawUnsafe(
+        `UPDATE "User" SET "metaAdAccountId" = $1 WHERE "id" = $2`,
+        bestAccountId,
+        session.user.id
+      )
+      console.log(`[Meta Sync] Updated metaAdAccountId to ${bestAccountId}`)
+    }
 
     const totalClicks = allAds.reduce((s, a) => s + a.clicks, 0)
     const totalImpressions = allAds.reduce((s, a) => s + a.impressions, 0)
@@ -101,7 +126,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Persist to Analysis table so the Meta page can display it ────────────
-    const currentMonth = new Date().toISOString().slice(0, 7) // e.g. "2026-04"
+    const currentMonth = new Date().toISOString().slice(0, 7)
     const existing = await db.analysis.findFirst({
       where: { userId: session.user.id },
       orderBy: { createdAt: 'desc' },
@@ -112,7 +137,7 @@ export async function POST(req: NextRequest) {
         where: { id: existing.id },
         data: { data: { ...existingData, meta: data } as any },
       })
-      console.log(`[Meta Sync] Updated existing analysis ${existing.id} with ${allAds.length} ads`)
+      console.log(`[Meta Sync] Updated analysis ${existing.id} with ${allAds.length} ads`)
     } else {
       await db.analysis.create({
         data: {
@@ -124,7 +149,6 @@ export async function POST(req: NextRequest) {
       console.log(`[Meta Sync] Created new analysis for ${currentMonth} with ${allAds.length} ads`)
     }
 
-    // Update last sync time
     await db.$executeRawUnsafe(
       `UPDATE "User" SET "metaLastSync" = NOW() WHERE "id" = $1`,
       session.user.id
@@ -137,12 +161,11 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function fetchAccountAds(token: string, accountId: string, days: number): Promise<MetaAd[]> {
-  const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0]
-  const until = new Date().toISOString().split('T')[0]
-
-  const fields = 'campaign_name,spend,impressions,clicks,ctr,cpc,reach,actions,unique_clicks,unique_ctr,frequency'
-  const url = `${GRAPH_URL}/${accountId}/insights?fields=${fields}&time_range={"since":"${since}","until":"${until}"}&level=campaign&limit=100&access_token=${token}`
+async function fetchAccountAds(token: string, accountId: string): Promise<MetaAd[]> {
+  // Use date_preset=last_30_days — always pulls the last 30 real days of data
+  // regardless of the current date in the month
+  const fields = 'campaign_name,spend,impressions,clicks,ctr,cpc,reach,unique_clicks,unique_ctr,frequency'
+  const url = `${GRAPH_URL}/${accountId}/insights?fields=${fields}&date_preset=last_30_days&level=campaign&limit=100&access_token=${token}`
 
   const res = await fetch(url)
   const json = await res.json()
