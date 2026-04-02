@@ -655,7 +655,8 @@ export default function SettingsPage() {
         <div className="flex items-center gap-4">
           <Link href="/privacy" className="text-[12px] font-semibold no-underline hover:underline" style={{ color: '#E9A020' }}>Privacy Policy</Link>
           <Link href="/terms" className="text-[12px] font-semibold no-underline hover:underline" style={{ color: '#E9A020' }}>Terms of Service</Link>
-          <Link href="/data" className="text-[12px] font-semibold no-underline hover:underline" style={{ color: '#E9A020' }}>Your Data & Deletion</Link>
+          <Link href="/data" className="text-[12px] font-semibold no-underline hover:underline" style={{ color: '#E9A020' }}>Your Data</Link>
+          <Link href="/dashboard/delete-account" className="text-[12px] font-semibold no-underline hover:underline" style={{ color: '#F97B6B' }}>Delete Account</Link>
           <Link href="/dashboard/settings/billing" className="text-[12px] font-semibold no-underline hover:underline" style={{ color: '#E9A020' }}>Billing</Link>
         </div>
       </div>

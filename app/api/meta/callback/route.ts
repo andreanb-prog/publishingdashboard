@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     )
 
     console.log('[Meta Callback] Saved for user:', userId)
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/dashboard/settings?meta=connected`)
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/dashboard/meta?connected=true`)
 
   } catch (err) {
     console.error('[Meta Callback] Error:', err)
