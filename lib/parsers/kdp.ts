@@ -4,7 +4,7 @@ import type { KDPData, BookData, DailyData } from '@/types'
 
 export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
   const workbook = XLSX.read(buffer, {
-    type: buffer instanceof ArrayBuffer ? 'arraybuffer' : 'array',
+    type: buffer instanceof ArrayBuffer ? 'buffer' : 'array',
     cellDates: true,
   })
 
