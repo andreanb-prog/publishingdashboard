@@ -8,7 +8,7 @@ import type { MetaAd, MetaData } from '@/types'
 const GRAPH_URL = 'https://graph.facebook.com/v19.0'
 
 // Elle Wilder Books — created via Instagram login, may not appear in standard discovery
-const ELLE_WILDER_AD_ACCOUNT = 'act_940232825191906'
+const ELLE_WILDER_AD_ACCOUNT = 'act_898774062895926'
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
