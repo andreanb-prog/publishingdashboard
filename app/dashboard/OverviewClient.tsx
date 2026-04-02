@@ -847,67 +847,44 @@ export function OverviewClient() {
         </>
       )}
 
-      {/* ── AI Coach panel — full-width, editorial ── */}
+      {/* ── AI Coach panel — compact strip ── */}
       <div className="-mx-8 -mb-8 mt-2" style={{ background: '#FFF8F0', borderTop: '1px solid #EEEBE6' }}>
-        <div className="max-w-2xl mx-auto px-8 py-14 text-center">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-8 py-5">
 
-          {/* Eyebrow */}
-          <div className="text-[10px] font-bold tracking-[2.5px] uppercase mb-5"
-            style={{ color: '#e9a020' }}>
-            Go deeper
+          <div>
+            <div className="text-[13px] font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>
+              Export your data to any AI
+            </div>
+            <p className="text-[12px]" style={{ color: '#9CA3AF' }}>
+              Formatted summary — paste into Claude, ChatGPT, or Gemini
+            </p>
           </div>
 
-          {/* Headline */}
-          <h2 className="font-serif text-[28px] leading-snug mb-4" style={{ color: '#1E2D3D' }}>
-            Want to go deeper? Bring your data to any AI.
-          </h2>
+          <div className="flex items-center gap-4 flex-shrink-0">
+            <button
+              onClick={handleCopy}
+              disabled={copying}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-[13px]
+                         font-bold transition-all duration-200
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         hover:brightness-110 active:scale-[0.98]"
+              style={{ background: '#e9a020', color: '#0d1f35' }}
+            >
+              {copying ? 'Copying…' : copied ? '✓ Copied' : 'Copy summary'}
+            </button>
 
-          {/* Subtext */}
-          <p className="text-[14px] leading-relaxed mb-8 max-w-lg mx-auto"
-            style={{ color: '#6B7280' }}>
-            Your numbers, insights, and action plan — formatted and ready to paste into
-            Claude, ChatGPT, Gemini, or any AI you use.
-          </p>
-
-          {/* Copy button */}
-          <button
-            onClick={handleCopy}
-            disabled={copying}
-            className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-lg text-[14px]
-                       font-bold transition-all duration-200
-                       disabled:opacity-50 disabled:cursor-not-allowed
-                       hover:brightness-110 active:scale-[0.98]"
-            style={{ background: '#e9a020', color: '#0d1f35' }}
-          >
-            {copying
-              ? 'Copying...'
-              : copied
-              ? 'Copied to clipboard'
-              : 'Copy my full data summary'}
-          </button>
-
-          {/* Quiet confirmation */}
-          <div className={`mt-3 text-[12px] transition-opacity duration-500 ${copied ? 'opacity-100' : 'opacity-0'}`}
-            style={{ color: '#6B7280' }}>
-            Paste it into any AI and type your question at the end.
-          </div>
-
-          {/* Text links */}
-          <div className="flex items-center justify-center gap-6 mt-8">
             {[
-              { label: 'Open Claude', href: 'https://claude.ai' },
-              { label: 'Open ChatGPT', href: 'https://chat.openai.com' },
-              { label: 'Open Gemini', href: 'https://gemini.google.com' },
+              { label: 'Claude', href: 'https://claude.ai' },
+              { label: 'ChatGPT', href: 'https://chat.openai.com' },
+              { label: 'Gemini', href: 'https://gemini.google.com' },
             ].map(({ label, href }) => (
               <a
                 key={href}
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[12.5px] no-underline transition-colors duration-150 hover:underline"
-                style={{ color: '#6B7280' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#1E2D3D')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#6B7280')}
+                className="text-[12px] no-underline hover:underline hidden sm:inline"
+                style={{ color: '#9CA3AF' }}
               >
                 {label} →
               </a>
