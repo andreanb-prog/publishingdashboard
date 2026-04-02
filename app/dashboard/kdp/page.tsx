@@ -82,19 +82,16 @@ function DateRangePicker({
   onCustomEnd: (v: string) => void
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 mb-5">
-      <span className="text-[10.5px] font-bold uppercase tracking-[1.2px] mr-1" style={{ color: '#6B7280' }}>
-        Range:
-      </span>
+    <div className="flex flex-wrap items-center gap-1.5">
       {PRESETS.map(p => (
         <button
           key={p.key}
           onClick={() => onPreset(p.key)}
-          className="px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all duration-150"
+          className="px-2.5 py-1 rounded-full text-[12px] font-medium transition-all duration-150"
           style={{
-            background: preset === p.key ? '#e9a020' : '#F5F5F4',
-            color:      preset === p.key ? '#0d1f35' : '#6B7280',
-            border:     `1px solid ${preset === p.key ? '#e9a020' : 'transparent'}`,
+            background: preset === p.key ? '#E9A020' : '#FFF8F0',
+            color:      preset === p.key ? 'white' : '#1E2D3D',
+            border:     `0.5px solid ${preset === p.key ? '#E9A020' : '#EEEBE6'}`,
           }}
         >
           {p.label}
@@ -441,7 +438,12 @@ export default function KDPPage() {
   }
 
   return (
-    <DarkPage title="KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties">
+    <DarkPage title="KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties"
+      headerRight={
+        <DateRangePicker preset={preset} onPreset={handlePreset}
+          customStart={customStart} customEnd={customEnd}
+          onCustomStart={setCustomStart} onCustomEnd={setCustomEnd} />
+      }>
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {!kdp ? (
         <div className="text-center py-16" style={{ color: '#6B7280' }}>
@@ -611,16 +613,6 @@ export default function KDPPage() {
               </div>
             </div>
           </div>
-
-          {/* Date range picker */}
-          <DateRangePicker
-            preset={preset}
-            onPreset={handlePreset}
-            customStart={customStart}
-            customEnd={customEnd}
-            onCustomStart={setCustomStart}
-            onCustomEnd={setCustomEnd}
-          />
 
           {/* Viewing bar */}
           {range.start && range.end && (

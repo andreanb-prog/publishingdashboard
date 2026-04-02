@@ -7,6 +7,7 @@ import { TopBar } from '@/components/TopBar'
 import { MobileNav } from '@/components/MobileNav'
 import { FeedbackButton } from '@/components/FeedbackButton'
 import { HelpDrawer } from '@/components/HelpDrawer'
+import { TrialBanner } from '@/components/TrialBanner'
 
 export default async function DashboardLayout({
   children,
@@ -16,6 +17,17 @@ export default async function DashboardLayout({
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
 
+  const status = session.user.subscriptionStatus
+  const trialEndsAt = session.user.trialEndsAt
+
+  // Check if trial has expired and no active subscription
+  const trialExpired = trialEndsAt && new Date(trialEndsAt) < new Date()
+  const needsSubscription = status !== 'active' && status !== 'trialing' && trialExpired
+
+  if (needsSubscription) {
+    redirect('/pricing?expired=true')
+  }
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />
@@ -24,6 +36,9 @@ export default async function DashboardLayout({
         <div className="hidden md:block">
           <TopBar user={session.user} />
         </div>
+        {status === 'trialing' && trialEndsAt && (
+          <TrialBanner trialEndsAt={trialEndsAt} />
+        )}
         <main className="flex-1 overflow-y-auto" style={{ background: '#FFFFFF' }}>
           {children}
         </main>

@@ -8,17 +8,18 @@ interface DarkPageProps {
   title: string
   subtitle?: string
   backHref?: string
+  headerRight?: React.ReactNode
   children: React.ReactNode
 }
 
-export function DarkPage({ title, subtitle, backHref = '/dashboard', children }: DarkPageProps) {
+export function DarkPage({ title, subtitle, backHref = '/dashboard', headerRight, children }: DarkPageProps) {
   return (
     <div
       className="min-h-full px-4 py-6 md:px-9 md:py-8"
       style={{ background: '#FFFFFF', color: '#1E2D3D' }}
     >
       {/* Header */}
-      <div className="flex items-end justify-between mb-7 pb-5"
+      <div className="flex items-end justify-between mb-7 pb-5 flex-wrap gap-3"
         style={{ borderBottom: '1px solid #EEEBE6' }}>
         <div>
           <h1 className="text-[24px] font-semibold tracking-tight" style={{ color: '#1E2D3D' }}>
@@ -26,18 +27,21 @@ export function DarkPage({ title, subtitle, backHref = '/dashboard', children }:
           </h1>
           {subtitle && <p className="text-[12px] mt-1" style={{ color: '#6B7280' }}>{subtitle}</p>}
         </div>
-        <Link
-          href={backHref}
-          className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-2 rounded-lg
-                     no-underline transition-all duration-150"
-          style={{
-            background: 'white',
-            border: '1px solid #D6D3D1',
-            color: '#1E2D3D',
-          }}
-        >
-          ← Back to Overview
-        </Link>
+        <div className="flex items-center gap-3 flex-wrap">
+          {headerRight}
+          <Link
+            href={backHref}
+            className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-2 rounded-lg
+                       no-underline transition-all duration-150"
+            style={{
+              background: 'white',
+              border: '1px solid #D6D3D1',
+              color: '#1E2D3D',
+            }}
+          >
+            ← Back to Overview
+          </Link>
+        </div>
       </div>
 
       {children}
