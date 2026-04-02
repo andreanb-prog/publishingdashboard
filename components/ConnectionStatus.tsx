@@ -71,6 +71,7 @@ export function ConnectionStatus() {
   const [mlSync, setMlSync] = useState<SyncState>('idle')
   const [metaSync, setMetaSync] = useState<SyncState>('idle')
   const [allSync, setAllSync] = useState<SyncState>('idle')
+  const [metaConnectError, setMetaConnectError] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   async function refreshHealth() {
@@ -132,6 +133,15 @@ export function ConnectionStatus() {
     }
   }
 
+  function connectMeta() {
+    if (!process.env.NEXT_PUBLIC_META_APP_ID) {
+      setMetaConnectError('Meta connection unavailable')
+      setTimeout(() => setMetaConnectError(null), 4000)
+      return
+    }
+    window.location.href = '/api/meta/connect'
+  }
+
   async function syncAll() {
     setAllSync('syncing')
     try {
@@ -185,7 +195,17 @@ export function ConnectionStatus() {
 
               // Per-integration sync controls
               let syncBtn: React.ReactNode = null
-              if (key === 'meta' && isConnected) {
+              if (key === 'meta' && !isConnected) {
+                syncBtn = (
+                  <button
+                    onClick={connectMeta}
+                    className="text-[10px] font-semibold border-none bg-transparent cursor-pointer hover:underline p-0"
+                    style={{ color: '#E9A020' }}
+                  >
+                    {item.actionText || 'Connect →'}
+                  </button>
+                )
+              } else if (key === 'meta' && isConnected) {
                 syncBtn = (
                   <button
                     onClick={syncMeta}
@@ -239,7 +259,10 @@ export function ConnectionStatus() {
                     </div>
                     <div className="text-[12px]" style={{ color: '#6B7280' }}>
                       {item.text}
-                      {item.actionText && item.actionHref && (
+                      {key === 'meta' && metaConnectError && (
+                        <span style={{ color: '#F97B6B' }}> · {metaConnectError}</span>
+                      )}
+                      {item.actionText && item.actionHref && key !== 'meta' && (
                         <>
                           {' · '}
                           <Link
