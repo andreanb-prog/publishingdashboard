@@ -798,9 +798,37 @@ export function BookCatalog() {
       <div style={{ maxHeight: 340, overflowY: 'auto' }}
         className="[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-stone-200 [&::-webkit-scrollbar-thumb]:rounded-full">
         {displayedBooks.length === 0 ? (
-          <p className="text-[12px] px-4 py-4" style={{ color: '#9CA3AF' }}>
-            {searchQuery ? 'No books match your search.' : 'No books yet — add your first book above.'}
-          </p>
+          searchQuery ? (
+            <p className="text-[12px] px-4 py-4" style={{ color: '#9CA3AF' }}>
+              No books match your search.
+            </p>
+          ) : (
+            <div
+              className="mx-4 my-5 flex flex-col items-center justify-center py-8 px-6 rounded-xl text-center"
+              style={{ border: '1.5px dashed rgba(30,45,61,0.15)', background: '#FAFAFA' }}
+            >
+              {/* Stack of books icon */}
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="mb-3">
+                <rect x="6" y="26" width="28" height="6" rx="2" fill="#E9A020" opacity="0.3" />
+                <rect x="9" y="19" width="22" height="8" rx="2" fill="#E9A020" opacity="0.5" />
+                <rect x="12" y="10" width="16" height="10" rx="2" fill="#E9A020" opacity="0.85" />
+                <rect x="15" y="13" width="2" height="4" rx="1" fill="white" opacity="0.7" />
+              </svg>
+              <div className="text-[13px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
+                No books added yet.
+              </div>
+              <div className="text-[11px] leading-relaxed mb-4" style={{ color: '#9CA3AF', maxWidth: 240 }}>
+                Add your first book to unlock color coding, per-title tracking, and performance insights.
+              </div>
+              <button
+                onClick={openAdd}
+                className="text-[11px] font-semibold px-4 py-2 rounded-lg border-none cursor-pointer"
+                style={{ background: '#E9A020', color: '#1E2D3D' }}
+              >
+                + Add your first book
+              </button>
+            </div>
+          )
         ) : isDndActive ? (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={displayedBooks.map(b => b.id)} strategy={verticalListSortingStrategy}>

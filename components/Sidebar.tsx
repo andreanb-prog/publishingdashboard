@@ -28,15 +28,21 @@ const TOOL_ITEMS: NavItem[] = [
   { label: 'Advanced Metrics',   href: '/dashboard/metrics',       Icon: BarChart2      },
   { label: 'Rank Tracker',       href: '/dashboard/rank',          Icon: ArrowUpRight   },
   { label: 'Daily ROAS Log',     href: '/dashboard/roas',          Icon: DollarSign     },
-  { label: 'List Building ROAS', href: '/dashboard/list-building', Icon: Users          },
   { label: 'Learn the Terms',    href: '/dashboard/learn',         Icon: GraduationCap  },
   { label: 'Settings',           href: '/dashboard/settings',      Icon: Settings2      },
   { label: 'My Data',            href: '/dashboard/data-vault',    Icon: Database       },
 ]
 
+const ADMIN_TOOL_ITEMS: NavItem[] = [
+  { label: 'List Building ROAS', href: '/dashboard/list-building', Icon: Users },
+]
+
+const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
+
 export function Sidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const isAdmin = ADMIN_EMAILS.includes(session?.user?.email ?? '')
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard'
@@ -108,6 +114,7 @@ export function Sidebar() {
           Tools
         </div>
         {TOOL_ITEMS.map(item => <NavLink key={item.href} {...item} />)}
+        {isAdmin && ADMIN_TOOL_ITEMS.map(item => <NavLink key={item.href} {...item} />)}
       </nav>
 
       {/* User */}

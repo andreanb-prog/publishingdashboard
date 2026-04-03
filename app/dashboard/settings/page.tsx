@@ -2,8 +2,11 @@
 // app/dashboard/settings/page.tsx
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import { BookCatalog } from '@/components/BookCatalog'
 import { Bot, Mail, Megaphone, BookOpen } from '@/components/icons'
+
+const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -178,6 +181,9 @@ function KeyInput({
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
+  const { data: session } = useSession()
+  const isAdmin = ADMIN_EMAILS.includes(session?.user?.email ?? '')
+
   // ── Connection state ────────────────────────────────────────────────────────
   const [hasSavedML,     setHasSavedML]     = useState(false)
   const [hasSavedClaude, setHasSavedClaude] = useState(false)
@@ -500,55 +506,57 @@ export default function SettingsPage() {
       <SectionLabel>INTEGRATIONS</SectionLabel>
       <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
 
-        {/* ── Claude AI card ────────────────────────────────────────────── */}
-        <IntegCard
-          iconBg="#EDE7F6"
-          icon={<Bot size={16} strokeWidth={1.75} color="#8B5CF6" />}
-          name="Claude AI"
-          subtitle={hasSavedClaude ? 'Powers your coaching session' : 'Powers your coaching session'}
-          statusPill={
-            <StatusPill active={hasSavedClaude} label={hasSavedClaude ? '● Active' : 'Not connected'} />
-          }
-        >
-          {hasSavedClaude && !showClaudeKey ? (
-            <div className="flex items-center justify-between">
-              <span className="text-[11px]" style={{ color: '#9CA3AF' }}>Key saved</span>
-              <button
-                onClick={() => setShowClaudeKey(true)}
-                className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
-                style={{ color: '#9CA3AF' }}
-              >
-                Update
-              </button>
-            </div>
-          ) : (
-            <>
-              <KeyInput
-                value={claudeKey}
-                onChange={setClaudeKey}
-                placeholder="sk-ant-••••••••••••••"
-              />
-              <div className="flex items-center gap-2 flex-wrap">
-                <AmberBtn
-                  onClick={saveClaudeKey}
-                  disabled={!claudeKey.trim() || claudeSaveState === 'saving'}
+        {/* ── Claude AI card (admin only) ───────────────────────────────── */}
+        {isAdmin && (
+          <IntegCard
+            iconBg="#EDE7F6"
+            icon={<Bot size={16} strokeWidth={1.75} color="#8B5CF6" />}
+            name="Claude AI"
+            subtitle={hasSavedClaude ? 'Powers your coaching session' : 'Powers your coaching session'}
+            statusPill={
+              <StatusPill active={hasSavedClaude} label={hasSavedClaude ? '● Active' : 'Not connected'} />
+            }
+          >
+            {hasSavedClaude && !showClaudeKey ? (
+              <div className="flex items-center justify-between">
+                <span className="text-[11px]" style={{ color: '#9CA3AF' }}>Key saved</span>
+                <button
+                  onClick={() => setShowClaudeKey(true)}
+                  className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
+                  style={{ color: '#9CA3AF' }}
                 >
-                  {claudeSaveState === 'saving' ? <Spinner /> : 'Save key'}
-                </AmberBtn>
-                <span className="text-[10px]" style={{ color: '#9CA3AF' }}>~$0.05–0.15 per analysis</span>
-                {showClaudeKey && (
-                  <button
-                    onClick={() => { setShowClaudeKey(false); setClaudeKey('') }}
-                    className="text-[10px] border-none bg-transparent cursor-pointer ml-auto"
-                    style={{ color: '#9CA3AF' }}
-                  >
-                    Cancel
-                  </button>
-                )}
+                  Update
+                </button>
               </div>
-            </>
-          )}
-        </IntegCard>
+            ) : (
+              <>
+                <KeyInput
+                  value={claudeKey}
+                  onChange={setClaudeKey}
+                  placeholder="sk-ant-••••••••••••••"
+                />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <AmberBtn
+                    onClick={saveClaudeKey}
+                    disabled={!claudeKey.trim() || claudeSaveState === 'saving'}
+                  >
+                    {claudeSaveState === 'saving' ? <Spinner /> : 'Save key'}
+                  </AmberBtn>
+                  <span className="text-[10px]" style={{ color: '#9CA3AF' }}>~$0.05–0.15 per analysis</span>
+                  {showClaudeKey && (
+                    <button
+                      onClick={() => { setShowClaudeKey(false); setClaudeKey('') }}
+                      className="text-[10px] border-none bg-transparent cursor-pointer ml-auto"
+                      style={{ color: '#9CA3AF' }}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </IntegCard>
+        )}
 
         {/* ── MailerLite card ───────────────────────────────────────────── */}
         <IntegCard
@@ -644,21 +652,23 @@ export default function SettingsPage() {
                   Disconnect
                 </button>
               </div>
-              <div
-                className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
-                style={{ background: 'rgba(233,160,32,0.06)', border: '0.5px solid rgba(233,160,32,0.25)', color: '#92610a' }}
-              >
-                Only your account can connect in development mode.{' '}
-                <a
-                  href="https://developers.facebook.com/docs/app-review"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold hover:underline"
-                  style={{ color: '#E9A020' }}
+              {isAdmin && (
+                <div
+                  className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
+                  style={{ background: 'rgba(233,160,32,0.06)', border: '0.5px solid rgba(233,160,32,0.25)', color: '#92610a' }}
                 >
-                  Submit for app review →
-                </a>
-              </div>
+                  Only your account can connect in development mode.{' '}
+                  <a
+                    href="https://developers.facebook.com/docs/app-review"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold hover:underline"
+                    style={{ color: '#E9A020' }}
+                  >
+                    Submit for app review →
+                  </a>
+                </div>
+              )}
               {metaSuccess && (
                 <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
                   style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
@@ -666,7 +676,7 @@ export default function SettingsPage() {
                 </div>
               )}
             </>
-          ) : (
+          ) : isAdmin ? (
             <>
               <AmberBtn onClick={connectMeta}>Connect Meta Ads →</AmberBtn>
               <div
@@ -691,6 +701,13 @@ export default function SettingsPage() {
                 </div>
               )}
             </>
+          ) : (
+            <div
+              className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
+              style={{ background: 'rgba(30,45,61,0.04)', border: '0.5px solid rgba(30,45,61,0.1)', color: '#6B7280' }}
+            >
+              Meta Ads coming soon — we&apos;re finishing the connection. Check back shortly.
+            </div>
           )}
         </IntegCard>
 
@@ -756,34 +773,35 @@ export default function SettingsPage() {
             <div className="text-[9px] font-bold uppercase tracking-[1px] mb-1" style={{ color: '#6B7280' }}>
               Secret Token <span className="normal-case font-normal">(paste into BookFunnel)</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-col gap-1.5">
               <input
                 readOnly
-                value={bfSecret ?? '—'}
-                type="password"
-                className="flex-1 text-[9px] font-mono px-2 py-1.5 rounded-md outline-none"
+                value={bfSecret ? '•'.repeat(32) : '—'}
+                className="w-full text-[9px] font-mono px-2 py-1.5 rounded-md outline-none"
                 style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#F9FAFB', color: '#374151' }}
               />
-              <button
-                onClick={() => bfSecret && copyToClipboard(bfSecret, 'secret')}
-                className="text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all"
-                style={{
-                  background: bfCopied === 'secret' ? 'rgba(110,191,139,0.15)' : 'rgba(30,45,61,0.06)',
-                  color: bfCopied === 'secret' ? '#16a34a' : '#6B7280',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                {bfCopied === 'secret' ? '✓ Copied' : 'Copy'}
-              </button>
-              <button
-                onClick={regenerateBfSecret}
-                disabled={bfRegenerating}
-                className="text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all disabled:opacity-40"
-                style={{ background: 'rgba(30,45,61,0.06)', color: '#6B7280', border: 'none', cursor: 'pointer' }}
-              >
-                {bfRegenerating ? '…' : 'Rotate'}
-              </button>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => bfSecret && copyToClipboard(bfSecret, 'secret')}
+                  className="flex-1 text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all"
+                  style={{
+                    background: bfCopied === 'secret' ? 'rgba(110,191,139,0.15)' : 'rgba(30,45,61,0.06)',
+                    color: bfCopied === 'secret' ? '#16a34a' : '#6B7280',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {bfCopied === 'secret' ? '✓ Copied' : 'Copy'}
+                </button>
+                <button
+                  onClick={regenerateBfSecret}
+                  disabled={bfRegenerating}
+                  className="text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all disabled:opacity-40"
+                  style={{ background: 'rgba(30,45,61,0.06)', color: '#6B7280', border: 'none', cursor: 'pointer' }}
+                >
+                  {bfRegenerating ? '…' : 'Rotate'}
+                </button>
+              </div>
             </div>
           </div>
 

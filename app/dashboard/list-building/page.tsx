@@ -1,10 +1,14 @@
 'use client'
 // app/dashboard/list-building/page.tsx
 import { useState, useEffect, useRef } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import ChartJS from 'chart.js/auto'
 import { getCoachTitle } from '@/lib/coachTitle'
 import { CHART_COLORS, BASE_CHART_OPTIONS, areaDataset } from '@/lib/chartConfig'
 import { tokens } from '@/lib/tokens'
+
+const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
 
 interface Campaign {
   id: string
@@ -146,6 +150,16 @@ function BfTimeChart({ byDate }: { byDate: Record<string, number> }) {
 }
 
 export default function ListBuildingPage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (status === 'loading') return
+    if (!ADMIN_EMAILS.includes(session?.user?.email ?? '')) {
+      router.replace('/dashboard')
+    }
+  }, [session, status, router])
+
   const [coachTitle] = useState(() => getCoachTitle())
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [subValue, setSubValue] = useState<number>(1.0)
@@ -240,6 +254,11 @@ export default function ListBuildingPage() {
     if (avgCostPerSub <= subValue * 0.5) return `You're acquiring subscribers at ${fmt$(avgCostPerSub)} each — that's 2x+ return on your subscriber value. Scale your best campaigns aggressively.`
     if (avgCostPerSub <= subValue) return `Your cost per subscriber is ${fmt$(avgCostPerSub)}, just under your break-even of ${fmt$(subValue)}. Find your best-performing ad sets and put more budget there.`
     return `Your subscriber acquisition cost (${fmt$(avgCostPerSub)}) is above your break-even point (${fmt$(subValue)}). Pause underperforming campaigns and test new creative or audiences.`
+  }
+
+  // Block render until session resolves — redirect happens in useEffect
+  if (status === 'loading' || !ADMIN_EMAILS.includes(session?.user?.email ?? '')) {
+    return null
   }
 
   return (
