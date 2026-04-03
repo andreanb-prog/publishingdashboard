@@ -8,6 +8,7 @@ import type { Analysis } from '@/types'
 interface Insight {
   mode: 'alarm' | 'cheer'
   text: string
+  source: 'kdp' | 'meta' | 'mailerlite'
 }
 
 function detectInsights(analysis: Analysis): Insight[] {
@@ -20,6 +21,7 @@ function detectInsights(analysis: Analysis): Insight[] {
   if (kdp && kdp.totalRoyaltiesUSD === 0 && kdp.totalUnits > 0) {
     insights.push({
       mode: 'alarm',
+      source: 'kdp',
       text: `You sold **${kdp.totalUnits} units** this month but earned **$0 in royalties**. This usually means your books are priced at $0.00 or enrolled in a free promo. If that's intentional, great — but if not, check your KDP pricing immediately. Every great story has a dark moment before the breakthrough — this is yours to fix.`,
     })
   }
@@ -27,6 +29,7 @@ function detectInsights(analysis: Analysis): Insight[] {
   if (meta && meta.avgCTR < 0.8 && meta.ads.length >= 2) {
     insights.push({
       mode: 'alarm',
+      source: 'meta',
       text: `Your average ad **CTR is ${meta.avgCTR}%**, which is below the 1% threshold most authors aim for. Low CTR means your ad creative or targeting isn't resonating — consider testing new images or narrowing your audience. Think of this as your inciting incident — the moment that sets the next chapter in motion.`,
     })
   }
@@ -34,6 +37,7 @@ function detectInsights(analysis: Analysis): Insight[] {
   if (ml && ml.unsubscribes > 50) {
     insights.push({
       mode: 'alarm',
+      source: 'mailerlite',
       text: `You've had **${ml.unsubscribes} unsubscribes** recently — that's higher than usual. Check if a recent campaign had a spike, sometimes a subject line mismatch or too-frequent sends can trigger this. Consider this your cliffhanger — the unresolved thread that needs attention before the next chapter.`,
     })
   }
@@ -41,6 +45,7 @@ function detectInsights(analysis: Analysis): Insight[] {
   if (ml && ml.listSize === 0) {
     insights.push({
       mode: 'alarm',
+      source: 'mailerlite',
       text: `Your **email list size is 0**. This could mean your MailerLite API key isn't pulling data correctly, or you genuinely haven't started list building yet. Either way, this is the plot tension in your author journey — the good news is you're the author and you can rewrite it.`,
     })
   }
@@ -50,6 +55,7 @@ function detectInsights(analysis: Analysis): Insight[] {
     if (lowRoas.length >= 2) {
       insights.push({
         mode: 'alarm',
+        source: 'meta',
         text: `**${lowRoas.length} ads** have a cost-per-click above $2.00 — that's expensive for book marketing. Consider pausing these and reallocating budget to your better-performing ads. Every story needs editing, and sometimes the bravest revision is cutting what isn't working.`,
       })
     }
@@ -59,6 +65,7 @@ function detectInsights(analysis: Analysis): Insight[] {
   if (ml && ml.openRate > 30) {
     insights.push({
       mode: 'cheer',
+      source: 'mailerlite',
       text: `Your **${ml.openRate}% open rate** is outstanding — well above the 20-25% author average. Your subject lines are clearly resonating with your readers, and they're leaning in every time you show up in their inbox. That's the mark of a great storyteller.`,
     })
   }
@@ -66,6 +73,7 @@ function detectInsights(analysis: Analysis): Insight[] {
   if (ml && ml.clickRate > 4) {
     insights.push({
       mode: 'cheer',
+      source: 'mailerlite',
       text: `A **${ml.clickRate}% click rate** is exceptional. Your readers aren't just opening — they're taking action, following every thread you weave. This is your story's rising action, and it's working.`,
     })
   }
@@ -73,6 +81,7 @@ function detectInsights(analysis: Analysis): Insight[] {
   if (meta && meta.bestAd && meta.bestAd.ctr > 2) {
     insights.push({
       mode: 'cheer',
+      source: 'meta',
       text: `Plot twist — your top ad "**${meta.bestAd.name}**" is pulling a **${meta.bestAd.ctr}% CTR**, well above average. Your readers are showing up in a big way. Consider increasing its budget or creating similar variations to keep the momentum building.`,
     })
   }
@@ -82,6 +91,7 @@ function detectInsights(analysis: Analysis): Insight[] {
     if (perUnit > 3) {
       insights.push({
         mode: 'cheer',
+        source: 'kdp',
         text: `You're earning **$${perUnit.toFixed(2)} per unit** — that's a healthy royalty rate and your pricing strategy is landing exactly where it should. This is the moment your protagonist finds their power — keep going.`,
       })
     }
@@ -90,12 +100,12 @@ function detectInsights(analysis: Analysis): Insight[] {
   return insights
 }
 
-// Per-page insight filters
+// Per-page insight filters — use source tag, not text matching
 const PAGE_FILTERS: Record<string, (i: Insight) => boolean> = {
   overview: () => true,
-  kdp: (i) => i.text.includes('unit') || i.text.includes('royalt') || i.text.includes('per unit') || i.text.includes('KDP'),
-  meta: (i) => i.text.includes('ad') || i.text.includes('CTR') || i.text.includes('click') || i.text.includes('Meta'),
-  mailerlite: (i) => i.text.includes('open rate') || i.text.includes('click rate') || i.text.includes('unsubscribe') || i.text.includes('list size') || i.text.includes('email'),
+  kdp: (i) => i.source === 'kdp',
+  meta: (i) => i.source === 'meta',
+  mailerlite: (i) => i.source === 'mailerlite',
   pinterest: () => false,
 }
 

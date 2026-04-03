@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
     }
 
     const token = user.metaAccessToken
+    console.log('[Meta Sync] Token (first 10):', token.slice(0, 10) + '...')
+    console.log('[Meta Sync] Stored adAccountId:', user.metaAdAccountId ?? 'none')
 
     // ── Discover ad accounts via all paths ───────────────────────────────────
     const discovered: { id: string; name: string; amount_spent?: string }[] = []
@@ -222,8 +224,12 @@ async function fetchAccountAds(token: string, accountId: string): Promise<MetaAd
   const fields = 'campaign_name,spend,impressions,clicks,ctr,cpc,reach,unique_clicks,unique_ctr,frequency'
   const url = `${GRAPH_URL}/${accountId}/insights?fields=${fields}&date_preset=last_30_days&level=campaign&limit=100&access_token=${token}`
 
+  console.log(`[Meta Sync] Fetching insights URL: ${url.replace(token, token.slice(0, 10) + '...')}`)
+
   const res = await fetch(url)
   const json = await res.json()
+
+  console.log(`[Meta Sync] Raw response for ${accountId}:`, JSON.stringify(json).slice(0, 500))
 
   if (json.error) {
     console.error(`[Meta Sync] Insights error for ${accountId}:`, json.error)
@@ -231,6 +237,7 @@ async function fetchAccountAds(token: string, accountId: string): Promise<MetaAd
   }
 
   const campaigns = json.data || []
+  console.log(`[Meta Sync] ${accountId}: ${campaigns.length} campaigns returned`)
 
   return campaigns.map((c: any) => {
     const spend = parseFloat(c.spend || '0')
