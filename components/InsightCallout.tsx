@@ -2,8 +2,9 @@
 // components/InsightCallout.tsx — Dynamic AI insight boxes (#32)
 // Shows "alarm" or "cheerleader" callouts based on data patterns
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Analysis } from '@/types'
+import pepTalkBank from '@/pep-talk-bank.json'
 
 interface Insight {
   mode: 'alarm' | 'cheer'
@@ -165,6 +166,69 @@ function InsightCard({ insight, index }: { insight: Insight; index: number }) {
   )
 }
 
+// ── Pep Talk Bank ────────────────────────────────────────────────────────────
+type PepCategory = 'flat_day' | 'ad_spend_fear' | 'small_wins' | 'we_see_you'
+interface PepEntry { quote: string; source: string }
+
+function pickPepCategory(analysis: Analysis): PepCategory | null {
+  const units   = analysis.kdp?.totalUnits ?? 0
+  const spend   = analysis.meta?.totalSpend ?? 0
+  const royalties = analysis.kdp?.totalRoyaltiesUSD ?? 0
+  const roas    = spend > 0 ? royalties / spend : null
+
+  // Never show when data is strongly positive
+  if (units > 20 && roas != null && roas > 2) return null
+
+  if (units === 0) return 'flat_day'
+  if (roas != null && roas < 1 && spend > 0) return 'ad_spend_fear'
+
+  // All metrics positive but values under 20
+  if (units > 0 && units < 20) return 'small_wins'
+
+  return 'we_see_you'
+}
+
+function PepTalkCard({ analysis }: { analysis: Analysis }) {
+  const [storyMode, setStoryMode] = useState(true)
+
+  // Stable random pick — one per mount
+  const [entry] = useState<PepEntry | null>(() => {
+    const cat = pickPepCategory(analysis)
+    if (!cat) return null
+    const pool = pepTalkBank[cat] as PepEntry[]
+    return pool[Math.floor(Math.random() * pool.length)]
+  })
+
+  useEffect(() => {
+    const stored = localStorage.getItem('story-mode')
+    if (stored !== null) setStoryMode(stored === 'true')
+
+    function handler(e: Event) {
+      setStoryMode((e as CustomEvent<{ on: boolean }>).detail.on)
+    }
+    window.addEventListener('story-mode-change', handler)
+    return () => window.removeEventListener('story-mode-change', handler)
+  }, [])
+
+  if (!storyMode || !entry) return null
+
+  return (
+    <div style={{
+      background: '#FFF8F0',
+      borderLeft: '3px solid #E9A020',
+      borderRadius: '0.75rem',
+      padding: '14px 18px',
+    }}>
+      <p style={{ margin: 0, fontSize: 15, fontStyle: 'italic', color: '#1E2D3D', lineHeight: 1.65 }}>
+        &ldquo;{entry.quote}&rdquo;
+      </p>
+      <p style={{ margin: '6px 0 0', fontSize: 12, color: '#9CA3AF' }}>
+        — {entry.source}
+      </p>
+    </div>
+  )
+}
+
 export function InsightCallouts({ analysis, page = 'overview' }: { analysis: Analysis; page?: string }) {
   const all = detectInsights(analysis)
   const filter = PAGE_FILTERS[page] || (() => true)
@@ -177,6 +241,7 @@ export function InsightCallouts({ analysis, page = 'overview' }: { analysis: Ana
       {insights.map((insight, i) => (
         <InsightCard key={i} insight={insight} index={i} />
       ))}
+      <PepTalkCard analysis={analysis} />
     </div>
   )
 }

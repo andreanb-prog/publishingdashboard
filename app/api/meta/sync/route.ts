@@ -8,8 +8,10 @@ import type { MetaAd, MetaData } from '@/types'
 
 const GRAPH = 'https://graph.facebook.com/v21.0'
 
-// Elle Wilder Books — created via Instagram login, may not appear in standard discovery
+// Elle Wilder Books — Facebook-visible account
 const ELLE_WILDER_AD_ACCOUNT = 'act_898774062895926'
+// Elle Wilder Books — created via Instagram login, not discoverable via /me/adaccounts
+const ELLE_WILDER_IG_ACCOUNT = 'act_940232825191906'
 
 // Insights fields for ad-level query
 const INSIGHTS_FIELDS = [
@@ -176,6 +178,8 @@ export async function POST(req: NextRequest) {
     }
 
     addAccount(ELLE_WILDER_AD_ACCOUNT, 'Elle Wilder Books (hardcoded)')
+    // Instagram-created account — not discoverable via /me/adaccounts; always try as fallback
+    if (discovered.length === 0) addAccount(ELLE_WILDER_IG_ACCOUNT, 'Elle Wilder Books IG (fallback)')
     for (const a of discovered) addAccount(a.id, a.name)
     if (user.metaAdAccountId) addAccount(user.metaAdAccountId, 'stored account')
 
