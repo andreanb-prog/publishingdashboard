@@ -89,8 +89,9 @@ model Book {
   isLeadMagnet Boolean   @default(false)
   coverUrl     String?   @db.Text
   pubDate      DateTime?
-  sortOrder    Int       @default(0)
-  createdAt    DateTime  @default(now())
+  sortOrder             Int       @default(0)
+  excludeFromDashboard  Boolean   @default(false)
+  createdAt             DateTime  @default(now())
 
   @@index([userId])
 }

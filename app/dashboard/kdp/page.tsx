@@ -38,6 +38,16 @@ function formatDisplayRange(start: string, end: string): string {
 
 function sumValues(arr: DailyData[]) { return arr.reduce((s, d) => s + d.value, 0) }
 
+/** Normalise any date string to YYYY-MM-DD so comparisons always work,
+ *  even if existing Analysis records were stored with a locale date string. */
+function normalizeDate(d: string): string {
+  if (!d) return ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d
+  const parsed = new Date(d)
+  if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0]
+  return ''
+}
+
 type Preset = 'last7' | 'last30' | 'last90' | 'thisMonth' | 'lastMonth' | 'custom'
 
 function getPresetRange(preset: Preset): { start: string; end: string } {
@@ -721,13 +731,19 @@ export default function KDPPage() {
   const allDailyUnits = useMemo(() => {
     const merged: DailyData[] = []
     allAnalyses.forEach(a => { if (a.kdp?.dailyUnits) merged.push(...a.kdp.dailyUnits) })
-    return merged.sort((a, b) => a.date.localeCompare(b.date))
+    return merged
+      .map(d => ({ ...d, date: normalizeDate(d.date) }))
+      .filter(d => d.date)
+      .sort((a, b) => a.date.localeCompare(b.date))
   }, [allAnalyses])
 
   const allDailyKENP = useMemo(() => {
     const merged: DailyData[] = []
     allAnalyses.forEach(a => { if (a.kdp?.dailyKENP) merged.push(...a.kdp.dailyKENP) })
-    return merged.sort((a, b) => a.date.localeCompare(b.date))
+    return merged
+      .map(d => ({ ...d, date: normalizeDate(d.date) }))
+      .filter(d => d.date)
+      .sort((a, b) => a.date.localeCompare(b.date))
   }, [allAnalyses])
 
   const range = useMemo((): { start: string; end: string } => {
@@ -838,7 +854,13 @@ export default function KDPPage() {
           {(() => {
             const readerDepth = kdp.totalUnits > 0 ? kdp.totalKENP / kdp.totalUnits : 0
             const estKu = Math.round(filteredTotalKENP * 0.0045 * 100) / 100
-            const totalEstRevenue = Math.round((kdp.totalRoyaltiesUSD + estKu) * 100) / 100
+            // When a date range is active use only the filtered KU estimate —
+            // we have no daily royalty breakdown so adding unfiltered royalties
+            // would make this card inconsistent with the other filtered metrics.
+            const hasRangeFilter = !!(range.start && range.end)
+            const totalEstRevenue = hasRangeFilter
+              ? estKu
+              : Math.round((kdp.totalRoyaltiesUSD + estKu) * 100) / 100
             const prev = allAnalyses[1]?.kdp
             const unitsDelta = prev ? filteredTotalUnits - prev.totalUnits : null
             const kenpDelta  = prev ? filteredTotalKENP - prev.totalKENP : null
@@ -934,6 +956,7 @@ export default function KDPPage() {
                 const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
                 const c = BOOK_COLORS[i] || '#6B7280'
                 const isSelected = selectedBooks.has(b.asin)
+                const isPB = (b as any).format === 'paperback'
                 return (
                   <button key={b.asin || i}
                     onClick={() => setSelectedBooks(prev => {
@@ -950,6 +973,12 @@ export default function KDPPage() {
                     }}>
                     <span className="w-2 h-2 rounded-full" style={{ background: isSelected ? 'white' : c }} />
                     {b.shortTitle}
+                    {isPB && (
+                      <span className="text-[9px] font-bold px-1 py-0.5 rounded"
+                        style={{ background: isSelected ? 'rgba(255,255,255,0.25)' : '#F5F5F4', color: isSelected ? 'white' : '#6B7280', lineHeight: 1 }}>
+                        PB
+                      </span>
+                    )}
                   </button>
                 )
               })}

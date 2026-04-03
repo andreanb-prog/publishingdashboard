@@ -22,6 +22,7 @@ export interface BookData {
   units: number
   kenp: number
   royalties: number
+  format?: 'ebook' | 'paperback'
 }
 
 export interface DailyData {

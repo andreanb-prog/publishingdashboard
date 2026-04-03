@@ -28,6 +28,14 @@ const DEFAULT_BOOKS = [
   },
 ]
 
+// ASINs that must always be at their canonical positions.
+// B0GSC2RTF8 = My Off-Limits Roommate  → B1 (sortOrder 0, coral)
+// B0GQD4J6VT = Fake Dating My Billionaire Protector → B2 (sortOrder 1, peach)
+const CANONICAL_ORDER: Record<string, number> = {
+  B0GSC2RTF8: 0,
+  B0GQD4J6VT: 1,
+}
+
 // GET — list user's books; auto-seed defaults if none exist
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -39,6 +47,19 @@ export async function GET() {
   })
 
   if (existing.length > 0) {
+    // One-time fix: ensure canonical books are at the right sortOrder positions.
+    const fixes: Promise<unknown>[] = []
+    for (const book of existing) {
+      const asin = book.asin?.trim().toUpperCase()
+      if (asin && CANONICAL_ORDER[asin] !== undefined && book.sortOrder !== CANONICAL_ORDER[asin]) {
+        fixes.push(db.book.update({ where: { id: book.id }, data: { sortOrder: CANONICAL_ORDER[asin] } }))
+      }
+    }
+    if (fixes.length > 0) {
+      await Promise.all(fixes)
+      const fixed = await db.book.findMany({ where: { userId: session.user.id }, orderBy: { sortOrder: 'asc' } })
+      return NextResponse.json({ books: fixed })
+    }
     return NextResponse.json({ books: existing })
   }
 

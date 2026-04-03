@@ -152,15 +152,20 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
   const bookMap = new Map<string, BookData>()
 
   for (const row of ordersData) {
-    const asin  = str(pick(row, 'ASIN', 'Asin', 'asin'))
-    const title = str(pick(row, 'Title', 'Book Title', 'title'))
-    const units = num(pick(row, 'Paid Units', 'Units Sold', 'Net Units Sold', 'Units'))
+    const asin        = str(pick(row, 'ASIN', 'Asin', 'asin'))
+    const title       = str(pick(row, 'Title', 'Book Title', 'title'))
+    const units       = num(pick(row, 'Paid Units', 'Units Sold', 'Net Units Sold', 'Units'))
+    const royaltyType = str(pick(row, 'Royalty Type', 'Type', 'Format', 'Binding')).toLowerCase()
     if (!asin) continue
+    // Detect paperback: 60%/40% royalty rate, or explicit "print"/"paperback" labels
+    const isPaperback = royaltyType.includes('60') || royaltyType.includes('40%') ||
+      royaltyType.includes('print') || royaltyType.includes('paperback')
     if (!bookMap.has(asin)) {
       bookMap.set(asin, {
         title, asin,
         shortTitle: title.length > 35 ? title.substring(0, 35) + '...' : title,
         units: 0, kenp: 0, royalties: 0,
+        format: isPaperback ? 'paperback' : 'ebook',
       })
     }
     bookMap.get(asin)!.units += units
@@ -185,7 +190,7 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
 
   const dailyKENPMap = new Map<string, number>()
   for (const row of kenpData) {
-    const date = toISODate(pick(row, 'Date', 'Read Date'))
+    const date = toISODate(pick(row, 'Date', 'Read Date', 'Transaction Date'))
     const kenp = num(pick(row,
       'Kindle Edition Normalized Page (KENP) Read',
       'KENP Read', 'KENP Pages Read', 'KU Pages Read', 'Pages Read', 'KENP',

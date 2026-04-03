@@ -32,6 +32,7 @@ interface Book {
   seriesName: string | null
   seriesOrder: number | null
   isLeadMagnet: boolean
+  excludeFromDashboard: boolean
   coverUrl: string | null
   pubDate: string | null
   sortOrder: number
@@ -163,11 +164,13 @@ function SortableBookCard({
   index,
   onEdit,
   onDelete,
+  onToggleExclude,
 }: {
   book: Book
   index: number
   onEdit: (b: Book) => void
   onDelete: (id: string) => void
+  onToggleExclude: (id: string, val: boolean) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: book.id })
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -222,6 +225,14 @@ function SortableBookCard({
               Lead Magnet
             </span>
           )}
+          {book.excludeFromDashboard && (
+            <span
+              className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+              style={{ background: 'rgba(107,114,128,0.1)', color: '#6B7280' }}
+            >
+              Hidden
+            </span>
+          )}
           {book.pubDate && (
             <span className="text-[10.5px] text-stone-400">
               {new Date(book.pubDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short' })}
@@ -241,6 +252,14 @@ function SortableBookCard({
 
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
+        <button
+          title={book.excludeFromDashboard ? 'Show in dashboard' : 'Exclude from dashboard'}
+          onClick={() => onToggleExclude(book.id, !book.excludeFromDashboard)}
+          className="text-[12px] px-2 py-1 rounded transition-colors border-none bg-transparent cursor-pointer"
+          style={{ color: book.excludeFromDashboard ? '#E9A020' : '#D1D5DB' }}
+        >
+          {book.excludeFromDashboard ? '👁 Show' : '🚫 Hide'}
+        </button>
         <button
           onClick={() => onEdit(book)}
           className="text-[12px] font-semibold text-stone-500 hover:text-[#1E2D3D] px-2 py-1 rounded transition-colors border-none bg-transparent cursor-pointer"
@@ -621,6 +640,7 @@ export function BookCatalog() {
       if (Array.isArray(data.books)) {
         setBooks(data.books.map((b: Book & { pubDate?: string | null }) => ({
           ...b,
+          excludeFromDashboard: b.excludeFromDashboard ?? false,
           pubDate: b.pubDate ? new Date(b.pubDate).toISOString() : null,
         })))
       }
@@ -711,6 +731,16 @@ export function BookCatalog() {
   async function handleDelete(id: string) {
     await fetch(`/api/books/${id}`, { method: 'DELETE' })
     setBooks(prev => prev.filter(b => b.id !== id))
+  }
+
+  // Toggle exclude from dashboard
+  async function handleToggleExclude(id: string, val: boolean) {
+    setBooks(prev => prev.map(b => b.id === id ? { ...b, excludeFromDashboard: val } : b))
+    await fetch(`/api/books/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ excludeFromDashboard: val }),
+    })
   }
 
   // Drag end — reorder locally then persist
@@ -841,6 +871,7 @@ export function BookCatalog() {
                     index={posIdx >= 0 ? posIdx : i}
                     onEdit={openEdit}
                     onDelete={handleDelete}
+                    onToggleExclude={handleToggleExclude}
                   />
                 )
               })}
@@ -868,6 +899,12 @@ export function BookCatalog() {
                       {COLOR_NAMES[posIdx >= 0 ? posIdx % COLOR_NAMES.length : i % COLOR_NAMES.length]}
                     </span>
                   </div>
+                  <button
+                    title={book.excludeFromDashboard ? 'Show in dashboard' : 'Exclude from dashboard'}
+                    onClick={() => handleToggleExclude(book.id, !book.excludeFromDashboard)}
+                    className="text-[11px] border-none bg-transparent cursor-pointer px-2 py-1 rounded"
+                    style={{ color: book.excludeFromDashboard ? '#E9A020' : '#D1D5DB' }}
+                  >{book.excludeFromDashboard ? '👁' : '🚫'}</button>
                   <button onClick={() => openEdit(book)}
                     className="text-[11px] font-semibold border-none bg-transparent cursor-pointer px-2 py-1 rounded"
                     style={{ color: '#6B7280' }}>Edit</button>

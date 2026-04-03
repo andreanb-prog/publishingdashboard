@@ -23,6 +23,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       isLeadMagnet: body.isLeadMagnet !== undefined ? Boolean(body.isLeadMagnet) : existing.isLeadMagnet,
       coverUrl: body.coverUrl !== undefined ? (body.coverUrl || null) : existing.coverUrl,
       pubDate: body.pubDate !== undefined ? (body.pubDate ? new Date(body.pubDate) : null) : existing.pubDate,
+      excludeFromDashboard: body.excludeFromDashboard !== undefined ? Boolean(body.excludeFromDashboard) : existing.excludeFromDashboard,
     },
   })
 
