@@ -20,7 +20,7 @@ import {
   rollingAverage,
   peakPoints,
 } from '@/lib/chartConfig'
-import type { Analysis, DailyData, RoasLog } from '@/types'
+import type { Analysis, DailyData, RoasLog, MailerLiteCampaign } from '@/types'
 
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -620,6 +620,7 @@ export default function KDPPage() {
   const [coachTitle]  = useState(() => getCoachTitle())
   const [allAnalyses, setAllAnalyses] = useState<Analysis[]>([])
   const [roasLogs,    setRoasLogs]    = useState<RoasLog[]>([])
+  const [mlCampaigns, setMlCampaigns] = useState<MailerLiteCampaign[]>([])
   const [preset,      setPreset]      = useState<Preset>('last30')
   const [customStart, setCustomStart] = useState('')
   const [customEnd,   setCustomEnd]   = useState('')
@@ -632,12 +633,14 @@ export default function KDPPage() {
     Promise.all([
       fetch('/api/analyze').then(r => r.json()).catch(() => ({})),
       fetch('/api/roas').then(r => r.json()).catch(() => ({ logs: [] })),
-    ]).then(([analyzeData, roasData]) => {
+      fetch('/api/mailerlite').then(r => r.json()).catch(() => ({ data: null })),
+    ]).then(([analyzeData, roasData, mlData]) => {
       const analyses: Analysis[] = (analyzeData.analyses ?? []).map(
         (a: any) => a.data ?? a
       )
       setAllAnalyses(analyses)
       setRoasLogs(roasData.logs ?? [])
+      if (mlData?.data?.campaigns) setMlCampaigns(mlData.data.campaigns)
     }).finally(() => setLoading(false))
   }, [])
 
@@ -695,19 +698,19 @@ export default function KDPPage() {
   const filteredTotalUnits = useMemo(() => sumValues(filteredUnits), [filteredUnits])
   const filteredTotalKENP  = useMemo(() => sumValues(filteredKENP),  [filteredKENP])
 
-  // Email send dates for Chart 4 and heatmap (from MailerLite campaigns in analysis)
+  // Email send dates for Chart 4 and heatmap — prefer live MailerLite fetch, fall back to stored analysis
   const analysis = allAnalyses[0] ?? null
   const emailSendDates = useMemo(() => {
-    const campaigns = analysis?.mailerLite?.campaigns ?? []
-    return new Set(campaigns.map(c => c.sentAt.substring(0, 10)))
-  }, [analysis])
+    const campaigns = mlCampaigns.length > 0 ? mlCampaigns : (analysis?.mailerLite?.campaigns ?? [])
+    return new Set(campaigns.map(c => c.sentAt.substring(0, 10)).filter(Boolean))
+  }, [mlCampaigns, analysis])
 
   const emailCampaignMap = useMemo(() => {
     const map: Record<string, string> = {}
-    const campaigns = analysis?.mailerLite?.campaigns ?? []
-    campaigns.forEach(c => { map[c.sentAt.substring(0, 10)] = c.name })
+    const campaigns = mlCampaigns.length > 0 ? mlCampaigns : (analysis?.mailerLite?.campaigns ?? [])
+    campaigns.forEach(c => { if (c.sentAt) map[c.sentAt.substring(0, 10)] = c.name })
     return map
-  }, [analysis])
+  }, [mlCampaigns, analysis])
 
   const kdp   = analysis?.kdp
   const coach = (analysis as any)?.kdpCoach

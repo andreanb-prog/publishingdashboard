@@ -186,11 +186,12 @@ export default function MailerLitePage() {
             }}
           />
 
-          <DarkKPIStrip cols={4} items={[
-            { label: 'Open Rate',    value: `${ml.openRate}%`,           sub: openSub,  color: ml.openRate  >= openTarget  ? '#34d399' : '#fbbf24' },
-            { label: 'List Size',    value: ml.listSize.toLocaleString(), sub: 'Active subscribers', color: '#38bdf8' },
-            { label: 'Click Rate',   value: `${ml.clickRate}%`,           sub: clickSub, color: ml.clickRate >= clickTarget ? '#34d399' : '#fbbf24' },
-            { label: 'Unsubscribes', value: ml.unsubscribes,              sub: 'Total unsubscribed', color: ml.unsubscribes > 30 ? '#fb7185' : '#34d399' },
+          <DarkKPIStrip cols={5} items={[
+            { label: 'Open Rate',    value: `${ml.openRate}%`,                                     sub: openSub,  color: ml.openRate  >= openTarget  ? '#34d399' : '#fbbf24' },
+            { label: 'List Size',    value: ml.listSize.toLocaleString(),                          sub: 'Active subscribers', color: '#38bdf8' },
+            { label: 'Click Rate',   value: `${ml.clickRate}%`,                                    sub: clickSub, color: ml.clickRate >= clickTarget ? '#34d399' : '#fbbf24' },
+            { label: 'Unsubscribes', value: ml.unsubscribes,                                       sub: 'Total unsubscribed', color: ml.unsubscribes > 30 ? '#fb7185' : '#34d399' },
+            { label: 'Total Sent',   value: ml.sentCount != null ? ml.sentCount.toLocaleString() : '—', sub: 'Emails sent (list lifetime)', color: '#a78bfa' },
           ]} />
 
           {analysis && <InsightCallouts analysis={analysis} page="mailerlite" />}
