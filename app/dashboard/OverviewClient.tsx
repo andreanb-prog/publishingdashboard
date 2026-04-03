@@ -436,6 +436,8 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
   const animKenp  = useCountUp(_kenpTarget,  isFresh && !!analysis?.kdp)
   const animCtr   = useCountUp(_ctrTarget,   isFresh && !!analysis?.meta?.bestAd)
 
+  const [refreshKey, setRefreshKey] = useState(0)
+
   useEffect(() => {
     Promise.all([
       fetch('/api/analyze').then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({})),
@@ -458,6 +460,13 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
       setRankLogs(rankData.logs ?? [])
       setRoasLogs(roasData.logs ?? [])
     }).catch(console.error).finally(() => setLoading(false))
+  }, [refreshKey])
+
+  // Re-fetch when an upload completes (fired by UploadModal on any page)
+  useEffect(() => {
+    function onUploadComplete() { setRefreshKey(k => k + 1) }
+    window.addEventListener('dashboard-data-refresh', onUploadComplete)
+    return () => window.removeEventListener('dashboard-data-refresh', onUploadComplete)
   }, [])
 
   // ── Optimistic UI: if the user lands here right after uploading, show their
@@ -864,6 +873,23 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
                   {CHANNEL_CARDS.map(card => {
                     let score = getChannelScore(card.key)
+
+                    // Fallback for KDP: if no channelScore from AI but KDP data is present
+                    // (e.g. uploaded in a prior month and backfilled, or AI omitted it), build
+                    // a synthetic score so the card always reflects real uploaded numbers.
+                    if (!score && card.key === 'kdp' && analysis?.kdp) {
+                      const k = analysis.kdp
+                      const estRevenue = Math.round(((k.totalRoyaltiesUSD ?? 0) + (k.totalKENP ?? 0) * 0.0045) * 100) / 100
+                      const status = k.totalUnits >= 50 ? 'GREEN' : k.totalUnits >= 10 ? 'AMBER' : 'NEW'
+                      score = {
+                        channel: 'kdp',
+                        status,
+                        headline: `${k.totalUnits.toLocaleString()} units sold`,
+                        metric: `$${estRevenue.toFixed(2)}`,
+                        subline: `${k.totalUnits.toLocaleString()} units · ${(k.totalKENP ?? 0).toLocaleString()} KENP reads`,
+                        badge: status === 'GREEN' ? 'Growing' : status === 'AMBER' ? 'Watch' : 'Starting',
+                      } as ChannelScore
+                    }
 
                     // Fallback for Meta: if no channelScore exists but synced data is in the DB,
                     // build a synthetic score from the raw meta fields so the card shows real numbers.

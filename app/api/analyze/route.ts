@@ -170,9 +170,20 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       // units than existing (>50% reduction), treat it as a corrupted/wrong-file parse
       // and keep the existing record instead.
       const existingKdp = existingData.kdp as KDPData | undefined
-      const newKdpValid = kdp && kdp.books?.some((b: { units: number }) => b.units > 0)
+      // Accept any KDP upload that has at least one meaningful metric — units, KENP reads,
+      // royalties, or even just a book list. This ensures KU-heavy months (all KENP, no paid
+      // unit purchases) are not silently discarded.
+      const newKdpValid = kdp && (
+        (kdp.totalUnits ?? 0) > 0 ||
+        (kdp.totalKENP ?? 0) > 0 ||
+        (kdp.totalRoyaltiesUSD ?? 0) > 0 ||
+        (kdp.books?.length ?? 0) > 0
+      )
+      // Downgrade check: treat as suspicious only when BOTH units AND KENP dropped by >50%.
+      // This allows KU-heavy months (0 paid units but high KENP) to be saved correctly.
       const newKdpIsDowngrade = newKdpValid && existingKdp &&
-        kdp.totalUnits < existingKdp.totalUnits * 0.5
+        kdp.totalUnits < existingKdp.totalUnits * 0.5 &&
+        (kdp.totalKENP ?? 0) <= (existingKdp.totalKENP ?? 0)
       const kdpToSave = (newKdpValid && !newKdpIsDowngrade)
         ? kdp : (existingKdp ?? undefined)
 

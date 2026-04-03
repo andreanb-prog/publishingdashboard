@@ -313,6 +313,8 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
               navigated = true
               setTimeout(() => {
                 try { sessionStorage.removeItem('pendingUpload') } catch { /* ignore */ }
+                // Signal any mounted dashboard to re-fetch its data immediately
+                window.dispatchEvent(new CustomEvent('dashboard-data-refresh'))
                 onSuccess()
                 setTimeout(() => router.push(redirectTo + '?fresh=1'), 400)
               }, 1500)
