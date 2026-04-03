@@ -110,33 +110,33 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       "priority": 1,
       "type": "RED",
       "title": "action title",
-      "body": "plain English explanation with specific numbers from the data",
-      "action": "CTA text",
+      "body": "plain English explanation with specific numbers from the data — must end with the action, never a hedge",
+      "action": "Start with Send/Test/Cut/Scale/Fix/Upload/Pause/Launch/Schedule + specific platform (e.g. 'Go to Meta Ads Manager and pause the low-CTR ad')",
       "channel": "meta"
     }
   ],
   "insights": {
-    "kdp": "2-3 sentence KDP coaching paragraph",
-    "meta": "2-3 sentence Meta coaching paragraph",
-    "email": "2-3 sentence email coaching paragraph",
-    "pinterest": "2-3 sentence Pinterest coaching paragraph",
-    "swaps": "2-3 sentence swaps coaching paragraph"
+    "kdp": "2-3 sentence KDP coaching paragraph — must end with a specific action on a named platform, not a hedge",
+    "meta": "2-3 sentence Meta coaching paragraph — must end with a specific action on a named platform, not a hedge",
+    "email": "2-3 sentence email coaching paragraph — must end with a specific action on a named platform, not a hedge",
+    "pinterest": "2-3 sentence Pinterest coaching paragraph — must end with a specific action on a named platform, not a hedge",
+    "swaps": "2-3 sentence swaps coaching paragraph — must end with a specific action on a named platform, not a hedge"
   },
   "executiveSummary": {
     "headlineStat": "bold summary like '49 books sold · $70 royalties · your best month yet'",
     "whatsWorking": ["up to 4 bullet points of what's going well, bold the key term"],
-    "whereToStrengthen": ["up to 4 bullet points of areas to improve, bold the key term"],
+    "whereToStrengthen": ["up to 4 bullet points of areas to improve — each must name the specific platform to act on, bold the key term"],
     "topActions": [
-      {"label": "short action label", "href": "/dashboard/kdp"},
-      {"label": "short action label", "href": "/dashboard/meta"},
-      {"label": "short action label", "href": "/dashboard?upload=1"}
+      {"label": "action label starting with Send/Test/Cut/Scale/Fix/Upload", "href": "/dashboard/kdp"},
+      {"label": "action label starting with Send/Test/Cut/Scale/Fix/Upload", "href": "/dashboard/meta"},
+      {"label": "action label starting with Send/Test/Cut/Scale/Fix/Upload", "href": "/dashboard?upload=1"}
     ]
   },
   "crossChannelPlan": {
-    "scale": ["things working well to double down on — bold key terms"],
-    "fix": ["things that need attention or repair — bold key terms"],
-    "cut": ["things to stop doing or reduce — bold key terms"],
-    "test": ["new experiments to try next month — bold key terms"]
+    "scale": ["specific things working well — name the platform and the action, bold key terms"],
+    "fix": ["specific things that need repair — name the platform and the action, bold key terms"],
+    "cut": ["specific things to stop or reduce — name the platform and the action, bold key terms"],
+    "test": ["specific new experiments to try — name the platform and the action, bold key terms"]
   }
 }`,
           },
