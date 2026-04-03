@@ -54,20 +54,41 @@ export async function GET(req: NextRequest) {
     const adAccountId = adAccount?.id || null
     console.log('[Meta Callback] Ad account:', adAccountId, adAccount?.name)
 
-    // Step 4: Save to database
-    await db.$executeRawUnsafe(
-      `UPDATE "User" SET "metaAccessToken" = $1, "metaAdAccountId" = $2, "metaTokenExpires" = $3 WHERE "id" = $4`,
-      accessToken,
-      adAccountId,
-      new Date(Date.now() + expiresIn * 1000),
-      userId
-    )
+    // Step 4: Save to database using Prisma (throws P2025 if userId not found)
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        metaAccessToken:  accessToken,
+        metaAdAccountId:  adAccountId,
+        metaTokenExpires: new Date(Date.now() + expiresIn * 1000),
+      },
+    })
 
-    console.log('[Meta Callback] Saved for user:', userId)
+    // Step 5: Read back to verify the token was actually persisted
+    const verify = await db.user.findUnique({
+      where: { id: userId },
+      select: { metaAccessToken: true },
+    })
+
+    if (!verify?.metaAccessToken) {
+      console.error('[Meta Callback] Read-back failed — token not persisted for user:', userId)
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/dashboard/meta/error?reason=${encodeURIComponent('Token could not be saved — please try again')}`
+      )
+    }
+
+    console.log('[Meta Callback] Verified save for user:', userId, '— token length:', verify.metaAccessToken.length)
 
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL ?? 'https://authordash.io'}/dashboard/settings?meta=connected`)
 
-  } catch (err) {
+  } catch (err: any) {
+    // P2025 = Prisma "Record to update not found" — userId from state didn't match any user
+    if (err?.code === 'P2025') {
+      console.error('[Meta Callback] User not found for id from state param:', userId)
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/dashboard/meta/error?reason=${encodeURIComponent('Session mismatch — please sign out, sign back in, and try connecting Meta again')}`
+      )
+    }
     console.error('[Meta Callback] Error:', err)
     return NextResponse.redirect(
       `${process.env.NEXTAUTH_URL}/dashboard/meta/error?reason=${encodeURIComponent('An unexpected error occurred')}`
