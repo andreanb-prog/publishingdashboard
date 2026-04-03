@@ -10,6 +10,7 @@ import { InsightCallouts } from '@/components/InsightCallout'
 import { ViewingBar } from '@/components/ViewingBar'
 import { GoalSection } from '@/components/GoalSection'
 import { SortablePage } from '@/components/SortablePage'
+import { fmtPct, fmtCurrency } from '@/lib/utils'
 import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis, MetaAd } from '@/types'
 
@@ -80,8 +81,8 @@ function getMonthRange(month: string) {
 function RescuePanel({ ad }: { ad: MetaAd }) {
   const isZeroClicks = ad.clicks === 0
   const problemText  = isZeroClicks
-    ? `zero clicks despite $${ad.spend} in spend`
-    : `a CTR of just ${ad.ctr}% — well below the 1% threshold`
+    ? `zero clicks despite ${fmtCurrency(ad.spend)} in spend`
+    : `a CTR of just ${fmtPct(ad.ctr)} — well below the 1% threshold`
 
   const steps = [
     {
@@ -183,7 +184,7 @@ function CTRBar({ ctr, maxCTR }: { ctr: number; maxCTR: number }) {
     <div className="flex items-center gap-2">
       <div>
         <div className="font-mono font-bold text-[16px] leading-none" style={{ color: barColor }}>
-          {ctr}%
+          {ctr.toFixed(1)}%
         </div>
       </div>
       <div className="h-1.5 rounded-full overflow-hidden flex-1 min-w-[48px]" style={{ background: '#EEEBE6' }}>
@@ -357,8 +358,8 @@ function MetaPerformanceChart({ ads }: { ads: import('@/types').MetaAd[] }) {
               title: (items: any[]) => ads[items[0]?.dataIndex]?.name ?? '',
               label: (item: any) =>
                 item.datasetIndex === 0
-                  ? ` Spend: $${item.raw}`
-                  : ` CTR: ${item.raw}%`,
+                  ? ` Spend: ${fmtCurrency(item.raw)}`
+                  : ` CTR: ${fmtPct(item.raw)}`,
             },
           },
         },
@@ -411,6 +412,35 @@ function MetaPerformanceChart({ ads }: { ads: import('@/types').MetaAd[] }) {
       ]} />
     </div>
   )
+}
+
+// ── Build a live insight from real Meta numbers ───────────────────────────────
+// Always derived from live data so stale cached metaCoach never shows.
+function buildMetaCoach(meta: NonNullable<Analysis['meta']>): string {
+  const best = meta.bestAd
+  const totalAds = meta.ads.length
+  const activeAds = meta.ads.filter(a => a.status === 'SCALE' || a.status === 'WATCH').length
+
+  const s1 = `You spent $${meta.totalSpend} across ${totalAds} ad${totalAds !== 1 ? 's' : ''} this period, generating ${meta.totalClicks.toLocaleString()} clicks at an average ${meta.avgCTR}% CTR and $${meta.avgCPC} CPC.`
+
+  let s2 = ''
+  if (best && best.ctr >= 1.5) {
+    s2 = `Your best ad ("${best.name}") is running at ${best.ctr}% CTR — above benchmark. Go to Meta Ads Manager and increase the daily budget on this ad by 20% to scale what's working.`
+  } else if (best && best.ctr > 0) {
+    s2 = `Your best ad ("${best.name}") is at ${best.ctr}% CTR — below the 1.5% benchmark. Go to Meta Ads Manager, duplicate this ad, and test a new visual or opening line to push CTR above 1.5%.`
+  } else {
+    s2 = `None of your ads have recorded clicks yet. Go to Meta Ads Manager and confirm your campaigns are active and the pixel is firing correctly.`
+  }
+
+  const cutAds = meta.ads.filter(a => a.status === 'CUT' || a.status === 'DELETE')
+  let s3 = ''
+  if (cutAds.length > 0) {
+    s3 = `Pause the ${cutAds.length} underperforming ad${cutAds.length !== 1 ? 's' : ''} flagged for cutting — consolidating spend into your ${activeAds} active ad${activeAds !== 1 ? 's' : ''} will lower your average CPC immediately.`
+  } else if (activeAds > 0) {
+    s3 = `With ${activeAds} active ad${activeAds !== 1 ? 's' : ''} running, monitor daily — if CPC climbs above $${(meta.avgCPC * 1.5).toFixed(2)}, pause and refresh the creative.`
+  }
+
+  return [s1, s2, s3].filter(Boolean).join(' ')
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -502,7 +532,6 @@ export default function MetaPage() {
   }
 
   const meta       = analysis?.meta
-  const coach      = (analysis as any)?.metaCoach
   const rescueAds  = meta?.ads.filter(ad => ad.clicks === 0 || ad.ctr < 1) ?? []
   const maxCTR     = meta ? Math.max(...meta.ads.map(a => a.ctr), 1) : 1
   const viewRange  = analysis?.month ? getMonthRange(analysis.month) : null
@@ -523,7 +552,7 @@ export default function MetaPage() {
   function renderCell(ad: MetaAd, key: ColKey) {
     switch (key) {
       case 'spend':
-        return <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>${ad.spend}</span>
+        return <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>{fmtCurrency(ad.spend)}</span>
       case 'impressions':
         return <span className="font-mono text-[14px]" style={{ color: '#1E2D3D' }}>{ad.impressions.toLocaleString()}</span>
       case 'clicks':
@@ -531,7 +560,7 @@ export default function MetaPage() {
       case 'ctr':
         return <CTRBar ctr={ad.ctr} maxCTR={maxCTR} />
       case 'cpc':
-        return <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>{ad.cpc > 0 ? `$${ad.cpc}` : '—'}</span>
+        return <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>{ad.cpc > 0 ? fmtCurrency(ad.cpc) : '—'}</span>
       case 'reach':
         return <span className="font-mono text-[14px]" style={{ color: '#1E2D3D' }}>{ad.reach > 0 ? ad.reach.toLocaleString() : '—'}</span>
       case 'uniqueClicks':
@@ -540,7 +569,7 @@ export default function MetaPage() {
           : <MissingCell colName="Unique clicks" />
       case 'uniqueCtr':
         return ad.uniqueCtr != null
-          ? <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>{ad.uniqueCtr}%</span>
+          ? <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>{fmtPct(ad.uniqueCtr)}</span>
           : <MissingCell colName="Unique CTR" />
       case 'frequency':
         return ad.frequency != null
@@ -604,34 +633,34 @@ export default function MetaPage() {
             {[
               {
                 label: 'Total Spend',
-                value: `$${meta.totalSpend}`,
+                value: fmtCurrency(meta.totalSpend),
                 sub: 'This period',
                 color: '#fb7185',
               },
               {
                 label: 'Best CTR',
-                value: `${meta.bestAd?.ctr || 0}%`,
+                value: fmtPct(meta.bestAd?.ctr || 0),
                 sub: ctrGoal ? `Goal: ${ctrGoal}%` : (meta.bestAd?.name || '—'),
                 color: '#34d399',
                 vsGoal: ctrGoal ? (meta.bestAd?.ctr || 0) >= ctrGoal : undefined,
               },
               {
                 label: 'Avg CPC',
-                value: `$${meta.avgCPC}`,
-                sub: cpcGoal ? `Goal: $${cpcGoal}` : 'Cost per click',
+                value: fmtCurrency(meta.avgCPC),
+                sub: cpcGoal ? `Goal: ${fmtCurrency(cpcGoal)}` : 'Cost per click',
                 color: '#fbbf24',
                 vsGoal: cpcGoal ? meta.avgCPC <= cpcGoal : undefined,
               },
               {
                 label: 'Total Clicks',
                 value: meta.totalClicks.toLocaleString(),
-                sub: `$${meta.avgCPC} avg CPC`,
+                sub: `${fmtCurrency(meta.avgCPC)} avg CPC`,
                 color: '#38bdf8',
               },
               {
                 label: 'Impressions',
                 value: meta.totalImpressions.toLocaleString(),
-                sub: `${meta.avgCTR}% avg CTR`,
+                sub: `${fmtPct(meta.avgCTR)} avg CTR`,
                 color: '#a78bfa',
               },
             ].map((item, i) => (
@@ -663,7 +692,11 @@ export default function MetaPage() {
           {meta.ads.length > 0 && <MetaPerformanceChart ads={sortedAds.length > 0 ? sortedAds : meta.ads} />}
 
           {analysis && <InsightCallouts analysis={analysis} page="meta" />}
-          {coach && <DarkCoachBox color="#fb7185" title={coachTitle}>{coach}</DarkCoachBox>}
+          {meta && (meta.totalSpend ?? 0) > 0 && (
+            <DarkCoachBox color="#fb7185" title={coachTitle}>
+              {buildMetaCoach(meta)}
+            </DarkCoachBox>
+          )}
 
           {/* Viewing bar */}
           {viewRange && (
@@ -671,7 +704,7 @@ export default function MetaPage() {
               start={viewRange.start}
               end={viewRange.end}
               days={viewRange.days}
-              summary={`$${meta.totalSpend} total spend · ${meta.totalClicks} clicks`}
+              summary={`${fmtCurrency(meta.totalSpend)} total spend · ${meta.totalClicks.toLocaleString()} clicks`}
             />
           )}
 
