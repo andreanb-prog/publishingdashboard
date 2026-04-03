@@ -66,7 +66,7 @@ export async function GET() {
   } catch (e) { debug.instagramAccountsError = String(e) }
 
   // Probe known + stored account IDs with insights
-  const accountsToProbe = ['act_898774062895926']
+  const accountsToProbe = ['act_898774062895926', 'act_940232825191906']
   if (user.metaAdAccountId && !accountsToProbe.includes(user.metaAdAccountId)) {
     accountsToProbe.push(user.metaAdAccountId.startsWith('act_') ? user.metaAdAccountId : `act_${user.metaAdAccountId}`)
   }
