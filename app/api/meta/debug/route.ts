@@ -67,7 +67,7 @@ export async function GET() {
     try {
       const fields = 'campaign_name,spend,impressions,clicks,ctr,cpc'
       const insightsRes = await fetch(
-        `${GRAPH_URL}/${accountId}/insights?fields=${fields}&date_preset=last_30_days&level=campaign&limit=10&access_token=${token}`
+        `${GRAPH_URL}/${accountId}/insights?fields=${fields}&date_preset=last_30d&level=campaign&limit=10&access_token=${token}`
       )
       insightsResults[accountId] = await insightsRes.json()
     } catch (e) {
