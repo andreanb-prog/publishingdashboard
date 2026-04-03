@@ -1,6 +1,9 @@
 'use client'
 // app/dashboard/meta/page.tsx
 import { Suspense, useEffect, useRef, useState } from 'react'
+import ChartJS from 'chart.js/auto'
+import { ChartLegend } from '@/components/ChartLegend'
+import { CHART_COLORS, BASE_CHART_OPTIONS, barDataset } from '@/lib/chartConfig'
 import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { InsightCallouts } from '@/components/InsightCallout'
@@ -303,6 +306,100 @@ function ColumnPicker({
   )
 }
 
+// ── Meta Performance Chart (uses lib/chartConfig) ────────────────────────────
+// Shows spend per ad as bars (coral) + CTR as a line overlay (teal, secondary y-axis)
+function MetaPerformanceChart({ ads }: { ads: import('@/types').MetaAd[] }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const chartRef  = useRef<ChartJS | null>(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || ads.length === 0) return
+    const ctx2d = canvasRef.current.getContext('2d')!
+    if (chartRef.current) chartRef.current.destroy()
+
+    const labels = ads.map(a => a.name.length > 20 ? a.name.substring(0, 20) + '…' : a.name)
+    const spends = ads.map(a => a.spend)
+    const ctrs   = ads.map(a => a.ctr)
+
+    chartRef.current = new ChartJS(ctx2d, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { ...barDataset(spends, CHART_COLORS.coral, 'Spend ($)'), yAxisID: 'y' },
+          {
+            type: 'line' as any,
+            label: 'CTR (%)',
+            data: ctrs,
+            borderColor: CHART_COLORS.teal,
+            borderWidth: 2,
+            fill: false,
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: CHART_COLORS.teal,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointHoverRadius: 6,
+            yAxisID: 'y2',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: BASE_CHART_OPTIONS.animation,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...BASE_CHART_OPTIONS.plugins.tooltip,
+            callbacks: {
+              title: (items: any[]) => ads[items[0]?.dataIndex]?.name ?? '',
+              label: (item: any) =>
+                item.datasetIndex === 0
+                  ? ` Spend: $${item.raw}`
+                  : ` CTR: ${item.raw}%`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ...BASE_CHART_OPTIONS.scales.x,
+            ticks: { ...BASE_CHART_OPTIONS.scales.x.ticks, maxRotation: 30 },
+          },
+          y: {
+            ...BASE_CHART_OPTIONS.scales.y,
+            position: 'left' as const,
+            title: { display: true, text: 'Spend ($)', font: { size: 9 }, color: 'rgba(30,45,61,0.4)' },
+          },
+          y2: {
+            ...BASE_CHART_OPTIONS.scales.y,
+            position: 'right' as const,
+            grid: { display: false },
+            title: { display: true, text: 'CTR (%)', font: { size: 9 }, color: 'rgba(30,45,61,0.4)' },
+          },
+        },
+      } as any,
+    })
+    return () => { chartRef.current?.destroy() }
+  }, [ads])
+
+  if (ads.length === 0) return null
+
+  return (
+    <div className="rounded-xl p-5 mb-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <h3 className="text-[13.5px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>Ad Performance Overview</h3>
+      <div style={{ minHeight: 220, position: 'relative' }}>
+        <canvas ref={canvasRef} />
+      </div>
+      <ChartLegend items={[
+        { color: CHART_COLORS.coral, label: 'Spend',  type: 'square' },
+        { color: CHART_COLORS.teal,  label: 'CTR (%)', type: 'line'  },
+      ]} />
+    </div>
+  )
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function MetaPage() {
   const [coachTitle]               = useState(() => getCoachTitle())
@@ -548,6 +645,9 @@ export default function MetaPage() {
               </div>
             ))}
           </div>
+
+          {/* Spend vs CTR chart — barDataset + line overlay from lib/chartConfig */}
+          {meta.ads.length > 0 && <MetaPerformanceChart ads={sortedAds.length > 0 ? sortedAds : meta.ads} />}
 
           {analysis && <InsightCallouts analysis={analysis} page="meta" />}
           {coach && <DarkCoachBox color="#fb7185" title={coachTitle}>{coach}</DarkCoachBox>}

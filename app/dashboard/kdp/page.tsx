@@ -10,7 +10,16 @@ import { HealthBenchmarkBar, ProjectionBadge, MetricTooltip } from '@/components
 import { ViewingBar } from '@/components/ViewingBar'
 import { GoalSection } from '@/components/GoalSection'
 import { BarChart } from '@/components/ui'
+import { ChartLegend } from '@/components/ChartLegend'
 import { getCoachTitle } from '@/lib/coachTitle'
+import {
+  CHART_COLORS,
+  BASE_CHART_OPTIONS,
+  areaDataset,
+  barDataset,
+  rollingAverage,
+  peakPoints,
+} from '@/lib/chartConfig'
 import type { Analysis, DailyData, RoasLog } from '@/types'
 
 
@@ -52,7 +61,6 @@ function getPresetRange(preset: Preset): { start: string; end: string } {
   }
 }
 
-// Shift a date range back by exactly its own length (for comparison period)
 function getPreviousPeriod(start: string, end: string): { start: string; end: string } {
   const s = new Date(start + 'T00:00:00')
   const e = new Date(end   + 'T00:00:00')
@@ -121,223 +129,487 @@ function DateRangePicker({
   )
 }
 
-// ── Daily Bars Chart (with date labels + comparison overlay) ──────────────────
-function DailyBarsChart({
+// ── Chart 1 & 2 — Daily Area Chart ───────────────────────────────────────────
+// Uses areaDataset + peakPoints + rollingAverage from lib/chartConfig
+function DailyAreaChart({
   data,
-  compareData,
-  roasLogs = [],
-  color = '#fb7185',
-  height = 72,
-  showAdStrip = false,
-  compareMode = false,
+  lineColor,
+  avgColor,
+  peakDotColor,
+  isKenp = false,
 }: {
   data: DailyData[]
-  compareData?: DailyData[]
-  roasLogs?: RoasLog[]
-  color?: string
-  height?: number
-  showAdStrip?: boolean
-  compareMode?: boolean
+  lineColor: string
+  avgColor: string
+  peakDotColor: string
+  isKenp?: boolean
 }) {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const chartRef  = useRef<ChartJS | null>(null)
 
-  const spendByDate = useMemo(() => {
-    const m = new Map<string, number>()
-    roasLogs.forEach(r => {
-      const date = new Date(r.date).toISOString().split('T')[0]
-      m.set(date, (m.get(date) ?? 0) + r.spend)
+  useEffect(() => {
+    if (!canvasRef.current || data.length === 0) return
+    const ctx2d = canvasRef.current.getContext('2d')!
+    if (chartRef.current) chartRef.current.destroy()
+
+    const values  = data.map(d => d.value)
+    const labels  = data.map(d => formatShortDate(d.date))
+
+    // Chart 2 gets a 3-day momentum line in teal; Chart 1 gets 7-day avg
+    const avgWindow = isKenp ? 3 : 7
+    const avgData   = rollingAverage(values, avgWindow)
+    const avgLine   = isKenp ? CHART_COLORS.teal : avgColor
+    const avgLabel  = isKenp ? '3-day momentum' : '7-day avg'
+
+    const mainDs = {
+      ...areaDataset(values, lineColor, isKenp ? 'KENP Reads' : 'Units Sold'),
+      ...peakPoints(values, peakDotColor),
+      // Override with chartArea-aware gradient for smoother look
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      backgroundColor: (context: any) => {
+        const { ctx: cCtx, chartArea } = context.chart
+        if (!chartArea) return lineColor + '40'
+        const g = cCtx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
+        g.addColorStop(0, lineColor + '3F')
+        g.addColorStop(1, lineColor + '05')
+        return g
+      },
+      pointHoverRadius: 4,
+    }
+
+    chartRef.current = new ChartJS(ctx2d, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          mainDs,
+          {
+            label: avgLabel,
+            data: avgData,
+            borderColor: avgLine,
+            borderWidth: 1.5,
+            tension: 0.4,
+            fill: false,
+            pointRadius: 0,
+            pointHoverRadius: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: BASE_CHART_OPTIONS.animation,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...BASE_CHART_OPTIONS.plugins.tooltip,
+            callbacks: {
+              title: (items: any[]) =>
+                items.length ? formatShortDate(data[items[0].dataIndex]?.date ?? '') : '',
+              label: (item: any) => {
+                const val = item.raw as number
+                if (item.datasetIndex === 0)
+                  return ` ${val.toLocaleString()} ${isKenp ? 'reads' : 'units'}`
+                return ` ${avgLabel}: ${val.toFixed(1)}`
+              },
+              ...(isKenp
+                ? {
+                    afterBody: (items: any[]) => {
+                      const val = data[items[0]?.dataIndex]?.value ?? 0
+                      return [` Est. revenue: $${(val * 0.0045).toFixed(2)}`]
+                    },
+                  }
+                : {}),
+            },
+          },
+        },
+        scales: {
+          x: {
+            ...BASE_CHART_OPTIONS.scales.x,
+            ticks: { ...BASE_CHART_OPTIONS.scales.x.ticks, maxRotation: 0 },
+          },
+          y: BASE_CHART_OPTIONS.scales.y,
+        },
+      } as any,
     })
-    return m
-  }, [roasLogs])
 
-  const n = data.length
-  // Smart label spacing: aim for ~8-10 labels max
-  const labelEvery = n <= 10 ? 1 : n <= 20 ? 2 : n <= 40 ? 5 : n <= 90 ? 7 : 10
+    return () => { chartRef.current?.destroy() }
+  }, [data, lineColor, avgColor, peakDotColor, isKenp])
 
-  const max = Math.max(...data.map(d => d.value), compareData ? Math.max(...compareData.map(d => d.value)) : 0, 1)
+  if (data.length === 0) {
+    return (
+      <div className="text-[12px] py-6 text-center" style={{ color: '#6B7280' }}>
+        No data for this range
+      </div>
+    )
+  }
 
-  // Correlation (for ad strip mode)
-  const withAds    = data.filter(d => (spendByDate.get(d.date) ?? 0) > 0)
-  const withoutAds = data.filter(d => !((spendByDate.get(d.date) ?? 0) > 0))
-  const avg = (arr: DailyData[]) => arr.length ? arr.reduce((s, d) => s + d.value, 0) / arr.length : 0
-  const avgWith    = avg(withAds)
-  const avgWithout = avg(withoutAds)
-  const correlation = showAdStrip && withAds.length > 0 && avgWithout > 0
-    ? Math.round(((avgWith - avgWithout) / avgWithout) * 100)
-    : null
-
-  if (n === 0) return <div className="text-[12px] py-6 text-center" style={{ color: '#6B7280' }}>No data for this range</div>
+  const peakDay = data.reduce((best, d) => (d.value > best.value ? d : best), data[0])
+  const avgWindow = isKenp ? 3 : 7
+  const avgLine   = isKenp ? CHART_COLORS.teal : avgColor
+  const avgLabel  = isKenp ? '3-day momentum' : '7-day avg'
 
   return (
     <div>
-      <div className="relative">
-        {/* Bars row */}
-        <div className="flex items-end gap-[2px]" style={{ height }}>
-          {data.map((d, i) => {
-            const spend     = spendByDate.get(d.date) ?? 0
-            const barPct    = Math.max((d.value / max) * 100, 3)
-            const cmpValue  = compareData?.[i]?.value ?? 0
-            const cmpPct    = Math.max((cmpValue / max) * 100, 0)
-            const isHovered = hoveredIdx === i
-
-            return (
-              <div
-                key={i}
-                className="relative flex-1 flex items-end"
-                style={{ height: '100%', minWidth: 2 }}
-                onMouseEnter={() => setHoveredIdx(i)}
-                onMouseLeave={() => setHoveredIdx(null)}
-              >
-                {/* Comparison ghost bar (behind) */}
-                {compareMode && compareData && cmpPct > 0 && (
-                  <div
-                    className="absolute w-full rounded-t-sm"
-                    style={{
-                      height: `${cmpPct}%`,
-                      bottom: 0,
-                      background: 'transparent',
-                      border: `1px solid ${color}`,
-                      borderBottom: 'none',
-                      opacity: 0.35,
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                )}
-
-                {/* Current bar */}
-                <div
-                  className="w-full rounded-t-sm transition-opacity duration-100"
-                  style={{
-                    height: `${barPct}%`,
-                    background: color,
-                    opacity: isHovered ? 1 : 0.72,
-                    position: 'relative',
-                    zIndex: 1,
-                  }}
-                />
-
-                {/* Tooltip */}
-                {isHovered && (
-                  <div
-                    className="absolute z-20 rounded-lg px-3 py-2.5 text-[11.5px]
-                               whitespace-nowrap pointer-events-none shadow-xl"
-                    style={{
-                      bottom: 'calc(100% + 8px)',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      background: '#1E2D3D',
-                      border: '1px solid #374151',
-                      color: '#fafaf9',
-                    }}
-                  >
-                    <div className="font-semibold mb-1" style={{ color: '#6B7280' }}>
-                      {formatShortDate(d.date)}
-                    </div>
-                    <div style={{ color }}>
-                      {d.value.toLocaleString()} {showAdStrip ? `unit${d.value !== 1 ? 's' : ''} sold` : 'reads'}
-                    </div>
-                    {showAdStrip && spend > 0 && (
-                      <div style={{ color: '#34d399' }}>${spend.toFixed(2)} ad spend</div>
-                    )}
-                    {showAdStrip && spend === 0 && (
-                      <div style={{ color: '#6B7280' }}>No ads running</div>
-                    )}
-                    {compareMode && compareData?.[i] && (
-                      <div className="mt-1 pt-1" style={{ borderTop: '1px solid #374151', color: '#6B7280' }}>
-                        Prev period: {compareData[i].value.toLocaleString()}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Ad spend strip */}
-        {showAdStrip && (
-          <div className="flex gap-[2px] mt-[3px]">
-            {data.map((d, i) => (
-              <div
-                key={i}
-                className="flex-1 rounded-sm"
-                style={{ height: 3, minWidth: 2, background: (spendByDate.get(d.date) ?? 0) > 0 ? '#34d399' : 'transparent' }}
-              />
-            ))}
-          </div>
-        )}
+      <div style={{ minHeight: 220, position: 'relative' }}>
+        <canvas ref={canvasRef} />
       </div>
+      <ChartLegend items={[
+        { color: lineColor,            label: isKenp ? 'KENP Reads' : 'Units Sold', type: 'square' },
+        { color: avgLine,              label: avgLabel,                              type: 'line'   },
+        { color: CHART_COLORS.amber,   label: `Peak: ${formatShortDate(peakDay.date)} (${peakDay.value.toLocaleString()})`, type: 'square' },
+      ]} />
+    </div>
+  )
+}
 
-      {/* Date labels */}
-      <div className="flex mt-1.5" style={{ overflow: 'hidden' }}>
+// ── Heatmap Calendar (Chart 5 — toggle view for Chart 1) ─────────────────────
+function HeatmapCalendar({
+  data,
+  emailSendDates,
+}: {
+  data: DailyData[]
+  emailSendDates: Set<string>
+}) {
+  if (data.length === 0) {
+    return <div className="text-[12px] py-6 text-center" style={{ color: '#6B7280' }}>No data for this range</div>
+  }
+
+  const maxVal = Math.max(...data.map(d => d.value), 1)
+
+  function cellColor(value: number): string {
+    if (value === 0) return '#FFF8F0'
+    const t = value / maxVal
+    if (t < 0.33)  return `rgba(233,160,32,${(0.2 + t * 1.2).toFixed(2)})`
+    if (t < 0.66)  return `rgba(233,160,32,${(0.6 + (t - 0.33) * 1.0).toFixed(2)})`
+    return `rgba(249,123,107,${(0.5 + (t - 0.66) * 1.5).toFixed(2)})`
+  }
+
+  return (
+    <div>
+      <div
+        className="grid gap-1"
+        style={{ gridTemplateColumns: `repeat(${Math.min(data.length, 31)}, 1fr)`, minHeight: 60 }}
+      >
         {data.map((d, i) => {
-          const show = i === 0 || i === n - 1 || i % labelEvery === 0
+          const isEmail = emailSendDates.has(d.date)
           return (
             <div
               key={i}
-              className="flex-1 text-center"
+              title={`${formatShortDate(d.date)}: ${d.value} units${isEmail ? ' · Email sent' : ''}`}
+              className="rounded-sm flex flex-col items-center justify-end pb-1"
               style={{
-                minWidth: 2,
-                fontSize: '9.5px',
-                color: show ? '#6B7280' : 'transparent',
-                transform: 'rotate(-35deg)',
-                transformOrigin: 'center top',
-                whiteSpace: 'nowrap',
-                lineHeight: 1,
-                paddingTop: 2,
+                background: cellColor(d.value),
+                minHeight: 48,
+                outline: isEmail ? `2px solid ${CHART_COLORS.plum}` : undefined,
+                outlineOffset: isEmail ? '-2px' : undefined,
+                cursor: 'default',
               }}
             >
-              {show ? formatShortDate(d.date) : ''}
+              <span
+                className="text-[7px] font-bold leading-none"
+                style={{ color: d.value > maxVal * 0.5 ? 'rgba(30,45,61,0.5)' : '#9CA3AF' }}
+              >
+                {d.value > 0 ? d.value : ''}
+              </span>
             </div>
           )
         })}
       </div>
+      <div className="flex flex-wrap items-center justify-between mt-2 gap-2">
+        <ChartLegend items={[
+          { color: '#FFF8F0',          label: '0 units',   type: 'square' },
+          { color: CHART_COLORS.amber, label: 'Mid',       type: 'square' },
+          { color: CHART_COLORS.coral, label: 'Peak',      type: 'square' },
+          { color: CHART_COLORS.plum,  label: 'Email day', type: 'square' },
+        ]} />
+      </div>
+    </div>
+  )
+}
 
-      {/* Ad correlation insight */}
-      {showAdStrip && correlation !== null && (
-        <div
-          className="mt-4 rounded-lg px-4 py-3 text-[12.5px] leading-snug"
-          style={{ background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.15)' }}
-        >
-          <span style={{ color: '#34d399' }}>
-            Days with ads:{' '}
-            <strong>{correlation >= 0 ? '+' : ''}{correlation}% {correlation >= 0 ? 'higher' : 'lower'} sales</strong>
-          </span>
-          <span style={{ color: '#6B7280' }}> than days without ads</span>
-          {withAds.length > 0 && withoutAds.length > 0 && (
-            <span style={{ color: '#6B7280' }}> ({avgWith.toFixed(1)} avg vs {avgWithout.toFixed(1)} avg)</span>
-          )}
+// ── Chart 3 — Ad Spend vs Royalties ──────────────────────────────────────────
+function AdSpendRoyaltiesChart({ logs }: { logs: RoasLog[] }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const chartRef  = useRef<ChartJS | null>(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || logs.length === 0) return
+    const ctx2d = canvasRef.current.getContext('2d')!
+    if (chartRef.current) chartRef.current.destroy()
+
+    const labels = logs.map(r => formatShortDate(r.date))
+    const spends = logs.map(r => r.spend)
+
+    // Cumulative spend and royalties
+    const cumSpend: number[] = []
+    const cumRoyalties: number[] = []
+    let runSpend = 0, runEarnings = 0
+    logs.forEach(r => {
+      runSpend    += r.spend
+      runEarnings += r.earnings
+      cumSpend.push(parseFloat(runSpend.toFixed(2)))
+      cumRoyalties.push(parseFloat(runEarnings.toFixed(2)))
+    })
+
+    chartRef.current = new ChartJS(ctx2d, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          // Daily spend bars on left y-axis
+          { ...barDataset(spends, CHART_COLORS.coral, 'Daily Spend'), yAxisID: 'y' },
+          // Cumulative royalties on right y-axis
+          {
+            type: 'line' as any,
+            label: 'Cumulative Royalties',
+            data: cumRoyalties,
+            borderColor: CHART_COLORS.sage,
+            borderWidth: 2.5,
+            fill: false,
+            tension: 0.3,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            pointHoverBackgroundColor: CHART_COLORS.sage,
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 2,
+            yAxisID: 'y2',
+          },
+          // Break-even = running cumulative spend (dashed amber)
+          {
+            type: 'line' as any,
+            label: 'Break-even',
+            data: cumSpend,
+            borderColor: CHART_COLORS.amber,
+            borderWidth: 1.5,
+            borderDash: [6, 4],
+            fill: false,
+            tension: 0,
+            pointRadius: 0,
+            yAxisID: 'y2',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: BASE_CHART_OPTIONS.animation,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...BASE_CHART_OPTIONS.plugins.tooltip,
+            callbacks: {
+              title: (items: any[]) => items.length ? labels[items[0].dataIndex] : '',
+              label: (item: any) => {
+                if (item.datasetIndex === 0) return ` Daily spend: $${item.raw}`
+                if (item.datasetIndex === 1) return ` Cumulative royalties: $${Number(item.raw).toFixed(2)}`
+                return ` Break-even threshold: $${Number(item.raw).toFixed(2)}`
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            ...BASE_CHART_OPTIONS.scales.x,
+            ticks: { ...BASE_CHART_OPTIONS.scales.x.ticks, maxRotation: 0 },
+          },
+          y: {
+            ...BASE_CHART_OPTIONS.scales.y,
+            position: 'left' as const,
+            title: { display: true, text: 'Spend ($)', font: { size: 9 }, color: 'rgba(30,45,61,0.4)' },
+          },
+          y2: {
+            ...BASE_CHART_OPTIONS.scales.y,
+            position: 'right' as const,
+            grid: { display: false },
+            title: { display: true, text: 'Royalties ($)', font: { size: 9 }, color: 'rgba(30,45,61,0.4)' },
+          },
+        },
+      } as any,
+    })
+
+    return () => { chartRef.current?.destroy() }
+  }, [logs])
+
+  // Break-even insight
+  let cumSpend = 0, cumEarnings = 0
+  let breakEvenDate: string | null = null
+  let daysToBreakEven = 0
+  for (const log of logs) {
+    daysToBreakEven++
+    cumSpend    += log.spend
+    cumEarnings += log.earnings
+    if (!breakEvenDate && cumEarnings >= cumSpend) {
+      breakEvenDate = log.date
+      break
+    }
+  }
+  const totalSpend    = logs.reduce((s, r) => s + r.spend, 0)
+  const totalEarnings = logs.reduce((s, r) => s + r.earnings, 0)
+
+  if (logs.length === 0) {
+    return (
+      <div className="text-[12px] py-6 text-center" style={{ color: '#6B7280' }}>
+        No ROAS data for this range.{' '}
+        <a href="/dashboard/roas" style={{ color: CHART_COLORS.amber }}>Log entries on the ROAS page →</a>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div style={{ minHeight: 220, position: 'relative' }}>
+        <canvas ref={canvasRef} />
+      </div>
+      <ChartLegend items={[
+        { color: CHART_COLORS.coral, label: 'Daily Ad Spend',        type: 'square' },
+        { color: CHART_COLORS.sage,  label: 'Cumulative Royalties',  type: 'line'   },
+        { color: CHART_COLORS.amber, label: 'Break-even threshold',  type: 'line'   },
+      ]} />
+      {breakEvenDate ? (
+        <div className="mt-3 text-[12px] px-3 py-2 rounded-lg" style={{ background: 'rgba(110,191,139,0.08)', color: '#374151' }}>
+          You crossed break-even on <strong>{formatShortDate(breakEvenDate)}</strong> — {daysToBreakEven} day{daysToBreakEven !== 1 ? 's' : ''} into the period.
+        </div>
+      ) : totalSpend > 0 ? (
+        <div className="mt-3 text-[12px] px-3 py-2 rounded-lg" style={{ background: 'rgba(249,123,107,0.08)', color: '#374151' }}>
+          Not yet break-even this period.{' '}
+          <strong>${(totalSpend - totalEarnings).toFixed(2)}</strong> remaining to cover in royalties.
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+// ── Chart 4 — Email Sends vs Sales ───────────────────────────────────────────
+function EmailVsSalesChart({
+  data,
+  emailSendDates,
+  emailCampaignMap,
+}: {
+  data: DailyData[]
+  emailSendDates: Set<string>
+  emailCampaignMap: Record<string, string>
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const chartRef  = useRef<ChartJS | null>(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || data.length === 0) return
+    const ctx2d = canvasRef.current.getContext('2d')!
+    if (chartRef.current) chartRef.current.destroy()
+
+    const values = data.map(d => d.value)
+    const labels = data.map(d => formatShortDate(d.date))
+
+    // Thin plum bars on email send days
+    const emailBarData = data.map(d => emailSendDates.has(d.date) ? d.value : 0)
+
+    // Peach points on day-after-email
+    const pointRadii  = data.map((d, i) => (i > 0 && emailSendDates.has(data[i - 1].date)) ? 5 : 0)
+    const pointColors = data.map((d, i) => (i > 0 && emailSendDates.has(data[i - 1].date)) ? CHART_COLORS.peach : CHART_COLORS.coral)
+
+    chartRef.current = new ChartJS(ctx2d, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          // Email send day bars — plum, behind units
+          {
+            type: 'bar' as any,
+            label: 'Email sent',
+            data: emailBarData,
+            backgroundColor: CHART_COLORS.plum + '28',
+            hoverBackgroundColor: CHART_COLORS.plum + '50',
+            borderWidth: 0,
+            order: 2,
+          },
+          // Units area chart — coral, in front
+          {
+            ...areaDataset(values, CHART_COLORS.coral, 'Units Sold'),
+            pointRadius: pointRadii,
+            pointBackgroundColor: pointColors,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            order: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: BASE_CHART_OPTIONS.animation,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...BASE_CHART_OPTIONS.plugins.tooltip,
+            callbacks: {
+              title: (items: any[]) => items.length ? labels[items[0].dataIndex] : '',
+              label: (item: any) => {
+                if (item.datasetIndex === 0 && emailBarData[item.dataIndex] > 0) {
+                  const name   = emailCampaignMap[data[item.dataIndex].date] || 'Email sent'
+                  const next   = data[item.dataIndex + 1]
+                  const u48    = data[item.dataIndex].value + (next?.value ?? 0)
+                  return ` 📧 ${name} · +${u48} units next 48hrs`
+                }
+                if (item.datasetIndex === 1) return ` ${(item.raw as number).toLocaleString()} units`
+                return ''
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            ...BASE_CHART_OPTIONS.scales.x,
+            ticks: { ...BASE_CHART_OPTIONS.scales.x.ticks, maxRotation: 0 },
+          },
+          y: BASE_CHART_OPTIONS.scales.y,
+        },
+      } as any,
+    })
+
+    return () => { chartRef.current?.destroy() }
+  }, [data, emailSendDates, emailCampaignMap])
+
+  // Best email insight
+  const dailyAvg = data.length > 0 ? sumValues(data) / data.length : 0
+  const topEmailInsight = data
+    .flatMap((d, i) => {
+      if (!emailSendDates.has(d.date)) return []
+      const units48  = d.value + (data[i + 1]?.value ?? 0)
+      const name     = emailCampaignMap[d.date] || 'Email'
+      const multiple = dailyAvg > 0 ? units48 / (dailyAvg * 2) : 0
+      return [{ name, units48, multiple }]
+    })
+    .sort((a, b) => b.units48 - a.units48)[0] ?? null
+
+  if (data.length === 0) {
+    return <div className="text-[12px] py-6 text-center" style={{ color: '#6B7280' }}>No data for this range</div>
+  }
+
+  return (
+    <div>
+      <div style={{ minHeight: 220, position: 'relative' }}>
+        <canvas ref={canvasRef} />
+      </div>
+      <ChartLegend items={[
+        { color: CHART_COLORS.coral, label: 'Units Sold',      type: 'square' },
+        { color: CHART_COLORS.plum,  label: 'Email send day',  type: 'square' },
+        { color: CHART_COLORS.peach, label: 'Day after email', type: 'square' },
+      ]} />
+      {topEmailInsight && (
+        <div className="mt-3 text-[12px] px-3 py-2 rounded-lg" style={{ background: 'rgba(233,160,32,0.06)', color: '#374151' }}>
+          <strong>{topEmailInsight.name}</strong> → {topEmailInsight.units48} units in 48hrs
+          {topEmailInsight.multiple > 0 && ` (${topEmailInsight.multiple.toFixed(1)}× your 2-day average)`}
         </div>
       )}
-
-      {/* Legends */}
-      <div className="flex items-center gap-4 mt-3 text-[10.5px]" style={{ color: '#6B7280' }}>
-        <span className="flex items-center gap-1.5">
-          <span style={{ display: 'inline-block', width: 10, height: 10, background: color, borderRadius: 2, opacity: 0.8 }} />
-          {showAdStrip ? 'Units sold' : 'KENP reads'}
-        </span>
-        {showAdStrip && (
-          <>
-            <span style={{ color: '#D6D3D1' }}>|</span>
-            <span className="flex items-center gap-1.5">
-              <span style={{ display: 'inline-block', width: 14, height: 3, background: '#34d399', borderRadius: 2 }} />
-              Ad spend active
-            </span>
-          </>
-        )}
-        {compareMode && (
-          <>
-            <span style={{ color: '#D6D3D1' }}>|</span>
-            <span className="flex items-center gap-1.5">
-              <span style={{
-                display: 'inline-block', width: 10, height: 10,
-                border: `1.5px solid ${color}`, borderRadius: 2, opacity: 0.4,
-              }} />
-              Previous period
-            </span>
-          </>
-        )}
-      </div>
+      {emailSendDates.size === 0 && (
+        <p className="mt-2 text-[11px]" style={{ color: '#6B7280' }}>
+          Connect MailerLite in <a href="/dashboard/settings" style={{ color: CHART_COLORS.amber }}>Settings</a> to overlay email send days on sales.
+        </p>
+      )}
     </div>
   )
 }
@@ -351,8 +623,9 @@ export default function KDPPage() {
   const [customStart, setCustomStart] = useState('')
   const [customEnd,   setCustomEnd]   = useState('')
   const [compareMode, setCompareMode] = useState(false)
+  const [heatmapView, setHeatmapView] = useState(false)
   const [loading,     setLoading]     = useState(true)
-  const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set()) // empty = all
+  const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     Promise.all([
@@ -367,7 +640,6 @@ export default function KDPPage() {
     }).finally(() => setLoading(false))
   }, [])
 
-  // Merge daily data from all analyses, sorted chronologically
   const allDailyUnits = useMemo(() => {
     const merged: DailyData[] = []
     allAnalyses.forEach(a => { if (a.kdp?.dailyUnits) merged.push(...a.kdp.dailyUnits) })
@@ -380,7 +652,6 @@ export default function KDPPage() {
     return merged.sort((a, b) => a.date.localeCompare(b.date))
   }, [allAnalyses])
 
-  // Resolve active date range
   const range = useMemo((): { start: string; end: string } => {
     if (preset === 'custom') return { start: customStart, end: customEnd }
     return getPresetRange(preset)
@@ -398,7 +669,13 @@ export default function KDPPage() {
       : allDailyKENP,
   [allDailyKENP, range])
 
-  // Previous period for comparison
+  const filteredRoas = useMemo(() => {
+    const sorted = [...roasLogs].sort((a, b) => a.date.localeCompare(b.date))
+    return range.start && range.end
+      ? sorted.filter(r => r.date >= range.start && r.date <= range.end)
+      : sorted
+  }, [roasLogs, range])
+
   const prevPeriod = useMemo(() => {
     if (!range.start || !range.end) return null
     return getPreviousPeriod(range.start, range.end)
@@ -414,12 +691,23 @@ export default function KDPPage() {
     return allDailyKENP.filter(d => d.date >= prevPeriod.start && d.date <= prevPeriod.end)
   }, [compareMode, allDailyKENP, prevPeriod])
 
-  // Filtered totals for KPI strip
   const filteredTotalUnits = useMemo(() => sumValues(filteredUnits), [filteredUnits])
   const filteredTotalKENP  = useMemo(() => sumValues(filteredKENP),  [filteredKENP])
 
-  // Use latest analysis for per-book data and royalties
+  // Email send dates for Chart 4 and heatmap (from MailerLite campaigns in analysis)
   const analysis = allAnalyses[0] ?? null
+  const emailSendDates = useMemo(() => {
+    const campaigns = analysis?.mailerLite?.campaigns ?? []
+    return new Set(campaigns.map(c => c.sentAt.substring(0, 10)))
+  }, [analysis])
+
+  const emailCampaignMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    const campaigns = analysis?.mailerLite?.campaigns ?? []
+    campaigns.forEach(c => { map[c.sentAt.substring(0, 10)] = c.name })
+    return map
+  }, [analysis])
+
   const kdp   = analysis?.kdp
   const coach = (analysis as any)?.kdpCoach
 
@@ -468,24 +756,22 @@ export default function KDPPage() {
             }}
           />
 
-          {/* KPI Strip — 5-column grid with trend deltas */}
+          {/* KPI Strip */}
           {(() => {
             const readerDepth = kdp.totalUnits > 0 ? kdp.totalKENP / kdp.totalUnits : 0
             const estKu = Math.round(filteredTotalKENP * 0.0045 * 100) / 100
             const totalEstRevenue = Math.round((kdp.totalRoyaltiesUSD + estKu) * 100) / 100
-
-            // Trend deltas from previous analysis
             const prev = allAnalyses[1]?.kdp
             const unitsDelta = prev ? filteredTotalUnits - prev.totalUnits : null
-            const kenpDelta = prev ? filteredTotalKENP - prev.totalKENP : null
-            const revDelta = prev ? totalEstRevenue - Math.round((prev.totalRoyaltiesUSD + prev.totalKENP * 0.0045) * 100) / 100 : null
+            const kenpDelta  = prev ? filteredTotalKENP - prev.totalKENP : null
+            const revDelta   = prev ? totalEstRevenue - Math.round((prev.totalRoyaltiesUSD + prev.totalKENP * 0.0045) * 100) / 100 : null
 
             const kpis = [
-              { label: 'Units Sold', value: filteredTotalUnits.toLocaleString(), delta: unitsDelta, color: '#38bdf8', tooltip: 'totalUnits' },
-              { label: 'KENP Reads', value: filteredTotalKENP.toLocaleString(), delta: kenpDelta, color: '#fbbf24', tooltip: 'kenp' },
-              { label: 'Est. KU Revenue', value: `$${estKu}`, delta: null, color: '#a78bfa', tooltip: 'estKuEarnings', projection: true },
-              { label: 'Total Est. Revenue', value: `$${totalEstRevenue}`, delta: revDelta, color: '#fb7185', tooltip: 'totalEstRevenue', projection: true },
-              { label: 'Reader Depth', value: readerDepth > 0 ? `~${readerDepth.toFixed(1)}` : '—', delta: null, color: '#34d399', tooltip: 'readerDepth', benchmark: { metric: 'readerDepth', value: readerDepth } },
+              { label: 'Units Sold',        value: filteredTotalUnits.toLocaleString(), delta: unitsDelta, color: '#38bdf8', tooltip: 'totalUnits' },
+              { label: 'KENP Reads',        value: filteredTotalKENP.toLocaleString(),  delta: kenpDelta,  color: '#fbbf24', tooltip: 'kenp' },
+              { label: 'Est. KU Revenue',   value: `$${estKu}`,          delta: null,       color: '#a78bfa', tooltip: 'estKuEarnings',    projection: true },
+              { label: 'Total Est. Revenue',value: `$${totalEstRevenue}`, delta: revDelta,   color: '#fb7185', tooltip: 'totalEstRevenue', projection: true },
+              { label: 'Reader Depth',      value: readerDepth > 0 ? `~${readerDepth.toFixed(1)}` : '—', delta: null, color: '#34d399', tooltip: 'readerDepth', benchmark: { metric: 'readerDepth', value: readerDepth } },
             ]
 
             return (
@@ -548,7 +834,6 @@ export default function KDPPage() {
             )
           })()}
 
-
           {analysis && <InsightCallouts analysis={analysis} page="kdp" />}
           {coach && <DarkCoachBox color="#fbbf24" title={coachTitle}>{coach}</DarkCoachBox>}
 
@@ -593,7 +878,7 @@ export default function KDPPage() {
             </div>
           )}
 
-          {/* Book Performance Charts — fixed color per position */}
+          {/* Book Performance Charts */}
           {(() => {
             const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
             const visibleBooks = selectedBooks.size > 0
@@ -648,10 +933,8 @@ export default function KDPPage() {
             />
           )}
 
-          {/* Range label + compare toggle */}
-          <div className="flex items-center justify-between mb-4">
-            <div />
-
+          {/* Compare toggle */}
+          <div className="flex items-center justify-end mb-4">
             <button
               onClick={() => setCompareMode(m => !m)}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all duration-150"
@@ -666,39 +949,48 @@ export default function KDPPage() {
             </button>
           </div>
 
-          {/* Daily Units chart */}
+          {/* ── Chart 1 — Daily Units Sold (with Chart 5 heatmap toggle) ── */}
           <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="text-[13.5px] font-semibold" style={{ color: '#1E2D3D' }}>Daily Units Sold</h3>
-              {compareMode && prevPeriod && (
-                <span className="text-[10.5px]" style={{ color: '#6B7280' }}>
-                  vs {formatDisplayRange(prevPeriod.start, prevPeriod.end)}
-                </span>
-              )}
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-[13.5px] font-semibold" style={{ color: '#1E2D3D' }}>Daily Units Sold</h3>
+                {compareMode && prevPeriod && (
+                  <span className="text-[10.5px]" style={{ color: '#6B7280' }}>
+                    vs {formatDisplayRange(prevPeriod.start, prevPeriod.end)}
+                  </span>
+                )}
+              </div>
+              {/* Chart 5 toggle */}
+              <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid #EEEBE6' }}>
+                <button
+                  onClick={() => setHeatmapView(false)}
+                  className="px-3 py-1 text-[11px] font-medium transition-all"
+                  style={{ background: !heatmapView ? '#E9A020' : '#FFF8F0', color: !heatmapView ? 'white' : '#6B7280' }}
+                >
+                  Area view
+                </button>
+                <button
+                  onClick={() => setHeatmapView(true)}
+                  className="px-3 py-1 text-[11px] font-medium transition-all"
+                  style={{ background: heatmapView ? '#E9A020' : '#FFF8F0', color: heatmapView ? 'white' : '#6B7280' }}
+                >
+                  Heatmap
+                </button>
+              </div>
             </div>
-            <p className="text-[11px] mb-4" style={{ color: '#6B7280' }}>
-              {filteredUnits.length > 0 ? (
-                <>
-                  Peak day:{' '}
-                  {[...filteredUnits].sort((a, b) => b.value - a.value)[0]?.date &&
-                    formatShortDate([...filteredUnits].sort((a, b) => b.value - a.value)[0].date)}{' '}—{' '}
-                  {[...filteredUnits].sort((a, b) => b.value - a.value)[0]?.value} units
-                  {' · '}Hover any bar for details
-                </>
-              ) : 'No data for this date range'}
-            </p>
-            <DailyBarsChart
-              data={filteredUnits}
-              compareData={compareUnits}
-              roasLogs={roasLogs}
-              color="#fb7185"
-              height={72}
-              showAdStrip
-              compareMode={compareMode}
-            />
+            {heatmapView ? (
+              <HeatmapCalendar data={filteredUnits} emailSendDates={emailSendDates} />
+            ) : (
+              <DailyAreaChart
+                data={filteredUnits}
+                lineColor={CHART_COLORS.coral}
+                avgColor={CHART_COLORS.amber}
+                peakDotColor={CHART_COLORS.amber}
+              />
+            )}
           </div>
 
-          {/* Daily KENP chart */}
+          {/* ── Chart 2 — Daily KENP Reads ── */}
           {filteredKENP.length > 0 && (
             <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
               <div className="flex items-center justify-between mb-1">
@@ -712,15 +1004,40 @@ export default function KDPPage() {
               <p className="text-[11px] mb-4" style={{ color: '#6B7280' }}>
                 Kindle Unlimited page reads · est. $0.0045/page
               </p>
-              <DailyBarsChart
+              <DailyAreaChart
                 data={filteredKENP}
-                compareData={compareKENP}
-                color="#fbbf24"
-                height={64}
-                compareMode={compareMode}
+                lineColor={CHART_COLORS.amber}
+                avgColor={CHART_COLORS.navy}
+                peakDotColor={CHART_COLORS.coral}
+                isKenp
               />
             </div>
           )}
+
+          {/* ── Chart 3 — Ad Spend vs Royalties ── */}
+          <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-[13.5px] font-semibold" style={{ color: '#1E2D3D' }}>Ad Spend vs Royalties</h3>
+              <span className="text-[10.5px]" style={{ color: '#6B7280' }}>From ROAS log</span>
+            </div>
+            <p className="text-[11px] mb-4" style={{ color: '#6B7280' }}>
+              Daily ad spend (bars) · cumulative royalties vs cumulative spend (lines cross at break-even)
+            </p>
+            <AdSpendRoyaltiesChart logs={filteredRoas} />
+          </div>
+
+          {/* ── Chart 4 — Email Sends vs Sales ── */}
+          <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+            <h3 className="text-[13.5px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>Email Sends vs Sales</h3>
+            <p className="text-[11px] mb-4" style={{ color: '#6B7280' }}>
+              Units sold with email send days overlaid — peach dot = day after email
+            </p>
+            <EmailVsSalesChart
+              data={filteredUnits}
+              emailSendDates={emailSendDates}
+              emailCampaignMap={emailCampaignMap}
+            />
+          </div>
         </>
       )}
     </DarkPage>

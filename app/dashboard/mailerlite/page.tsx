@@ -1,6 +1,9 @@
 'use client'
 // app/(dashboard)/mailerlite/page.tsx
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import ChartJS from 'chart.js/auto'
+import { ChartLegend } from '@/components/ChartLegend'
+import { CHART_COLORS, BASE_CHART_OPTIONS, barDataset } from '@/lib/chartConfig'
 import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { GoalSection } from '@/components/GoalSection'
@@ -8,6 +11,96 @@ import { getCoachTitle } from '@/lib/coachTitle'
 import { InsightCallouts } from '@/components/InsightCallout'
 import type { Analysis, MailerLiteAutomation } from '@/types'
 
+
+// ── Campaign Open Rate Chart (uses lib/chartConfig) ──────────────────────────
+function CampaignOpenRateChart({ campaigns, target }: { campaigns: import('@/types').MailerLiteCampaign[]; target: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const chartRef  = useRef<ChartJS | null>(null)
+
+  useEffect(() => {
+    const recent = campaigns.slice(0, 10).reverse()
+    if (!canvasRef.current || recent.length === 0) return
+    const ctx2d = canvasRef.current.getContext('2d')!
+    if (chartRef.current) chartRef.current.destroy()
+
+    const labels     = recent.map(c => c.sentAt ? new Date(c.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '')
+    const openRates  = recent.map(c => c.openRate)
+    const bgColors   = recent.map(c => (c.openRate >= target ? CHART_COLORS.sage : CHART_COLORS.amber) + 'CC')
+    const hoverColors= recent.map(c => c.openRate >= target ? CHART_COLORS.sage : CHART_COLORS.amber)
+
+    chartRef.current = new ChartJS(ctx2d, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            ...barDataset(openRates, CHART_COLORS.sage, 'Open Rate (%)'),
+            backgroundColor: bgColors,
+            hoverBackgroundColor: hoverColors,
+          },
+          {
+            type: 'line' as any,
+            label: `Target ${target}%`,
+            data: Array(recent.length).fill(target),
+            borderColor: CHART_COLORS.amber,
+            borderWidth: 1.5,
+            borderDash: [4, 3],
+            fill: false,
+            pointRadius: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: BASE_CHART_OPTIONS.animation,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...BASE_CHART_OPTIONS.plugins.tooltip,
+            callbacks: {
+              title: (items: any[]) => recent[items[0]?.dataIndex]?.name ?? '',
+              label: (item: any) =>
+                item.datasetIndex === 0 ? ` Open rate: ${item.raw}%` : ` Target: ${item.raw}%`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ...BASE_CHART_OPTIONS.scales.x,
+            ticks: { ...BASE_CHART_OPTIONS.scales.x.ticks, maxRotation: 30 },
+          },
+          y: {
+            ...BASE_CHART_OPTIONS.scales.y,
+            ticks: {
+              ...BASE_CHART_OPTIONS.scales.y.ticks,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              callback: (v: any) => `${v}%`,
+            },
+          },
+        },
+      } as any,
+    })
+    return () => { chartRef.current?.destroy() }
+  }, [campaigns, target])
+
+  const recent = campaigns.slice(0, 10).reverse()
+  if (recent.length === 0) return null
+
+  return (
+    <div>
+      <div style={{ minHeight: 160, position: 'relative' }}>
+        <canvas ref={canvasRef} />
+      </div>
+      <ChartLegend items={[
+        { color: CHART_COLORS.sage,  label: 'Above target', type: 'square' },
+        { color: CHART_COLORS.amber, label: 'Below target', type: 'square' },
+        { color: CHART_COLORS.amber, label: `Target ${target}%`, type: 'line' },
+      ]} />
+    </div>
+  )
+}
 
 export default function MailerLitePage() {
   const [coachTitle] = useState(() => getCoachTitle())
@@ -316,37 +409,14 @@ export default function MailerLitePage() {
             </div>
           )}
 
-          {/* Campaign Open Rate Trend */}
+          {/* Campaign Open Rate Trend — Chart.js via lib/chartConfig */}
           {ml.campaigns.length >= 3 && (
             <div className="rounded-xl overflow-hidden mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
               <div className="px-5 py-3 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
-                Daily Email Opens — Recent Campaigns
+                Campaign Open Rate Trend
               </div>
               <div className="px-5 py-4">
-                <div className="flex items-end gap-1.5" style={{ height: 120 }}>
-                  {ml.campaigns.slice(0, 10).reverse().map((c, i) => {
-                    const maxRate = Math.max(...ml.campaigns.slice(0, 10).map(x => x.openRate), 1)
-                    const h = Math.max((c.openRate / maxRate) * 100, 4)
-                    const isGood = c.openRate >= openTarget
-                    return (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1" title={`${c.name}: ${c.openRate}%`}>
-                        <span className="text-[9px] font-mono font-bold" style={{ color: isGood ? '#6EBF8B' : '#E9A020' }}>
-                          {c.openRate}%
-                        </span>
-                        <div className="w-full rounded-t-md transition-all" style={{
-                          height: `${h}%`,
-                          background: isGood ? 'linear-gradient(180deg, #6EBF8B, rgba(110,191,139,0.3))' : 'linear-gradient(180deg, #E9A020, rgba(233,160,32,0.3))',
-                        }} />
-                        <span className="text-[8px] truncate w-full text-center" style={{ color: '#6B7280' }}>
-                          {c.sentAt ? new Date(c.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="mt-2 text-[10px] text-right" style={{ color: '#6B7280' }}>
-                  Green = above your {openTarget}% target
-                </div>
+                <CampaignOpenRateChart campaigns={ml.campaigns} target={openTarget} />
               </div>
             </div>
           )}
