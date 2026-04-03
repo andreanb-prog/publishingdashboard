@@ -99,15 +99,15 @@ export function rollingAverage(data: number[], window = 7): number[] {
   })
 }
 
-/** Returns point overrides that highlight the peak value with an amber dot. */
-export function peakPoints(data: number[], _color?: string) {
+/** Returns point overrides that highlight the peak value. Color defaults to amber. */
+export function peakPoints(data: number[], color = CHART_COLORS.amber) {
   if (data.length === 0) {
-    return { pointRadius: [], pointBackgroundColor: CHART_COLORS.amber, pointBorderColor: '#fff', pointBorderWidth: 2 }
+    return { pointRadius: [], pointBackgroundColor: color, pointBorderColor: '#fff', pointBorderWidth: 2 }
   }
   const max = Math.max(...data)
   return {
-    pointRadius: data.map(v => v === max ? 6 : 0),
-    pointBackgroundColor: CHART_COLORS.amber,
+    pointRadius: data.map(v => v === max ? 5 : 0),
+    pointBackgroundColor: color,
     pointBorderColor: '#fff',
     pointBorderWidth: 2,
   }

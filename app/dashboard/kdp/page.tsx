@@ -148,7 +148,7 @@ function DailyAreaChart({
   const chartRef  = useRef<ChartJS | null>(null)
 
   useEffect(() => {
-    if (!canvasRef.current || data.length === 0) return
+    if (!canvasRef.current || data.length < 5) return
     const ctx2d = canvasRef.current.getContext('2d')!
     if (chartRef.current) chartRef.current.destroy()
 
@@ -237,10 +237,11 @@ function DailyAreaChart({
     return () => { chartRef.current?.destroy() }
   }, [data, lineColor, avgColor, peakDotColor, isKenp])
 
-  if (data.length === 0) {
+  if (data.length < 5) {
     return (
-      <div className="text-[12px] py-6 text-center" style={{ color: '#6B7280' }}>
-        No data for this range
+      <div style={{ textAlign: 'center', padding: '40px 24px', color: '#9CA3AF' }}>
+        <div className="text-[13px]">Not enough data to chart yet.</div>
+        <div className="text-[12px] mt-1">Upload more KDP reports to see daily trends.</div>
       </div>
     )
   }
@@ -619,7 +620,7 @@ export default function KDPPage() {
   const [coachTitle]  = useState(() => getCoachTitle())
   const [allAnalyses, setAllAnalyses] = useState<Analysis[]>([])
   const [roasLogs,    setRoasLogs]    = useState<RoasLog[]>([])
-  const [preset,      setPreset]      = useState<Preset>('thisMonth')
+  const [preset,      setPreset]      = useState<Preset>('last30')
   const [customStart, setCustomStart] = useState('')
   const [customEnd,   setCustomEnd]   = useState('')
   const [compareMode, setCompareMode] = useState(false)
