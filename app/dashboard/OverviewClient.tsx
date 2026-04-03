@@ -357,7 +357,19 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
   const [coachTitle]  = useState(() => getCoachTitle())
   const [expandedPriority, setExpandedPriority] = useState<number | null>(null)
   const [isFresh,     setIsFresh]     = useState(false)
-  const [storyMode,   setStoryMode]   = useState(true)
+  const [storyMode,   setStoryMode]   = useState(() => {
+    if (typeof window === 'undefined') return true
+    const stored = localStorage.getItem('story-mode')
+    return stored === null ? true : stored === 'true'
+  })
+
+  function toggleStoryMode() {
+    setStoryMode(prev => {
+      const next = !prev
+      localStorage.setItem('story-mode', String(next))
+      return next
+    })
+  }
 
   // Sync Story Mode from localStorage on mount + listen for TopBar toggle events
   useEffect(() => {
@@ -783,13 +795,26 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
             id: 'channel-cards',
             content: (
               <div>
-                <div className="mb-1">
-                  <h2 className="font-sans text-[18px] text-[#0d1f35] mb-1">
-                    Your channels — click any for the full deep dive
-                  </h2>
-                  <p className="text-[12px] text-stone-500 mb-4">
-                    Each channel has a detailed analysis with your coach&apos;s recommendations
-                  </p>
+                <div className="mb-1 flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="font-sans text-[18px] text-[#0d1f35] mb-1">
+                      Your channels — click any for the full deep dive
+                    </h2>
+                    <p className="text-[12px] text-stone-500 mb-4">
+                      Each channel has a detailed analysis with your coach&apos;s recommendations
+                    </p>
+                  </div>
+                  <button
+                    onClick={toggleStoryMode}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11.5px] font-semibold transition-all flex-shrink-0 mt-0.5"
+                    style={{
+                      background: storyMode ? 'rgba(233,160,32,0.12)' : '#F5F5F4',
+                      color: storyMode ? '#E9A020' : '#6B7280',
+                      border: storyMode ? '1px solid rgba(233,160,32,0.3)' : '1px solid #E5E7EB',
+                    }}
+                  >
+                    📖 Story Mode
+                  </button>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
                   {CHANNEL_CARDS.map(card => {
