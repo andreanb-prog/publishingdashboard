@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 
+// POST — called from client-side fetch
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -14,12 +15,27 @@ export async function POST(req: NextRequest) {
   }
 
   const id = accountId.startsWith('act_') ? accountId : `act_${accountId}`
-
-  await db.user.update({
-    where: { id: session.user.id },
-    data: { metaAdAccountId: id },
-  })
-
-  console.log('[Meta Save Account] Saved', id, 'for user', session.user.id)
+  await db.user.update({ where: { id: session.user.id }, data: { metaAdAccountId: id } })
+  console.log('[Meta Save Account] POST saved', id, 'for user', session.user.id)
   return NextResponse.json({ ok: true })
+}
+
+// GET — fallback: /api/meta/save-account?accountId=act_xxx — saves and hard-redirects
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  const base = process.env.NEXTAUTH_URL ?? 'https://authordash.io'
+
+  if (!session?.user?.id) {
+    return NextResponse.redirect(`${base}/login`)
+  }
+
+  const accountId = req.nextUrl.searchParams.get('accountId')
+  if (!accountId) {
+    return NextResponse.redirect(`${base}/dashboard/meta/select-account`)
+  }
+
+  const id = accountId.startsWith('act_') ? accountId : `act_${accountId}`
+  await db.user.update({ where: { id: session.user.id }, data: { metaAdAccountId: id } })
+  console.log('[Meta Save Account] GET saved', id, 'for user', session.user.id)
+  return NextResponse.redirect(`${base}/dashboard/settings?meta=connected`)
 }
