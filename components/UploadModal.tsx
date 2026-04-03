@@ -2,6 +2,7 @@
 // components/UploadModal.tsx — full-page upload modal triggered from TopBar
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { FileUp, BarChart2, BookOpen, Sparkles, CheckCircle, Upload } from 'lucide-react'
 import type { KDPData, MetaData, PinterestData } from '@/types'
 
 type FileType = 'kdp' | 'meta' | 'pinterest' | 'adtracker' | 'unknown'
@@ -20,16 +21,24 @@ interface StageInfo {
   id: StageId
   percent: number
   title: string
-  message: string
-  icon: 'book' | 'check' | 'bars' | 'star' | 'celebrate'
+  icon: 'fileup' | 'barchart' | 'bookopen' | 'sparkles' | 'celebrate'
 }
 
 const STAGES: StageInfo[] = [
-  { id: 1, percent: 12,  title: 'Reading your file',   message: 'Cracking open your report...',         icon: 'book'      },
-  { id: 2, percent: 35,  title: 'Detecting format',    message: 'Found your sales data — looks good!',  icon: 'check'     },
-  { id: 3, percent: 58,  title: 'Saving your data',    message: 'Turning your data into your story...', icon: 'bars'      },
-  { id: 4, percent: 82,  title: 'Running AI analysis', message: 'Your coach is reading the numbers...', icon: 'star'      },
-  { id: 5, percent: 100, title: 'Done!',               message: 'Your dashboard is ready!',             icon: 'celebrate' },
+  { id: 1, percent: 12,  title: 'Uploading your file',  icon: 'fileup'    },
+  { id: 2, percent: 35,  title: 'Processing data',      icon: 'barchart'  },
+  { id: 3, percent: 58,  title: 'Matching books',       icon: 'bookopen'  },
+  { id: 4, percent: 82,  title: 'Running AI analysis',  icon: 'sparkles'  },
+  { id: 5, percent: 100, title: 'Done!',                icon: 'celebrate' },
+]
+
+const CYCLING_MESSAGES = [
+  'Turning your data into strategy...',
+  'Finding the story in your numbers...',
+  'Your coach is reviewing the data...',
+  'Almost there — the good stuff is loading...',
+  'Connecting the dots across your channels...',
+  'Your publishing picture is coming into focus...',
 ]
 
 const SLOW_MESSAGES: Record<StageId, string> = {
@@ -42,38 +51,11 @@ const SLOW_MESSAGES: Record<StageId, string> = {
 
 function sleep(ms: number) { return new Promise<void>(r => setTimeout(r, ms)) }
 
-function BookIcon()        { return <div style={{ animation: 'stageBookBounce 1.4s ease-in-out infinite', fontSize: 56, lineHeight: 1 }}>📖</div> }
-function StarIcon()        { return <div style={{ fontSize: 52, lineHeight: 1, animation: 'stageStarPulse 1.2s ease-in-out infinite' }}>⭐</div> }
-function CelebrationIcon() { return <div style={{ fontSize: 54, lineHeight: 1, animation: 'stageCelebrate 0.6s ease-out' }}>🎉</div> }
-
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 56 56" fill="none" width="56" height="56">
-      <circle cx="28" cy="28" r="26" stroke="#E9A020" strokeWidth="2.5" opacity="0.2" />
-      <circle cx="28" cy="28" r="26" stroke="#E9A020" strokeWidth="2.5"
-        strokeDasharray="163" strokeDashoffset="163"
-        style={{ animation: 'stageCircleDraw 0.6s ease-out forwards' }} />
-      <path d="M16 28L24 36L40 20" stroke="#6EBF8B" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
-        strokeDasharray="32" strokeDashoffset="32"
-        style={{ animation: 'stageCheckDraw 0.4s 0.5s ease-out forwards' }} />
-    </svg>
-  )
-}
-
-function BarsIcon() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 48, paddingBottom: 4 }}>
-      {[{ h: 60, d: '0s' }, { h: 85, d: '0.12s' }, { h: 45, d: '0.24s' }, { h: 100, d: '0.36s' }].map((b, i) => (
-        <div key={i} style={{
-          width: 10, borderRadius: 3, height: `${b.h * 0.4}px`, transformOrigin: 'bottom',
-          background: i === 3 ? '#E9A020' : '#F0EDEA',
-          border: `1.5px solid ${i === 3 ? '#E9A020' : '#D4D0CB'}`,
-          animation: `stageBarsGrow 0.6s ${b.d} ease-out both`,
-        }} />
-      ))}
-    </div>
-  )
-}
+function FileUpIcon()      { return <FileUp size={32} color="#E9A020" strokeWidth={1.5} /> }
+function BarChartIcon()    { return <BarChart2 size={32} color="#F97B6B" strokeWidth={1.5} /> }
+function BookOpenIcon()    { return <BookOpen size={32} color="#8B5CF6" strokeWidth={1.5} /> }
+function SparklesIcon()    { return <Sparkles size={32} color="#E9A020" strokeWidth={1.5} style={{ animation: 'stageSparklesPulse 1.5s ease-in-out infinite' }} /> }
+function CelebrationIcon() { return <CheckCircle size={32} color="#6EBF8B" strokeWidth={1.5} style={{ animation: 'stageCelebrate 0.6s ease-out' }} /> }
 
 const BADGE: Record<FileType, { label: string; bg: string; color: string }> = {
   kdp:       { label: 'KDP',        bg: '#FFF4E0', color: '#E9A020' },
@@ -107,10 +89,18 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
   const [progressPct, setProgressPct]       = useState(0)
   const [error, setError]                   = useState<string | null>(null)
   const [isTouch, setIsTouch]               = useState(false)
+  const [cyclingMsgIdx, setCyclingMsgIdx]   = useState(0)
 
   useEffect(() => {
     setIsTouch(window.matchMedia('(pointer: coarse)').matches)
   }, [])
+
+  // Cycle through brand messages while analyzing
+  useEffect(() => {
+    if (!analyzing) { setCyclingMsgIdx(0); return }
+    const id = setInterval(() => setCyclingMsgIdx(i => (i + 1) % CYCLING_MESSAGES.length), 2500)
+    return () => clearInterval(id)
+  }, [analyzing])
 
   // Reset state each time the modal opens
   useEffect(() => {
@@ -388,10 +378,10 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           >
             {/* Progress bar — analysis only */}
             {analyzing && (
-              <div style={{ height: 4, background: '#F0EDEA', flexShrink: 0 }}>
+              <div style={{ height: 3, background: '#F0EDEA', flexShrink: 0 }}>
                 <div style={{
-                  height: '100%', width: `${progressPct}%`,
-                  background: 'linear-gradient(90deg, #E9A020, #F5B840)',
+                  height: '100%', width: `${Math.min(progressPct, 99)}%`,
+                  background: '#E9A020',
                   transition: 'width 0.9s cubic-bezier(0.4,0,0.2,1)',
                   borderRadius: '0 2px 2px 0',
                 }} />
@@ -433,7 +423,9 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                     onDrop={e => { e.preventDefault(); e.stopPropagation(); setDragging(false); handleFiles(e.dataTransfer.files) }}
                   >
                     <div className="flex flex-col items-center justify-center text-center px-6 py-10">
-                      <div className="text-4xl mb-3">📁</div>
+                      <div className="mb-3 flex items-center justify-center">
+                        <Upload size={32} color="#E9A020" strokeWidth={1.5} />
+                      </div>
                       <div className="text-[15px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
                         Drop files here
                       </div>
@@ -537,27 +529,22 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                   }}
                 >
                   {/* Icon */}
-                  <div className="mb-6 flex items-center justify-center" style={{ height: 64 }}>
-                    {STAGES[currentStage - 1].icon === 'book'      && <BookIcon />}
-                    {STAGES[currentStage - 1].icon === 'check'     && <CheckIcon />}
-                    {STAGES[currentStage - 1].icon === 'bars'      && <BarsIcon />}
-                    {STAGES[currentStage - 1].icon === 'star'      && <StarIcon />}
+                  <div className="mb-4 flex items-center justify-center" style={{ height: 40 }}>
+                    {STAGES[currentStage - 1].icon === 'fileup'    && <FileUpIcon />}
+                    {STAGES[currentStage - 1].icon === 'barchart'  && <BarChartIcon />}
+                    {STAGES[currentStage - 1].icon === 'bookopen'  && <BookOpenIcon />}
+                    {STAGES[currentStage - 1].icon === 'sparkles'  && <SparklesIcon />}
                     {STAGES[currentStage - 1].icon === 'celebrate' && <CelebrationIcon />}
                   </div>
 
                   {/* Step label */}
-                  <div className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: '#E9A020' }}>
-                    {currentStage < 5 ? `Step ${currentStage} of 4` : 'Complete'}
-                  </div>
-
-                  {/* Title */}
-                  <div className="text-[17px] font-bold mb-2" style={{ color: '#1E2D3D' }}>
+                  <div className="text-[13px] mb-1" style={{ color: '#1E2D3D', fontWeight: 500 }}>
                     {STAGES[currentStage - 1].title}
                   </div>
 
                   {/* Message */}
-                  <div className="text-[13px] px-4 max-w-xs leading-relaxed" style={{ color: '#6B7280', minHeight: 40 }}>
-                    {STAGES[currentStage - 1].message}
+                  <div className="text-[15px] px-4 max-w-xs leading-relaxed italic" style={{ color: '#1E2D3D', opacity: 0.6, minHeight: 40 }}>
+                    {CYCLING_MESSAGES[cyclingMsgIdx]}
                   </div>
 
                   {/* Slow message */}
@@ -628,28 +615,14 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           </div>
 
           <style>{`
-            @keyframes stageBookBounce {
-              0%, 100% { transform: translateY(0) scale(1); }
-              40%       { transform: translateY(-9px) scale(1.1); }
-              60%       { transform: translateY(-4px) scale(1.05); }
-            }
-            @keyframes stageCircleDraw {
-              from { stroke-dashoffset: 163; } to { stroke-dashoffset: 0; }
-            }
-            @keyframes stageCheckDraw {
-              from { stroke-dashoffset: 32; } to { stroke-dashoffset: 0; }
-            }
-            @keyframes stageBarsGrow {
-              from { transform: scaleY(0); } to { transform: scaleY(1); }
-            }
-            @keyframes stageStarPulse {
-              0%, 100% { transform: scale(1); opacity: 1; }
-              50%       { transform: scale(1.18); opacity: 0.85; }
+            @keyframes stageSparklesPulse {
+              0%, 100% { opacity: 1; }
+              50%       { opacity: 0.5; }
             }
             @keyframes stageCelebrate {
-              0%   { transform: scale(0.5) rotate(-15deg); opacity: 0; }
-              60%  { transform: scale(1.15) rotate(5deg); opacity: 1; }
-              100% { transform: scale(1) rotate(0deg); opacity: 1; }
+              0%   { transform: scale(0.5); opacity: 0; }
+              60%  { transform: scale(1.15); opacity: 1; }
+              100% { transform: scale(1); opacity: 1; }
             }
             @keyframes stageFadeIn {
               from { opacity: 0; transform: translateY(4px); }
