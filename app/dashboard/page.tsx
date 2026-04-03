@@ -14,9 +14,11 @@ export default async function DashboardPage() {
     redirect('/dashboard/welcome')
   }
 
+  const firstName = session.user.name?.split(' ')[0] ?? null
+
   return (
     <ErrorBoundary fallbackTitle="Dashboard couldn't load">
-      <OverviewClient />
+      <OverviewClient userName={firstName} />
     </ErrorBoundary>
   )
 }

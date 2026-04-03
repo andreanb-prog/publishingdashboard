@@ -10,14 +10,16 @@ export async function GET() {
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { columnPrefs: true, onboardingDismissed: true, goals: true, layoutPrefs: true },
+    select: { columnPrefs: true, onboardingDismissed: true, goals: true, layoutPrefs: true, mailerLiteKey: true, metaAccessToken: true },
   })
 
   return NextResponse.json({
-    columnPrefs: (user?.columnPrefs as Record<string, string[]>) ?? {},
+    columnPrefs:         (user?.columnPrefs as Record<string, string[]>) ?? {},
     onboardingDismissed: user?.onboardingDismissed ?? false,
-    goals: (user?.goals as Record<string, number>) ?? {},
-    layoutPrefs: (user?.layoutPrefs as Record<string, string[]>) ?? {},
+    goals:               (user?.goals as Record<string, number>) ?? {},
+    layoutPrefs:         (user?.layoutPrefs as Record<string, string[]>) ?? {},
+    mailerLiteConnected: !!user?.mailerLiteKey,
+    metaConnected:       !!user?.metaAccessToken,
   })
 }
 

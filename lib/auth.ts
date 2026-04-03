@@ -52,6 +52,63 @@ export const authOptions: NextAuthOptions = {
       return session
     },
   },
+  events: {
+    // Fire-and-forget: add new users to MailerLite "AuthorDash Beta Users" group
+    createUser: async ({ user }) => {
+      const apiKey = process.env.MAILERLITE_API_KEY
+      if (!apiKey || !user.email) return
+      try {
+        const ML = 'https://connect.mailerlite.com/api'
+        const headers = {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        }
+
+        // 1. Upsert subscriber
+        await fetch(`${ML}/subscribers`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            email: user.email,
+            fields: {
+              name: user.name ?? '',
+              last_name: '',
+            },
+            status: 'active',
+          }),
+        })
+
+        // 2. Find or create "AuthorDash Beta Users" group
+        const groupsRes = await fetch(`${ML}/groups?limit=100`, { headers })
+        if (!groupsRes.ok) return
+        const groupsData = await groupsRes.json()
+        let groupId: string | null = null
+        const existing = (groupsData.data ?? []).find(
+          (g: { name: string; id: string }) => g.name === 'AuthorDash Beta Users'
+        )
+        if (existing) {
+          groupId = existing.id
+        } else {
+          const createRes = await fetch(`${ML}/groups`, {
+            method: 'POST', headers,
+            body: JSON.stringify({ name: 'AuthorDash Beta Users' }),
+          })
+          if (createRes.ok) {
+            const created = await createRes.json()
+            groupId = created.data?.id ?? null
+          }
+        }
+
+        // 3. Assign subscriber to group
+        if (groupId && user.email) {
+          await fetch(`${ML}/subscribers/${encodeURIComponent(user.email)}/groups/${groupId}`, {
+            method: 'POST', headers,
+          })
+        }
+      } catch { /* Non-fatal — never block auth */ }
+    },
+  },
   pages: {
     signIn: '/login',
   },

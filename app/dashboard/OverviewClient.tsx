@@ -10,9 +10,9 @@ import { ActionItem } from '@/components/ui'
 import { InsightCallouts } from '@/components/InsightCallout'
 import { FreshBanner } from '@/components/FreshBanner'
 import { OnboardingBanner } from '@/components/OnboardingBanner'
+import { SetupChecklist } from '@/components/SetupChecklist'
 import { SortablePage } from '@/components/SortablePage'
 import { BookOpen, TrendingUp, Mail, Pin } from '@/components/icons'
-import { OnboardingFlow } from '@/components/OnboardingFlow'
 
 const CHANNEL_CARDS = [
   { key: 'kdp',        href: '/dashboard/kdp',        icon: BookOpen,   iconColor: '#E9A020', name: 'KDP',        colorClass: 'border-t-amber-brand' },
@@ -325,8 +325,26 @@ function WhatHappenedCard({ current, previous, actionPlan }: { current: Analysis
   )
 }
 
+// ── Count-up hook — animates a number from 0 to `target` over `duration` ms ──
+function useCountUp(target: number, active: boolean, duration = 800): number {
+  const [val, setVal] = useState(active ? 0 : target)
+  useEffect(() => {
+    if (!active) { setVal(target); return }
+    const start = Date.now()
+    function tick() {
+      const pct = Math.min((Date.now() - start) / duration, 1)
+      const eased = 1 - Math.pow(1 - pct, 3)
+      setVal(target * eased)
+      if (pct < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, active])
+  return val
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
-export function OverviewClient() {
+export function OverviewClient({ userName }: { userName?: string | null } = {}) {
   const [analysis,  setAnalysis]  = useState<any>(null)
   const [analyses,  setAnalyses]  = useState<Analysis[]>([])
   const [rankLogs,  setRankLogs]  = useState<RankLog[]>([])
@@ -337,8 +355,23 @@ export function OverviewClient() {
   const [copied,      setCopied]      = useState(false)
   const [copying,     setCopying]     = useState(false)
   const [coachTitle]  = useState(() => getCoachTitle())
-  const [onboardingSkipped, setOnboardingSkipped] = useState(false)
   const [expandedPriority, setExpandedPriority] = useState<number | null>(null)
+  const [isFresh,     setIsFresh]     = useState(false)
+
+  // Detect ?fresh=1 for post-upload celebration count-up
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('fresh') === '1') setIsFresh(true)
+  }, [])
+
+  // Count-up targets — 0 until analysis loads
+  const _revTarget   = analysis?.kdp  ? Math.round(((analysis.kdp.totalRoyaltiesUSD ?? 0) + analysis.kdp.totalKENP * 0.0045) * 100) / 100 : 0
+  const _unitsTarget = analysis?.kdp?.totalUnits ?? 0
+  const _kenpTarget  = analysis?.kdp?.totalKENP  ?? 0
+  const _ctrTarget   = analysis?.meta?.bestAd?.ctr ?? 0
+  const animRev   = useCountUp(_revTarget,   isFresh && !!analysis?.kdp)
+  const animUnits = useCountUp(_unitsTarget, isFresh && !!analysis?.kdp)
+  const animKenp  = useCountUp(_kenpTarget,  isFresh && !!analysis?.kdp)
+  const animCtr   = useCountUp(_ctrTarget,   isFresh && !!analysis?.meta?.bestAd)
 
   useEffect(() => {
     Promise.all([
@@ -441,9 +474,6 @@ export function OverviewClient() {
     }
   }
 
-  // First-time user: show guided onboarding instead of empty dashboard
-  const isFirstVisit = !loading && analyses.length === 0 && !analysis && !onboardingSkipped
-
   // KDP data freshness — show amber warning if last KDP upload was more than 35 days ago
   const isKdpStale = !!kdpLastUploadedAt &&
     (Date.now() - new Date(kdpLastUploadedAt).getTime()) > 35 * 24 * 60 * 60 * 1000
@@ -462,19 +492,12 @@ export function OverviewClient() {
     )
   }
 
-  if (isFirstVisit) {
-    return (
-      <div className="p-4 md:p-8 max-w-[1400px]">
-        <OnboardingFlow onSkip={() => setOnboardingSkipped(true)} />
-      </div>
-    )
-  }
-
   return (
     <div className="p-4 md:p-8 max-w-[1400px]">
 
       <Suspense fallback={null}><FreshBanner /></Suspense>
-      <OnboardingBanner analysesCount={analyses.length} />
+      <OnboardingBanner userName={userName} />
+      <SetupChecklist analysis={analysis} />
 
       {/* Generating banner — shown while AI coaching is being created in the background */}
       {generating && (
@@ -503,6 +526,39 @@ export function OverviewClient() {
         </div>
       )}
 
+      {/* Empty state — new user with no data yet */}
+      {!analysis && analyses.length === 0 && (
+        <div className="mb-7">
+          <div className="text-[22px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
+            Good morning{userName ? `, ${userName.split(' ')[0]}` : ''}. Your dashboard is ready — it just needs your data.
+          </div>
+          <p className="text-[13px] mb-5" style={{ color: '#6B7280' }}>
+            Connect your channels below to unlock your personalised coaching.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { icon: '📊', title: 'KDP',        desc: 'Upload your sales report',   cta: 'Upload →',  href: '/dashboard?upload=1',            border: '#F97B6B' },
+              { icon: '✉',  title: 'MailerLite', desc: 'Add your API key',           cta: 'Connect →', href: '/dashboard/settings#mailerlite', border: '#6EBF8B' },
+              { icon: '📘', title: 'Meta Ads',   desc: 'Connect your ad account',    cta: 'Connect →', href: '/dashboard/settings#meta',       border: '#60A5FA' },
+            ].map(card => (
+              <div key={card.title} className="rounded-xl p-5 flex flex-col gap-3"
+                style={{ background: 'white', border: '1px solid #EEEBE6', borderLeft: `3px solid ${card.border}` }}>
+                <div className="text-2xl">{card.icon}</div>
+                <div>
+                  <div className="text-[13.5px] font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>{card.title}</div>
+                  <div className="text-[12.5px]" style={{ color: '#6B7280' }}>{card.desc}</div>
+                </div>
+                <Link href={card.href}
+                  className="inline-block text-[12.5px] font-semibold no-underline hover:opacity-80 mt-auto"
+                  style={{ color: '#E9A020' }}>
+                  {card.cta}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* What Happened card */}
       {analyses.length >= 2 && <WhatHappenedCard current={analyses[0]} previous={analyses[1]} actionPlan={analysis?.actionPlan} />}
 
@@ -510,10 +566,10 @@ export function OverviewClient() {
       <div className="rounded-xl mb-4 p-6"
         style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
         {[
-          { label: 'Est. Revenue', value: analysis?.kdp ? `$${(Math.round(((analysis.kdp.totalRoyaltiesUSD ?? 0) + analysis.kdp.totalKENP * 0.0045) * 100) / 100).toFixed(2)}` : null },
-          { label: 'Units Sold', value: analysis?.kdp ? fmt(analysis.kdp.totalUnits) : null },
-          { label: 'KENP Reads', value: analysis?.kdp ? fmt(analysis.kdp.totalKENP) : null },
-          { label: 'Best CTR',   value: analysis?.meta?.bestAd ? `${analysis.meta.bestAd.ctr}%` : null },
+          { label: 'Est. Revenue', value: analysis?.kdp ? `$${animRev.toFixed(2)}`                      : null },
+          { label: 'Units Sold',   value: analysis?.kdp ? Math.round(animUnits).toLocaleString()         : null },
+          { label: 'KENP Reads',   value: analysis?.kdp ? Math.round(animKenp).toLocaleString()          : null },
+          { label: 'Best CTR',     value: analysis?.meta?.bestAd ? `${animCtr.toFixed(1)}%`             : null },
         ].map(stat => {
           const hasData = stat.value != null && stat.value !== '—'
           return (
