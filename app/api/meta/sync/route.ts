@@ -300,8 +300,10 @@ async function pollAsyncJob(reportRunId: string, token: string, retries = 3): Pr
 
 async function fetchAccountAds(token: string, accountId: string): Promise<MetaAd[]> {
   const insightsUrl = new URL(`${GRAPH}/${accountId}/insights`)
+  const today = new Date().toISOString().split('T')[0]
+  const since = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
   insightsUrl.searchParams.set('level', 'ad')
-  insightsUrl.searchParams.set('date_preset', 'last_30d')
+  insightsUrl.searchParams.set('time_range', JSON.stringify({ since, until: today }))
   insightsUrl.searchParams.set('fields', INSIGHTS_FIELDS)
   insightsUrl.searchParams.set('limit', '100')
   insightsUrl.searchParams.set('access_token', token)
