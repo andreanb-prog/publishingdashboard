@@ -1,12 +1,10 @@
 'use client'
 // app/dashboard/meta/select-account/page.tsx — Pick which Meta ad account to use
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 type AdAccount = { id: string; name: string; status: string; spent: string }
 
 export default function SelectMetaAccountPage() {
-  const router = useRouter()
   const [accounts,  setAccounts]  = useState<AdAccount[]>([])
   const [selected,  setSelected]  = useState('')
   const [loading,   setLoading]   = useState(true)
@@ -28,16 +26,18 @@ export default function SelectMetaAccountPage() {
   async function handleSave() {
     if (!selected) return
     setSaving(true)
+    setError('')
     try {
       const res = await fetch('/api/meta/save-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accountId: selected }),
       })
-      if (!res.ok) throw new Error('Save failed')
-      router.push('/dashboard/settings?meta=connected')
-    } catch {
-      setError('Could not save selection — please try again')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      window.location.href = '/dashboard/settings?meta=connected'
+    } catch (e: any) {
+      setError(e.message || 'Could not save selection — please try again')
       setSaving(false)
     }
   }
