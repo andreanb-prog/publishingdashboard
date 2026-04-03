@@ -180,12 +180,17 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       const daysOfData     = kdpToSave || metaToSave ? 30 : 0
       const confidenceReady = !isNewUser && daysOfData >= 14 && totalAds >= 3
 
+      const kdpUploadedAt = (newKdpValid && !newKdpIsDowngrade)
+        ? new Date().toISOString()
+        : ((existingData as any).kdpUploadedAt ?? undefined)
+
       const analysis: Analysis & Record<string, unknown> = {
         month,
         kdp:        kdpToSave  ?? undefined,
         meta:       metaToSave ?? undefined,
         mailerLite: mlToSave   ?? undefined,
         pinterest:  pinToSave  ?? undefined,
+        kdpUploadedAt,
         fingerprint: fp,
         overallVerdict:  coachingData.overview?.headline || coachingData.overview?.subline || '',
         insights:        coachingData.actionPlan  || [],

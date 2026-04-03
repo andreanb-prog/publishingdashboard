@@ -52,7 +52,7 @@ export async function GET() {
       select: { createdAt: true, data: true },
     })
     if (lastAnalysis && (lastAnalysis.data as any)?.kdp) {
-      kdpLastUpload = lastAnalysis.createdAt.toISOString()
+      kdpLastUpload = (lastAnalysis.data as any)?.kdpUploadedAt ?? lastAnalysis.createdAt.toISOString()
     }
   } catch { /* table may be empty */ }
 

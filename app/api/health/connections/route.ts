@@ -29,7 +29,7 @@ export async function GET() {
       analyses: {
         orderBy: { createdAt: 'desc' },
         take: 1,
-        select: { createdAt: true },
+        select: { createdAt: true, data: true },
       },
     },
   })
@@ -126,9 +126,10 @@ export async function GET() {
       actionHref: '/dashboard?upload=1',
     }
   } else {
-    const daysSince = (now.getTime() - latestAnalysis.createdAt.getTime()) / (1000 * 60 * 60 * 24)
+    const uploadedAt = new Date((latestAnalysis.data as any)?.kdpUploadedAt ?? latestAnalysis.createdAt)
+    const daysSince = (now.getTime() - uploadedAt.getTime()) / (1000 * 60 * 60 * 24)
     if (daysSince <= 35) {
-      const d = latestAnalysis.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const d = uploadedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       kdp = { status: 'green', text: `Data uploaded · ${d}` }
     } else {
       kdp = { status: 'amber', text: 'No data this month' }

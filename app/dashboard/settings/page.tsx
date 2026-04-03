@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { BookCatalog } from '@/components/BookCatalog'
+import { Bot, Mail, Megaphone, BookOpen } from '@/components/icons'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -410,6 +411,11 @@ export default function SettingsPage() {
   const DAY_VALUES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
   function fmtDate(iso: string) {
+    const d = new Date(iso)
+    const today = new Date()
+    const diffDays = Math.floor((today.setHours(0,0,0,0) - d.setHours(0,0,0,0)) / 86400000)
+    if (diffDays === 0) return 'today'
+    if (diffDays === 1) return 'yesterday'
     return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
