@@ -44,13 +44,19 @@ export async function POST(req: NextRequest) {
     metadata: { userId: user.id, plan },
   }
 
-  // Apply FPA2026 coupon for FPA plan
+  // FPA plan: apply FPA2026 discount programmatically (54% off, no code entry needed).
+  // `discounts` and `allow_promotion_codes` are mutually exclusive in Stripe, so FPA
+  // gets the coupon directly and regular plan gets the visible promo code field instead.
   if (plan === 'fpa' || coupon === 'FPA2026') {
     params.discounts = [{ coupon: 'FPA2026' }]
-    // Remove trial if using coupon
+    // Remove trial when applying a coupon
     if (params.subscription_data) {
       params.subscription_data.trial_period_days = undefined
     }
+  } else {
+    // Regular plan: show the promo code field so users can enter DEVACCESS2026 (100% off)
+    // or any other active promotion code at checkout.
+    params.allow_promotion_codes = true
   }
 
   const checkoutSession = await stripe.checkout.sessions.create(params)

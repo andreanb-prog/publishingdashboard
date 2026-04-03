@@ -178,9 +178,21 @@ GitHub Issues:    3351503444438125aabae7ec7deba251
 ## Stripe Setup
 - Regular plan: $37/month â use STRIPE_REGULAR_PRICE_ID
 - FPA plan: $17/month â use STRIPE_FPA_PRICE_ID
-- Discount code: FPA2026 (54% off)
+- Discount code: FPA2026 (54% off, applied programmatically for FPA plan)
+- Dev code: DEVACCESS2026 (100% off, once, max 3 redemptions) â enter at checkout promo field
 - Webhook endpoint: https://authordash.io/api/stripe/webhook
 - 14-day free trial on first Google SSO login
+- Promo code field is visible on regular-plan checkout (allow_promotion_codes: true)
+- FPA plan uses direct coupon (discounts param) â promo field not shown for FPA
+
+### Creating DEVACCESS2026 in Stripe (one-time, after deploy)
+Call the setup endpoint once with the Stripe secret key as the auth header:
+```
+curl -X POST https://authordash.io/api/stripe/setup-promo \
+  -H "x-setup-secret: <STRIPE_SECRET_KEY>"
+```
+This creates the coupon + promotion code idempotently. Safe to call again — returns status
+"already_exists" if already set up. Also verifies FPA2026 is still active.
 
 ---
 
