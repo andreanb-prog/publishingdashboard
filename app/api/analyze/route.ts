@@ -91,6 +91,7 @@ COPY QUALITY RULES — follow these in every field of the JSON response:
 
 Respond with a JSON object in exactly this structure (no markdown, raw JSON only):
 {
+  "storySentence": "one sentence in plain human voice using the actual numbers — references at least 2 metrics, sounds like a person not a dashboard, ends with energy not a hedge, never uses the word 'data' or 'metrics'. Example: '1,326 readers chose your books this month — and 3,115 of them didn't stop reading.'",
   "overview": {
     "headline": "one sentence summary of the month",
     "subline": "one supporting sentence",
@@ -205,6 +206,7 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
         pinterest:  pinToSave  ?? undefined,
         kdpUploadedAt,
         fingerprint: fp,
+        storySentence:   coachingData.storySentence || undefined,
         overallVerdict:  coachingData.overview?.headline || coachingData.overview?.subline || '',
         insights:        coachingData.actionPlan  || [],
         channelScores:   coachingData.channelScores || [],

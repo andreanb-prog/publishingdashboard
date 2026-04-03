@@ -325,6 +325,42 @@ function WhatHappenedCard({ current, previous, actionPlan }: { current: Analysis
   )
 }
 
+// ── Story sentence — human-voice summary of the hero numbers ────────────────
+function buildStorySentence(analysis: any): string | null {
+  if (!analysis) return null
+  // Use Claude-generated sentence if available (from future analyses)
+  if (analysis.storySentence) return analysis.storySentence
+
+  const kdp  = analysis.kdp
+  const meta = analysis.meta
+  const units: number | undefined = kdp?.totalUnits
+  const kenp:  number | undefined = kdp?.totalKENP
+  const royalties: number | undefined = kdp?.totalRoyaltiesUSD
+  const estRevenue = kdp ? Math.round(((royalties ?? 0) + (kenp ?? 0) * 0.0045) * 100) / 100 : null
+  const ctr:   number | undefined = meta?.bestAd?.ctr ?? meta?.avgCTR
+  const spend: number | undefined = meta?.totalSpend
+
+  if (units && kenp) {
+    if (kenp > units * 20) {
+      return `${units.toLocaleString()} readers chose your books this month — and ${kenp.toLocaleString()} of them didn't stop reading.`
+    }
+    if (units >= 50) {
+      return `${units.toLocaleString()} readers and ${kenp.toLocaleString()} pages read — your books are pulling people in and keeping them there.`
+    }
+    return `${units.toLocaleString()} readers showed up this month, reading ${kenp.toLocaleString()} pages between them.`
+  }
+  if (units && estRevenue != null) {
+    return `${units.toLocaleString()} readers, $${estRevenue.toFixed(2)} earned — your books are working.`
+  }
+  if (units) {
+    return `${units.toLocaleString()} readers chose your books this month — keep that momentum going.`
+  }
+  if (ctr != null && spend) {
+    return `$${spend.toFixed(2)} spent, ${ctr}% of people clicked — your ads are cutting through the noise.`
+  }
+  return null
+}
+
 // ── Count-up hook — animates a number from 0 to `target` over `duration` ms ──
 function useCountUp(target: number, active: boolean, duration = 800): number {
   const [val, setVal] = useState(active ? 0 : target)
@@ -589,46 +625,54 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
       {analyses.length >= 2 && <WhatHappenedCard current={analyses[0]} previous={analyses[1]} actionPlan={analysis?.actionPlan} />}
 
       {/* Hero numbers strip — centered grid */}
-      <div className="rounded-xl mb-4 py-6 px-4 sm:px-6 grid grid-cols-3 md:grid-cols-4 gap-4"
+      <div className="rounded-xl mb-4 py-6 px-4 sm:px-6"
         style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
-        {[
-          { label: 'Est. Revenue', value: analysis?.kdp ? `$${animRev.toFixed(2)}`                      : null },
-          { label: 'Units Sold',   value: analysis?.kdp ? Math.round(animUnits).toLocaleString()         : null },
-          { label: 'KENP Reads',   value: analysis?.kdp ? Math.round(animKenp).toLocaleString()          : null },
-          { label: 'Best CTR',     value: analysis?.meta?.bestAd ? `${animCtr.toFixed(1)}%`             : null },
-        ].map(stat => {
-          const hasData = stat.value != null && stat.value !== '—'
-          return (
-            <div key={stat.label} className="text-center transition-colors rounded-lg py-2"
-              style={{ background: hasData ? 'transparent' : undefined }}
-              onMouseEnter={e => { if (!hasData) e.currentTarget.style.background = '#FFF8F0' }}
-              onMouseLeave={e => { if (!hasData) e.currentTarget.style.background = 'transparent' }}>
-              <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-1"
-                style={{ color: '#6B7280' }}>
-                {stat.label}
+        <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Est. Revenue', value: analysis?.kdp ? `$${animRev.toFixed(2)}`             : null },
+            { label: 'Units Sold',   value: analysis?.kdp ? Math.round(animUnits).toLocaleString() : null },
+            { label: 'KENP Reads',   value: analysis?.kdp ? Math.round(animKenp).toLocaleString()  : null },
+            { label: 'Best CTR',     value: analysis?.meta?.bestAd ? `${animCtr.toFixed(1)}%`      : null },
+          ].map(stat => {
+            const hasData = stat.value != null && stat.value !== '—'
+            return (
+              <div key={stat.label} className="text-center transition-colors rounded-lg py-2"
+                style={{ background: hasData ? 'transparent' : undefined }}
+                onMouseEnter={e => { if (!hasData) e.currentTarget.style.background = '#FFF8F0' }}
+                onMouseLeave={e => { if (!hasData) e.currentTarget.style.background = 'transparent' }}>
+                <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-1"
+                  style={{ color: '#6B7280' }}>
+                  {stat.label}
+                </div>
+                {hasData ? (
+                  <div className="font-sans text-2xl sm:text-4xl font-semibold leading-none"
+                    style={{ color: '#1E2D3D' }}>
+                    {stat.value}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-2">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mb-2" style={{ opacity: 0.2 }}>
+                      <rect x="3" y="14" width="4" height="7" rx="1" fill="#1E2D3D" />
+                      <rect x="10" y="9" width="4" height="12" rx="1" fill="#1E2D3D" />
+                      <rect x="17" y="4" width="4" height="17" rx="1" fill="#1E2D3D" />
+                    </svg>
+                    <div className="text-[12px] mb-1" style={{ color: '#6B7280' }}>No data yet</div>
+                    <Link href="/dashboard?upload=1" className="text-[11px] font-semibold no-underline hover:underline"
+                      style={{ color: '#E9A020' }}>
+                      Upload to unlock →
+                    </Link>
+                  </div>
+                )}
               </div>
-              {hasData ? (
-                <div className="font-sans text-2xl sm:text-4xl font-semibold leading-none"
-                  style={{ color: '#1E2D3D' }}>
-                  {stat.value}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-2">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mb-2" style={{ opacity: 0.2 }}>
-                    <rect x="3" y="14" width="4" height="7" rx="1" fill="#1E2D3D" />
-                    <rect x="10" y="9" width="4" height="12" rx="1" fill="#1E2D3D" />
-                    <rect x="17" y="4" width="4" height="17" rx="1" fill="#1E2D3D" />
-                  </svg>
-                  <div className="text-[12px] mb-1" style={{ color: '#6B7280' }}>No data yet</div>
-                  <Link href="/dashboard?upload=1" className="text-[11px] font-semibold no-underline hover:underline"
-                    style={{ color: '#E9A020' }}>
-                    Upload to unlock →
-                  </Link>
-                </div>
-              )}
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
+        {storyMode && buildStorySentence(analysis) && (
+          <div className="mt-5 pt-4 text-center text-[13.5px] leading-relaxed"
+            style={{ borderTop: '1px solid #EEEBE6', color: '#1E2D3D', fontStyle: 'italic' }}>
+            {buildStorySentence(analysis)}
+          </div>
+        )}
       </div>
 
       {/* ══════ SECTION 1 — TODAY'S PRIORITIES ══════════════════════ */}
@@ -808,12 +852,12 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
                     onClick={toggleStoryMode}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11.5px] font-semibold transition-all flex-shrink-0 mt-0.5"
                     style={{
-                      background: storyMode ? 'rgba(233,160,32,0.12)' : '#F5F5F4',
-                      color: storyMode ? '#E9A020' : '#6B7280',
-                      border: storyMode ? '1px solid rgba(233,160,32,0.3)' : '1px solid #E5E7EB',
+                      background: storyMode ? '#E9A020' : '#F5F5F4',
+                      color: storyMode ? 'white' : '#6B7280',
+                      border: storyMode ? '1px solid #E9A020' : '1px solid #E5E7EB',
                     }}
                   >
-                    📖 Story Mode
+                    📖 Story
                   </button>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
