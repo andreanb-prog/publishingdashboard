@@ -1,20 +1,39 @@
 // app/api/meta/sync/route.ts — Pull Meta Ads data for a user
+// API version: v21.0 (minimum required for current Insights API)
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import type { MetaAd, MetaData } from '@/types'
 
-const GRAPH_URL = 'https://graph.facebook.com/v19.0'
+const GRAPH = 'https://graph.facebook.com/v21.0'
 
 // Elle Wilder Books — created via Instagram login, may not appear in standard discovery
 const ELLE_WILDER_AD_ACCOUNT = 'act_898774062895926'
+
+// Insights fields for ad-level query
+const INSIGHTS_FIELDS = [
+  'ad_name',
+  'adset_name',
+  'campaign_name',
+  'spend',
+  'clicks',
+  'ctr',
+  'cpc',
+  'reach',
+  'impressions',
+  'unique_clicks',
+  'unique_ctr',
+  'frequency',
+].join(',')
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   await req.json().catch(() => {}) // consume body
+
+  console.log('=== META SYNC START ===')
 
   try {
     const rows = await db.$queryRawUnsafe<any[]>(
@@ -23,24 +42,61 @@ export async function POST(req: NextRequest) {
     )
     const user = rows[0]
 
+    console.log('Token exists:', !!user?.metaAccessToken)
+    console.log('Token first 20 chars:', user?.metaAccessToken?.slice(0, 20) ?? 'none')
+    console.log('Stored metaAdAccountId:', user?.metaAdAccountId ?? 'none')
+
     if (!user?.metaAccessToken) {
+      console.log('[Meta Sync] No token found — aborting')
       return NextResponse.json({ error: 'Meta not connected' }, { status: 400 })
     }
 
     if (user.metaTokenExpires && new Date(user.metaTokenExpires) < new Date()) {
+      console.log('[Meta Sync] Token expired at', user.metaTokenExpires)
       return NextResponse.json({ error: 'Meta token expired — reconnect in Settings' }, { status: 401 })
     }
 
     const token = user.metaAccessToken
-    console.log('[Meta Sync] Token (first 10):', token.slice(0, 10) + '...')
-    console.log('[Meta Sync] Stored adAccountId:', user.metaAdAccountId ?? 'none')
 
-    // ── Discover ad accounts via all paths ───────────────────────────────────
+    // ── Step 1: Validate token ──────────────────────────────────────────────────
+    console.log('[Meta Sync] Step 1: validating token via /me ...')
+    const meRes = await fetch(`${GRAPH}/me?fields=id,name&access_token=${token}`)
+    const meData = await meRes.json()
+    console.log('[Meta Sync] /me response:', JSON.stringify(meData))
+
+    if (meData.error) {
+      const code = meData.error.code
+      console.error('[Meta Sync] Token invalid. Code:', code, '| Message:', meData.error.message)
+      if (code === 190) {
+        // Expired/invalid token — clear it so the UI shows "reconnect"
+        await db.$executeRawUnsafe(
+          `UPDATE "User" SET "metaAccessToken" = NULL, "metaTokenExpires" = NULL WHERE "id" = $1`,
+          session.user.id
+        )
+        return NextResponse.json({ error: 'Token expired — please reconnect Meta Ads' }, { status: 401 })
+      }
+      return NextResponse.json({ error: meData.error.message || 'Token invalid' }, { status: 401 })
+    }
+
+    // ── Step 2: Verify account access ─────────────────────────────────────────
+    console.log('[Meta Sync] Step 2: testing account access ...')
+    const accountTestRes = await fetch(
+      `${GRAPH}/${ELLE_WILDER_AD_ACCOUNT}?fields=id,name,account_status&access_token=${token}`
+    )
+    const accountTestData = await accountTestRes.json()
+    console.log('[Meta Sync] Account test:', JSON.stringify(accountTestData))
+
+    if (accountTestData.error) {
+      console.error('[Meta Sync] No access to hardcoded account. Code:', accountTestData.error.code, '| Message:', accountTestData.error.message)
+      // Don't abort — continue with account discovery; maybe discovered accounts work
+    }
+
+    // ── Step 3: Discover all ad accounts ──────────────────────────────────────
     const discovered: { id: string; name: string; amount_spent?: string }[] = []
 
     // Path 1: direct ad accounts on the user
     try {
-      const res = await fetch(`${GRAPH_URL}/me/adaccounts?fields=id,name,amount_spent&limit=50&access_token=${token}`)
+      const res = await fetch(`${GRAPH}/me/adaccounts?fields=id,name,amount_spent&limit=50&access_token=${token}`)
       const json = await res.json()
       if (json.error) {
         console.error('[Meta Sync] /me/adaccounts error:', json.error)
@@ -54,7 +110,7 @@ export async function POST(req: NextRequest) {
 
     // Path 2: business portfolio ad accounts
     try {
-      const bizRes = await fetch(`${GRAPH_URL}/me/businesses?fields=id,name&limit=50&access_token=${token}`)
+      const bizRes = await fetch(`${GRAPH}/me/businesses?fields=id,name&limit=50&access_token=${token}`)
       const bizJson = await bizRes.json()
       if (bizJson.error) {
         console.error('[Meta Sync] /me/businesses error:', bizJson.error)
@@ -63,10 +119,10 @@ export async function POST(req: NextRequest) {
         console.log(`[Meta Sync] Path 2: found ${businesses.length} businesses`)
         for (const biz of businesses) {
           try {
-            const acctRes = await fetch(`${GRAPH_URL}/${biz.id}/owned_ad_accounts?fields=id,name,amount_spent&limit=50&access_token=${token}`)
+            const acctRes = await fetch(`${GRAPH}/${biz.id}/owned_ad_accounts?fields=id,name,amount_spent&limit=50&access_token=${token}`)
             const acctJson = await acctRes.json()
             if (!acctJson.error) {
-              console.log(`  Business "${biz.name}" (${biz.id}): ${(acctJson.data ?? []).length} owned ad accounts`)
+              console.log(`  Business "${biz.name}" (${biz.id}): ${(acctJson.data ?? []).length} owned accounts`)
               for (const a of (acctJson.data ?? [])) discovered.push(a)
             }
           } catch (e) {
@@ -80,7 +136,7 @@ export async function POST(req: NextRequest) {
 
     // Path 3: Instagram-linked ad accounts
     try {
-      const igRes = await fetch(`${GRAPH_URL}/me/instagram_accounts?fields=id,name&limit=50&access_token=${token}`)
+      const igRes = await fetch(`${GRAPH}/me/instagram_accounts?fields=id,name&limit=50&access_token=${token}`)
       const igJson = await igRes.json()
       if (igJson.error) {
         console.log('[Meta Sync] /me/instagram_accounts:', igJson.error.message)
@@ -89,7 +145,7 @@ export async function POST(req: NextRequest) {
         console.log(`[Meta Sync] Path 3 (/me/instagram_accounts): ${igAccounts.length} accounts`)
         for (const ig of igAccounts) {
           try {
-            const adRes = await fetch(`${GRAPH_URL}/${ig.id}/adaccounts?fields=id,name,amount_spent&access_token=${token}`)
+            const adRes = await fetch(`${GRAPH}/${ig.id}/adaccounts?fields=id,name,amount_spent&access_token=${token}`)
             const adJson = await adRes.json()
             if (!adJson.error) {
               console.log(`  Instagram "${ig.name}" (${ig.id}): ${(adJson.data ?? []).length} ad accounts`)
@@ -110,7 +166,7 @@ export async function POST(req: NextRequest) {
       console.log(`  ${id}  name="${a.name}"  amount_spent=${a.amount_spent ?? '?'}`)
     }
 
-    // Build deduplicated list — always include the known Elle Wilder account + stored ID
+    // Build deduplicated list — always try the known Elle Wilder account first
     const seen = new Set<string>()
     const allAccounts: { id: string; name: string }[] = []
 
@@ -119,14 +175,13 @@ export async function POST(req: NextRequest) {
       if (!seen.has(id)) { seen.add(id); allAccounts.push({ id, name }) }
     }
 
-    // Prefer the known Elle Wilder Books account first
     addAccount(ELLE_WILDER_AD_ACCOUNT, 'Elle Wilder Books (hardcoded)')
     for (const a of discovered) addAccount(a.id, a.name)
     if (user.metaAdAccountId) addAccount(user.metaAdAccountId, 'stored account')
 
     console.log(`[Meta Sync] Will try ${allAccounts.length} accounts: ${allAccounts.map(a => a.id).join(', ')}`)
 
-    // ── Fetch insights from each account, use date_preset=last_30_days ────────
+    // ── Step 4: Fetch insights from each account ───────────────────────────────
     const allAds: MetaAd[] = []
     let totalSpend = 0
     let bestAccountId: string | null = null
@@ -136,7 +191,7 @@ export async function POST(req: NextRequest) {
       try {
         const ads = await fetchAccountAds(token, account.id)
         const accountSpend = ads.reduce((s, a) => s + a.spend, 0)
-        console.log(`[Meta Sync] ${account.id} ("${account.name}"): ${ads.length} campaigns, $${accountSpend.toFixed(2)} spend`)
+        console.log(`[Meta Sync] ${account.id} ("${account.name}"): ${ads.length} ads, $${accountSpend.toFixed(2)} spend`)
         if (ads.length > 0) {
           allAds.push(...ads)
           totalSpend += accountSpend
@@ -150,7 +205,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    console.log(`[Meta Sync] Total: ${allAds.length} campaigns, $${totalSpend.toFixed(2)} spend. Best account: ${bestAccountId}`)
+    console.log(`[Meta Sync] Total: ${allAds.length} ads, $${totalSpend.toFixed(2)} spend. Best account: ${bestAccountId}`)
 
     // Update stored ad account to the one with the most spend
     if (bestAccountId) {
@@ -211,35 +266,83 @@ export async function POST(req: NextRequest) {
       session.user.id
     )
 
+    console.log('=== META SYNC COMPLETE ===')
     return NextResponse.json({ success: true, data })
   } catch (err) {
-    console.error('[Meta Sync] Error:', err)
+    console.error('[Meta Sync] Unhandled error:', err)
     return NextResponse.json({ error: 'Sync failed' }, { status: 500 })
   }
 }
 
+// ── Poll an async report job until complete ──────────────────────────────────
+async function pollAsyncJob(reportRunId: string, token: string, retries = 3): Promise<any[]> {
+  for (let i = 0; i < retries; i++) {
+    await new Promise(r => setTimeout(r, 2000))
+    const statusRes = await fetch(
+      `${GRAPH}/${reportRunId}?fields=async_status,async_percent_completion&access_token=${token}`
+    )
+    const statusData = await statusRes.json()
+    console.log(`[Meta Sync] Async job ${reportRunId} poll ${i + 1}/${retries}:`, statusData.async_status, `${statusData.async_percent_completion ?? 0}%`)
+
+    if (statusData.async_status === 'Job Complete') {
+      const resultsRes = await fetch(`${GRAPH}/${reportRunId}/insights?access_token=${token}`)
+      const resultsData = await resultsRes.json()
+      console.log('[Meta Sync] Async results fetched:', (resultsData.data ?? []).length, 'rows')
+      return resultsData.data ?? []
+    }
+    if (statusData.async_status === 'Job Failed') {
+      console.error('[Meta Sync] Async job failed:', statusData)
+      return []
+    }
+  }
+  console.warn('[Meta Sync] Async job timed out after', retries, 'polls')
+  return []
+}
+
 async function fetchAccountAds(token: string, accountId: string): Promise<MetaAd[]> {
-  // Use date_preset=last_30_days — always pulls the last 30 real days of data
-  // regardless of the current date in the month
-  const fields = 'campaign_name,spend,impressions,clicks,ctr,cpc,reach,unique_clicks,unique_ctr,frequency'
-  const url = `${GRAPH_URL}/${accountId}/insights?fields=${fields}&date_preset=last_30_days&level=campaign&limit=100&access_token=${token}`
+  const insightsUrl = new URL(`${GRAPH}/${accountId}/insights`)
+  insightsUrl.searchParams.set('level', 'ad')
+  insightsUrl.searchParams.set('date_preset', 'last_30_days')
+  insightsUrl.searchParams.set('fields', INSIGHTS_FIELDS)
+  insightsUrl.searchParams.set('limit', '100')
+  insightsUrl.searchParams.set('access_token', token)
 
-  console.log(`[Meta Sync] Fetching insights URL: ${url.replace(token, token.slice(0, 10) + '...')}`)
+  console.log(`[Meta Sync] Insights URL: ${insightsUrl.toString().replace(token, 'TOKEN_REDACTED')}`)
 
-  const res = await fetch(url)
+  const res = await fetch(insightsUrl.toString())
   const json = await res.json()
 
-  console.log(`[Meta Sync] Raw response for ${accountId}:`, JSON.stringify(json).slice(0, 500))
+  console.log(`[Meta Sync] Raw response for ${accountId}:`, JSON.stringify(json).slice(0, 800))
 
+  // Case C/D: API error
   if (json.error) {
-    console.error(`[Meta Sync] Insights error for ${accountId}:`, json.error)
-    throw new Error(json.error.message || 'Meta API error')
+    const code = json.error.code
+    const msg = json.error.message
+    console.error(`[Meta Sync] Insights error for ${accountId} — code ${code}:`, msg)
+    if (code === 190) throw new Error('TOKEN_EXPIRED')
+    throw new Error(`Meta API error ${code}: ${msg}`)
   }
 
-  const campaigns = json.data || []
-  console.log(`[Meta Sync] ${accountId}: ${campaigns.length} campaigns returned`)
+  // Case E: async job — poll for results
+  if (json.report_run_id) {
+    console.log(`[Meta Sync] ${accountId} returned async job: ${json.report_run_id}`)
+    const rows = await pollAsyncJob(json.report_run_id, token)
+    return parseInsightsRows(rows)
+  }
 
-  return campaigns.map((c: any) => {
+  // Case B: empty data (no spend in range)
+  if (!json.data || json.data.length === 0) {
+    console.log(`[Meta Sync] ${accountId}: no data in last_30_days (empty result is normal if no spend)`)
+    return []
+  }
+
+  // Case A: normal success
+  console.log(`[Meta Sync] ${accountId}: ${json.data.length} ads returned`)
+  return parseInsightsRows(json.data)
+}
+
+function parseInsightsRows(rows: any[]): MetaAd[] {
+  return rows.map((c: any) => {
     const spend = parseFloat(c.spend || '0')
     const clicks = parseInt(c.clicks || '0')
     const impressions = parseInt(c.impressions || '0')
@@ -254,9 +357,18 @@ async function fetchAccountAds(token: string, accountId: string): Promise<MetaAd
       else status = 'CUT'
     }
 
+    // With level=ad, name comes from ad_name; fall back through campaign hierarchy
+    const name = c.ad_name || c.adset_name || c.campaign_name || 'Untitled'
+
     return {
-      name: c.campaign_name || 'Untitled',
-      spend, clicks, impressions, ctr, cpc, reach, status,
+      name,
+      spend,
+      clicks,
+      impressions,
+      ctr,
+      cpc,
+      reach,
+      status,
       uniqueClicks: parseInt(c.unique_clicks || '0'),
       uniqueCtr: parseFloat(c.unique_ctr || '0'),
       frequency: parseFloat(c.frequency || '0'),
