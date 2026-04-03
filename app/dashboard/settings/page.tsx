@@ -193,6 +193,11 @@ export default function SettingsPage() {
   const [kdpLastUpload,  setKdpLastUpload]  = useState<string | null>(null)
   const [mlSubscribers,  setMlSubscribers]  = useState<number | null>(null)
 
+  // ── Profile ─────────────────────────────────────────────────────────────────
+  const [penName,               setPenName]               = useState('')
+  const [preferredGreetingName, setPreferredGreetingName] = useState('')
+  const [profileSaveState,      setProfileSaveState]      = useState<SaveState>('idle')
+
   // ── API key inputs ──────────────────────────────────────────────────────────
   const [mailerLiteKey,  setMailerLiteKey]  = useState('')
   const [claudeKey,      setClaudeKey]      = useState('')
@@ -260,6 +265,8 @@ export default function SettingsPage() {
       setMetaLastSync(d.metaLastSync ?? null)
       setKdpLastUpload(d.kdpLastUpload ?? null)
       setMlSubscribers(d.mlSubscribers ?? null)
+      setPenName(d.penName ?? '')
+      setPreferredGreetingName(d.preferredGreetingName ?? '')
     } catch {}
     try {
       const bf = await fetch('/api/bookfunnel').then(r => r.json())
@@ -396,6 +403,29 @@ export default function SettingsPage() {
     })
   }
 
+  // ── Profile save ─────────────────────────────────────────────────────────
+  async function saveProfile() {
+    setProfileSaveState('saving')
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save-profile',
+          penName: penName.trim(),
+          preferredGreetingName: preferredGreetingName.trim(),
+        }),
+      })
+      if (!res.ok) throw new Error()
+      setProfileSaveState('saved')
+      showToast('Profile saved ✓')
+      setTimeout(() => setProfileSaveState('idle'), 3000)
+    } catch {
+      setProfileSaveState('error')
+      setTimeout(() => setProfileSaveState('idle'), 3000)
+    }
+  }
+
   // ── API key save handlers ────────────────────────────────────────────────
   async function saveMLKey() {
     const key = mailerLiteKey.trim()
@@ -530,6 +560,53 @@ export default function SettingsPage() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION 0: MY PROFILE                                                */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      <SectionLabel>MY PROFILE</SectionLabel>
+      <div
+        className="rounded-[10px] mb-8 px-5 py-4 flex flex-col gap-4"
+        style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}
+      >
+        {/* Pen name */}
+        <div>
+          <label className="block text-[11px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
+            Your author name
+          </label>
+          <input
+            type="text"
+            value={penName}
+            onChange={e => setPenName(e.target.value)}
+            placeholder="e.g. Elle Wilder"
+            className="w-full text-[12px] px-3 py-2 rounded-md outline-none"
+            style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
+          />
+          <div className="text-[10px] mt-1" style={{ color: '#9CA3AF' }}>Used on your books and public profile</div>
+        </div>
+
+        {/* Display name */}
+        <div>
+          <label className="block text-[11px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
+            What should we call you?
+          </label>
+          <input
+            type="text"
+            value={preferredGreetingName}
+            onChange={e => setPreferredGreetingName(e.target.value)}
+            placeholder="e.g. Elle, Elle Wilder, Andrea"
+            className="w-full text-[12px] px-3 py-2 rounded-md outline-none"
+            style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
+          />
+          <div className="text-[10px] mt-1" style={{ color: '#9CA3AF' }}>This is how we greet you in the dashboard</div>
+        </div>
+
+        <div>
+          <AmberBtn onClick={saveProfile} disabled={profileSaveState === 'saving'}>
+            {profileSaveState === 'saving' ? <Spinner /> : profileSaveState === 'saved' ? 'Saved ✓' : 'Save profile'}
+          </AmberBtn>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* SECTION 1: MY BOOKS                                                  */}
       {/* ══════════════════════════════════════════════════════════════════════ */}
       <SectionLabel>MY BOOKS</SectionLabel>
@@ -538,6 +615,28 @@ export default function SettingsPage() {
         style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}
       >
         <BookCatalog />
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* PEN NAMES (Coming Soon)                                               */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      <SectionLabel>PEN NAMES</SectionLabel>
+      <div
+        className="rounded-[10px] mb-8 px-5 py-4 flex items-center justify-between"
+        style={{
+          background: '#FFF8F0',
+          border: '1.5px dashed rgba(30,45,61,0.2)',
+        }}
+      >
+        <p className="text-[13px]" style={{ color: '#1E2D3D' }}>
+          Manage multiple pen names and brands from one dashboard.
+        </p>
+        <span
+          className="text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ml-4"
+          style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}
+        >
+          Coming Soon
+        </span>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════ */}

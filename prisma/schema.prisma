@@ -48,7 +48,8 @@ model User {
   layoutPrefs   Json?          // Per-page section order: { overview: ['channel-cards', 'action-plan'], ... }
   onboardingDismissed Boolean  @default(false)
   // Author profile
-  penName        String?
+  penName                 String?
+  preferredGreetingName   String?
   genreCategory  String?
   genreSubgenre  String?
   referralSource String?

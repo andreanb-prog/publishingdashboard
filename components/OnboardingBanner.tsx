@@ -28,7 +28,7 @@ export function OnboardingBanner({ userName }: Props) {
 
   if (!visible) return null
 
-  const firstName  = userName?.split(' ')[0] ?? null
+  const firstName  = userName ?? null
   // Expose via NEXT_PUBLIC_ so it's available in client bundle
   const videoUrl   = process.env.NEXT_PUBLIC_ONBOARDING_VIDEO_URL ?? null
 

@@ -14,11 +14,15 @@ export default async function DashboardPage() {
     redirect('/dashboard/welcome')
   }
 
-  const firstName = session.user.name?.split(' ')[0] ?? null
+  // Greeting name priority: preferredGreetingName → first word of penName → first name from Google
+  const greetingName =
+    session.user.preferredGreetingName ??
+    (session.user.penName ? session.user.penName.split(' ')[0] : null) ??
+    (session.user.name ? session.user.name.split(' ')[0] : null)
 
   return (
     <ErrorBoundary fallbackTitle="Dashboard couldn't load">
-      <OverviewClient userName={firstName} />
+      <OverviewClient userName={greetingName} />
     </ErrorBoundary>
   )
 }

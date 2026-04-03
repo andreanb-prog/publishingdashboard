@@ -20,7 +20,7 @@ export const authOptions: NextAuthOptions = {
         // Try to fetch subscription data — gracefully skip if columns don't exist
         try {
           const rows = await db.$queryRawUnsafe<any[]>(
-            `SELECT "subscriptionStatus", "subscriptionPlan", "trialEndsAt", "createdAt", "penName" FROM "User" WHERE "id" = $1 LIMIT 1`,
+            `SELECT "subscriptionStatus", "subscriptionPlan", "trialEndsAt", "createdAt", "penName", "preferredGreetingName" FROM "User" WHERE "id" = $1 LIMIT 1`,
             user.id
           )
           const row = rows[0]
@@ -29,6 +29,7 @@ export const authOptions: NextAuthOptions = {
             session.user.subscriptionPlan = row.subscriptionPlan ?? null
             session.user.trialEndsAt = row.trialEndsAt ? new Date(row.trialEndsAt).toISOString() : null
             session.user.penName = row.penName ?? null
+            session.user.preferredGreetingName = row.preferredGreetingName ?? null
             // Use pen name as display name if set
             if (row.penName) session.user.name = row.penName
 
@@ -126,6 +127,7 @@ declare module 'next-auth' {
       subscriptionPlan?: string | null
       trialEndsAt?: string | null
       penName?: string | null
+      preferredGreetingName?: string | null
     }
   }
 }

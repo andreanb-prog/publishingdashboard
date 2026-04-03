@@ -16,7 +16,7 @@ function getTodayKey() {
 }
 
 interface TopBarProps {
-  user: { name?: string | null; email?: string | null; id: string }
+  user: { name?: string | null; email?: string | null; id: string; preferredGreetingName?: string | null }
 }
 
 export function TopBar({ user }: TopBarProps) {
@@ -111,7 +111,7 @@ export function TopBar({ user }: TopBarProps) {
         {/* Left zone: greeting */}
         <div className="flex-1">
           <div className="text-[16px] font-medium leading-none" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            Good morning{user.name ? `, ${user.name.split(' ')[0]}` : ''}
+            Good morning{(user.preferredGreetingName ?? user.name) ? `, ${user.preferredGreetingName ?? user.name!.split(' ')[0]}` : ''}
           </div>
           <div className="text-[11px] mt-1" style={{ color: '#6B7280' }}>
             {dateStr}

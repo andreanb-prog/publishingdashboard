@@ -17,7 +17,7 @@ export async function GET() {
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { apiKey: true, mailerLiteKey: true, books: true, subscriptionStatus: true },
+    select: { apiKey: true, mailerLiteKey: true, books: true, subscriptionStatus: true, penName: true, preferredGreetingName: true },
   })
 
   // Check Meta connection via raw SQL (columns may not exist)
@@ -60,9 +60,11 @@ export async function GET() {
   const stripeActive = subStatus === 'active' || subStatus === 'trialing'
 
   return NextResponse.json({
-    claudeKey:     user?.apiKey        ? mask(user.apiKey)        : null,
-    mailerLiteKey: user?.mailerLiteKey ? mask(user.mailerLiteKey) : null,
-    books:         user?.books ?? [],
+    claudeKey:              user?.apiKey        ? mask(user.apiKey)        : null,
+    mailerLiteKey:          user?.mailerLiteKey ? mask(user.mailerLiteKey) : null,
+    books:                  user?.books ?? [],
+    penName:                user?.penName ?? null,
+    preferredGreetingName:  user?.preferredGreetingName ?? null,
     metaConnected,
     metaLastSync,
     mlSubscribers,
@@ -97,6 +99,19 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ error: 'Could not connect — check your API key' }, { status: 400 })
     }
+  }
+
+  // Save profile (pen name + display name)
+  if (body.action === 'save-profile') {
+    const update: { penName?: string; preferredGreetingName?: string | null } = {}
+    if (typeof body.penName === 'string') update.penName = body.penName.trim()
+    if ('preferredGreetingName' in body) {
+      update.preferredGreetingName = typeof body.preferredGreetingName === 'string' && body.preferredGreetingName.trim()
+        ? body.preferredGreetingName.trim()
+        : null
+    }
+    await db.user.update({ where: { id: session.user.id }, data: update })
+    return NextResponse.json({ success: true })
   }
 
   // Save books
