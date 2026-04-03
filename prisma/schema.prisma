@@ -67,12 +67,14 @@ model User {
   accounts      Account[]
   sessions      Session[]
   bookCatalog   Book[]
-  rankLogs          RankLog[]
-  roasLogs          RoasLog[]
-  pinterestLogs     PinterestLog[]
-  analyses          Analysis[]
-  feedback          Feedback[]
-  listBuildingLogs  ListBuildingLog[]
+  rankLogs              RankLog[]
+  roasLogs              RoasLog[]
+  pinterestLogs         PinterestLog[]
+  analyses              Analysis[]
+  feedback              Feedback[]
+  listBuildingLogs      ListBuildingLog[]
+  bookFunnelDownloads   BookFunnelDownload[]
+  bookfunnelWebhookSecret String?
   createdAt     DateTime       @default(now())
 }
 
@@ -179,6 +181,23 @@ model ListBuildingLog {
   endDate      DateTime
   notes        String?
   createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+model BookFunnelDownload {
+  id           String   @id @default(cuid())
+  userId       String
+  email        String
+  firstName    String?
+  lastName     String?
+  bookTitle    String
+  bookId       String?
+  downloadedAt DateTime
+  confirmed    Boolean  @default(false)
+  landingPage  String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }

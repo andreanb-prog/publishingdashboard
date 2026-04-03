@@ -217,6 +217,14 @@ export default function SettingsPage() {
   const [digestDays,    setDigestDays]    = useState<string[]>(['monday'])
   const [notifSave,     setNotifSave]     = useState<SaveState>('idle')
 
+  // ── BookFunnel ──────────────────────────────────────────────────────────────
+  const [bfSecret,        setBfSecret]        = useState<string | null>(null)
+  const [bfWebhookUrl,    setBfWebhookUrl]    = useState<string>('')
+  const [bfDownloadCount, setBfDownloadCount] = useState<number>(0)
+  const [bfConfirmRate,   setBfConfirmRate]   = useState<number>(0)
+  const [bfRegenerating,  setBfRegenerating]  = useState(false)
+  const [bfCopied,        setBfCopied]        = useState<'url' | 'secret' | null>(null)
+
   // ── Help accordion ──────────────────────────────────────────────────────────
   const [helpOpen, setHelpOpen] = useState(false)
 
@@ -239,6 +247,13 @@ export default function SettingsPage() {
       setMetaLastSync(d.metaLastSync ?? null)
       setKdpLastUpload(d.kdpLastUpload ?? null)
       setMlSubscribers(d.mlSubscribers ?? null)
+    } catch {}
+    try {
+      const bf = await fetch('/api/bookfunnel').then(r => r.json())
+      setBfSecret(bf.secret ?? null)
+      setBfWebhookUrl(bf.webhookUrl ?? '')
+      setBfDownloadCount(bf.totalCount ?? 0)
+      setBfConfirmRate(bf.confirmRate ?? 0)
     } catch {}
     try {
       const p = await fetch('/api/prefs').then(r => r.json())
@@ -310,6 +325,29 @@ export default function SettingsPage() {
     setMetaConnected(false)
     setMetaLastSync(null)
     window.dispatchEvent(new CustomEvent('meta:disconnected'))
+  }
+
+  // ── BookFunnel handlers ──────────────────────────────────────────────────
+  async function regenerateBfSecret() {
+    setBfRegenerating(true)
+    try {
+      const res = await fetch('/api/bookfunnel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'regenerate-secret' }),
+      })
+      const json = await res.json()
+      if (json.secret) setBfSecret(json.secret)
+    } finally {
+      setBfRegenerating(false)
+    }
+  }
+
+  function copyToClipboard(text: string, which: 'url' | 'secret') {
+    navigator.clipboard.writeText(text).then(() => {
+      setBfCopied(which)
+      setTimeout(() => setBfCopied(null), 2000)
+    })
   }
 
   // ── API key save handlers ────────────────────────────────────────────────
@@ -672,6 +710,88 @@ export default function SettingsPage() {
         >
           <AmberBtn onClick={openUploadModal}>Upload new file</AmberBtn>
           <span className="text-[10px]" style={{ color: '#9CA3AF' }}>CSV or XLSX</span>
+        </IntegCard>
+
+        {/* ── BookFunnel card ───────────────────────────────────────────── */}
+        <IntegCard
+          iconBg="#E8F5E9"
+          icon={<BookOpen size={16} strokeWidth={1.75} color="#4CAF50" />}
+          name="BookFunnel"
+          subtitle="Tracks book downloads automatically"
+          statusPill={
+            bfDownloadCount > 0
+              ? <StatusPill active={true} label={`● Active · ${bfDownloadCount} downloads`} />
+              : <StatusPill active={false} label="Not connected" />
+          }
+        >
+          {/* Webhook URL */}
+          <div className="w-full">
+            <div className="text-[9px] font-bold uppercase tracking-[1px] mb-1" style={{ color: '#6B7280' }}>
+              Webhook URL
+            </div>
+            <div className="flex items-center gap-1.5">
+              <input
+                readOnly
+                value={bfWebhookUrl}
+                className="flex-1 text-[9px] font-mono px-2 py-1.5 rounded-md outline-none truncate"
+                style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#F9FAFB', color: '#374151' }}
+              />
+              <button
+                onClick={() => copyToClipboard(bfWebhookUrl, 'url')}
+                className="text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all"
+                style={{
+                  background: bfCopied === 'url' ? 'rgba(110,191,139,0.15)' : 'rgba(30,45,61,0.06)',
+                  color: bfCopied === 'url' ? '#16a34a' : '#6B7280',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {bfCopied === 'url' ? '✓ Copied' : 'Copy'}
+              </button>
+            </div>
+          </div>
+
+          {/* Secret token */}
+          <div className="w-full">
+            <div className="text-[9px] font-bold uppercase tracking-[1px] mb-1" style={{ color: '#6B7280' }}>
+              Secret Token <span className="normal-case font-normal">(paste into BookFunnel)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <input
+                readOnly
+                value={bfSecret ?? '—'}
+                type="password"
+                className="flex-1 text-[9px] font-mono px-2 py-1.5 rounded-md outline-none"
+                style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#F9FAFB', color: '#374151' }}
+              />
+              <button
+                onClick={() => bfSecret && copyToClipboard(bfSecret, 'secret')}
+                className="text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all"
+                style={{
+                  background: bfCopied === 'secret' ? 'rgba(110,191,139,0.15)' : 'rgba(30,45,61,0.06)',
+                  color: bfCopied === 'secret' ? '#16a34a' : '#6B7280',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {bfCopied === 'secret' ? '✓ Copied' : 'Copy'}
+              </button>
+              <button
+                onClick={regenerateBfSecret}
+                disabled={bfRegenerating}
+                className="text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all disabled:opacity-40"
+                style={{ background: 'rgba(30,45,61,0.06)', color: '#6B7280', border: 'none', cursor: 'pointer' }}
+              >
+                {bfRegenerating ? '…' : 'Rotate'}
+              </button>
+            </div>
+          </div>
+
+          {bfDownloadCount > 0 && (
+            <div className="text-[10px]" style={{ color: '#6B7280' }}>
+              {bfDownloadCount} downloads tracked · {bfConfirmRate}% confirmed
+            </div>
+          )}
         </IntegCard>
       </div>
 

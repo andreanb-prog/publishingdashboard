@@ -1,7 +1,10 @@
 'use client'
 // app/dashboard/list-building/page.tsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import ChartJS from 'chart.js/auto'
 import { getCoachTitle } from '@/lib/coachTitle'
+import { CHART_COLORS, BASE_CHART_OPTIONS, areaDataset } from '@/lib/chartConfig'
+import { tokens } from '@/lib/tokens'
 
 interface Campaign {
   id: string
@@ -34,6 +37,114 @@ const STATUS_STYLES = {
   CUT:   { bg: 'rgba(251,113,133,0.12)', color: '#8c2020', label: '🔴 Cut'   },
 }
 
+// ── BookFunnel types ─────────────────────────────────────────────────────────
+interface BfStats {
+  totalCount:  number
+  confirmRate: number
+  topBook:     string | null
+  byBook:      Record<string, number>
+  byDate:      Record<string, number>
+}
+
+// ── BookFunnel bar chart: downloads by book ──────────────────────────────────
+function BfBookChart({ byBook }: { byBook: Record<string, number> }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const chartRef  = useRef<ChartJS | null>(null)
+
+  useEffect(() => {
+    if (!canvasRef.current) return
+    const entries = Object.entries(byBook).sort((a, b) => b[1] - a[1]).slice(0, 8)
+    if (entries.length === 0) return
+    if (chartRef.current) chartRef.current.destroy()
+
+    const BOOK_COLORS = tokens.colors.books
+    chartRef.current = new ChartJS(canvasRef.current.getContext('2d')!, {
+      type: 'bar',
+      data: {
+        labels: entries.map(([title]) => title.length > 22 ? title.substring(0, 22) + '…' : title),
+        datasets: [{
+          label: 'Downloads',
+          data: entries.map(([, n]) => n),
+          backgroundColor: entries.map((_, i) => BOOK_COLORS[i % BOOK_COLORS.length] + 'CC'),
+          hoverBackgroundColor: entries.map((_, i) => BOOK_COLORS[i % BOOK_COLORS.length]),
+          borderRadius: { topLeft: 4, topRight: 4 },
+          borderSkipped: 'bottom',
+        }],
+      },
+      options: {
+        ...BASE_CHART_OPTIONS,
+        indexAxis: 'y' as const,
+        plugins: { ...BASE_CHART_OPTIONS.plugins },
+        scales: {
+          x: { ...BASE_CHART_OPTIONS.scales.x },
+          y: {
+            ...BASE_CHART_OPTIONS.scales.y,
+            grid: { display: false },
+            ticks: { ...BASE_CHART_OPTIONS.scales.y.ticks, font: { family: 'Plus Jakarta Sans', size: 11 } },
+          },
+        },
+      } as any,
+    })
+    return () => { chartRef.current?.destroy() }
+  }, [byBook])
+
+  if (Object.keys(byBook).length === 0) {
+    return <div className="text-[12px] text-center py-6" style={{ color: '#9CA3AF' }}>No downloads yet</div>
+  }
+  return <div style={{ minHeight: 180, position: 'relative' }}><canvas ref={canvasRef} /></div>
+}
+
+// ── BookFunnel area chart: downloads over time ────────────────────────────────
+function BfTimeChart({ byDate }: { byDate: Record<string, number> }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const chartRef  = useRef<ChartJS | null>(null)
+
+  useEffect(() => {
+    if (!canvasRef.current) return
+    const sorted = Object.entries(byDate).sort((a, b) => a[0].localeCompare(b[0]))
+    if (sorted.length < 2) return
+    if (chartRef.current) chartRef.current.destroy()
+
+    const labels = sorted.map(([d]) => {
+      const dt = new Date(d + 'T00:00:00')
+      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    })
+    const values = sorted.map(([, n]) => n)
+
+    chartRef.current = new ChartJS(canvasRef.current.getContext('2d')!, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          ...areaDataset(values, CHART_COLORS.teal, 'Downloads'),
+          backgroundColor: (ctx: any) => {
+            const { ctx: c, chartArea } = ctx.chart
+            if (!chartArea) return CHART_COLORS.teal + '40'
+            const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
+            g.addColorStop(0, CHART_COLORS.teal + '3F')
+            g.addColorStop(1, CHART_COLORS.teal + '05')
+            return g
+          },
+        }],
+      },
+      options: {
+        ...BASE_CHART_OPTIONS,
+        interaction: { mode: 'index' as const, intersect: false },
+        scales: {
+          x: { ...BASE_CHART_OPTIONS.scales.x, ticks: { ...BASE_CHART_OPTIONS.scales.x.ticks, maxRotation: 0 } },
+          y: BASE_CHART_OPTIONS.scales.y,
+        },
+      } as any,
+    })
+    return () => { chartRef.current?.destroy() }
+  }, [byDate])
+
+  if (Object.keys(byDate).length < 2) {
+    return <div className="text-[12px] text-center py-6" style={{ color: '#9CA3AF' }}>Not enough data to chart yet</div>
+  }
+  return <div style={{ minHeight: 180, position: 'relative' }}><canvas ref={canvasRef} /></div>
+}
+
 export default function ListBuildingPage() {
   const [coachTitle] = useState(() => getCoachTitle())
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
@@ -54,6 +165,9 @@ export default function ListBuildingPage() {
   const [showForm, setShowForm] = useState(false)
   const [feedback, setFeedback] = useState('')
 
+  // ── BookFunnel state ───────────────────────────────────────────────────────
+  const [bfStats, setBfStats] = useState<BfStats | null>(null)
+
   useEffect(() => {
     // Load persisted subValue
     const stored = localStorage.getItem('listbuilding_subvalue')
@@ -61,11 +175,13 @@ export default function ListBuildingPage() {
       const n = parseFloat(stored)
       if (!isNaN(n) && n > 0) { setSubValue(n); setSubValueInput(n.toFixed(2)) }
     }
-    fetch('/api/list-building')
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => setCampaigns(d.logs || []))
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch('/api/list-building').then(r => r.ok ? r.json() : Promise.reject()).catch(() => ({ logs: [] })),
+      fetch('/api/bookfunnel').then(r => r.ok ? r.json() : Promise.reject()).catch(() => null),
+    ]).then(([listData, bf]) => {
+      setCampaigns(listData.logs || [])
+      if (bf) setBfStats({ totalCount: bf.totalCount, confirmRate: bf.confirmRate, topBook: bf.topBook, byBook: bf.byBook, byDate: bf.byDate })
+    }).finally(() => setLoading(false))
   }, [])
 
   function handleSubValueBlur() {
@@ -362,6 +478,70 @@ export default function ListBuildingPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── BookFunnel Downloads Section ─────────────────────────────────── */}
+      <div className="card mb-5 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
+          <div>
+            <div className="text-[13px] font-bold text-[#0d1f35]">BookFunnel Downloads</div>
+            <div className="text-[11px] text-stone-500 mt-0.5">Automatic download tracking via webhook</div>
+          </div>
+          {bfStats && bfStats.totalCount > 0 && (
+            <a
+              href="/dashboard/settings"
+              className="text-[11px] font-semibold no-underline"
+              style={{ color: '#E9A020' }}
+            >
+              Manage →
+            </a>
+          )}
+        </div>
+
+        {!bfStats || bfStats.totalCount === 0 ? (
+          <div className="px-5 py-8 text-center">
+            <div className="text-3xl mb-2">📚</div>
+            <div className="text-[13px] font-semibold text-stone-500 mb-1">No downloads tracked yet</div>
+            <div className="text-[11.5px] text-stone-500 mb-3">
+              Connect BookFunnel in Settings to automatically track reader downloads.
+            </div>
+            <a
+              href="/dashboard/settings"
+              className="inline-block px-4 py-2 rounded-lg text-[12px] font-bold no-underline"
+              style={{ background: '#e9a020', color: '#0d1f35' }}
+            >
+              Set up BookFunnel →
+            </a>
+          </div>
+        ) : (
+          <div className="p-5">
+            {/* KPI strip */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {[
+                { label: 'Total Downloads',   value: bfStats.totalCount.toLocaleString(), color: 'text-[#0d1f35]' },
+                { label: 'Confirmation Rate', value: `${bfStats.confirmRate}%`,           color: bfStats.confirmRate >= 70 ? 'text-emerald-600' : bfStats.confirmRate >= 40 ? 'text-amber-600' : 'text-red-500' },
+                { label: 'Top Book',          value: bfStats.topBook ?? '—',              color: 'text-[#0d1f35]', small: true },
+              ].map(k => (
+                <div key={k.label} className="text-center p-3 rounded-xl" style={{ background: '#fafaf9' }}>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1.5">{k.label}</div>
+                  <div className={`font-serif tracking-tight ${k.small ? 'text-[13px]' : 'text-[22px]'} ${k.color}`}>{k.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Charts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <div className="text-[12px] font-semibold text-[#0d1f35] mb-3">Downloads by Book</div>
+                <BfBookChart byBook={bfStats.byBook} />
+              </div>
+              <div>
+                <div className="text-[12px] font-semibold text-[#0d1f35] mb-3">Downloads Over Time</div>
+                <BfTimeChart byDate={bfStats.byDate} />
+              </div>
+            </div>
           </div>
         )}
       </div>
