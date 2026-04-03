@@ -442,7 +442,7 @@ export default function ListBuildingPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full" style={{ minWidth: 640 }}>
               <thead>
                 <tr className="border-b border-stone-100">
                   {['Campaign', 'Dates', 'Spend', 'Subscribers', 'Cost/Sub', 'Sub ROAS', 'Status', ''].map(h => (

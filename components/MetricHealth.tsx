@@ -216,11 +216,12 @@ const METRIC_TOOLTIPS: Record<string, TooltipContent> = {
 
 export function MetricTooltip({ metric }: { metric: string }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [side, setSide] = useState<'left' | 'right'>('right')
+  const ref    = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
   const content = METRIC_TOOLTIPS[metric]
-  if (!content) return null
 
-  // Close on outside click
+  // Close on outside click — must be before any conditional return
   useEffect(() => {
     if (!open) return
     function handleClick(e: MouseEvent) {
@@ -230,10 +231,22 @@ export function MetricTooltip({ metric }: { metric: string }) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
 
+  if (!content) return null
+
+  function handleToggle() {
+    if (!open && btnRef.current) {
+      const { right: btnRight } = btnRef.current.getBoundingClientRect()
+      // If 280px to the left of the button fits in viewport, anchor right; else anchor left
+      setSide(btnRight >= 288 ? 'right' : 'left')
+    }
+    setOpen(o => !o)
+  }
+
   return (
     <div ref={ref} className="relative inline-block ml-1">
       <button
-        onClick={() => setOpen(o => !o)}
+        ref={btnRef}
+        onClick={handleToggle}
         className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold
                    transition-all hover:scale-110 cursor-pointer"
         style={{
@@ -246,7 +259,8 @@ export function MetricTooltip({ metric }: { metric: string }) {
         i
       </button>
       {open && (
-        <div className="absolute z-50 mt-2 right-0 rounded-lg shadow-lg"
+        <div
+          className={`absolute z-50 mt-2 rounded-lg shadow-lg max-w-[280px] ${side === 'right' ? 'right-0' : 'left-0'}`}
           style={{
             width: 280,
             background: 'white',

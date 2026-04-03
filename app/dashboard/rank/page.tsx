@@ -138,7 +138,7 @@ export default function RankPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-[1200px]">
+      <div className="p-4 sm:p-8 pb-8 max-w-[1200px]">
         <div className="animate-pulse text-stone-500 text-[13px]">Loading your books…</div>
       </div>
     )
@@ -146,7 +146,7 @@ export default function RankPage() {
 
   if (books.length === 0) {
     return (
-      <div className="p-8 max-w-[1200px]">
+      <div className="p-4 sm:p-8 pb-8 max-w-[1200px]">
         <div className="mb-6">
           <h1 className="font-sans text-[22px] text-[#0d1f35] mb-1">Sales Rank Tracker</h1>
           <p className="text-[12.5px] text-stone-500">Track your Amazon BSR and subcategory ranks daily.</p>

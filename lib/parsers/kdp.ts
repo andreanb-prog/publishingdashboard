@@ -59,6 +59,29 @@ function pick(row: Record<string, unknown>, ...variants: string[]): unknown {
 function num(v: unknown): number { return Number(v || 0) }
 function str(v: unknown): string { return String(v || '') }
 
+/**
+ * Safely convert any date-like value from XLSX to a YYYY-MM-DD string.
+ * XLSX with cellDates:true returns JS Date objects; String(date) gives a
+ * locale string that does NOT contain 'T', so the old .split('T')[0] trick
+ * breaks.  This handles Date objects, ISO strings, and other formats.
+ */
+function toISODate(v: unknown): string {
+  if (!v) return ''
+  if (v instanceof Date) {
+    if (isNaN(v.getTime())) return ''
+    return v.toISOString().split('T')[0]
+  }
+  const s = String(v).trim()
+  if (!s) return ''
+  // Already ISO YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
+  // Try generic parse (handles "03/27/2026", "March 27, 2026", etc.)
+  const d = new Date(s)
+  if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]
+  // Fallback: strip time portion if present
+  return s.split('T')[0]
+}
+
 // ── Multi-sheet format (standard KDP month-end report) ───────────────────────
 function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
   // ── Summary sheet: flexible column lookup by header name ─────────────────
@@ -155,14 +178,14 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
   // ── Daily breakdowns ──────────────────────────────────────────────────────
   const dailyUnitsMap = new Map<string, number>()
   for (const row of ordersData) {
-    const date  = str(pick(row, 'Date', 'Royalty Date', 'Transaction Date')).split('T')[0]
+    const date  = toISODate(pick(row, 'Date', 'Transaction Date', 'Royalty Date'))
     const units = num(pick(row, 'Paid Units', 'Units Sold', 'Net Units Sold', 'Units'))
     if (date) dailyUnitsMap.set(date, (dailyUnitsMap.get(date) ?? 0) + units)
   }
 
   const dailyKENPMap = new Map<string, number>()
   for (const row of kenpData) {
-    const date = str(pick(row, 'Date', 'Read Date')).split('T')[0]
+    const date = toISODate(pick(row, 'Date', 'Read Date'))
     const kenp = num(pick(row,
       'Kindle Edition Normalized Page (KENP) Read',
       'KENP Read', 'KENP Pages Read', 'KU Pages Read', 'Pages Read', 'KENP',

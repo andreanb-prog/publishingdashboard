@@ -40,7 +40,7 @@ export default async function DashboardLayout({
         {status === 'trialing' && trialEndsAt && (
           <TrialBanner trialEndsAt={trialEndsAt} />
         )}
-        <main className="flex-1 overflow-y-auto" style={{ background: '#FFFFFF' }}>
+        <main className="flex-1 overflow-y-auto pb-24" style={{ background: '#FFFFFF' }}>
           {children}
         </main>
       </div>

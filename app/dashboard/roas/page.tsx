@@ -188,7 +188,7 @@ export default function ROASPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="p-8 max-w-2xl animate-pulse space-y-4">
+      <div className="p-4 sm:p-8 pb-8 max-w-2xl animate-pulse space-y-4">
         <div className="h-10 rounded-xl bg-stone-100 w-48" />
         <div className="h-40 rounded-xl bg-stone-100" />
         <div className="h-64 rounded-xl bg-stone-100" />
@@ -197,7 +197,7 @@ export default function ROASPage() {
   }
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-4 sm:p-8 pb-8 max-w-2xl">
 
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4">
@@ -357,7 +357,8 @@ export default function ROASPage() {
               </div>
             )}
           </div>
-          <table className="w-full border-collapse text-[12.5px]">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-[12.5px]" style={{ minWidth: 480 }}>
             <thead>
               <tr className="bg-cream">
                 {['Date', 'Spend', 'Earnings', 'ROAS', 'Notes'].map(h => (
@@ -386,6 +387,7 @@ export default function ROASPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

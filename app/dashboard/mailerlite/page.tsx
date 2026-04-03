@@ -437,7 +437,7 @@ export default function MailerLitePage() {
               <div className="px-5 py-3.5 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
                 Recent Campaigns
               </div>
-              <table className="w-full border-collapse text-[12px]">
+              <table className="w-full border-collapse text-[12px]" style={{ minWidth: 480 }}>
                 <thead>
                   <tr style={{ background: '#F5F5F4' }}>
                     {['Campaign', 'Sent', 'Open Rate', 'Click Rate', 'Unsubs'].map(h => (

@@ -854,7 +854,7 @@ export default function SettingsPage() {
       {/* SECTION 3: PREFERENCES                                               */}
       {/* ══════════════════════════════════════════════════════════════════════ */}
       <SectionLabel>PREFERENCES</SectionLabel>
-      <div className="grid gap-3 mb-8" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
 
         {/* ── Benchmarks card ───────────────────────────────────────────── */}
         <div

@@ -563,8 +563,8 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
       {analyses.length >= 2 && <WhatHappenedCard current={analyses[0]} previous={analyses[1]} actionPlan={analysis?.actionPlan} />}
 
       {/* Hero numbers strip — centered grid */}
-      <div className="rounded-xl mb-4 p-6"
-        style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+      <div className="rounded-xl mb-4 py-6 px-4 sm:px-6 grid grid-cols-2 sm:grid-cols-4 gap-4"
+        style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
         {[
           { label: 'Est. Revenue', value: analysis?.kdp ? `$${animRev.toFixed(2)}`                      : null },
           { label: 'Units Sold',   value: analysis?.kdp ? Math.round(animUnits).toLocaleString()         : null },
@@ -582,12 +582,12 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
                 {stat.label}
               </div>
               {hasData ? (
-                <div className="font-sans text-[48px] font-semibold leading-none"
+                <div className="font-sans text-2xl sm:text-4xl font-semibold leading-none"
                   style={{ color: '#1E2D3D' }}>
                   {stat.value}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center" style={{ minHeight: 64 }}>
+                <div className="flex flex-col items-center justify-center py-2">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mb-2" style={{ opacity: 0.2 }}>
                     <rect x="3" y="14" width="4" height="7" rx="1" fill="#1E2D3D" />
                     <rect x="10" y="9" width="4" height="12" rx="1" fill="#1E2D3D" />

@@ -144,8 +144,9 @@ function DailyAreaChart({
   peakDotColor: string
   isKenp?: boolean
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const chartRef  = useRef<ChartJS | null>(null)
+  const canvasRef    = useRef<HTMLCanvasElement>(null)
+  const chartRef     = useRef<ChartJS | null>(null)
+  const tooltipElRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!canvasRef.current || data.length < 5) return
@@ -203,24 +204,46 @@ function DailyAreaChart({
         plugins: {
           legend: { display: false },
           tooltip: {
-            ...BASE_CHART_OPTIONS.plugins.tooltip,
-            callbacks: {
-              title: (items: any[]) =>
-                items.length ? formatShortDate(data[items[0].dataIndex]?.date ?? '') : '',
-              label: (item: any) => {
-                const val = item.raw as number
-                if (item.datasetIndex === 0)
-                  return ` ${val.toLocaleString()} ${isKenp ? 'reads' : 'units'}`
-                return ` ${avgLabel}: ${val.toFixed(1)}`
-              },
-              ...(isKenp
-                ? {
-                    afterBody: (items: any[]) => {
-                      const val = data[items[0]?.dataIndex]?.value ?? 0
-                      return [` Est. revenue: $${(val * 0.0045).toFixed(2)}`]
-                    },
-                  }
-                : {}),
+            enabled: false,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            external: ({ chart, tooltip }: any) => {
+              const el = tooltipElRef.current
+              if (!el) return
+              if (tooltip.opacity === 0) {
+                el.style.display = 'none'
+                return
+              }
+              const title = tooltip.title?.[0] ?? ''
+              const lines = (tooltip.body ?? []).flatMap((b: any) => b.lines)
+              const afterLines = tooltip.afterBody ?? []
+              const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
+              el.innerHTML = `
+                <button
+                  onclick="this.parentElement.style.display='none'"
+                  style="position:absolute;top:4px;right:8px;background:none;border:none;cursor:pointer;font-size:16px;color:#9CA3AF;line-height:1;padding:0"
+                >×</button>
+                <div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;padding-right:16px">${title}</div>
+                ${lines.map((l: string) => `<div style="font-size:12px;color:#1E2D3D">${l}</div>`).join('')}
+                ${afterLines.map((l: string) => `<div style="font-size:11px;color:#9CA3AF;margin-top:2px">${l}</div>`).join('')}
+                ${isMobile ? '<div style="font-size:10px;color:#9CA3AF;margin-top:6px;border-top:1px solid #EEEBE6;padding-top:4px">Tap × to close</div>' : ''}
+              `
+              const { offsetLeft: posX, offsetTop: posY } = chart.canvas
+              const containerWidth = el.parentElement?.offsetWidth ?? 320
+              const caretX = tooltip.caretX
+              // Keep tooltip within container bounds
+              const tipWidth = 200
+              let left = posX + caretX
+              let transform = 'translate(-50%, -110%)'
+              if (left + tipWidth / 2 > containerWidth) {
+                left = containerWidth - tipWidth / 2 - 8
+                transform = 'translate(-50%, -110%)'
+              } else if (left - tipWidth / 2 < 0) {
+                left = tipWidth / 2 + 8
+              }
+              el.style.display = 'block'
+              el.style.left = `${left}px`
+              el.style.top = `${posY + tooltip.caretY}px`
+              el.style.transform = transform
             },
           },
         },
@@ -255,6 +278,23 @@ function DailyAreaChart({
     <div>
       <div style={{ minHeight: 220, position: 'relative' }}>
         <canvas ref={canvasRef} />
+        {/* External HTML tooltip with dismiss button */}
+        <div
+          ref={tooltipElRef}
+          style={{
+            display: 'none',
+            position: 'absolute',
+            background: 'white',
+            border: '0.5px solid #EEEBE6',
+            borderRadius: 8,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+            padding: '10px 14px',
+            pointerEvents: 'auto',
+            maxWidth: 240,
+            minWidth: 140,
+            zIndex: 50,
+          }}
+        />
       </div>
       <ChartLegend items={[
         { color: lineColor,            label: isKenp ? 'KENP Reads' : 'Units Sold', type: 'square' },
@@ -318,7 +358,29 @@ function HeatmapCalendar({
           )
         })}
       </div>
-      <div className="flex flex-wrap items-center justify-between mt-2 gap-2">
+      {/* Date labels row */}
+      <div
+        className="grid gap-1 mt-1"
+        style={{ gridTemplateColumns: `repeat(${Math.min(data.length, 31)}, 1fr)`, height: 28, overflow: 'hidden' }}
+      >
+        {data.map((d, i) => (
+          <div key={i} className="flex items-start justify-center overflow-hidden">
+            <span
+              className="text-[7px] leading-none whitespace-nowrap"
+              style={{
+                color: '#9CA3AF',
+                display: 'block',
+                transform: 'rotate(-45deg)',
+                transformOrigin: 'top left',
+                marginLeft: 3,
+              }}
+            >
+              {formatShortDate(d.date)}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center justify-between mt-3 gap-2">
         <ChartLegend items={[
           { color: '#FFF8F0',          label: '0 units',   type: 'square' },
           { color: CHART_COLORS.amber, label: 'Mid',       type: 'square' },

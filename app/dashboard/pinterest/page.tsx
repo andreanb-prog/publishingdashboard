@@ -143,7 +143,7 @@ export default function PinterestPage() {
           Log your weekly Pinterest numbers — takes 30 seconds
         </div>
         <form onSubmit={handleLog}>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             {[
               { key: 'weekEnding', label: 'Week ending', type: 'date' },
               { key: 'impressions', label: 'Impressions', type: 'number', placeholder: '0' },
