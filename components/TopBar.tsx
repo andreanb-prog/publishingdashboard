@@ -57,6 +57,25 @@ export function TopBar({ user }: TopBarProps) {
   const doneCount = DAILY_CHECKS.filter(c => checks[c.key]).length
   const allDone = doneCount === DAILY_CHECKS.length
 
+  // Story Mode state — persisted in localStorage, default ON
+  const [storyMode, setStoryMode] = useState(true)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('story-mode')
+      if (stored !== null) setStoryMode(stored === 'true')
+    } catch {}
+  }, [])
+
+  function toggleStoryMode() {
+    setStoryMode(prev => {
+      const next = !prev
+      try { localStorage.setItem('story-mode', String(next)) } catch {}
+      window.dispatchEvent(new CustomEvent('story-mode-change', { detail: { on: next } }))
+      return next
+    })
+  }
+
   // Upload modal state
   const [uploadOpen, setUploadOpen] = useState(false)
   const [showToast, setShowToast] = useState(false)
@@ -152,6 +171,21 @@ export function TopBar({ user }: TopBarProps) {
               </div>
             )}
           </div>
+
+          {/* Story Mode toggle */}
+          <button
+            onClick={toggleStoryMode}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all hover:bg-stone-50"
+            style={{
+              background: storyMode ? '#FFF8F0' : 'white',
+              border: `0.5px solid ${storyMode ? '#E9A020' : '#EEEBE6'}`,
+              color: storyMode ? '#E9A020' : '#6B7280',
+              cursor: 'pointer',
+            }}
+            title={storyMode ? 'Story Mode on — click to hide copy' : 'Story Mode off — click to show copy'}
+          >
+            📖 Story Mode
+          </button>
 
           {/* Connection status */}
           <ConnectionStatus />

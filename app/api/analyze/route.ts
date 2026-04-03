@@ -87,6 +87,7 @@ COPY QUALITY RULES — follow these in every field of the JSON response:
 - NEVER use "explore" or "consider" as CTAs. Use: send, test, cut, scale, fix, upload, pause, launch, schedule.
 - Every action item must name a specific action AND a specific platform (e.g. "Go to Meta Ads Manager and pause the low-CTR ads", not "consider adjusting your ads").
 - NEVER end an insight with a hedge like "you know your readers best" — end with the action.
+- ALWAYS be specific about numbers: use the actual metric values from the data (e.g. "your CTR is 0.8%", "you sold 14 units"). NEVER say "your numbers are low" or "your engagement is poor" without naming the exact figure.
 
 Respond with a JSON object in exactly this structure (no markdown, raw JSON only):
 {
@@ -102,7 +103,12 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       "headline": "key number",
       "subline": "one plain-English sentence",
       "metric": "$70.93",
-      "badge": "Growing"
+      "badge": "Growing",
+      "storyBullets": {
+        "win": "one sentence in plain human voice — what's working right now, with the actual number",
+        "trend": "one sentence — what's moving and which direction, with the actual metric",
+        "nextAction": "one sentence — single specific next action starting with a verb, naming the platform"
+      }
     }
   ],
   "actionPlan": [

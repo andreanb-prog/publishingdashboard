@@ -164,6 +164,11 @@ export interface ChannelScore {
   subline: string
   metric: string
   badge: string
+  storyBullets?: {
+    win: string
+    trend: string
+    nextAction: string
+  }
 }
 
 export interface ExecutiveSummary {

@@ -689,8 +689,8 @@ function EmailVsSalesChart({
             </div>
             <div className="text-[12px] leading-relaxed" style={{ color: '#374151' }}>
               Your <strong>{topEmailInsight.name}</strong> on {formatShortDate(topEmailInsight.date)} drove <strong>{topEmailInsight.units48} units</strong> in 48 hours
-              {topEmailInsight.multiple > 0 && ` — ${topEmailInsight.multiple.toFixed(1)}× your normal pace`}.
-              {' '}Go to MailerLite, pull the subject line and send time from this campaign, and schedule a follow-up to non-openers within 5 days while momentum is live.
+              {topEmailInsight.multiple > 0 ? ` — ${topEmailInsight.multiple.toFixed(1)}× your normal pace` : ''}.
+              {' '}Go to MailerLite, find this campaign, and schedule a follow-up to non-openers within 5 days while momentum is live.
             </div>
           </div>
         </div>

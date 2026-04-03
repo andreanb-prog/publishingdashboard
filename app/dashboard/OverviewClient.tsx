@@ -357,6 +357,20 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
   const [coachTitle]  = useState(() => getCoachTitle())
   const [expandedPriority, setExpandedPriority] = useState<number | null>(null)
   const [isFresh,     setIsFresh]     = useState(false)
+  const [storyMode,   setStoryMode]   = useState(true)
+
+  // Sync Story Mode from localStorage on mount + listen for TopBar toggle events
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('story-mode')
+      if (stored !== null) setStoryMode(stored === 'true')
+    } catch {}
+    function onStoryModeChange(e: Event) {
+      setStoryMode((e as CustomEvent<{ on: boolean }>).detail.on)
+    }
+    window.addEventListener('story-mode-change', onStoryModeChange)
+    return () => window.removeEventListener('story-mode-change', onStoryModeChange)
+  }, [])
 
   // Detect ?fresh=1 for post-upload celebration count-up
   useEffect(() => {
@@ -798,6 +812,19 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
                         <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
                           {badge.label}
                         </span>
+                        {storyMode && score?.storyBullets && (
+                          <div className="mt-3 pt-3 space-y-1.5" style={{ borderTop: '0.5px solid #EEEBE6' }}>
+                            <p className="text-[11px] leading-snug" style={{ color: '#374151' }}>
+                              🟢 {score.storyBullets.win}
+                            </p>
+                            <p className="text-[11px] leading-snug" style={{ color: '#374151' }}>
+                              📈 {score.storyBullets.trend}
+                            </p>
+                            <p className="text-[11px] leading-snug" style={{ color: '#374151' }}>
+                              ➡️ {score.storyBullets.nextAction}
+                            </p>
+                          </div>
+                        )}
                       </Link>
                     )
                   })}
