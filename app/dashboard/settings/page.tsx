@@ -414,7 +414,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6 max-w-3xl" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="w-full" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", padding: '28px 32px' }}>
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
 
       {/* ── Page header ───────────────────────────────────────────────────── */}
@@ -454,7 +454,7 @@ export default function SettingsPage() {
       {/* SECTION 2: INTEGRATIONS                                               */}
       {/* ══════════════════════════════════════════════════════════════════════ */}
       <SectionLabel>INTEGRATIONS</SectionLabel>
-      <div className="grid grid-cols-2 gap-3 mb-3">
+      <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
 
         {/* ── Claude AI card ────────────────────────────────────────────── */}
         <IntegCard
@@ -710,7 +710,7 @@ export default function SettingsPage() {
       {/* SECTION 3: PREFERENCES                                               */}
       {/* ══════════════════════════════════════════════════════════════════════ */}
       <SectionLabel>PREFERENCES</SectionLabel>
-      <div className="grid grid-cols-2 gap-3 mb-8">
+      <div className="grid gap-3 mb-8" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
 
         {/* ── Benchmarks card ───────────────────────────────────────────── */}
         <div
