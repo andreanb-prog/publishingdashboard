@@ -381,7 +381,20 @@ function MetaPerformanceChart({ ads }: { ads: import('@/types').MetaAd[] }) {
         },
       } as any,
     })
-    return () => { chartRef.current?.destroy() }
+    // Native browser tooltip: update canvas.title to full ad name on hover
+    const canvas = canvasRef.current
+    function onMouseMove(e: MouseEvent) {
+      const chart = chartRef.current
+      if (!chart || !canvas) return
+      const els = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false)
+      canvas.title = els.length > 0 ? (ads[els[0].index]?.name ?? '') : ''
+    }
+    canvas.addEventListener('mousemove', onMouseMove)
+
+    return () => {
+      canvas.removeEventListener('mousemove', onMouseMove)
+      chartRef.current?.destroy()
+    }
   }, [ads])
 
   if (ads.length === 0) return null

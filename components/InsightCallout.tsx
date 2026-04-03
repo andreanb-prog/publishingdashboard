@@ -112,22 +112,34 @@ const PAGE_FILTERS: Record<string, (i: Insight) => boolean> = {
 function InsightCard({ insight, index }: { insight: Insight; index: number }) {
   const [collapsed, setCollapsed] = useState(true)
   const isAlarm = insight.mode === 'alarm'
-  const color = isAlarm ? '#E9A020' : '#6EBF8B'
+  const borderColor = isAlarm ? '#E9A020' : '#6EBF8B'
+  const pillBg      = isAlarm ? '#E9A020' : '#6EBF8B'
+  const cardBg      = isAlarm ? 'rgba(233,160,32,0.06)' : 'rgba(110,191,139,0.06)'
 
   return (
     <div className="rounded-xl overflow-hidden transition-all duration-200"
       style={{
-        background: '#FFF8F0',
+        background: cardBg,
         border: '1px solid #EEEBE6',
-        borderLeft: `4px solid ${color}`,
+        borderLeft: `3px solid ${borderColor}`,
       }}>
       <button
         onClick={() => setCollapsed(c => !c)}
         className="w-full flex items-center justify-between px-4 py-3 text-left bg-transparent border-none cursor-pointer"
       >
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold tracking-[1.5px] uppercase" style={{ color }}>
-            {isAlarm ? '⚠️ Watch this' : '🎉 Nice work'}
+          <span style={{
+            background: pillBg,
+            color: '#ffffff',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            padding: '2px 8px',
+            borderRadius: 4,
+            textTransform: 'uppercase',
+            flexShrink: 0,
+          }}>
+            {isAlarm ? 'Watch This' : 'Nice Work'}
           </span>
           {collapsed && (
             <span className="text-[11px] truncate max-w-[300px]" style={{ color: '#6B7280' }}>
