@@ -27,14 +27,14 @@ const CHANNEL_ITEMS: NavItem[] = [
 const TOOL_ITEMS: NavItem[] = [
   { label: 'Advanced Metrics',   href: '/dashboard/metrics',       Icon: BarChart2      },
   { label: 'Rank Tracker',       href: '/dashboard/rank',          Icon: ArrowUpRight   },
-  { label: 'Daily ROAS Log',     href: '/dashboard/roas',          Icon: DollarSign     },
   { label: 'Learn the Terms',    href: '/dashboard/learn',         Icon: GraduationCap  },
   { label: 'Settings',           href: '/dashboard/settings',      Icon: Settings2      },
   { label: 'My Data',            href: '/dashboard/data-vault',    Icon: Database       },
 ]
 
 const ADMIN_TOOL_ITEMS: NavItem[] = [
-  { label: 'List Building ROAS', href: '/dashboard/list-building', Icon: Users },
+  { label: 'Daily ROAS Log',     href: '/dashboard/roas',          Icon: DollarSign     },
+  { label: 'List Building ROAS', href: '/dashboard/list-building', Icon: Users          },
 ]
 
 const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
