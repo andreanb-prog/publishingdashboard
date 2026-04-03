@@ -1,8 +1,12 @@
 'use client'
 // app/dashboard/roas/page.tsx
 import { useEffect, useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import type { Analysis } from '@/types'
+
+const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
 function Sparkline({ values }: { values: number[] }) {
@@ -75,6 +79,8 @@ function todayStr() {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function ROASPage() {
+  const router = useRouter()
+  const { data: session, status } = useSession()
   const [logs,      setLogs]      = useState<any[]>([])
   const [analysis,  setAnalysis]  = useState<Analysis | null>(null)
   const [form,      setForm]      = useState({ spend: '', earnings: '', notes: '' })
@@ -82,6 +88,14 @@ export default function ROASPage() {
   const [saving,    setSaving]    = useState(false)
   const [verdict,   setVerdict]   = useState<{ text: string; color: string } | null>(null)
   const [loading,   setLoading]   = useState(true)
+
+  // ── Admin guard ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (status === 'loading') return
+    if (!ADMIN_EMAILS.includes(session?.user?.email ?? '')) {
+      router.replace('/dashboard')
+    }
+  }, [session, status, router])
 
   // ── Fetch logs + latest analysis ─────────────────────────────────────────
   useEffect(() => {

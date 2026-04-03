@@ -17,7 +17,7 @@ export async function GET() {
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { apiKey: true, mailerLiteKey: true, books: true },
+    select: { apiKey: true, mailerLiteKey: true, books: true, subscriptionStatus: true },
   })
 
   // Check Meta connection via raw SQL (columns may not exist)
@@ -56,6 +56,9 @@ export async function GET() {
     }
   } catch { /* table may be empty */ }
 
+  const subStatus = user?.subscriptionStatus
+  const stripeActive = subStatus === 'active' || subStatus === 'trialing'
+
   return NextResponse.json({
     claudeKey:     user?.apiKey        ? mask(user.apiKey)        : null,
     mailerLiteKey: user?.mailerLiteKey ? mask(user.mailerLiteKey) : null,
@@ -64,6 +67,7 @@ export async function GET() {
     metaLastSync,
     mlSubscribers,
     kdpLastUpload,
+    stripeActive,
   })
 }
 

@@ -725,7 +725,8 @@ export default function KDPPage() {
       fetch('/api/roas').then(r => r.json()).catch(() => ({ logs: [] })),
       fetch('/api/mailerlite').then(r => r.json()).catch(() => ({ data: null })),
       fetch('/api/books').then(r => r.json()).catch(() => ({ books: [] })),
-    ]).then(([analyzeData, roasData, mlData, booksData]) => {
+      fetch('/api/prefs').then(r => r.json()).catch(() => ({})),
+    ]).then(([analyzeData, roasData, mlData, booksData, prefsData]) => {
       const analyses: Analysis[] = (analyzeData.analyses ?? []).map(
         (a: any) => a.data ?? a
       )
@@ -737,6 +738,10 @@ export default function KDPPage() {
           .filter((b: any) => b.excludeFromDashboard && b.asin)
           .map((b: any) => String(b.asin).trim().toUpperCase())
       )
+      const strayExcluded: string[] = Array.isArray(prefsData?.columnPrefs?.excludedKdpTitles)
+        ? prefsData.columnPrefs.excludedKdpTitles
+        : []
+      strayExcluded.forEach((asin: string) => excluded.add(String(asin).trim().toUpperCase()))
       setExcludedAsins(excluded)
     }).finally(() => setLoading(false))
   }, [])

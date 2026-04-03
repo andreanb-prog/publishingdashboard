@@ -187,6 +187,7 @@ export default function SettingsPage() {
   // ── Connection state ────────────────────────────────────────────────────────
   const [hasSavedML,     setHasSavedML]     = useState(false)
   const [hasSavedClaude, setHasSavedClaude] = useState(false)
+  const [stripeActive,   setStripeActive]   = useState(false)
   const [metaConnected,  setMetaConnected]  = useState(false)
   const [metaLastSync,   setMetaLastSync]   = useState<string | null>(null)
   const [kdpLastUpload,  setKdpLastUpload]  = useState<string | null>(null)
@@ -223,6 +224,11 @@ export default function SettingsPage() {
   const [digestDays,    setDigestDays]    = useState<string[]>(['monday'])
   const [notifSave,     setNotifSave]     = useState<SaveState>('idle')
 
+  // ── Stray KDP titles ────────────────────────────────────────────────────────
+  const [strayTitles,       setStrayTitles]       = useState<{ asin: string; title: string }[]>([])
+  const [excludedKdpAsins,  setExcludedKdpAsins]  = useState<Set<string>>(new Set())
+  const [strayTitlesSaving, setStrayTitlesSaving] = useState(false)
+
   // ── BookFunnel ──────────────────────────────────────────────────────────────
   const [bfSecret,        setBfSecret]        = useState<string | null>(null)
   const [bfWebhookUrl,    setBfWebhookUrl]    = useState<string>('')
@@ -249,6 +255,7 @@ export default function SettingsPage() {
       const d = await fetch('/api/settings').then(r => r.json())
       setHasSavedML(!!d.mailerLiteKey)
       setHasSavedClaude(!!d.claudeKey)
+      setStripeActive(!!d.stripeActive)
       setMetaConnected(!!d.metaConnected)
       setMetaLastSync(d.metaLastSync ?? null)
       setKdpLastUpload(d.kdpLastUpload ?? null)
@@ -272,6 +279,22 @@ export default function SettingsPage() {
       })
       if (g.weeklyDigest === false) setDigestEnabled(false)
       if (Array.isArray(g.digestDays)) setDigestDays(g.digestDays)
+      const excluded = new Set<string>(Array.isArray(p.columnPrefs?.excludedKdpTitles) ? p.columnPrefs.excludedKdpTitles as string[] : [])
+      setExcludedKdpAsins(excluded)
+    } catch {}
+    try {
+      const [analyzeData, booksData] = await Promise.all([
+        fetch('/api/analyze').then(r => r.json()).catch(() => ({})),
+        fetch('/api/books').then(r => r.json()).catch(() => ({ books: [] })),
+      ])
+      const kdpBooks: { asin: string; shortTitle: string }[] = analyzeData?.analysis?.kdp?.books ?? []
+      const catalogAsins = new Set<string>(
+        (booksData.books ?? []).map((b: any) => String(b.asin ?? '').trim().toUpperCase()).filter(Boolean)
+      )
+      const strays = kdpBooks
+        .filter(b => b.asin && !catalogAsins.has(String(b.asin).trim().toUpperCase()))
+        .map(b => ({ asin: b.asin, title: b.shortTitle }))
+      setStrayTitles(strays)
     } catch {}
   }, [])
 
@@ -331,6 +354,23 @@ export default function SettingsPage() {
     setMetaConnected(false)
     setMetaLastSync(null)
     window.dispatchEvent(new CustomEvent('meta:disconnected'))
+  }
+
+  // ── Stray title toggle ────────────────────────────────────────────────────
+  async function toggleStrayTitle(asin: string) {
+    const next = new Set(excludedKdpAsins)
+    if (next.has(asin)) next.delete(asin); else next.add(asin)
+    setExcludedKdpAsins(next)
+    setStrayTitlesSaving(true)
+    try {
+      await fetch('/api/prefs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page: 'excludedKdpTitles', columns: Array.from(next) }),
+      })
+    } finally {
+      setStrayTitlesSaving(false)
+    }
   }
 
   // ── BookFunnel handlers ──────────────────────────────────────────────────
@@ -450,7 +490,7 @@ export default function SettingsPage() {
   }
 
   // ── Derived ───────────────────────────────────────────────────────────────
-  const connectedCount = [hasSavedML, hasSavedClaude, metaConnected, !!kdpLastUpload].filter(Boolean).length
+  const connectedCount = [hasSavedML, metaConnected, !!kdpLastUpload, stripeActive].filter(Boolean).length
   const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
   const DAY_VALUES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
@@ -475,7 +515,7 @@ export default function SettingsPage() {
           style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.12)' }}
         >
           <div className="flex items-center gap-1">
-            {[hasSavedML, hasSavedClaude, metaConnected, !!kdpLastUpload].map((c, i) => (
+            {[hasSavedML, metaConnected, !!kdpLastUpload, stripeActive].map((c, i) => (
               <div
                 key={i}
                 className="w-2 h-2 rounded-full"
@@ -499,6 +539,49 @@ export default function SettingsPage() {
       >
         <BookCatalog />
       </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* STRAY KDP TITLES                                                      */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {strayTitles.length > 0 && (
+        <div className="mb-8">
+          <SectionLabel>KDP TITLES TO HIDE</SectionLabel>
+          <div
+            className="rounded-[10px] overflow-hidden"
+            style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}
+          >
+            <div className="px-4 py-3 border-b" style={{ borderColor: 'rgba(30,45,61,0.06)' }}>
+              <p className="text-[11px] leading-relaxed" style={{ color: '#6B7280' }}>
+                These titles appear in your KDP data but aren&apos;t in your book catalog. Hide them to remove them from charts and filters.
+              </p>
+            </div>
+            <div className="divide-y" style={{ borderColor: 'rgba(30,45,61,0.06)' }}>
+              {strayTitles.map(t => {
+                const isExcluded = excludedKdpAsins.has(t.asin)
+                return (
+                  <div key={t.asin} className="flex items-center justify-between px-4 py-2.5 gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12px] font-medium truncate" style={{ color: '#1E2D3D' }}>{t.title}</div>
+                      <div className="text-[10px] font-mono" style={{ color: '#9CA3AF' }}>{t.asin}</div>
+                    </div>
+                    <button
+                      onClick={() => toggleStrayTitle(t.asin)}
+                      disabled={strayTitlesSaving}
+                      className="text-[11px] font-semibold px-2.5 py-1 rounded-full border-none cursor-pointer transition-all disabled:opacity-40 flex-shrink-0"
+                      style={{
+                        background: isExcluded ? 'rgba(233,160,32,0.1)' : 'rgba(30,45,61,0.06)',
+                        color: isExcluded ? '#E9A020' : '#6B7280',
+                      }}
+                    >
+                      {isExcluded ? '👁 Show' : '🚫 Hide'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* SECTION 2: INTEGRATIONS                                               */}
