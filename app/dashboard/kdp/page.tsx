@@ -829,9 +829,14 @@ export default function KDPPage() {
   return (
     <DarkPage title="KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties"
       headerRight={
-        <DateRangePicker preset={preset} onPreset={handlePreset}
-          customStart={customStart} customEnd={customEnd}
-          onCustomStart={setCustomStart} onCustomEnd={setCustomEnd} />
+        <div>
+          <DateRangePicker preset={preset} onPreset={handlePreset}
+            customStart={customStart} customEnd={customEnd}
+            onCustomStart={setCustomStart} onCustomEnd={setCustomEnd} />
+          <p className="text-[11px] mt-1.5" style={{ color: '#9CA3AF' }}>
+            KDP data typically lags 48–72 hours. Recent days may show incomplete numbers.
+          </p>
+        </div>
       }>
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {!kdp ? (

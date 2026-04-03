@@ -119,7 +119,7 @@ export default function BillingPage() {
             onClick={openPortal}
             disabled={loading}
             className="w-full py-3 rounded-lg text-[14px] font-bold transition-all disabled:opacity-50"
-            style={{ background: '#F97B6B', color: 'white', border: 'none', cursor: 'pointer' }}
+            style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer' }}
           >
             {loading ? 'Opening...' : 'Update Payment Method'}
           </button>
