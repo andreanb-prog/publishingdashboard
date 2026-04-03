@@ -65,7 +65,7 @@ function IntegCard({
 }: {
   children?: React.ReactNode
   iconBg: string
-  icon: string
+  icon: React.ReactNode
   name: string
   subtitle: string
   statusPill: React.ReactNode
@@ -465,7 +465,7 @@ export default function SettingsPage() {
         {/* ── Claude AI card ────────────────────────────────────────────── */}
         <IntegCard
           iconBg="#EDE7F6"
-          icon="🤖"
+          icon={<Bot size={16} strokeWidth={1.75} color="#8B5CF6" />}
           name="Claude AI"
           subtitle={hasSavedClaude ? 'Powers your coaching session' : 'Powers your coaching session'}
           statusPill={
@@ -515,7 +515,7 @@ export default function SettingsPage() {
         {/* ── MailerLite card ───────────────────────────────────────────── */}
         <IntegCard
           iconBg="#E8F5E9"
-          icon="✉️"
+          icon={<Mail size={16} strokeWidth={1.75} color="#34d399" />}
           name="MailerLite"
           subtitle={
             hasSavedML && mlSubscribers != null
@@ -570,7 +570,7 @@ export default function SettingsPage() {
         {/* ── Meta Ads card ─────────────────────────────────────────────── */}
         <IntegCard
           iconBg="#E8F0FE"
-          icon="📘"
+          icon={<Megaphone size={16} strokeWidth={1.75} color="#60A5FA" />}
           name="Meta Ads"
           subtitle={
             metaConnected && metaLastSync
@@ -659,7 +659,7 @@ export default function SettingsPage() {
         {/* ── KDP Sales card ────────────────────────────────────────────── */}
         <IntegCard
           iconBg="#FFF3E0"
-          icon="📊"
+          icon={<BookOpen size={16} strokeWidth={1.75} color="#E9A020" />}
           name="KDP Sales"
           subtitle={kdpLastUpload ? `Last upload: ${fmtDate(kdpLastUpload)}` : 'No data yet'}
           statusPill={

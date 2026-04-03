@@ -11,14 +11,14 @@ import { InsightCallouts } from '@/components/InsightCallout'
 import { FreshBanner } from '@/components/FreshBanner'
 import { OnboardingBanner } from '@/components/OnboardingBanner'
 import { SortablePage } from '@/components/SortablePage'
-import { IconKDP, IconMeta, IconMailerLite, IconPinterest } from '@/components/icons'
+import { BookOpen, TrendingUp, Mail, Pin } from '@/components/icons'
 import { OnboardingFlow } from '@/components/OnboardingFlow'
 
 const CHANNEL_CARDS = [
-  { key: 'kdp',        href: '/dashboard/kdp',        icon: IconKDP,       iconColor: '#E9A020', name: 'KDP',        colorClass: 'border-t-amber-brand' },
-  { key: 'meta',       href: '/dashboard/meta',        icon: IconMeta,      iconColor: '#60A5FA', name: 'Meta Ads',   colorClass: 'border-t-blue-500' },
-  { key: 'mailerlite', href: '/dashboard/mailerlite',  icon: IconMailerLite, iconColor: '#34d399', name: 'MailerLite', colorClass: 'border-t-emerald-500' },
-  { key: 'pinterest',  href: '/dashboard/pinterest',   icon: IconPinterest, iconColor: '#fb7185', name: 'Pinterest',  colorClass: 'border-t-red-500' },
+  { key: 'kdp',        href: '/dashboard/kdp',        icon: BookOpen,   iconColor: '#E9A020', name: 'KDP',        colorClass: 'border-t-amber-brand' },
+  { key: 'meta',       href: '/dashboard/meta',        icon: TrendingUp, iconColor: '#60A5FA', name: 'Meta Ads',   colorClass: 'border-t-blue-500' },
+  { key: 'mailerlite', href: '/dashboard/mailerlite',  icon: Mail,       iconColor: '#34d399', name: 'MailerLite', colorClass: 'border-t-emerald-500' },
+  { key: 'pinterest',  href: '/dashboard/pinterest',   icon: Pin,        iconColor: '#fb7185', name: 'Pinterest',  colorClass: 'border-t-red-500' },
 ]
 
 const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
@@ -715,7 +715,7 @@ export function OverviewClient() {
                       <Link key={card.key} href={card.href}
                         className={`card p-4 cursor-pointer hover:-translate-y-0.5 transition-all
                                     border-t-[3px] ${card.colorClass} no-underline animate-fade-up`}>
-                        <span className="mb-2.5 block"><card.icon size={28} color={card.iconColor} /></span>
+                        <span className="mb-2.5 block"><card.icon size={20} strokeWidth={1.75} color={card.iconColor} /></span>
                         <div className="text-[10.5px] font-bold tracking-[0.8px] uppercase text-stone-500 mb-1">
                           {card.name}
                         </div>
