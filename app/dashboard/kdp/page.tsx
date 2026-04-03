@@ -552,8 +552,7 @@ function AdSpendRoyaltiesChart({ logs }: { logs: RoasLog[] }) {
         </div>
       ) : totalSpend > 0 ? (
         <div className="mt-3 text-[12px] px-3 py-2 rounded-lg" style={{ background: 'rgba(249,123,107,0.08)', color: '#374151' }}>
-          Not yet break-even this period.{' '}
-          <strong>${(totalSpend - totalEarnings).toFixed(2)}</strong> remaining to cover in royalties.
+          You&apos;re <strong>${(totalSpend - totalEarnings).toFixed(2)}</strong> from break-even this period. One good day covers it.
         </div>
       ) : null}
     </div>
@@ -731,7 +730,10 @@ export default function KDPPage() {
         (a: any) => a.data ?? a
       )
       setAllAnalyses(analyses)
-      setRoasLogs(roasData.logs ?? [])
+      setRoasLogs((roasData.logs ?? []).map((r: any) => ({
+        ...r,
+        date: (r.date as string).substring(0, 10),
+      })))
       if (mlData?.data?.campaigns) setMlCampaigns(mlData.data.campaigns)
       const excluded = new Set<string>(
         (booksData.books ?? [])
