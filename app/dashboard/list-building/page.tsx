@@ -262,7 +262,7 @@ export default function ListBuildingPage() {
   }
 
   return (
-    <div className="p-8 max-w-[1100px]">
+    <div className="p-4 sm:p-8 pb-8 max-w-[1100px]">
       <div className="mb-6">
         <div className="text-[10px] font-bold tracking-[2px] uppercase mb-1.5" style={{ color: '#e9a020' }}>
           Tools
@@ -296,19 +296,21 @@ export default function ListBuildingPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-5 gap-3">
-          {[
-            { label: 'Total Ad Spend', value: fmt$(totalSpend), color: 'text-[#0d1f35]' },
-            { label: 'New Subscribers', value: totalSubs.toLocaleString(), color: 'text-emerald-600' },
-            { label: 'Cost Per Subscriber', value: avgCostPerSub > 0 ? fmt$(avgCostPerSub) : '—', color: avgCostPerSub > subValue ? 'text-red-500' : avgCostPerSub > subValue * 0.5 ? 'text-amber-600' : 'text-emerald-600' },
-            { label: 'Subscriber ROAS', value: subRoas > 0 ? `${subRoas.toFixed(2)}x` : '—', color: subRoas >= 1 ? 'text-emerald-600' : 'text-red-500' },
-            { label: 'Break-even Subs', value: breakEven > 0 ? Math.ceil(breakEven).toLocaleString() : '—', color: 'text-stone-500' },
-          ].map(k => (
-            <div key={k.label} className="text-center p-3 rounded-xl" style={{ background: '#fafaf9' }}>
-              <div className="text-[10px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1.5">{k.label}</div>
-              <div className={`font-sans text-[22px] tracking-tight ${k.color}`}>{k.value}</div>
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <div className="grid gap-3 min-w-[480px]" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+            {[
+              { label: 'Total Ad Spend', value: fmt$(totalSpend), color: 'text-[#0d1f35]' },
+              { label: 'New Subscribers', value: totalSubs.toLocaleString(), color: 'text-emerald-600' },
+              { label: 'Cost Per Subscriber', value: avgCostPerSub > 0 ? fmt$(avgCostPerSub) : '—', color: avgCostPerSub > subValue ? 'text-red-500' : avgCostPerSub > subValue * 0.5 ? 'text-amber-600' : 'text-emerald-600' },
+              { label: 'Subscriber ROAS', value: subRoas > 0 ? `${subRoas.toFixed(2)}x` : '—', color: subRoas >= 1 ? 'text-emerald-600' : 'text-red-500' },
+              { label: 'Break-even Subs', value: breakEven > 0 ? Math.ceil(breakEven).toLocaleString() : '—', color: 'text-stone-500' },
+            ].map(k => (
+              <div key={k.label} className="text-center p-3 rounded-xl" style={{ background: '#fafaf9' }}>
+                <div className="text-[10px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1.5">{k.label}</div>
+                <div className={`font-sans text-[22px] tracking-tight ${k.color}`}>{k.value}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

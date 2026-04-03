@@ -170,7 +170,7 @@ export default function RankPage() {
   }
 
   return (
-    <div className="p-8 max-w-[1200px]">
+    <div className="p-4 sm:p-8 pb-8 max-w-[1200px]">
       <div className="mb-6">
         <h1 className="font-sans text-[22px] text-[#0d1f35] mb-1">Sales Rank Tracker</h1>
         <p className="text-[12.5px] text-stone-500">

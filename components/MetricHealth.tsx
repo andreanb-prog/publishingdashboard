@@ -217,6 +217,7 @@ const METRIC_TOOLTIPS: Record<string, TooltipContent> = {
 export function MetricTooltip({ metric }: { metric: string }) {
   const [open, setOpen] = useState(false)
   const [side, setSide] = useState<'left' | 'right'>('right')
+  const [fixedPos, setFixedPos] = useState<{ top: number; left: number } | null>(null)
   const ref    = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const content = METRIC_TOOLTIPS[metric]
@@ -235,12 +236,44 @@ export function MetricTooltip({ metric }: { metric: string }) {
 
   function handleToggle() {
     if (!open && btnRef.current) {
-      const { right: btnRight } = btnRef.current.getBoundingClientRect()
-      // If 280px to the left of the button fits in viewport, anchor right; else anchor left
-      setSide(btnRight >= 288 ? 'right' : 'left')
+      const rect = btnRef.current.getBoundingClientRect()
+      const isMobile = window.innerWidth < 640
+      if (isMobile) {
+        const tipWidth = Math.min(280, window.innerWidth - 16)
+        let left = rect.left
+        if (left + tipWidth > window.innerWidth - 8) left = window.innerWidth - tipWidth - 8
+        if (left < 8) left = 8
+        setFixedPos({ top: rect.bottom + 8, left })
+      } else {
+        setFixedPos(null)
+        setSide(rect.right >= 288 ? 'right' : 'left')
+      }
     }
     setOpen(o => !o)
   }
+
+  const tooltipContent = (
+    <div className="p-3.5">
+      <div className="text-[10px] font-bold tracking-[1px] uppercase mb-2" style={{ color: '#E9A020' }}>
+        How we calculate this
+      </div>
+      <div className="text-[12px] font-mono font-semibold mb-2 px-2 py-1.5 rounded"
+        style={{ background: '#F5F5F4', color: '#1E2D3D' }}>
+        {content.formula}
+      </div>
+      <div className="text-[11.5px] leading-relaxed mb-2" style={{ color: '#374151' }}>
+        {content.explanation}
+      </div>
+      <div className="text-[11px] mb-2" style={{ color: '#6B7280' }}>
+        <strong style={{ color: '#1E2D3D' }}>Example:</strong> {content.example}
+      </div>
+      {content.caution && (
+        <div className="text-[10.5px] px-2 py-1.5 rounded" style={{ background: 'rgba(233,160,32,0.08)', color: '#E9A020' }}>
+          ⚠ {content.caution}
+        </div>
+      )}
+    </div>
+  )
 
   return (
     <div ref={ref} className="relative inline-block ml-1">
@@ -258,7 +291,22 @@ export function MetricTooltip({ metric }: { metric: string }) {
       >
         i
       </button>
-      {open && (
+      {open && (fixedPos ? (
+        /* Mobile: fixed position to prevent card overflow */
+        <div
+          className="fixed z-50 rounded-lg shadow-lg max-w-[280px]"
+          style={{
+            top: fixedPos.top,
+            left: fixedPos.left,
+            width: Math.min(280, window.innerWidth - 16),
+            background: 'white',
+            border: '0.5px solid #EEEBE6',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          }}>
+          {tooltipContent}
+        </div>
+      ) : (
+        /* Desktop: absolute position anchored to button */
         <div
           className={`absolute z-50 mt-2 rounded-lg shadow-lg max-w-[280px] ${side === 'right' ? 'right-0' : 'left-0'}`}
           style={{
@@ -267,28 +315,9 @@ export function MetricTooltip({ metric }: { metric: string }) {
             border: '0.5px solid #EEEBE6',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
           }}>
-          <div className="p-3.5">
-            <div className="text-[10px] font-bold tracking-[1px] uppercase mb-2" style={{ color: '#E9A020' }}>
-              How we calculate this
-            </div>
-            <div className="text-[12px] font-mono font-semibold mb-2 px-2 py-1.5 rounded"
-              style={{ background: '#F5F5F4', color: '#1E2D3D' }}>
-              {content.formula}
-            </div>
-            <div className="text-[11.5px] leading-relaxed mb-2" style={{ color: '#374151' }}>
-              {content.explanation}
-            </div>
-            <div className="text-[11px] mb-2" style={{ color: '#6B7280' }}>
-              <strong style={{ color: '#1E2D3D' }}>Example:</strong> {content.example}
-            </div>
-            {content.caution && (
-              <div className="text-[10.5px] px-2 py-1.5 rounded" style={{ background: 'rgba(233,160,32,0.08)', color: '#E9A020' }}>
-                ⚠ {content.caution}
-              </div>
-            )}
-          </div>
+          {tooltipContent}
         </div>
-      )}
+      ))}
     </div>
   )
 }
