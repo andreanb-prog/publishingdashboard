@@ -44,12 +44,20 @@ export async function GET() {
     debug.adAccountsError = String(e)
   }
 
-  // Raw insights using date_preset=last_30_days from stored + known account
-  // Check businesses/owned_ad_accounts
+  // Check businesses and their owned ad accounts
+  const businessOwnedAccounts: Record<string, unknown> = {}
   try {
     const bizRes = await fetch(`${GRAPH_URL}/me/businesses?fields=id,name&limit=50&access_token=${token}`)
-    debug.businesses = await bizRes.json()
+    const bizData = await bizRes.json()
+    debug.businesses = bizData
+    for (const biz of (bizData.data ?? [])) {
+      try {
+        const ownedRes = await fetch(`${GRAPH_URL}/${biz.id}/owned_ad_accounts?fields=id,name,account_status,amount_spent&limit=50&access_token=${token}`)
+        businessOwnedAccounts[`${biz.name} (${biz.id})`] = await ownedRes.json()
+      } catch (e) { businessOwnedAccounts[biz.id] = String(e) }
+    }
   } catch (e) { debug.businessesError = String(e) }
+  debug.businessOwnedAccounts = businessOwnedAccounts
 
   // Check Instagram-linked accounts
   try {
@@ -57,10 +65,17 @@ export async function GET() {
     debug.instagramAccounts = await igRes.json()
   } catch (e) { debug.instagramAccountsError = String(e) }
 
-  // Probe both known account IDs
+  // Probe known + stored account IDs with insights
   const accountsToProbe = ['act_898774062895926']
   if (user.metaAdAccountId && !accountsToProbe.includes(user.metaAdAccountId)) {
     accountsToProbe.push(user.metaAdAccountId.startsWith('act_') ? user.metaAdAccountId : `act_${user.metaAdAccountId}`)
+  }
+  // Also probe any business-owned accounts
+  for (const val of Object.values(businessOwnedAccounts)) {
+    for (const acct of ((val as any)?.data ?? [])) {
+      const id = acct.id.startsWith('act_') ? acct.id : `act_${acct.id}`
+      if (!accountsToProbe.includes(id)) accountsToProbe.push(id)
+    }
   }
   const insightsResults: Record<string, unknown> = {}
   for (const accountId of accountsToProbe) {
