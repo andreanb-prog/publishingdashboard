@@ -691,7 +691,7 @@ export default function MetaPage() {
           {/* Spend vs CTR chart — barDataset + line overlay from lib/chartConfig */}
           {meta.ads.length > 0 && <MetaPerformanceChart ads={sortedAds.length > 0 ? sortedAds : meta.ads} />}
 
-          {analysis && <InsightCallouts analysis={analysis} page="meta" />}
+          {analysis && <InsightCallouts analysis={{ ...analysis, mailerLite: undefined, pinterest: undefined }} page="meta" />}
           {meta && (meta.totalSpend ?? 0) > 0 && (
             <DarkCoachBox color="#fb7185" title={coachTitle}>
               {buildMetaCoach(meta)}

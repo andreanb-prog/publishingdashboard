@@ -12,6 +12,32 @@ import { fmtPct } from '@/lib/utils'
 import { InsightCallouts } from '@/components/InsightCallout'
 import type { Analysis, MailerLiteAutomation, MailerLiteData } from '@/types'
 
+// ── Build a live coach insight from real MailerLite numbers ───────────────────
+// Always derived from live data so stale cached emailCoach never shows.
+function buildEmailCoach(ml: MailerLiteData): string {
+  const s1 = `Your list has ${ml.listSize.toLocaleString()} active subscribers with a ${ml.openRate}% open rate and ${ml.clickRate}% click rate.`
+
+  let s2 = ''
+  if (ml.openRate >= 30) {
+    s2 = `Your open rate is exceptional — well above the 20–25% author average. Go to MailerLite, note the subject line patterns from your top campaigns, and replicate that format in your next send.`
+  } else if (ml.openRate >= 20) {
+    s2 = `Your open rate is in the healthy range. Go to MailerLite, look at your top 3 performing subject lines, and test a curiosity-gap or number-led subject on your next send to push it above 30%.`
+  } else {
+    s2 = `Your open rate is below the 20% author average. Go to MailerLite, check your last 5 subject lines, and test a more specific or personal hook — "I almost didn't send this" outperforms generic titles consistently.`
+  }
+
+  let s3 = ''
+  if (ml.unsubscribes > 50) {
+    s3 = `You've had ${ml.unsubscribes} unsubscribes recently — higher than normal. Go to MailerLite, check which campaign triggered the spike, and reduce send frequency or tighten your subject line relevance before your next campaign.`
+  } else if (ml.clickRate >= 4) {
+    s3 = `Your ${ml.clickRate}% click rate is exceptional. Go to MailerLite, identify which CTA placement and button copy drove this, and replicate it in your next campaign.`
+  } else if (ml.clickRate < 2) {
+    s3 = `Your click rate is below 2%. Go to MailerLite, move your primary CTA above the fold in your next email, and test a button instead of a hyperlink to improve click-through.`
+  }
+
+  return [s1, s2, s3].filter(Boolean).join(' ')
+}
+
 
 // ── Campaign Open Rate Chart (uses lib/chartConfig) ──────────────────────────
 function CampaignOpenRateChart({ campaigns, target }: { campaigns: import('@/types').MailerLiteCampaign[]; target: number }) {
@@ -138,7 +164,6 @@ export default function MailerLitePage() {
 
   // Prefer live data from API; fall back to stored analysis snapshot
   const ml = liveml ?? analysis?.mailerLite ?? null
-  const coach = (analysis as any)?.emailCoach
 
   // Use user's custom targets if set, else fall back to author averages
   const openTarget  = goals.email_open_rate  ?? 20
@@ -195,8 +220,8 @@ export default function MailerLitePage() {
             { label: 'Total Sent',   value: ml.sentCount != null ? ml.sentCount.toLocaleString() : '—', sub: 'Emails sent (list lifetime)', color: '#a78bfa' },
           ]} />
 
-          {analysis && <InsightCallouts analysis={analysis} page="mailerlite" />}
-          {coach && <DarkCoachBox color="#34d399" title={coachTitle}>{coach}</DarkCoachBox>}
+          {analysis && <InsightCallouts analysis={{ ...analysis, meta: undefined, kdp: undefined, pinterest: undefined }} page="mailerlite" />}
+          {ml && <DarkCoachBox color="#34d399" title={coachTitle}>{buildEmailCoach(ml)}</DarkCoachBox>}
 
           {/* Email Health Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">

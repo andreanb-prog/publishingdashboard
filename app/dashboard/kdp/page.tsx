@@ -960,7 +960,7 @@ export default function KDPPage() {
             )
           })()}
 
-          {analysis && <InsightCallouts analysis={analysis} page="kdp" />}
+          {analysis && <InsightCallouts analysis={{ ...analysis, meta: undefined, mailerLite: undefined, pinterest: undefined }} page="kdp" />}
           {coach && <DarkCoachBox color="#fbbf24" title={coachTitle}>{coach}</DarkCoachBox>}
 
           {/* Book Title Picker — excludes books marked as hidden in Settings > My Books */}
