@@ -1,5 +1,26 @@
 // components/icons/index.tsx
-// Custom SVG channel icons for AuthorDash
+// One import source for all icons used in AuthorDash.
+// Lucide icons — used throughout sidebar, channel cards, and settings.
+export {
+  LayoutDashboard,
+  BookOpen,
+  TrendingUp,
+  Mail,
+  Repeat2,
+  Pin,
+  BarChart2,
+  ArrowUpRight,
+  DollarSign,
+  Users,
+  GraduationCap,
+  Settings2,
+  Database,
+  Bot,
+  Megaphone,
+  LogOut,
+} from 'lucide-react'
+
+// Custom SVG icons (kept for legacy use)
 
 interface IconProps {
   size?: number

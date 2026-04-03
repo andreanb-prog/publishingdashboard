@@ -14,24 +14,24 @@ module.exports = {
       },
       colors: {
         navy: {
-          DEFAULT: '#1E2D3D',
+          DEFAULT: 'var(--color-navy)',
           2: '#253647',
           3: '#2e4157',
         },
         amber: {
-          brand: '#E9A020',
-          light: '#f5c55a',
-          pale: '#fdf5e3',
+          DEFAULT: 'var(--color-amber)',
+          brand:   'var(--color-amber)',
+          light:   '#f5c55a',
+          pale:    '#fdf5e3',
         },
-        cream: '#FFF8F0',
-        // AuthorDash palette
-        coral:  '#F97B6B',
-        peach:  '#F4A261',
-        plum:   '#8B5CF6',
-        teal:   '#5BBFB5',
-        sky:    '#60A5FA',
-        sage:   '#6EBF8B',
-        rose:   '#F472B6',
+        cream:  'var(--color-cream)',
+        sage:   'var(--color-sage)',
+        coral:  'var(--color-coral)',
+        peach:  'var(--color-peach)',
+        plum:   'var(--color-plum)',
+        teal:   'var(--color-teal)',
+        sky:    'var(--color-sky)',
+        rose:   'var(--color-rose)',
         'warm-border': '#EEEBE6',
         // Dark theme
         dk: {

@@ -3,42 +3,35 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
-import { House, GraduationCap, Gear, SignOut } from '@phosphor-icons/react'
 import {
-  IconKDP, IconMeta, IconMailerLite, IconPinterest, IconSwaps,
-  IconMetrics, IconRank, IconROAS, IconListBuilding, IconMyData,
+  LayoutDashboard, BookOpen, TrendingUp, Mail, Repeat2, Pin,
+  BarChart2, ArrowUpRight, DollarSign, Users, GraduationCap,
+  Settings2, Database, LogOut,
 } from '@/components/icons'
+import type { LucideIcon } from 'lucide-react'
 
-type NavItem = { label: string; href: string; render: (active: boolean) => React.ReactNode }
-
-function phosphor(Icon: typeof House) {
-  return (active: boolean) => <Icon size={18} weight={active ? 'fill' : 'regular'} />
-}
-
-function custom(Icon: (props: { size?: number; color?: string }) => React.ReactNode, color: string) {
-  return (_active: boolean) => <Icon size={18} color={color} />
-}
+type NavItem = { label: string; href: string; Icon: LucideIcon }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'My Dashboard', href: '/dashboard', render: phosphor(House) },
+  { label: 'My Dashboard', href: '/dashboard', Icon: LayoutDashboard },
 ]
 
 const CHANNEL_ITEMS: NavItem[] = [
-  { label: 'KDP',              href: '/dashboard/kdp',        render: custom(IconKDP, '#E9A020') },
-  { label: 'Meta / Facebook',  href: '/dashboard/meta',       render: custom(IconMeta, '#60A5FA') },
-  { label: 'MailerLite',       href: '/dashboard/mailerlite',  render: custom(IconMailerLite, '#34d399') },
-  { label: 'Newsletter Swaps', href: '/dashboard/swaps',      render: custom(IconSwaps, '#E9A020') },
-  { label: 'Pinterest',        href: '/dashboard/pinterest',   render: custom(IconPinterest, '#fb7185') },
+  { label: 'KDP',              href: '/dashboard/kdp',           Icon: BookOpen     },
+  { label: 'Meta / Facebook',  href: '/dashboard/meta',          Icon: TrendingUp   },
+  { label: 'MailerLite',       href: '/dashboard/mailerlite',    Icon: Mail         },
+  { label: 'Newsletter Swaps', href: '/dashboard/swaps',         Icon: Repeat2      },
+  { label: 'Pinterest',        href: '/dashboard/pinterest',     Icon: Pin          },
 ]
 
 const TOOL_ITEMS: NavItem[] = [
-  { label: 'Advanced Metrics',   href: '/dashboard/metrics',       render: custom(IconMetrics, '#E9A020') },
-  { label: 'Rank Tracker',       href: '/dashboard/rank',          render: custom(IconRank, '#34d399') },
-  { label: 'Daily ROAS Log',     href: '/dashboard/roas',          render: custom(IconROAS, '#E9A020') },
-  { label: 'List Building ROAS', href: '/dashboard/list-building',  render: custom(IconListBuilding, '#34d399') },
-  { label: 'Learn the Terms',    href: '/dashboard/learn',          render: phosphor(GraduationCap) },
-  { label: 'Settings',           href: '/dashboard/settings',       render: phosphor(Gear) },
-  { label: 'My Data',            href: '/dashboard/data-vault',     render: custom(IconMyData, '#fb7185') },
+  { label: 'Advanced Metrics',   href: '/dashboard/metrics',       Icon: BarChart2      },
+  { label: 'Rank Tracker',       href: '/dashboard/rank',          Icon: ArrowUpRight   },
+  { label: 'Daily ROAS Log',     href: '/dashboard/roas',          Icon: DollarSign     },
+  { label: 'List Building ROAS', href: '/dashboard/list-building', Icon: Users          },
+  { label: 'Learn the Terms',    href: '/dashboard/learn',         Icon: GraduationCap  },
+  { label: 'Settings',           href: '/dashboard/settings',      Icon: Settings2      },
+  { label: 'My Data',            href: '/dashboard/data-vault',    Icon: Database       },
 ]
 
 export function Sidebar() {
@@ -57,7 +50,7 @@ export function Sidebar() {
     .substring(0, 2)
     .toUpperCase() || 'U'
 
-  function NavLink({ href, render, label }: NavItem) {
+  function NavLink({ href, Icon, label }: NavItem) {
     const active = isActive(href)
     return (
       <Link
@@ -66,13 +59,13 @@ export function Sidebar() {
                     mb-0.5 transition-all duration-150 no-underline
                     ${active ? 'font-semibold' : ''}`}
         style={{
-          color:      active ? '#e9a020' : '#1E2D3D',
+          color:      active ? '#E9A020' : '#1E2D3D',
           background: active ? 'rgba(233,160,32,0.1)' : undefined,
         }}
         onMouseEnter={e => { if (!active) (e.currentTarget.style.background = '#F5F5F4') }}
         onMouseLeave={e => { if (!active) (e.currentTarget.style.background = '') }}
       >
-        {render(active)}
+        <Icon size={16} strokeWidth={1.75} />
         {label}
       </Link>
     )
@@ -139,7 +132,7 @@ export function Sidebar() {
             style={{ color: '#6B7280' }}
             title="Sign out"
           >
-            <SignOut size={14} />
+            <LogOut size={14} strokeWidth={1.75} />
           </button>
         </div>
       </div>

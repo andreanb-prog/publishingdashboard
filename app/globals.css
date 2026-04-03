@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  /* Legacy vars (keep for backward compat) */
   --navy:   #1E2D3D;
   --amber:  #E9A020;
   --cream:  #FFF8F0;
@@ -14,6 +15,45 @@
   --sage:   #6EBF8B;
   --rose:   #F472B6;
   --warm-border: #EEEBE6;
+
+  /* Design tokens */
+  --color-cream:  #FFF8F0;
+  --color-navy:   #1E2D3D;
+  --color-amber:  #E9A020;
+  --color-sage:   #6EBF8B;
+  --color-coral:  #F97B6B;
+  --color-peach:  #F4A261;
+  --color-plum:   #8B5CF6;
+  --color-teal:   #5BBFB5;
+  --color-sky:    #60A5FA;
+  --color-rose:   #F472B6;
+
+  --color-bg-page:      var(--color-cream);
+  --color-bg-card:      #ffffff;
+  --color-bg-input:     var(--color-cream);
+  --color-text-primary: var(--color-navy);
+  --color-text-muted:   rgba(30,45,61,0.5);
+  --color-text-hint:    rgba(30,45,61,0.35);
+  --color-border:       rgba(30,45,61,0.1);
+  --color-border-hover: rgba(30,45,61,0.2);
+
+  --color-book-1: var(--color-coral);
+  --color-book-2: var(--color-peach);
+  --color-book-3: var(--color-plum);
+  --color-book-4: var(--color-teal);
+  --color-book-5: var(--color-sky);
+  --color-book-6: var(--color-rose);
+
+  --font-sans:   'Plus Jakarta Sans', sans-serif;
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   10px;
+  --radius-xl:   12px;
+  --radius-pill: 20px;
+
+  --card-border:   0.5px solid var(--color-border);
+  --card-radius:   var(--radius-xl);
+  --card-padding:  16px;
 }
 
 @layer base {
