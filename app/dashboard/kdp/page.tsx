@@ -582,7 +582,7 @@ function EmailVsSalesChart({
       const units48  = d.value + (data[i + 1]?.value ?? 0)
       const name     = emailCampaignMap[d.date] || 'Email'
       const multiple = dailyAvg > 0 ? units48 / (dailyAvg * 2) : 0
-      return [{ name, units48, multiple }]
+      return [{ name, units48, multiple, date: d.date }]
     })
     .sort((a, b) => b.units48 - a.units48)[0] ?? null
 
@@ -601,9 +601,21 @@ function EmailVsSalesChart({
         { color: CHART_COLORS.peach, label: 'Day after email', type: 'square' },
       ]} />
       {topEmailInsight && (
-        <div className="mt-3 text-[12px] px-3 py-2 rounded-lg" style={{ background: 'rgba(233,160,32,0.06)', color: '#374151' }}>
-          <strong>{topEmailInsight.name}</strong> → {topEmailInsight.units48} units in 48hrs
-          {topEmailInsight.multiple > 0 && ` (${topEmailInsight.multiple.toFixed(1)}× your 2-day average)`}
+        <div className="mt-3 rounded-lg overflow-hidden" style={{ border: '1px solid #EEEBE6' }}>
+          <div className="text-[12px] px-3 py-2" style={{ background: 'rgba(233,160,32,0.06)', color: '#374151' }}>
+            <strong>{topEmailInsight.name}</strong> → {topEmailInsight.units48} units in 48hrs
+            {topEmailInsight.multiple > 0 && ` (${topEmailInsight.multiple.toFixed(1)}× your 2-day average)`}
+          </div>
+          <div className="px-3 py-2.5" style={{ background: '#FFF8F0', borderTop: '1px solid #EEEBE6' }}>
+            <div className="text-[10px] font-bold uppercase tracking-[0.8px] mb-1" style={{ color: '#E9A020' }}>
+              What To Do Next
+            </div>
+            <div className="text-[12px] leading-relaxed" style={{ color: '#374151' }}>
+              Your <strong>{topEmailInsight.name}</strong> on {formatShortDate(topEmailInsight.date)} drove <strong>{topEmailInsight.units48} units</strong> in 48 hours
+              {topEmailInsight.multiple > 0 && ` — ${topEmailInsight.multiple.toFixed(1)}× your normal pace`}.
+              {' '}Go to MailerLite, pull the subject line and send time from this campaign, and schedule a follow-up to non-openers within 5 days while momentum is live.
+            </div>
+          </div>
         </div>
       )}
       {emailSendDates.size === 0 && (

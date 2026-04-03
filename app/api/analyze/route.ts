@@ -81,6 +81,13 @@ export async function POST(req: NextRequest) {
 
 ${dataSummary}${historySummary}
 
+COPY QUALITY RULES — follow these in every field of the JSON response:
+- NEVER write "hooks" without specifying: ad hook, blurb hook, or opening hook.
+- NEVER write "readers" without specifying: KU readers, buyers, or email subscribers.
+- NEVER use "explore" or "consider" as CTAs. Use: send, test, cut, scale, fix, upload, pause, launch, schedule.
+- Every action item must name a specific action AND a specific platform (e.g. "Go to Meta Ads Manager and pause the low-CTR ads", not "consider adjusting your ads").
+- NEVER end an insight with a hedge like "you know your readers best" — end with the action.
+
 Respond with a JSON object in exactly this structure (no markdown, raw JSON only):
 {
   "overview": {

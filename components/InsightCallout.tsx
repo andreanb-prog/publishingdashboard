@@ -30,7 +30,7 @@ function detectInsights(analysis: Analysis): Insight[] {
     insights.push({
       mode: 'alarm',
       source: 'meta',
-      text: `Your average ad **CTR is ${meta.avgCTR}%**, which is below the 1% threshold most authors aim for. Low CTR means your ad creative or targeting isn't resonating — consider testing new images or narrowing your audience. Think of this as your inciting incident — the moment that sets the next chapter in motion.`,
+      text: `Your average ad **CTR is ${meta.avgCTR}%**, which is below the 1% threshold most authors aim for. Low CTR means your ad creative isn't stopping the scroll. Go to Meta Ads Manager, duplicate your lowest-CTR ad, and test a new cover image or ad hook. Think of this as your inciting incident — the moment that sets the next chapter in motion.`,
     })
   }
 
@@ -38,7 +38,7 @@ function detectInsights(analysis: Analysis): Insight[] {
     insights.push({
       mode: 'alarm',
       source: 'mailerlite',
-      text: `You've had **${ml.unsubscribes} unsubscribes** recently — that's higher than usual. Check if a recent campaign had a spike, sometimes a subject line mismatch or too-frequent sends can trigger this. Consider this your cliffhanger — the unresolved thread that needs attention before the next chapter.`,
+      text: `You've had **${ml.unsubscribes} unsubscribes** recently — that's higher than usual. Go to MailerLite, pull your last 3 campaigns, and check which send had the unsubscribe spike — a subject line mismatch or back-to-back sends in the same week is usually the culprit. Fix the send cadence before your next campaign goes out.`,
     })
   }
 
@@ -46,7 +46,7 @@ function detectInsights(analysis: Analysis): Insight[] {
     insights.push({
       mode: 'alarm',
       source: 'mailerlite',
-      text: `Your **email list size is 0**. This could mean your MailerLite API key isn't pulling data correctly, or you genuinely haven't started list building yet. Either way, this is the plot tension in your author journey — the good news is you're the author and you can rewrite it.`,
+      text: `Your **email list size is 0**. This could mean your MailerLite API key isn't pulling data correctly, or you genuinely haven't started list building yet. Go to Settings and reconnect your MailerLite account — if the key is valid and the count still shows 0, upload a subscriber CSV directly in MailerLite to verify your list is active.`,
     })
   }
 
@@ -56,7 +56,7 @@ function detectInsights(analysis: Analysis): Insight[] {
       insights.push({
         mode: 'alarm',
         source: 'meta',
-        text: `**${lowRoas.length} ads** have a cost-per-click above $2.00 — that's expensive for book marketing. Consider pausing these and reallocating budget to your better-performing ads. Every story needs editing, and sometimes the bravest revision is cutting what isn't working.`,
+        text: `**${lowRoas.length} ads** have a cost-per-click above $2.00 — that's expensive for book marketing. Go to Meta Ads Manager, pause these ${lowRoas.length} ads today, and shift that budget to your lowest-CPC ad. Every story needs editing, and the bravest revision is cutting what isn't earning.`,
       })
     }
   }
@@ -66,7 +66,7 @@ function detectInsights(analysis: Analysis): Insight[] {
     insights.push({
       mode: 'cheer',
       source: 'mailerlite',
-      text: `Your **${ml.openRate}% open rate** is outstanding — well above the 20-25% author average. Your subject lines are clearly resonating with your readers, and they're leaning in every time you show up in their inbox. That's the mark of a great storyteller.`,
+      text: `Your **${ml.openRate}% open rate** is outstanding — well above the 20-25% author average. Your subject lines are clearly resonating with your email subscribers. Go to MailerLite, note the subject line patterns from your top-performing campaigns, and replicate that format in your next send.`,
     })
   }
 
@@ -74,7 +74,7 @@ function detectInsights(analysis: Analysis): Insight[] {
     insights.push({
       mode: 'cheer',
       source: 'mailerlite',
-      text: `A **${ml.clickRate}% click rate** is exceptional. Your readers aren't just opening — they're taking action, following every thread you weave. This is your story's rising action, and it's working.`,
+      text: `A **${ml.clickRate}% click rate** is exceptional. Your email subscribers aren't just opening — they're clicking through and taking action. Go to MailerLite, identify which CTA placement and button copy drove this, and replicate it in your next campaign.`,
     })
   }
 
@@ -82,7 +82,7 @@ function detectInsights(analysis: Analysis): Insight[] {
     insights.push({
       mode: 'cheer',
       source: 'meta',
-      text: `Plot twist — your top ad "**${meta.bestAd.name}**" is pulling a **${meta.bestAd.ctr}% CTR**, well above average. Your readers are showing up in a big way. Consider increasing its budget or creating similar variations to keep the momentum building.`,
+      text: `Plot twist — your top ad "**${meta.bestAd.name}**" is pulling a **${meta.bestAd.ctr}% CTR**, well above average. Buyers are clicking at a strong rate. Go to Meta Ads Manager, duplicate this ad, scale the budget 20%, and test one variation with a different ad hook to see if you can push it higher.`,
     })
   }
 

@@ -214,9 +214,6 @@ export function DarkCoachBox({ children, color = '#E9A020', title }: { children:
               {children}
             </div>
           )}
-          <div className="mt-4 pt-3 text-[12px]" style={{ color: '#6B7280', borderTop: '1px solid #EEEBE6' }}>
-            This is a suggestion based on your data — you know your readers best.
-          </div>
         </div>
       </div>
     </div>
