@@ -10,15 +10,15 @@ export interface LegendItem {
 
 export function ChartLegend({ items }: { items: LegendItem[] }) {
   return (
-    <div className="flex flex-wrap items-center gap-4 mt-3 text-[11px]" style={{ color: '#6B7280' }}>
+    <div className="flex flex-wrap items-center gap-4 mt-3 text-[12px] font-medium" style={{ color: 'rgba(30,45,61,0.7)' }}>
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-1.5">
           {item.type === 'square' ? (
             <span
               style={{
                 display: 'inline-block',
-                width: 10,
-                height: 10,
+                width: 12,
+                height: 12,
                 background: item.color,
                 borderRadius: 2,
                 flexShrink: 0,

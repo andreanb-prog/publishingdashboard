@@ -954,7 +954,7 @@ export default function KDPPage() {
           <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h3 className="text-[13.5px] font-semibold" style={{ color: '#1E2D3D' }}>Daily Units Sold</h3>
+                <h3 className="text-[14px] font-semibold" style={{ color: '#1E2D3D' }}>Daily Units Sold</h3>
                 {compareMode && prevPeriod && (
                   <span className="text-[10.5px]" style={{ color: '#6B7280' }}>
                     vs {formatDisplayRange(prevPeriod.start, prevPeriod.end)}
@@ -995,14 +995,14 @@ export default function KDPPage() {
           {filteredKENP.length > 0 && (
             <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
               <div className="flex items-center justify-between mb-1">
-                <h3 className="text-[13.5px] font-semibold" style={{ color: '#1E2D3D' }}>Daily KENP Reads</h3>
+                <h3 className="text-[14px] font-semibold" style={{ color: '#1E2D3D' }}>Daily KENP Reads</h3>
                 {compareMode && prevPeriod && (
                   <span className="text-[10.5px]" style={{ color: '#6B7280' }}>
                     vs {formatDisplayRange(prevPeriod.start, prevPeriod.end)}
                   </span>
                 )}
               </div>
-              <p className="text-[11px] mb-4" style={{ color: '#6B7280' }}>
+              <p className="text-[12px] mb-[14px]" style={{ color: 'rgba(30,45,61,0.5)' }}>
                 Kindle Unlimited page reads · est. $0.0045/page
               </p>
               <DailyAreaChart
@@ -1018,10 +1018,10 @@ export default function KDPPage() {
           {/* ── Chart 3 — Ad Spend vs Royalties ── */}
           <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-[13.5px] font-semibold" style={{ color: '#1E2D3D' }}>Ad Spend vs Royalties</h3>
+              <h3 className="text-[14px] font-semibold" style={{ color: '#1E2D3D' }}>Ad Spend vs Royalties</h3>
               <span className="text-[10.5px]" style={{ color: '#6B7280' }}>From ROAS log</span>
             </div>
-            <p className="text-[11px] mb-4" style={{ color: '#6B7280' }}>
+            <p className="text-[12px] mb-[14px]" style={{ color: 'rgba(30,45,61,0.5)' }}>
               Daily ad spend (bars) · cumulative royalties vs cumulative spend (lines cross at break-even)
             </p>
             <AdSpendRoyaltiesChart logs={filteredRoas} />
@@ -1029,8 +1029,8 @@ export default function KDPPage() {
 
           {/* ── Chart 4 — Email Sends vs Sales ── */}
           <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-            <h3 className="text-[13.5px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>Email Sends vs Sales</h3>
-            <p className="text-[11px] mb-4" style={{ color: '#6B7280' }}>
+            <h3 className="text-[14px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>Email Sends vs Sales</h3>
+            <p className="text-[12px] mb-[14px]" style={{ color: 'rgba(30,45,61,0.5)' }}>
               Units sold with email send days overlaid — peach dot = day after email
             </p>
             <EmailVsSalesChart
