@@ -15,7 +15,7 @@ interface DarkPageProps {
 export function DarkPage({ title, subtitle, backHref = '/dashboard', headerRight, children }: DarkPageProps) {
   return (
     <div
-      className="min-h-full px-4 py-6 md:px-9 md:py-8"
+      className="px-4 py-6 pb-8 md:px-9 md:pt-8 md:pb-8"
       style={{ background: '#FFFFFF', color: '#1E2D3D' }}
     >
       {/* Header */}
