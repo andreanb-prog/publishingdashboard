@@ -71,7 +71,6 @@ export function ConnectionStatus() {
   const [mlSync, setMlSync] = useState<SyncState>('idle')
   const [metaSync, setMetaSync] = useState<SyncState>('idle')
   const [allSync, setAllSync] = useState<SyncState>('idle')
-  const [metaConnectError, setMetaConnectError] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   async function refreshHealth() {
@@ -95,7 +94,29 @@ export function ConnectionStatus() {
     // When Meta is disconnected from settings, force a fresh fetch
     function onDisconnected() { refreshHealth() }
     window.addEventListener('meta:disconnected', onDisconnected)
-    return () => window.removeEventListener('meta:disconnected', onDisconnected)
+
+    // When Meta connects via OAuth (settings page dispatches this), refresh health
+    // then auto-trigger a sync so status flips to green immediately
+    async function onMetaConnected() {
+      await refreshHealth()
+      setMetaSync('syncing')
+      try {
+        const res = await fetch('/api/meta/sync', { method: 'POST' })
+        if (res.ok) window.dispatchEvent(new CustomEvent('meta:synced'))
+        await refreshHealth()
+        setMetaSync('ok')
+        setTimeout(() => setMetaSync('idle'), 2500)
+      } catch {
+        setMetaSync('error')
+        setTimeout(() => setMetaSync('idle'), 2500)
+      }
+    }
+    window.addEventListener('meta:connected', onMetaConnected)
+
+    return () => {
+      window.removeEventListener('meta:disconnected', onDisconnected)
+      window.removeEventListener('meta:connected', onMetaConnected)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -134,11 +155,6 @@ export function ConnectionStatus() {
   }
 
   function connectMeta() {
-    if (!process.env.NEXT_PUBLIC_META_APP_ID) {
-      setMetaConnectError('Meta connection unavailable')
-      setTimeout(() => setMetaConnectError(null), 4000)
-      return
-    }
     window.location.href = '/api/meta/connect'
   }
 
@@ -259,9 +275,6 @@ export function ConnectionStatus() {
                     </div>
                     <div className="text-[12px]" style={{ color: '#6B7280' }}>
                       {item.text}
-                      {key === 'meta' && metaConnectError && (
-                        <span style={{ color: '#F97B6B' }}> · {metaConnectError}</span>
-                      )}
                       {item.actionText && item.actionHref && key !== 'meta' && (
                         <>
                           {' · '}

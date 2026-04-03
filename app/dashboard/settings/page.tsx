@@ -283,10 +283,10 @@ export default function SettingsPage() {
       setMetaConnected(true)
       setMetaSuccess(true)
       setTimeout(() => setMetaSuccess(false), 4000)
-      // Kick off a sync in the background
-      fetch('/api/meta/sync', { method: 'POST' }).catch(() => {})
       const cleanUrl = window.location.pathname + window.location.search.replace(/[?&]?meta=connected/, '')
       window.history.replaceState(null, '', cleanUrl || window.location.pathname)
+      // Notify ConnectionStatus to refresh health and auto-sync
+      window.dispatchEvent(new CustomEvent('meta:connected'))
     }
     if (window.location.search.includes('meta=error')) {
       setMetaError(true)

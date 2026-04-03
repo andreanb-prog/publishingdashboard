@@ -93,23 +93,15 @@ export async function GET() {
     } else {
       const lastSync = user.metaLastSync
       if (!lastSync) {
-        meta = { status: 'amber', text: 'Connected · never synced' }
+        meta = { status: 'green', text: 'Connected · not yet synced' }
       } else {
         const hoursSinceSync = (now.getTime() - lastSync.getTime()) / (1000 * 60 * 60)
-        if (hoursSinceSync <= 24) {
-          const minsSince = hoursSinceSync * 60
-          const syncLabel = minsSince < 2 ? 'just now'
-            : minsSince < 60 ? `${Math.floor(minsSince)}m ago`
-            : `${Math.floor(hoursSinceSync)}h ago`
-          meta = { status: 'green', text: `Connected · last synced ${syncLabel}` }
-        } else {
-          meta = {
-            status: 'amber',
-            text: 'Token valid but stale',
-            actionText: 'Sync →',
-            actionHref: '/dashboard/settings',
-          }
-        }
+        const minsSince = hoursSinceSync * 60
+        const syncLabel = minsSince < 2 ? 'just now'
+          : minsSince < 60 ? `${Math.floor(minsSince)}m ago`
+          : hoursSinceSync < 24 ? `${Math.floor(hoursSinceSync)}h ago`
+          : `${Math.floor(hoursSinceSync / 24)}d ago`
+        meta = { status: 'green', text: `Connected · last synced ${syncLabel}` }
       }
     }
   }
