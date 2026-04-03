@@ -12,6 +12,7 @@ import { GoalSection } from '@/components/GoalSection'
 import { BarChart } from '@/components/ui'
 import { ChartLegend } from '@/components/ChartLegend'
 import { getCoachTitle } from '@/lib/coachTitle'
+import { fmtCurrency } from '@/lib/utils'
 import {
   CHART_COLORS,
   BASE_CHART_OPTIONS,
@@ -896,8 +897,8 @@ export default function KDPPage() {
             const kpis = [
               { label: 'Units Sold',        value: displayUnits.toLocaleString(), delta: unitsDelta, color: '#38bdf8', tooltip: 'totalUnits' },
               { label: 'KENP Reads',        value: displayKENP.toLocaleString(),  delta: kenpDelta,  color: '#fbbf24', tooltip: 'kenp' },
-              { label: 'Est. KU Revenue',   value: `$${estKu}`,          delta: null,       color: '#a78bfa', tooltip: 'estKuEarnings',    projection: true },
-              { label: 'Total Est. Revenue',value: `$${totalEstRevenue}`, delta: revDelta,   color: '#fb7185', tooltip: 'totalEstRevenue', projection: true },
+              { label: 'Est. KU Revenue',   value: fmtCurrency(estKu),          delta: null,       color: '#a78bfa', tooltip: 'estKuEarnings',    projection: true },
+              { label: 'Total Est. Revenue',value: fmtCurrency(totalEstRevenue), delta: revDelta,   color: '#fb7185', tooltip: 'totalEstRevenue', projection: true },
             ]
 
             return (

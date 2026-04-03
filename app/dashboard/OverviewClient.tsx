@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { Analysis, RankLog, RoasLog, ChannelScore, CoachingInsight, CrossChannelPlan } from '@/types'
 import { getCoachTitle } from '@/lib/coachTitle'
+import { fmtPct, fmtCurrency } from '@/lib/utils'
 
 // coach title is set per-mount so it changes on every page load
 import { ActionItem } from '@/components/ui'
@@ -772,9 +773,9 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
                   estimate: royaltiesZero,
                   sub: kdp?.totalUnits ? `${kdp.totalUnits} units sold` : 'No data yet',
                 },
-                { stat: meta?.avgCTR ? `${meta.avgCTR}%` : '—', label: 'META ADS CTR', estimate: false, sub: meta?.avgCTR && meta.avgCTR >= 2 ? 'Exceptional performance (top 10%)' : meta?.avgCTR ? 'Room to improve' : 'No data yet' },
-                { stat: ml?.openRate ? `${ml.openRate}%` : '—', label: 'EMAIL OPEN RATE', estimate: false, sub: ml?.openRate && ml.openRate >= 25 ? 'Well above 20–25% author average' : ml?.openRate ? 'Near author average' : 'No data yet' },
-                { stat: ml?.clickRate ? `${ml.clickRate}%` : '—', label: 'EMAIL CLICK RATE', estimate: false, sub: ml?.clickRate && ml.clickRate >= 4 ? 'Strong reader engagement' : ml?.clickRate ? 'Room to grow' : 'No data yet' },
+                { stat: meta?.avgCTR ? fmtPct(meta.avgCTR) : '—', label: 'META ADS CTR', estimate: false, sub: meta?.avgCTR && meta.avgCTR >= 2 ? 'Exceptional performance (top 10%)' : meta?.avgCTR ? 'Room to improve' : 'No data yet' },
+                { stat: ml?.openRate ? fmtPct(ml.openRate) : '—', label: 'EMAIL OPEN RATE', estimate: false, sub: ml?.openRate && ml.openRate >= 25 ? 'Well above 20–25% author average' : ml?.openRate ? 'Near author average' : 'No data yet' },
+                { stat: ml?.clickRate ? fmtPct(ml.clickRate) : '—', label: 'EMAIL CLICK RATE', estimate: false, sub: ml?.clickRate && ml.clickRate >= 4 ? 'Strong reader engagement' : ml?.clickRate ? 'Room to grow' : 'No data yet' },
               ]
               return tiles.map((t, i) => (
                 <div key={i} className="px-4 py-1 first:pl-0 last:pr-0">
@@ -1097,7 +1098,7 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
                         )}
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <div className="font-semibold text-[#0d1f35]">{a.kdp ? `$${a.kdp.totalRoyaltiesUSD}` : '—'}</div>
+                        <div className="font-semibold text-[#0d1f35]">{a.kdp ? fmtCurrency(a.kdp.totalRoyaltiesUSD) : '—'}</div>
                         {isCurrent && <Trend curr={a.kdp?.totalRoyaltiesUSD} prev={prev?.kdp?.totalRoyaltiesUSD} />}
                       </td>
                       <td className="px-4 py-3.5 text-right">
@@ -1109,7 +1110,7 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
                         {isCurrent && <Trend curr={a.kdp?.totalKENP} prev={prev?.kdp?.totalKENP} />}
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <div className="font-semibold text-[#0d1f35]">{a.meta ? `$${a.meta.totalSpend}` : '—'}</div>
+                        <div className="font-semibold text-[#0d1f35]">{a.meta ? fmtCurrency(a.meta.totalSpend) : '—'}</div>
                         {isCurrent && <Trend curr={a.meta?.totalSpend} prev={prev?.meta?.totalSpend} />}
                       </td>
                       <td className="px-5 py-3.5 text-right">

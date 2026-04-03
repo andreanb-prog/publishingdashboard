@@ -8,6 +8,7 @@ import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components
 import { FreshBanner } from '@/components/FreshBanner'
 import { GoalSection } from '@/components/GoalSection'
 import { getCoachTitle } from '@/lib/coachTitle'
+import { fmtPct } from '@/lib/utils'
 import { InsightCallouts } from '@/components/InsightCallout'
 import type { Analysis, MailerLiteAutomation, MailerLiteData } from '@/types'
 
@@ -187,9 +188,9 @@ export default function MailerLitePage() {
           />
 
           <DarkKPIStrip cols={5} items={[
-            { label: 'Open Rate',    value: `${ml.openRate}%`,                                     sub: openSub,  color: ml.openRate  >= openTarget  ? '#34d399' : '#fbbf24' },
+            { label: 'Open Rate',    value: fmtPct(ml.openRate),                                   sub: openSub,  color: ml.openRate  >= openTarget  ? '#34d399' : '#fbbf24' },
             { label: 'List Size',    value: ml.listSize.toLocaleString(),                          sub: 'Active subscribers', color: '#38bdf8' },
-            { label: 'Click Rate',   value: `${ml.clickRate}%`,                                    sub: clickSub, color: ml.clickRate >= clickTarget ? '#34d399' : '#fbbf24' },
+            { label: 'Click Rate',   value: fmtPct(ml.clickRate),                                  sub: clickSub, color: ml.clickRate >= clickTarget ? '#34d399' : '#fbbf24' },
             { label: 'Unsubscribes', value: ml.unsubscribes,                                       sub: 'Total unsubscribed', color: ml.unsubscribes > 30 ? '#fb7185' : '#34d399' },
             { label: 'Total Sent',   value: ml.sentCount != null ? ml.sentCount.toLocaleString() : '—', sub: 'Emails sent (list lifetime)', color: '#a78bfa' },
           ]} />
@@ -208,7 +209,7 @@ export default function MailerLitePage() {
               const metrics = [
                 { label: 'Total Sent', value: totalSent.toLocaleString(), sub: `${ml.campaigns.length} campaigns tracked`, color: '#38bdf8' },
                 { label: 'Avg Unsubs / Campaign', value: String(avgUnsubs), sub: avgUnsubs > 5 ? 'Higher than ideal' : 'Healthy range', color: avgUnsubs > 5 ? '#F97B6B' : '#6EBF8B' },
-                { label: 'Best Open Rate', value: topCampaign ? `${topCampaign.openRate}%` : '—', sub: topCampaign ? topCampaign.name : 'No campaigns', color: '#E9A020' },
+                { label: 'Best Open Rate', value: topCampaign ? fmtPct(topCampaign.openRate) : '—', sub: topCampaign ? topCampaign.name : 'No campaigns', color: '#E9A020' },
               ]
               return metrics.map((m, i) => (
                 <div key={i} className="rounded-xl p-4" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
@@ -248,7 +249,7 @@ export default function MailerLitePage() {
                       <td className="px-4 py-3" style={{ color: '#1E2D3D' }}>{row.metric}</td>
                       <td className="px-4 py-3 font-mono font-bold"
                         style={{ color: isGood ? '#34d399' : '#fb7185' }}>
-                        {row.yours}{row.unit}
+                        {row.unit === '%' ? fmtPct(row.yours) : row.yours.toLocaleString()}
                       </td>
                       <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>
                         {row.avg !== null ? `${row.avg}${row.unit}` : '—'}
