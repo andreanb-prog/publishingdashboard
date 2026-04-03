@@ -9,7 +9,7 @@ import { FreshBanner } from '@/components/FreshBanner'
 import { GoalSection } from '@/components/GoalSection'
 import { getCoachTitle } from '@/lib/coachTitle'
 import { InsightCallouts } from '@/components/InsightCallout'
-import type { Analysis, MailerLiteAutomation } from '@/types'
+import type { Analysis, MailerLiteAutomation, MailerLiteData } from '@/types'
 
 
 // ── Campaign Open Rate Chart (uses lib/chartConfig) ──────────────────────────
@@ -106,6 +106,7 @@ export default function MailerLitePage() {
   const [coachTitle] = useState(() => getCoachTitle())
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [prevAnalysis, setPrevAnalysis] = useState<Analysis | null>(null)
+  const [liveml, setLiveml] = useState<MailerLiteData | null>(null)
   const [goals, setGoals] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
 
@@ -115,12 +116,18 @@ export default function MailerLitePage() {
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(d => {
           if (d.analysis) setAnalysis(d.analysis as Analysis)
-          // Get previous month for comparison
           if (d.analyses?.length >= 2) {
             setPrevAnalysis((d.analyses[1] as any)?.data as Analysis)
           }
         })
         .catch(() => {}),
+      fetch('/api/mailerlite')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(d => {
+          console.log('[MailerLite page] live data:', d)
+          if (d.data) setLiveml(d.data as MailerLiteData)
+        })
+        .catch((err) => { console.warn('[MailerLite page] live fetch failed:', err) }),
       fetch('/api/prefs')
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(d => { if (d.goals) setGoals(d.goals) })
@@ -128,7 +135,8 @@ export default function MailerLitePage() {
     ]).finally(() => setLoading(false))
   }, [])
 
-  const ml = analysis?.mailerLite
+  // Prefer live data from API; fall back to stored analysis snapshot
+  const ml = liveml ?? analysis?.mailerLite ?? null
   const coach = (analysis as any)?.emailCoach
 
   // Use user's custom targets if set, else fall back to author averages
@@ -191,13 +199,13 @@ export default function MailerLitePage() {
           {/* Email Health Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
             {(() => {
-              const emailsSent = ml.campaigns.reduce((sum, c) => sum + 1, 0)
+              const totalSent = ml.sentCount ?? 0
               const avgUnsubs = ml.campaigns.length > 0
                 ? Math.round(ml.campaigns.reduce((s, c) => s + c.unsubscribes, 0) / ml.campaigns.length * 10) / 10
                 : 0
               const topCampaign = [...ml.campaigns].sort((a, b) => b.openRate - a.openRate)[0]
               const metrics = [
-                { label: 'Campaigns This Period', value: String(emailsSent), sub: `${ml.campaigns.length} tracked`, color: '#38bdf8' },
+                { label: 'Total Sent', value: totalSent.toLocaleString(), sub: `${ml.campaigns.length} campaigns tracked`, color: '#38bdf8' },
                 { label: 'Avg Unsubs / Campaign', value: String(avgUnsubs), sub: avgUnsubs > 5 ? 'Higher than ideal' : 'Healthy range', color: avgUnsubs > 5 ? '#F97B6B' : '#6EBF8B' },
                 { label: 'Best Open Rate', value: topCampaign ? `${topCampaign.openRate}%` : '—', sub: topCampaign ? topCampaign.name : 'No campaigns', color: '#E9A020' },
               ]

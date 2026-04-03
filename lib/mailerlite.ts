@@ -16,7 +16,6 @@ import type { MailerLiteData, MailerLiteAutomation } from '@/types'
 const ML = 'https://connect.mailerlite.com/api'
 // Primary reader group — used for accurate subscriber counts
 const PRIMARY_GROUP_ID = '181882019479815771'
-const PRIMARY_GROUP_NAME = 'Elle Wilder Readers'
 
 async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; data: any }> {
   const url = `${ML}${path}`
@@ -40,63 +39,58 @@ async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; dat
   }
 }
 
-// ── Fast count-only helper (used by health checks and key tests) ─────────────
-// Uses /groups endpoint because the subscribers endpoint uses cursor pagination
-// and does not reliably return meta.total.
-export async function getMailerLiteStats(apiKey: string): Promise<{ listSize: number; unsubscribed: number }> {
-  const result = await mlFetch('/groups?limit=100', apiKey)
-  const groups: any[] = result.data?.data ?? []
+// ── Group stats helper — fetches the primary reader group directly ────────────
+// Uses GET /groups/{id} which returns active_count, unsubscribed_count,
+// open_rate (object with .float), click_rate (object with .float),
+// sent_count, and bounced_count without pagination issues.
+export async function getMailerLiteStats(apiKey: string): Promise<{
+  listSize: number; unsubscribed: number
+  openRate: number; clickRate: number
+  sentCount: number; bouncedCount: number
+}> {
+  const result = await mlFetch(`/groups/${PRIMARY_GROUP_ID}`, apiKey)
+  // v3 single-resource response wraps in { data: {...} }
+  const g = result.data?.data ?? result.data ?? {}
 
-  // Find primary group by ID first, fall back to name match
-  const primary =
-    groups.find((g: any) => String(g.id) === PRIMARY_GROUP_ID) ??
-    groups.find((g: any) => String(g.name ?? '').includes(PRIMARY_GROUP_NAME))
+  const listSize     = g.active_count ?? 0
+  const unsubscribed = g.unsubscribed_count ?? 0
+  const rawOpen      = g.open_rate?.float  ?? g.open_rate  ?? 0
+  const rawClick     = g.click_rate?.float ?? g.click_rate ?? 0
+  const openRate     = Math.round(Number(rawOpen)  * 1000) / 10
+  const clickRate    = Math.round(Number(rawClick) * 1000) / 10
+  const sentCount    = g.sent_count    ?? 0
+  const bouncedCount = g.bounced_count ?? 0
 
-  const listSize = primary?.active_count ?? 0
-  const unsubscribed = primary?.unsubscribed_count ?? 0
-  console.log('[MailerLite] stats from group:', primary?.name, { active: listSize, unsub: unsubscribed })
-  return { listSize, unsubscribed }
+  console.log('[MailerLite] group stats:', { listSize, unsubscribed, openRate, clickRate, sentCount, bouncedCount })
+  return { listSize, unsubscribed, openRate, clickRate, sentCount, bouncedCount }
 }
 
 export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteData> {
-  // ── Subscriber counts ──────────────────────────────────────────
-  const { listSize, unsubscribed: totalUnsubscribes } = await getMailerLiteStats(apiKey)
-  console.log('[MailerLite] listSize:', listSize, '| unsubscribed:', totalUnsubscribes)
+  // ── Group stats (list-level open/click rates, counts) ──────────
+  const { listSize, unsubscribed: totalUnsubscribes, openRate, clickRate, sentCount, bouncedCount } = await getMailerLiteStats(apiKey)
+  console.log('[MailerLite] listSize:', listSize, '| unsubscribed:', totalUnsubscribes, '| openRate:', openRate, '| clickRate:', clickRate)
 
   // ── Campaigns ──────────────────────────────────────────────────
-  const campResult = await mlFetch('/campaigns?limit=10&filter[status]=sent&sort=-sent_at', apiKey)
+  const campResult = await mlFetch('/campaigns?limit=100&filter[status]=sent&sort=-sent_at', apiKey)
+  console.log('[MailerLite] campaigns response ok:', campResult.ok, '| raw count:', campResult.data?.data?.length ?? 0)
   const campaigns = campResult.ok ? (campResult.data?.data ?? []) : []
 
   const parsedCampaigns = (Array.isArray(campaigns) ? campaigns : []).map((c: any) => {
     const rawOpen = c.stats?.open_rate?.float ?? c.stats?.open_rate ?? 0
     const rawClick = c.stats?.click_rate?.float ?? c.stats?.click_rate ?? 0
-    const openRate = Math.round(Number(rawOpen) * 1000) / 10
-    const clickRate = Math.round(Number(rawClick) * 1000) / 10
+    const campOpenRate = Math.round(Number(rawOpen) * 1000) / 10
+    const campClickRate = Math.round(Number(rawClick) * 1000) / 10
     const campUnsubs = c.stats?.unsubscribes_count ?? c.stats?.unsubscribed ?? 0
-    const sentAt = c.sent_at || c.sends_at || c.scheduled_at || ''
+    const sentAt = c.finished_at || c.sent_at || c.sends_at || c.scheduled_at || ''
 
     return {
       name: c.name || c.subject || 'Untitled',
       sentAt,
-      openRate,
-      clickRate,
+      openRate: campOpenRate,
+      clickRate: campClickRate,
       unsubscribes: campUnsubs,
     }
   })
-
-  const recentCampaigns = parsedCampaigns.slice(0, 5)
-  const avgOpenRate =
-    recentCampaigns.length > 0
-      ? Math.round(
-          (recentCampaigns.reduce((s: number, c: any) => s + c.openRate, 0) / recentCampaigns.length) * 10
-        ) / 10
-      : 0
-  const avgClickRate =
-    recentCampaigns.length > 0
-      ? Math.round(
-          (recentCampaigns.reduce((s: number, c: any) => s + c.clickRate, 0) / recentCampaigns.length) * 10
-        ) / 10
-      : 0
 
   // ── Automations ────────────────────────────────────────────────
   let automations: MailerLiteAutomation[] = []
@@ -126,16 +120,19 @@ export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteDa
   console.log('[MailerLite] === FINAL ===')
   console.log('[MailerLite]   listSize:', listSize)
   console.log('[MailerLite]   unsubscribed:', totalUnsubscribes)
-  console.log('[MailerLite]   avgOpenRate:', avgOpenRate)
+  console.log('[MailerLite]   openRate:', openRate, '| clickRate:', clickRate)
+  console.log('[MailerLite]   sentCount:', sentCount, '| bouncedCount:', bouncedCount)
   console.log('[MailerLite]   campaigns:', parsedCampaigns.length)
   console.log('[MailerLite]   automations:', automations.length)
 
   return {
     listSize,
-    openRate: avgOpenRate,
-    clickRate: avgClickRate,
+    openRate,
+    clickRate,
     unsubscribes: totalUnsubscribes,
     campaigns: parsedCampaigns,
     automations,
+    sentCount,
+    bouncedCount,
   }
 }

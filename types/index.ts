@@ -74,6 +74,8 @@ export interface MailerLiteData {
   unsubscribes: number
   campaigns: MailerLiteCampaign[]
   automations?: MailerLiteAutomation[]
+  sentCount?: number
+  bouncedCount?: number
 }
 
 export interface MailerLiteCampaign {
