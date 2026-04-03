@@ -26,9 +26,9 @@ const ROADMAP = [
 ]
 
 const BENCHMARKS = [
-  { period: 'Month 1–2', range: '100–500 impressions/week', note: 'Focus on posting consistency, not numbers', color: '#f472b6' },
-  { period: 'Month 3–6', range: '1K–10K impressions/week', note: 'Save rate above 2% means your content resonates', color: '#34d399' },
-  { period: 'Month 6–12', range: '10K–100K impressions/week', note: 'Old pins compound — this is when Pinterest pays off', color: '#38bdf8' },
+  { period: 'Month 1–2', range: '100–500 impressions/week', note: 'Focus on posting consistency, not numbers', color: '#E9A020' },
+  { period: 'Month 3–6', range: '1K–10K impressions/week', note: 'Save rate above 2% means your content resonates', color: '#E9A020' },
+  { period: 'Month 6–12', range: '10K–100K impressions/week', note: 'Old pins compound — this is when Pinterest pays off', color: '#E9A020' },
 ]
 
 export default function PinterestPage() {
@@ -173,7 +173,7 @@ export default function PinterestPage() {
             type="submit"
             disabled={saving}
             className="px-5 py-2.5 rounded-lg text-[13.5px] font-bold transition-all disabled:opacity-40"
-            style={{ background: '#e60023', color: '#fff', border: 'none', cursor: 'pointer' }}
+            style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer' }}
           >
             {saving ? 'Logging...' : 'Log This Week →'}
           </button>
@@ -203,7 +203,7 @@ export default function PinterestPage() {
             {/* Baseline from file */}
             <tr style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
               <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>Feb 18 – Mar 31</td>
-              <td className="px-4 py-3 font-mono" style={{ color: '#f472b6' }}>20</td>
+              <td className="px-4 py-3 font-mono" style={{ color: '#1E2D3D' }}>20</td>
               <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>0</td>
               <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>0</td>
               <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>2</td>
@@ -222,7 +222,7 @@ export default function PinterestPage() {
                   <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>
                     {new Date(log.weekEnding).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3 font-mono" style={{ color: '#f472b6' }}>{log.impressions}</td>
+                  <td className="px-4 py-3 font-mono" style={{ color: '#1E2D3D' }}>{log.impressions}</td>
                   <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>{log.saves}</td>
                   <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>{log.clicks}</td>
                   <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>{log.pinCount}</td>

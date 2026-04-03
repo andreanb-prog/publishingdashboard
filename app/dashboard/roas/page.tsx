@@ -200,7 +200,7 @@ export default function ROASPage() {
     <div className="p-4 sm:p-8 pb-8 max-w-2xl">
 
       {/* Header */}
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="font-sans text-[22px] text-[#0d1f35] mb-1">Daily ROAS Log</h1>
           <p className="text-[12.5px] text-stone-500">
@@ -211,10 +211,10 @@ export default function ROASPage() {
         <a
           href="/api/export/ad-tracker"
           download
-          className="flex-shrink-0 px-4 py-2 rounded-lg text-[12.5px] font-semibold no-underline transition-all"
+          className="w-full sm:w-auto sm:flex-shrink-0 px-4 py-2 rounded-lg text-[12.5px] font-semibold no-underline transition-all text-center"
           style={{ background: '#e9a020', color: '#0d1f35' }}
         >
-          ⬇ Download Coaching Tracker
+          ⬇ Download ROAS Tracker
         </a>
       </div>
 

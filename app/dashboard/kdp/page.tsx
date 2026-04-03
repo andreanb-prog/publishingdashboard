@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { InsightCallouts } from '@/components/InsightCallout'
-import { HealthBenchmarkBar, ProjectionBadge, MetricTooltip } from '@/components/MetricHealth'
+import { MetricTooltip } from '@/components/MetricHealth'
 import { ViewingBar } from '@/components/ViewingBar'
 import { GoalSection } from '@/components/GoalSection'
 import { BarChart } from '@/components/ui'
@@ -101,40 +101,45 @@ function DateRangePicker({
   onCustomEnd: (v: string) => void
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {PRESETS.map(p => (
-        <button
-          key={p.key}
-          onClick={() => onPreset(p.key)}
-          className="px-2.5 py-1 rounded-full text-[12px] font-medium transition-all duration-150"
-          style={{
-            background: preset === p.key ? '#E9A020' : '#FFF8F0',
-            color:      preset === p.key ? 'white' : '#1E2D3D',
-            border:     `0.5px solid ${preset === p.key ? '#E9A020' : '#EEEBE6'}`,
-          }}
-        >
-          {p.label}
-        </button>
-      ))}
-      {preset === 'custom' && (
-        <div className="flex items-center gap-2 mt-1 w-full ml-[62px]">
-          <input
-            type="date"
-            value={customStart}
-            onChange={e => onCustomStart(e.target.value)}
-            className="rounded-lg px-3 py-1.5 text-[11.5px] font-mono"
-            style={{ background: 'white', border: '1px solid #D6D3D1', color: '#1E2D3D' }}
-          />
-          <span style={{ color: '#6B7280' }}>→</span>
-          <input
-            type="date"
-            value={customEnd}
-            onChange={e => onCustomEnd(e.target.value)}
-            className="rounded-lg px-3 py-1.5 text-[11.5px] font-mono"
-            style={{ background: 'white', border: '1px solid #D6D3D1', color: '#1E2D3D' }}
-          />
-        </div>
-      )}
+    <div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {PRESETS.map(p => (
+          <button
+            key={p.key}
+            onClick={() => onPreset(p.key)}
+            className="px-2.5 py-1 rounded-full text-[12px] font-medium transition-all duration-150"
+            style={{
+              background: preset === p.key ? '#E9A020' : '#FFF8F0',
+              color:      preset === p.key ? 'white' : '#1E2D3D',
+              border:     `0.5px solid ${preset === p.key ? '#E9A020' : '#EEEBE6'}`,
+            }}
+          >
+            {p.label}
+          </button>
+        ))}
+        {preset === 'custom' && (
+          <div className="flex items-center gap-2 mt-1 w-full ml-[62px]">
+            <input
+              type="date"
+              value={customStart}
+              onChange={e => onCustomStart(e.target.value)}
+              className="rounded-lg px-3 py-1.5 text-[11.5px] font-mono"
+              style={{ background: 'white', border: '1px solid #D6D3D1', color: '#1E2D3D' }}
+            />
+            <span style={{ color: '#6B7280' }}>→</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={e => onCustomEnd(e.target.value)}
+              className="rounded-lg px-3 py-1.5 text-[11.5px] font-mono"
+              style={{ background: 'white', border: '1px solid #D6D3D1', color: '#1E2D3D' }}
+            />
+          </div>
+        )}
+      </div>
+      <p className="text-[11px] mt-1.5" style={{ color: '#9CA3AF' }}>
+        KDP data typically lags 48–72 hours. Recent days may show incomplete numbers.
+      </p>
     </div>
   )
 }
@@ -852,7 +857,6 @@ export default function KDPPage() {
 
           {/* KPI Strip */}
           {(() => {
-            const readerDepth = kdp.totalUnits > 0 ? kdp.totalKENP / kdp.totalUnits : 0
             const estKu = Math.round(filteredTotalKENP * 0.0045 * 100) / 100
             // When a date range is active use only the filtered KU estimate —
             // we have no daily royalty breakdown so adding unfiltered royalties
@@ -871,11 +875,10 @@ export default function KDPPage() {
               { label: 'KENP Reads',        value: filteredTotalKENP.toLocaleString(),  delta: kenpDelta,  color: '#fbbf24', tooltip: 'kenp' },
               { label: 'Est. KU Revenue',   value: `$${estKu}`,          delta: null,       color: '#a78bfa', tooltip: 'estKuEarnings',    projection: true },
               { label: 'Total Est. Revenue',value: `$${totalEstRevenue}`, delta: revDelta,   color: '#fb7185', tooltip: 'totalEstRevenue', projection: true },
-              { label: 'Reader Depth',      value: readerDepth > 0 ? `~${readerDepth.toFixed(1)}` : '—', delta: null, color: '#34d399', tooltip: 'readerDepth', benchmark: { metric: 'readerDepth', value: readerDepth } },
             ]
 
             return (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                 {kpis.map((kpi, i) => {
                   const isEmpty = kpi.value === '—' || kpi.value === '0' || kpi.value === '$0'
                   return (
@@ -886,7 +889,7 @@ export default function KDPPage() {
                         boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                         minWidth: 0,
                         overflow: 'hidden',
-                        paddingBottom: kpi.benchmark ? 20 : 16,
+                        paddingBottom: 16,
                       }}>
                       <div className="absolute bottom-0 left-0 right-0 h-[2px]"
                         style={{ background: isEmpty ? '#EEEBE6' : kpi.color }} />
@@ -924,7 +927,6 @@ export default function KDPPage() {
                             <span className="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-1.5"
                               style={{ background: '#FEF3C7', color: '#92400E' }}>⚠ Estimate</span>
                           )}
-                          {kpi.benchmark && <HealthBenchmarkBar metric={kpi.benchmark.metric} value={kpi.benchmark.value} />}
                         </>
                       )}
                     </div>

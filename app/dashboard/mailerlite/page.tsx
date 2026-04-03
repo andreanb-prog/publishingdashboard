@@ -450,7 +450,7 @@ export default function MailerLitePage() {
                   {ml.campaigns.slice(0, 8).map((c, i) => (
                     <tr key={i} className="border-t hover:bg-stone-50"
                       style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-                      <td className="px-4 py-2.5 max-w-[200px] truncate" style={{ color: '#1E2D3D' }}>{c.name}</td>
+                      <td className="px-4 py-2.5 max-w-[200px] truncate" style={{ color: '#1E2D3D' }}>{c.name.replace(/^Copy of /i, '')}</td>
                       <td className="px-4 py-2.5 font-mono text-[11px]" style={{ color: '#6B7280' }}>
                         {c.sentAt
                           ? new Date(c.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
