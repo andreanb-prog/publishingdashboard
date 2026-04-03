@@ -510,7 +510,7 @@ export function OverviewClient() {
       <div className="rounded-xl mb-4 p-6"
         style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
         {[
-          { label: 'Revenue',    value: analysis?.kdp ? `$${analysis.kdp.totalRoyaltiesUSD}` : null },
+          { label: 'Revenue',    value: analysis?.kdp ? `$${(Math.round(((analysis.kdp.totalRoyaltiesUSD ?? 0) + analysis.kdp.totalKENP * 0.0045) * 100) / 100).toFixed(2)}` : null },
           { label: 'Units Sold', value: analysis?.kdp ? fmt(analysis.kdp.totalUnits) : null },
           { label: 'KENP Reads', value: analysis?.kdp ? fmt(analysis.kdp.totalKENP) : null },
           { label: 'Best CTR',   value: analysis?.meta?.bestAd ? `${analysis.meta.bestAd.ctr}%` : null },

@@ -18,7 +18,7 @@ function detectInsights(analysis: Analysis): Insight[] {
   const ml = analysis.mailerLite
 
   // ── Alarm triggers ──
-  if (kdp && kdp.totalRoyaltiesUSD === 0 && kdp.totalUnits > 0) {
+  if (kdp && kdp.totalRoyaltiesUSD === 0 && kdp.totalKENP === 0 && kdp.totalUnits > 0) {
     insights.push({
       mode: 'alarm',
       source: 'kdp',
