@@ -9,8 +9,6 @@ module.exports = {
     extend: {
       fontFamily: {
         sans: ['Plus Jakarta Sans', 'sans-serif'],
-        serif: ['Fraunces', 'serif'],
-        mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
         navy: {

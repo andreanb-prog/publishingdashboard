@@ -202,7 +202,7 @@ export default function ROASPage() {
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-serif text-[22px] text-[#0d1f35] mb-1">Daily ROAS Log</h1>
+          <h1 className="font-sans text-[22px] text-[#0d1f35] mb-1">Daily ROAS Log</h1>
           <p className="text-[12.5px] text-stone-500">
             Log your ad spend and earnings every day. Takes 30 seconds.
             Builds a picture over time so you can spot trends before they cost you money.
@@ -227,7 +227,7 @@ export default function ROASPage() {
         ].map(s => (
           <div key={s.label} className="card p-4">
             <div className="metric-label mb-1">{s.label}</div>
-            <div className="font-serif text-[26px] text-[#0d1f35] tracking-tight">{s.value}</div>
+            <div className="font-sans text-[26px] text-[#0d1f35] tracking-tight">{s.value}</div>
             <div className="text-[11px] text-stone-500 mt-1">{s.sub}</div>
           </div>
         ))}

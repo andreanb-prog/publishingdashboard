@@ -510,7 +510,7 @@ export function OverviewClient() {
       <div className="rounded-xl mb-4 p-6"
         style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
         {[
-          { label: 'Revenue',    value: analysis?.kdp ? `$${(Math.round(((analysis.kdp.totalRoyaltiesUSD ?? 0) + analysis.kdp.totalKENP * 0.0045) * 100) / 100).toFixed(2)}` : null },
+          { label: 'Est. Revenue', value: analysis?.kdp ? `$${(Math.round(((analysis.kdp.totalRoyaltiesUSD ?? 0) + analysis.kdp.totalKENP * 0.0045) * 100) / 100).toFixed(2)}` : null },
           { label: 'Units Sold', value: analysis?.kdp ? fmt(analysis.kdp.totalUnits) : null },
           { label: 'KENP Reads', value: analysis?.kdp ? fmt(analysis.kdp.totalKENP) : null },
           { label: 'Best CTR',   value: analysis?.meta?.bestAd ? `${analysis.meta.bestAd.ctr}%` : null },
@@ -526,7 +526,7 @@ export function OverviewClient() {
                 {stat.label}
               </div>
               {hasData ? (
-                <div className="font-serif text-[48px] font-medium leading-none tracking-tight"
+                <div className="font-sans text-[48px] font-semibold leading-none"
                   style={{ color: '#1E2D3D' }}>
                   {stat.value}
                 </div>
@@ -637,19 +637,33 @@ export function OverviewClient() {
               const kdp = analysis.kdp
               const meta = analysis.meta
               const ml = analysis.mailerLite
+              const estRevenue = kdp ? Math.round(((kdp.totalRoyaltiesUSD ?? 0) + kdp.totalKENP * 0.0045) * 100) / 100 : null
+              const royaltiesZero = kdp && (kdp.totalRoyaltiesUSD ?? 0) === 0
               const tiles = [
-                { stat: kdp?.totalRoyaltiesUSD != null ? `$${kdp.totalRoyaltiesUSD}` : '—', label: 'KDP ROYALTIES', sub: kdp?.totalUnits ? `${kdp.totalUnits} units sold` : 'No data yet' },
-                { stat: meta?.avgCTR ? `${meta.avgCTR}%` : '—', label: 'META ADS CTR', sub: meta?.avgCTR && meta.avgCTR >= 2 ? 'Exceptional performance (top 10%)' : meta?.avgCTR ? 'Room to improve' : 'No data yet' },
-                { stat: ml?.openRate ? `${ml.openRate}%` : '—', label: 'EMAIL OPEN RATE', sub: ml?.openRate && ml.openRate >= 25 ? 'Well above 20–25% author average' : ml?.openRate ? 'Near author average' : 'No data yet' },
-                { stat: ml?.clickRate ? `${ml.clickRate}%` : '—', label: 'EMAIL CLICK RATE', sub: ml?.clickRate && ml.clickRate >= 4 ? 'Strong reader engagement' : ml?.clickRate ? 'Room to grow' : 'No data yet' },
+                {
+                  stat: estRevenue != null ? `$${estRevenue.toFixed(2)}` : '—',
+                  label: 'EST. REVENUE',
+                  estimate: royaltiesZero,
+                  sub: kdp?.totalUnits ? `${kdp.totalUnits} units sold` : 'No data yet',
+                },
+                { stat: meta?.avgCTR ? `${meta.avgCTR}%` : '—', label: 'META ADS CTR', estimate: false, sub: meta?.avgCTR && meta.avgCTR >= 2 ? 'Exceptional performance (top 10%)' : meta?.avgCTR ? 'Room to improve' : 'No data yet' },
+                { stat: ml?.openRate ? `${ml.openRate}%` : '—', label: 'EMAIL OPEN RATE', estimate: false, sub: ml?.openRate && ml.openRate >= 25 ? 'Well above 20–25% author average' : ml?.openRate ? 'Near author average' : 'No data yet' },
+                { stat: ml?.clickRate ? `${ml.clickRate}%` : '—', label: 'EMAIL CLICK RATE', estimate: false, sub: ml?.clickRate && ml.clickRate >= 4 ? 'Strong reader engagement' : ml?.clickRate ? 'Room to grow' : 'No data yet' },
               ]
               return tiles.map((t, i) => (
                 <div key={i} className="px-4 py-1 first:pl-0 last:pr-0">
-                  <div className="text-[28px] font-bold leading-none tracking-tight mb-1" style={{ color: '#1E2D3D' }}>
+                  <div className="text-[28px] font-semibold leading-none mb-1" style={{ color: '#1E2D3D' }}>
                     {t.stat}
                   </div>
-                  <div className="text-[11px] font-bold tracking-[1.5px] uppercase mb-0.5" style={{ color: '#6EBF8B' }}>
-                    {t.label}
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <div className="text-[11px] font-bold tracking-[1.5px] uppercase" style={{ color: '#6EBF8B' }}>
+                      {t.label}
+                    </div>
+                    {t.estimate && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>
+                        ⚠ Est.
+                      </span>
+                    )}
                   </div>
                   <div className="text-[12px]" style={{ color: '#6B7280' }}>{t.sub}</div>
                 </div>
@@ -700,7 +714,7 @@ export function OverviewClient() {
             content: (
               <div>
                 <div className="mb-1">
-                  <h2 className="font-serif text-[18px] text-[#0d1f35] mb-1">
+                  <h2 className="font-sans text-[18px] text-[#0d1f35] mb-1">
                     Your channels — click any for the full deep dive
                   </h2>
                   <p className="text-[12px] text-stone-500 mb-4">
@@ -719,7 +733,7 @@ export function OverviewClient() {
                         <div className="text-[10.5px] font-bold tracking-[0.8px] uppercase text-stone-500 mb-1">
                           {card.name}
                         </div>
-                        <div className="font-serif text-[22px] text-[#0d1f35] tracking-tight leading-none mb-1.5">
+                        <div className="font-sans text-[22px] text-[#0d1f35] tracking-tight leading-none mb-1.5">
                           {score?.metric || '—'}
                         </div>
                         <div className="text-[11px] text-stone-500 leading-snug mb-2.5">
@@ -740,19 +754,19 @@ export function OverviewClient() {
             content: (
               <div>
                 <div className="flex items-baseline justify-between mb-4">
-                  <h2 className="font-serif text-[18px] text-[#0d1f35]">Your action plan — do these in order</h2>
+                  <h2 className="font-sans text-[18px] text-[#0d1f35]">Your action plan — do these in order</h2>
                   <span className="text-[12px] text-stone-500">Based on your real data</span>
                 </div>
                 {loading ? (
                   <div className="card p-8 text-center">
-                    <div className="text-[14px] font-serif text-[#0d1f35] animate-pulse">
+                    <div className="text-[14px] font-sans text-[#0d1f35] animate-pulse">
                       {coachTitle.replace(' says', '')} is reading everything…
                     </div>
                   </div>
                 ) : !analysis?.actionPlan?.length ? (
                   <div className="card p-8 text-center">
                     <div className="text-2xl mb-3">⚡</div>
-                    <div className="font-serif text-lg text-[#0d1f35] mb-2">
+                    <div className="font-sans text-lg text-[#0d1f35] mb-2">
                       Upload your files to get your coaching session
                     </div>
                     <p className="text-sm text-stone-500 mb-4">
@@ -765,7 +779,7 @@ export function OverviewClient() {
                 ) : (
                   <div className="card overflow-hidden mb-7">
                     <div className="px-5 py-3.5" style={{ background: '#FFF8F0', borderBottom: '1px solid #EEEBE6' }}>
-                      <div className="font-serif text-[16px]" style={{ color: '#1E2D3D' }}>
+                      <div className="font-sans text-[16px]" style={{ color: '#1E2D3D' }}>
                         {coachTitle.replace(' says', '')} reviewed everything. Here&apos;s what to do next.
                       </div>
                       <div className="text-[11px] mt-0.5" style={{ color: '#6B7280' }}>
@@ -801,7 +815,7 @@ export function OverviewClient() {
       {/* ══════ SECTION 5 — YOUR GROWTH ROADMAP ═══════════════════ */}
       {analysis?.executiveSummary?.topActions && analysis.executiveSummary.topActions.length > 0 && (
         <div className="mb-7">
-          <h2 className="font-serif text-[18px] text-[#0d1f35] mb-4">Your Growth Roadmap</h2>
+          <h2 className="font-sans text-[18px] text-[#0d1f35] mb-4">Your Growth Roadmap</h2>
           <div className="space-y-3">
             {analysis.executiveSummary.topActions.map((action: { label: string; href: string }, i: number) => {
               const isDone = false // future: track completion
@@ -833,7 +847,7 @@ export function OverviewClient() {
       {/* ══════ SECTION 6 — CROSS-CHANNEL ACTION PLAN ═════════════ */}
       <div className="mb-7">
         <div className="flex items-baseline justify-between mb-4">
-          <h2 className="font-serif text-[18px] text-[#0d1f35]">Cross-Channel Action Plan</h2>
+          <h2 className="font-sans text-[18px] text-[#0d1f35]">Cross-Channel Action Plan</h2>
           <span className="text-[12px] text-stone-500">AI-generated from your data</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -876,7 +890,7 @@ export function OverviewClient() {
       {analyses.length >= 2 && (
         <>
           <div className="flex items-baseline justify-between mb-4">
-            <h2 className="font-serif text-[18px] text-[#0d1f35]">How you're tracking over time</h2>
+            <h2 className="font-sans text-[18px] text-[#0d1f35]">How you're tracking over time</h2>
             <span className="text-[12px] text-stone-500">Last {analyses.length} months</span>
           </div>
           <div className="card overflow-hidden mb-7">

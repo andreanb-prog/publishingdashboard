@@ -38,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="flex items-center justify-center min-h-[300px] p-8">
           <div className="text-center max-w-md">
             <div className="text-4xl mb-4">📊</div>
-            <h2 className="font-serif text-[20px] mb-2" style={{ color: '#1E2D3D' }}>
+            <h2 className="font-sans text-[20px] mb-2" style={{ color: '#1E2D3D' }}>
               {this.props.fallbackTitle ?? 'Something went wrong'}
             </h2>
             <p className="text-[13px] mb-4" style={{ color: '#6B7280' }}>

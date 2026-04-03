@@ -58,7 +58,7 @@ export function OnboardingBanner({ analysesCount }: { analysesCount: number }) {
           ×
         </button>
 
-        <div className="font-serif text-[22px] mb-3 leading-snug" style={{ color: '#1E2D3D' }}>
+        <div className="font-sans text-[22px] mb-3 leading-snug" style={{ color: '#1E2D3D' }}>
           Welcome to AuthorDash
         </div>
         <p className="text-[14px] leading-[1.75] mb-3" style={{ color: '#374151' }}>

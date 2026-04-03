@@ -86,7 +86,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <h2 className="font-serif text-[22px] mb-1" style={{ color: '#1E2D3D' }}>
+          <h2 className="font-sans text-[22px] mb-1" style={{ color: '#1E2D3D' }}>
             Welcome back
           </h2>
           <p className="text-[13px] mb-8" style={{ color: '#6B7280' }}>

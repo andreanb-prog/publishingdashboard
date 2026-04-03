@@ -248,7 +248,7 @@ export default function ListBuildingPage() {
         <div className="text-[10px] font-bold tracking-[2px] uppercase mb-1.5" style={{ color: '#e9a020' }}>
           Tools
         </div>
-        <h1 className="font-serif text-[26px] text-[#0d1f35] leading-snug mb-1">
+        <h1 className="font-sans text-[26px] text-[#0d1f35] leading-snug mb-1">
           List Building ROAS Tracker
         </h1>
         <p className="text-[12.5px] text-stone-500 max-w-lg">
@@ -287,7 +287,7 @@ export default function ListBuildingPage() {
           ].map(k => (
             <div key={k.label} className="text-center p-3 rounded-xl" style={{ background: '#fafaf9' }}>
               <div className="text-[10px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1.5">{k.label}</div>
-              <div className={`font-serif text-[22px] tracking-tight ${k.color}`}>{k.value}</div>
+              <div className={`font-sans text-[22px] tracking-tight ${k.color}`}>{k.value}</div>
             </div>
           ))}
         </div>
@@ -526,7 +526,7 @@ export default function ListBuildingPage() {
               ].map(k => (
                 <div key={k.label} className="text-center p-3 rounded-xl" style={{ background: '#fafaf9' }}>
                   <div className="text-[10px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1.5">{k.label}</div>
-                  <div className={`font-serif tracking-tight ${k.small ? 'text-[13px]' : 'text-[22px]'} ${k.color}`}>{k.value}</div>
+                  <div className={`font-sans tracking-tight ${k.small ? 'text-[13px]' : 'text-[22px]'} ${k.color}`}>{k.value}</div>
                 </div>
               ))}
             </div>

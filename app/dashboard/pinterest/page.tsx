@@ -121,7 +121,7 @@ export default function PinterestPage() {
       {/* 30-day roadmap */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-4">
-          <h2 className="font-serif text-[19px]" style={{ color: '#1E2D3D' }}>Your 30-Day Pinterest Launch Plan</h2>
+          <h2 className="font-sans text-[19px]" style={{ color: '#1E2D3D' }}>Your 30-Day Pinterest Launch Plan</h2>
           <div className="flex-1 h-px" style={{ background: '#EEEBE6' }} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -119,7 +119,7 @@ export default function DataVaultPage() {
               <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2" style={{ color: '#E9A020' }}>
                 Currently Powering Your Dashboard
               </div>
-              <div className="font-serif text-[20px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
+              <div className="font-sans text-[20px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
                 {formatMonth(active.month)}
               </div>
               <div className="text-[12.5px] mb-3" style={{ color: '#6B7280' }}>

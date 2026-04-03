@@ -91,7 +91,7 @@
   }
 
   .metric-value {
-    @apply font-serif text-3xl text-[#0d1f35] tracking-tight leading-none;
+    @apply font-sans text-3xl font-semibold text-[#0d1f35] leading-none;
   }
 
   .metric-label {

@@ -77,7 +77,7 @@ export function FeedbackButton() {
             /* ── Thank-you state ── */
             <div className="px-5 py-8 text-center">
               <div className="text-3xl mb-3">🙏</div>
-              <div className="font-serif text-[16px] mb-1.5" style={{ color: '#1E2D3D' }}>
+              <div className="font-sans text-[16px] mb-1.5" style={{ color: '#1E2D3D' }}>
                 Got it! Thank you —
               </div>
               <div className="text-[13px]" style={{ color: '#6B7280' }}>
@@ -88,7 +88,7 @@ export function FeedbackButton() {
             <>
               {/* Header */}
               <div className="px-5 pt-5 pb-3">
-                <div className="font-serif text-[16px] mb-1" style={{ color: '#1E2D3D' }}>
+                <div className="font-sans text-[16px] mb-1" style={{ color: '#1E2D3D' }}>
                   What&apos;s on your mind?
                 </div>
                 <div className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>

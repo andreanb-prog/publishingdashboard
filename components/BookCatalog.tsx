@@ -349,7 +349,7 @@ function BookModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-stone-100">
-          <h2 className="font-serif text-[18px] text-[#1E2D3D]">
+          <h2 className="font-sans text-[18px] text-[#1E2D3D]">
             {editing ? 'Edit Book' : 'Add a Book'}
           </h2>
           <button

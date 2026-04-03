@@ -43,7 +43,7 @@ export function MetricCard({ label, value, sub, color = 'default', delay = 0 }: 
   return (
     <div className={`card p-5 animate-fade-up animate-fade-up-delay-${delay}`}>
       <div className="metric-label mb-2">{label}</div>
-      <div className={`font-serif text-3xl tracking-tight leading-none mb-1.5 ${colorMap[color]}`}>
+      <div className={`font-sans text-3xl tracking-tight leading-none mb-1.5 ${colorMap[color]}`}>
         {value}
       </div>
       {sub && <div className="text-[11px] text-stone-500">{sub}</div>}

@@ -582,7 +582,7 @@ export default function MetaPage() {
       {!meta ? (
         <div className="text-center py-16" style={{ color: '#6B7280' }}>
           <div className="text-4xl mb-4">📣</div>
-          <div className="font-serif text-xl mb-2" style={{ color: '#1E2D3D' }}>No Meta data yet</div>
+          <div className="font-sans text-xl mb-2" style={{ color: '#1E2D3D' }}>No Meta data yet</div>
           <p className="text-sm mb-4">Upload your Meta Ads CSV to see your ad analysis</p>
           <a href="/dashboard?upload=1" className="inline-block px-6 py-2.5 rounded-lg font-semibold text-sm no-underline"
             style={{ background: '#e9a020', color: '#0d1f35' }}>Upload Files →</a>

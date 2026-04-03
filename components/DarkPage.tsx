@@ -132,7 +132,7 @@ export function DarkKPIStrip({ items, cols = 4 }: DarkKPIProps) {
 export function DarkSectionHeader({ title, badge, badgeColor }: { title: string; badge?: string; badgeColor?: string }) {
   return (
     <div className="flex items-center gap-3 mb-4">
-      <h2 className="font-serif text-[19px]" style={{ color: '#1E2D3D' }}>{title}</h2>
+      <h2 className="font-sans text-[19px]" style={{ color: '#1E2D3D' }}>{title}</h2>
       <div className="flex-1 h-px" style={{ background: '#EEEBE6' }} />
       {badge && (
         <span className="text-[10px] font-bold tracking-[1px] uppercase px-2.5 py-1 rounded-full font-mono"
