@@ -54,17 +54,17 @@ export function HealthBenchmarkBar({ metric, value }: { metric: string; value: n
   const dotPos = getDotPosition(metric, value)
 
   return (
-    <div className="mt-2">
-      <div className="relative" style={{ height: 4 }}>
-        <div className="flex rounded-full overflow-hidden" style={{ height: 4 }}>
+    <div style={{ marginTop: 10 }}>
+      <div className="relative" style={{ height: 6 }}>
+        <div className="flex rounded-full overflow-hidden" style={{ height: 6 }}>
           <div className="flex-1" style={{ background: ZONE_COLORS.weak }} />
           <div className="flex-1" style={{ background: ZONE_COLORS.healthy }} />
           <div className="flex-1" style={{ background: ZONE_COLORS.strong }} />
         </div>
-        <div className="absolute top-1/2 -translate-y-1/2"
-          style={{ left: `${dotPos}%`, width: 8, height: 8, borderRadius: '50%', background: '#1E2D3D', border: '1.5px solid white', transform: `translateX(-50%) translateY(-50%)`, boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+        <div className="absolute"
+          style={{ left: `${dotPos}%`, top: '50%', width: 10, height: 10, borderRadius: '50%', background: '#1E2D3D', border: '2px solid white', transform: 'translateX(-50%) translateY(-50%)', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
       </div>
-      <div className="flex justify-between mt-1">
+      <div className="flex justify-between" style={{ marginTop: 5 }}>
         <span className="text-[8px] font-bold uppercase" style={{ color: ZONE_COLORS.weak }}>Weak</span>
         <span className="text-[8px] font-bold uppercase" style={{ color: ZONE_COLORS.healthy }}>Healthy</span>
         <span className="text-[8px] font-bold uppercase" style={{ color: ZONE_COLORS.strong }}>Strong</span>

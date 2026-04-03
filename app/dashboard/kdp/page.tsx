@@ -1,6 +1,7 @@
 'use client'
 // app/dashboard/kdp/page.tsx
-import { Suspense, useEffect, useState, useMemo } from 'react'
+import { Suspense, useEffect, useRef, useState, useMemo } from 'react'
+import ChartJS from 'chart.js/auto'
 import Link from 'next/link'
 import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
@@ -492,8 +493,15 @@ export default function KDPPage() {
                 {kpis.map((kpi, i) => {
                   const isEmpty = kpi.value === '—' || kpi.value === '0' || kpi.value === '$0'
                   return (
-                    <div key={i} className="rounded-xl relative overflow-hidden p-4"
-                      style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                    <div key={i} className="rounded-xl relative p-4"
+                      style={{
+                        background: 'white',
+                        border: '1px solid #EEEBE6',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        paddingBottom: kpi.benchmark ? 20 : 16,
+                      }}>
                       <div className="absolute bottom-0 left-0 right-0 h-[2px]"
                         style={{ background: isEmpty ? '#EEEBE6' : kpi.color }} />
                       <div className="flex items-center gap-1 mb-2">
@@ -513,7 +521,8 @@ export default function KDPPage() {
                         </div>
                       ) : (
                         <>
-                          <div className="text-[24px] font-bold leading-none tracking-tight" style={{ color: '#1E2D3D' }}>
+                          <div className="font-bold leading-none tracking-tight"
+                            style={{ color: '#1E2D3D', fontSize: 'clamp(20px, 2vw, 28px)' }}>
                             {kpi.value}
                           </div>
                           {kpi.delta != null && kpi.delta !== 0 && (
