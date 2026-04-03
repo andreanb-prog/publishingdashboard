@@ -509,7 +509,7 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
       <div className="p-4 md:p-8 max-w-[1400px]">
         <div className="animate-pulse space-y-4">
           <div className="h-20 rounded-xl" style={{ background: '#EEEBE6' }} />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
             {[1,2,3,4].map(i => <div key={i} className="h-24 rounded-xl" style={{ background: '#EEEBE6' }} />)}
           </div>
           <div className="h-40 rounded-xl" style={{ background: '#EEEBE6' }} />
@@ -589,7 +589,7 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
       {analyses.length >= 2 && <WhatHappenedCard current={analyses[0]} previous={analyses[1]} actionPlan={analysis?.actionPlan} />}
 
       {/* Hero numbers strip — centered grid */}
-      <div className="rounded-xl mb-4 py-6 px-4 sm:px-6 grid grid-cols-2 sm:grid-cols-4 gap-4"
+      <div className="rounded-xl mb-4 py-6 px-4 sm:px-6 grid grid-cols-3 md:grid-cols-4 gap-4"
         style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
         {[
           { label: 'Est. Revenue', value: analysis?.kdp ? `$${animRev.toFixed(2)}`                      : null },
@@ -873,7 +873,11 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
                   </div>
                 ) : !analysis?.actionPlan?.length ? (
                   <div className="card p-8 text-center">
-                    <div className="text-2xl mb-3">⚡</div>
+                    <div className="mb-3 flex justify-center">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.4 }}>
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#1E2D3D" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
                     <div className="font-sans text-lg text-[#0d1f35] mb-2">
                       Upload your files to get your coaching session
                     </div>

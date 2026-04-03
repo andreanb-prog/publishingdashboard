@@ -76,7 +76,12 @@ export function FeedbackButton() {
           {status === 'done' ? (
             /* ── Thank-you state ── */
             <div className="px-5 py-8 text-center">
-              <div className="text-3xl mb-3">🙏</div>
+              <div className="mb-3 flex justify-center">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="9" stroke="#6EBF8B" strokeWidth="1.75"/>
+                  <polyline points="8 12 11 15 16 9" stroke="#6EBF8B" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
               <div className="font-sans text-[16px] mb-1.5" style={{ color: '#1E2D3D' }}>
                 Got it! Thank you —
               </div>
@@ -180,7 +185,9 @@ export function FeedbackButton() {
           backdropFilter: 'blur(8px)',
         }}
       >
-        <span style={{ fontSize: '14px' }}>💬</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#0d1f35" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
         Something feel off?
       </button>
     </div>

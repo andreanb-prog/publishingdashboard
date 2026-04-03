@@ -37,7 +37,13 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex items-center justify-center min-h-[300px] p-8">
           <div className="text-center max-w-md">
-            <div className="text-4xl mb-4">📊</div>
+            <div className="mb-4 flex justify-center">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.35 }}>
+                <rect x="3" y="12" width="4" height="9" rx="1" fill="#1E2D3D" />
+                <rect x="10" y="7" width="4" height="14" rx="1" fill="#1E2D3D" />
+                <rect x="17" y="3" width="4" height="18" rx="1" fill="#1E2D3D" />
+              </svg>
+            </div>
             <h2 className="font-sans text-[20px] mb-2" style={{ color: '#1E2D3D' }}>
               {this.props.fallbackTitle ?? 'Something went wrong'}
             </h2>

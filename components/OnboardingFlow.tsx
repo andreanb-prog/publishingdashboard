@@ -223,7 +223,13 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                 onDragEnter={() => setDragOverKdp(true)}
                 onDragLeave={() => setDragOverKdp(false)}
               >
-                <div className="text-3xl mb-3">📂</div>
+                <div className="mb-3 flex justify-center">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ color: '#E9A020' }}>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                    <polyline points="17 8 12 3 7 8" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                    <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
+                  </svg>
+                </div>
                 <div className="text-[15px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
                   {uploading ? 'Reading your files...' : kdpFiles.length > 0 ? 'Add more KDP files' : 'Drop your KDP files here'}
                 </div>
@@ -272,8 +278,12 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
 
             {metaFiles.length > 0 && (
               <div className="rounded-xl p-4 mb-3" style={{ background: 'rgba(52,211,153,0.06)', border: '1.5px solid rgba(52,211,153,0.3)' }}>
-                <div className="text-[13px] font-semibold mb-2" style={{ color: '#34d399' }}>
-                  ✅ {metaFiles.length} file{metaFiles.length > 1 ? 's' : ''} ready
+                <div className="flex items-center gap-1.5 text-[13px] font-semibold mb-2" style={{ color: '#34d399' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="9" stroke="#34d399" strokeWidth="1.75"/>
+                    <polyline points="8 12 11 15 16 9" stroke="#34d399" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  {metaFiles.length} file{metaFiles.length > 1 ? 's' : ''} ready
                 </div>
                 <div className="space-y-1.5">
                   {metaFiles.map((f, i) => (
@@ -296,7 +306,11 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                 onDragEnter={() => setDragOverMeta(true)}
                 onDragLeave={() => setDragOverMeta(false)}
               >
-                <div className="text-2xl mb-2">📣</div>
+                <div className="mb-2 flex justify-center">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ color: '#60A5FA' }}>
+                    <path d="M3 11l19-9-9 19-2-8-8-2z" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
                 <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
                   {uploading ? 'Reading...' : metaFiles.length > 0 ? 'Add more files' : 'Yes, upload my ads'}
                 </div>
@@ -309,7 +323,12 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                 style={{ background: '#FAFAFA', border: '1.5px solid #EEEBE6' }}
                 onClick={() => setStep('mailerlite')}
               >
-                <div className="text-2xl mb-2">⏭️</div>
+                <div className="mb-2 flex justify-center">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ color: '#9CA3AF' }}>
+                    <polyline points="13 17 18 12 13 7" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                    <polyline points="6 17 11 12 6 7" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
                 <div className="text-[13px] font-semibold" style={{ color: '#6B7280' }}>
                   {metaFiles.length > 0 ? 'Done' : 'Skip for now'}
                 </div>
@@ -439,9 +458,12 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
           <div className="text-center">
             {analysisDone ? (
               <>
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5 text-4xl"
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5"
                   style={{ background: 'rgba(52,211,153,0.1)' }}>
-                  ✅
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="9" stroke="#34d399" strokeWidth="1.75"/>
+                    <polyline points="8 12 11 15 16 9" stroke="#34d399" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
                 <h2 className="text-[24px] font-semibold tracking-tight mb-2" style={{ color: '#1E2D3D' }}>
                   Your dashboard is ready!
@@ -459,9 +481,11 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
               </>
             ) : analyzing ? (
               <>
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5 text-4xl animate-pulse"
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5 animate-pulse"
                   style={{ background: 'rgba(233,160,32,0.1)' }}>
-                  ⚡
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#E9A020" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
                 <h2 className="text-[22px] font-semibold tracking-tight mb-2" style={{ color: '#1E2D3D' }}>
                   Building your dashboard...
@@ -486,7 +510,10 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                 <div className="space-y-2 mb-6 text-left max-w-sm mx-auto">
                   {kdpFiles.length > 0 && (
                     <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(52,211,153,0.06)' }}>
-                      <span style={{ color: '#34d399' }}>✅</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                        <circle cx="12" cy="12" r="9" stroke="#34d399" strokeWidth="1.75"/>
+                        <polyline points="8 12 11 15 16 9" stroke="#34d399" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                       <div>
                         <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>KDP Reports ({kdpFiles.length})</div>
                         <div className="text-[11px]" style={{ color: '#6B7280' }}>{kdpFiles.map(f => f.filename).join(', ')}</div>
@@ -495,7 +522,10 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                   )}
                   {metaFiles.length > 0 && (
                     <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(52,211,153,0.06)' }}>
-                      <span style={{ color: '#34d399' }}>✅</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                        <circle cx="12" cy="12" r="9" stroke="#34d399" strokeWidth="1.75"/>
+                        <polyline points="8 12 11 15 16 9" stroke="#34d399" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                       <div>
                         <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Meta Ads ({metaFiles.length})</div>
                         <div className="text-[11px]" style={{ color: '#6B7280' }}>{metaFiles.map(f => f.filename).join(', ')}</div>
@@ -503,7 +533,18 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                     </div>
                   )}
                   <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: mlStatus === 'connected' ? 'rgba(52,211,153,0.06)' : 'rgba(56,189,248,0.06)' }}>
-                    <span style={{ color: mlStatus === 'connected' ? '#34d399' : '#38bdf8' }}>{mlStatus === 'connected' ? '✅' : '⚡'}</span>
+                    {mlStatus === 'connected' ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                        <circle cx="12" cy="12" r="9" stroke="#34d399" strokeWidth="1.75"/>
+                        <polyline points="8 12 11 15 16 9" stroke="#34d399" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                        <circle cx="12" cy="12" r="9" stroke="#38bdf8" strokeWidth="1.75"/>
+                        <line x1="12" y1="8" x2="12" y2="12" stroke="#38bdf8" strokeWidth="1.75" strokeLinecap="round"/>
+                        <circle cx="12" cy="16" r="0.75" fill="#38bdf8"/>
+                      </svg>
+                    )}
                     <div>
                       <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>MailerLite</div>
                       <div className="text-[11px]" style={{ color: '#6B7280' }}>
@@ -513,7 +554,9 @@ export function OnboardingFlow({ onSkip }: { onSkip: () => void }) {
                   </div>
                   {kdpFiles.length === 0 && metaFiles.length === 0 && (
                     <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(251,191,36,0.06)' }}>
-                      <span style={{ color: '#fbbf24' }}>📂</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="#fbbf24" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                       <div>
                         <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>No files uploaded</div>
                         <div className="text-[11px]" style={{ color: '#6B7280' }}>You can upload files anytime from the Upload page</div>
