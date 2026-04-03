@@ -818,7 +818,24 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
                   {CHANNEL_CARDS.map(card => {
-                    const score = getChannelScore(card.key)
+                    let score = getChannelScore(card.key)
+
+                    // Fallback for Meta: if no channelScore exists but synced data is in the DB,
+                    // build a synthetic score from the raw meta fields so the card shows real numbers.
+                    if (!score && card.key === 'meta' && analysis?.meta) {
+                      const m = analysis.meta
+                      const ctr: number = m.avgCTR ?? 0
+                      const status = ctr >= 2 ? 'GREEN' : ctr >= 1 ? 'AMBER' : 'RED'
+                      score = {
+                        channel: 'meta',
+                        status,
+                        headline: `$${(m.totalSpend ?? 0).toFixed(2)} spent`,
+                        metric: `$${(m.totalSpend ?? 0).toFixed(2)}`,
+                        subline: `CTR ${ctr}% · CPC $${m.avgCPC ?? 0} · ${(m.totalImpressions ?? 0).toLocaleString()} impressions`,
+                        badge: status === 'GREEN' ? 'Growing' : status === 'AMBER' ? 'Watch' : 'Fix this',
+                      } as ChannelScore
+                    }
+
                     const badge = (score?.status ? STATUS_BADGE[score.status] : null) ?? STATUS_BADGE.NEW
                     return (
                       <Link key={card.key} href={card.href}
