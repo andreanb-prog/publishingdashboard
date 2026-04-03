@@ -1,0 +1,25 @@
+// app/api/meta/save-account/route.ts — Save user's selected Meta ad account to DB
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { db } from '@/lib/db'
+
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { accountId } = await req.json()
+  if (!accountId || typeof accountId !== 'string') {
+    return NextResponse.json({ error: 'accountId is required' }, { status: 400 })
+  }
+
+  const id = accountId.startsWith('act_') ? accountId : `act_${accountId}`
+
+  await db.user.update({
+    where: { id: session.user.id },
+    data: { metaAdAccountId: id },
+  })
+
+  console.log('[Meta Save Account] Saved', id, 'for user', session.user.id)
+  return NextResponse.json({ ok: true })
+}

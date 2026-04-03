@@ -8,11 +8,6 @@ import type { MetaAd, MetaData } from '@/types'
 
 const GRAPH = 'https://graph.facebook.com/v21.0'
 
-// Elle Wilder Books — Facebook-visible account
-const ELLE_WILDER_AD_ACCOUNT = 'act_898774062895926'
-// Elle Wilder Books — created via Instagram login, not discoverable via /me/adaccounts; active campaigns live here
-const ELLE_WILDER_IG_ACCOUNT = 'act_940232825191906'
-
 // Insights fields for ad-level query
 const INSIGHTS_FIELDS = [
   'ad_name',
@@ -80,17 +75,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: meData.error.message || 'Token invalid' }, { status: 401 })
     }
 
-    // ── Step 2: Verify account access ─────────────────────────────────────────
-    console.log('[Meta Sync] Step 2: testing account access ...')
-    const accountTestRes = await fetch(
-      `${GRAPH}/${ELLE_WILDER_AD_ACCOUNT}?fields=id,name,account_status&access_token=${token}`
-    )
-    const accountTestData = await accountTestRes.json()
-    console.log('[Meta Sync] Account test:', JSON.stringify(accountTestData))
-
-    if (accountTestData.error) {
-      console.error('[Meta Sync] No access to hardcoded account. Code:', accountTestData.error.code, '| Message:', accountTestData.error.message)
-      // Don't abort — continue with account discovery; maybe discovered accounts work
+    // ── Step 2: Verify stored account access (if one is saved) ───────────────
+    if (user.metaAdAccountId) {
+      console.log('[Meta Sync] Step 2: testing stored account access ...')
+      const accountTestRes = await fetch(
+        `${GRAPH}/${user.metaAdAccountId}?fields=id,name,account_status&access_token=${token}`
+      )
+      const accountTestData = await accountTestRes.json()
+      console.log('[Meta Sync] Account test:', JSON.stringify(accountTestData))
+      if (accountTestData.error) {
+        console.error('[Meta Sync] No access to stored account. Code:', accountTestData.error.code, '| Message:', accountTestData.error.message)
+      }
+    } else {
+      console.log('[Meta Sync] Step 2: no stored account — skipping account test')
     }
 
     // ── Step 3: Discover all ad accounts ──────────────────────────────────────
@@ -177,11 +174,9 @@ export async function POST(req: NextRequest) {
       if (!seen.has(id)) { seen.add(id); allAccounts.push({ id, name }) }
     }
 
-    addAccount(ELLE_WILDER_AD_ACCOUNT, 'Elle Wilder Books (hardcoded)')
-    // Instagram-created account — not discoverable via /me/adaccounts; always try regardless
-    addAccount(ELLE_WILDER_IG_ACCOUNT, 'Elle Wilder Books IG (hardcoded)')
-    for (const a of discovered) addAccount(a.id, a.name)
+    // Stored account first (user's explicit selection), then anything discovered via OAuth
     if (user.metaAdAccountId) addAccount(user.metaAdAccountId, 'stored account')
+    for (const a of discovered) addAccount(a.id, a.name)
 
     console.log(`[Meta Sync] Will try ${allAccounts.length} accounts: ${allAccounts.map(a => a.id).join(', ')}`)
 

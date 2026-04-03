@@ -45,26 +45,16 @@ export async function GET(req: NextRequest) {
     const expiresIn = longData.expires_in || 5184000 // default 60 days
     console.log('[Meta Callback] Long-lived token:', accessToken ? 'success' : 'using short-lived')
 
-    // Step 3: Get ad account ID
-    const adAccountRes = await fetch(
-      `https://graph.facebook.com/v19.0/me/adaccounts?fields=id,name,account_status&access_token=${accessToken}`
-    )
-    const adAccountData = await adAccountRes.json()
-    const adAccount = adAccountData.data?.[0]
-    const adAccountId = adAccount?.id || null
-    console.log('[Meta Callback] Ad account:', adAccountId, adAccount?.name)
-
-    // Step 4: Save to database using Prisma (throws P2025 if userId not found)
+    // Step 3: Save token to DB — account selection happens on the next page
     await db.user.update({
       where: { id: userId },
       data: {
         metaAccessToken:  accessToken,
-        metaAdAccountId:  adAccountId,
         metaTokenExpires: new Date(Date.now() + expiresIn * 1000),
       },
     })
 
-    // Step 5: Read back to verify the token was actually persisted
+    // Step 4: Read back to verify the token was actually persisted
     const verify = await db.user.findUnique({
       where: { id: userId },
       select: { metaAccessToken: true },
@@ -77,9 +67,10 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    console.log('[Meta Callback] Verified save for user:', userId, '— token length:', verify.metaAccessToken.length)
+    console.log('[Meta Callback] Token saved for user:', userId, '— redirecting to account selection')
 
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL ?? 'https://authordash.io'}/dashboard/settings?meta=connected`)
+    // Step 5: Redirect to account selection — user picks which ad account to use
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL ?? 'https://authordash.io'}/dashboard/meta/select-account`)
 
   } catch (err: any) {
     // P2025 = Prisma "Record to update not found" — userId from state didn't match any user
