@@ -652,7 +652,7 @@ export default function SettingsPage() {
                   Disconnect
                 </button>
               </div>
-              {isAdmin && (
+              {isAdmin ? (
                 <div
                   className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
                   style={{ background: 'rgba(233,160,32,0.06)', border: '0.5px solid rgba(233,160,32,0.25)', color: '#92610a' }}
@@ -667,6 +667,13 @@ export default function SettingsPage() {
                   >
                     Submit for app review →
                   </a>
+                </div>
+              ) : (
+                <div
+                  className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
+                  style={{ background: 'rgba(30,45,61,0.04)', border: '0.5px solid rgba(30,45,61,0.1)', color: '#6B7280' }}
+                >
+                  Meta Ads connection coming soon — check back shortly.
                 </div>
               )}
               {metaSuccess && (
@@ -706,7 +713,7 @@ export default function SettingsPage() {
               className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
               style={{ background: 'rgba(30,45,61,0.04)', border: '0.5px solid rgba(30,45,61,0.1)', color: '#6B7280' }}
             >
-              Meta Ads coming soon — we&apos;re finishing the connection. Check back shortly.
+              Meta Ads connection coming soon — check back shortly.
             </div>
           )}
         </IntegCard>
@@ -780,10 +787,10 @@ export default function SettingsPage() {
                 className="w-full text-[9px] font-mono px-2 py-1.5 rounded-md outline-none"
                 style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#F9FAFB', color: '#374151' }}
               />
-              <div className="flex gap-1.5">
+              <div className="flex flex-col sm:flex-row gap-1.5">
                 <button
                   onClick={() => bfSecret && copyToClipboard(bfSecret, 'secret')}
-                  className="flex-1 text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all"
+                  className="w-full text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all"
                   style={{
                     background: bfCopied === 'secret' ? 'rgba(110,191,139,0.15)' : 'rgba(30,45,61,0.06)',
                     color: bfCopied === 'secret' ? '#16a34a' : '#6B7280',
@@ -796,7 +803,7 @@ export default function SettingsPage() {
                 <button
                   onClick={regenerateBfSecret}
                   disabled={bfRegenerating}
-                  className="text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all disabled:opacity-40"
+                  className="w-full text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all disabled:opacity-40"
                   style={{ background: 'rgba(30,45,61,0.06)', color: '#6B7280', border: 'none', cursor: 'pointer' }}
                 >
                   {bfRegenerating ? '…' : 'Rotate'}

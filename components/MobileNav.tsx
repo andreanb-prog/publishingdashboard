@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { List, X, House, UploadSimple, GraduationCap, Gear } from '@phosphor-icons/react'
 
 function openUploadModal() {
@@ -28,6 +29,8 @@ function ic(Icon: (props: { size?: number; color?: string }) => React.ReactNode,
   return () => <Icon size={20} color={color} />
 }
 
+const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
+
 const ALL_NAV: NavEntry[] = [
   { section: 'Overview', label: 'My Dashboard',   href: '/dashboard',              render: ph(House) },
   { section: 'Channels', label: 'KDP',            href: '/dashboard/kdp',          render: ic(IconKDP, '#E9A020') },
@@ -47,6 +50,9 @@ const ALL_NAV: NavEntry[] = [
 export function MobileNav() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const isAdmin = ADMIN_EMAILS.includes(session?.user?.email ?? '')
+  const navItems = ALL_NAV.filter(item => item.href !== '/dashboard/list-building' || isAdmin)
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard'
@@ -112,7 +118,7 @@ export function MobileNav() {
 
             {/* Nav items */}
             <div className="px-3 py-4">
-              {ALL_NAV.map((item, i) => {
+              {navItems.map((item, i) => {
                 const active = isActive(item.href)
                 return (
                   <div key={item.href}>
