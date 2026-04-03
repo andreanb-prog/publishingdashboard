@@ -11,7 +11,7 @@ const GRAPH = 'https://graph.facebook.com/v21.0'
 // Elle Wilder Books — Facebook-visible account
 const ELLE_WILDER_AD_ACCOUNT = 'act_898774062895926'
 // Elle Wilder Books — created via Instagram login, not discoverable via /me/adaccounts
-const ELLE_WILDER_IG_ACCOUNT = 'act_940232825191906'
+const ELLE_WILDER_IG_ACCOUNT = 'act_898774062895926'
 
 // Insights fields for ad-level query
 const INSIGHTS_FIELDS = [
