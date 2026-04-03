@@ -92,7 +92,7 @@ function IntegCard({
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>{name}</div>
-          <div className="text-[10px]" style={{ color: '#9CA3AF' }}>{subtitle}</div>
+          <div className="text-[10px] break-words" style={{ color: '#9CA3AF' }}>{subtitle}</div>
         </div>
         <div className="shrink-0">{statusPill}</div>
       </div>
@@ -565,7 +565,7 @@ export default function SettingsPage() {
           name="MailerLite"
           subtitle={
             hasSavedML && mlSubscribers != null
-              ? `${mlSubscribers.toLocaleString()} active subscribers`
+              ? `${Number(mlSubscribers).toLocaleString('en-US')} active subscribers`
               : hasSavedML
               ? 'Connected'
               : 'Connect to sync email stats'

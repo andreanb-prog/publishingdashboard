@@ -50,10 +50,13 @@ export async function getMailerLiteStats(apiKey: string): Promise<{
 }> {
   const result = await mlFetch(`/groups/${PRIMARY_GROUP_ID}`, apiKey)
   // v3 single-resource response wraps in { data: {...} }
-  const g = result.data?.data ?? result.data ?? {}
+  // Handle both object and array (paginated) response shapes
+  const raw = result.data?.data ?? result.data ?? {}
+  const g   = Array.isArray(raw) ? (raw[0] ?? {}) : raw
 
-  const listSize     = g.active_count ?? 0
-  const unsubscribed = g.unsubscribed_count ?? 0
+  // active_count may be returned as a string by some API versions — cast to Number
+  const listSize     = Number(g.active_count ?? g.active_subscribers ?? 0)
+  const unsubscribed = Number(g.unsubscribed_count ?? g.unsubscribed ?? 0)
   const rawOpen      = g.open_rate?.float  ?? g.open_rate  ?? 0
   const rawClick     = g.click_rate?.float ?? g.click_rate ?? 0
   const openRate     = Math.round(Number(rawOpen)  * 1000) / 10

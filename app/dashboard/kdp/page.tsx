@@ -717,19 +717,27 @@ export default function KDPPage() {
   const [heatmapView, setHeatmapView] = useState(false)
   const [loading,     setLoading]     = useState(true)
   const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set())
+  const [excludedAsins, setExcludedAsins] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     Promise.all([
       fetch('/api/analyze').then(r => r.json()).catch(() => ({})),
       fetch('/api/roas').then(r => r.json()).catch(() => ({ logs: [] })),
       fetch('/api/mailerlite').then(r => r.json()).catch(() => ({ data: null })),
-    ]).then(([analyzeData, roasData, mlData]) => {
+      fetch('/api/books').then(r => r.json()).catch(() => ({ books: [] })),
+    ]).then(([analyzeData, roasData, mlData, booksData]) => {
       const analyses: Analysis[] = (analyzeData.analyses ?? []).map(
         (a: any) => a.data ?? a
       )
       setAllAnalyses(analyses)
       setRoasLogs(roasData.logs ?? [])
       if (mlData?.data?.campaigns) setMlCampaigns(mlData.data.campaigns)
+      const excluded = new Set<string>(
+        (booksData.books ?? [])
+          .filter((b: any) => b.excludeFromDashboard && b.asin)
+          .map((b: any) => String(b.asin).trim().toUpperCase())
+      )
+      setExcludedAsins(excluded)
     }).finally(() => setLoading(false))
   }, [])
 
@@ -793,6 +801,12 @@ export default function KDPPage() {
   const filteredTotalUnits = useMemo(() => sumValues(filteredUnits), [filteredUnits])
   const filteredTotalKENP  = useMemo(() => sumValues(filteredKENP),  [filteredKENP])
 
+  // When no daily data exists (flat-format upload or date-column mismatch in KDP report),
+  // fall back to the monthly aggregate so all KPI cards show data consistently.
+  const noDailyData = allDailyUnits.length === 0 && allDailyKENP.length === 0
+  const displayUnits = noDailyData ? (allAnalyses[0]?.kdp?.totalUnits ?? filteredTotalUnits) : filteredTotalUnits
+  const displayKENP  = noDailyData ? (allAnalyses[0]?.kdp?.totalKENP  ?? filteredTotalKENP)  : filteredTotalKENP
+
   // Email send dates for Chart 4 and heatmap — prefer live MailerLite fetch, fall back to stored analysis
   const analysis = allAnalyses[0] ?? null
   const emailSendDates = useMemo(() => {
@@ -854,30 +868,27 @@ export default function KDPPage() {
           <GoalSection
             page="kdp"
             currentValues={{
-              kdp_units:     filteredTotalUnits,
-              kdp_kenp:      filteredTotalKENP,
+              kdp_units:     displayUnits,
+              kdp_kenp:      displayKENP,
               kdp_royalties: kdp.totalRoyaltiesUSD,
             }}
           />
 
           {/* KPI Strip */}
           {(() => {
-            const estKu = Math.round(filteredTotalKENP * 0.0045 * 100) / 100
-            // When a date range is active use only the filtered KU estimate —
-            // we have no daily royalty breakdown so adding unfiltered royalties
-            // would make this card inconsistent with the other filtered metrics.
-            const hasRangeFilter = !!(range.start && range.end)
-            const totalEstRevenue = hasRangeFilter
-              ? estKu
-              : Math.round((kdp.totalRoyaltiesUSD + estKu) * 100) / 100
+            // KDP monthly reports have no per-day royalty breakdown, so Total Est. Revenue
+            // always includes the full-period royalties regardless of the date filter.
+            // displayUnits / displayKENP fall back to monthly aggregate when no daily data.
+            const estKu = Math.round(displayKENP * 0.0045 * 100) / 100
+            const totalEstRevenue = Math.round((kdp.totalRoyaltiesUSD + estKu) * 100) / 100
             const prev = allAnalyses[1]?.kdp
-            const unitsDelta = prev ? filteredTotalUnits - prev.totalUnits : null
-            const kenpDelta  = prev ? filteredTotalKENP - prev.totalKENP : null
+            const unitsDelta = prev ? displayUnits - prev.totalUnits : null
+            const kenpDelta  = prev ? displayKENP  - prev.totalKENP  : null
             const revDelta   = prev ? totalEstRevenue - Math.round((prev.totalRoyaltiesUSD + prev.totalKENP * 0.0045) * 100) / 100 : null
 
             const kpis = [
-              { label: 'Units Sold',        value: filteredTotalUnits.toLocaleString(), delta: unitsDelta, color: '#38bdf8', tooltip: 'totalUnits' },
-              { label: 'KENP Reads',        value: filteredTotalKENP.toLocaleString(),  delta: kenpDelta,  color: '#fbbf24', tooltip: 'kenp' },
+              { label: 'Units Sold',        value: displayUnits.toLocaleString(), delta: unitsDelta, color: '#38bdf8', tooltip: 'totalUnits' },
+              { label: 'KENP Reads',        value: displayKENP.toLocaleString(),  delta: kenpDelta,  color: '#fbbf24', tooltip: 'kenp' },
               { label: 'Est. KU Revenue',   value: `$${estKu}`,          delta: null,       color: '#a78bfa', tooltip: 'estKuEarnings',    projection: true },
               { label: 'Total Est. Revenue',value: `$${totalEstRevenue}`, delta: revDelta,   color: '#fb7185', tooltip: 'totalEstRevenue', projection: true },
             ]
@@ -944,8 +955,8 @@ export default function KDPPage() {
           {analysis && <InsightCallouts analysis={analysis} page="kdp" />}
           {coach && <DarkCoachBox color="#fbbf24" title={coachTitle}>{coach}</DarkCoachBox>}
 
-          {/* Book Title Picker */}
-          {kdp.books.length > 1 && (
+          {/* Book Title Picker — excludes books marked as hidden in Settings > My Books */}
+          {kdp.books.filter(b => !excludedAsins.has(b.asin?.toUpperCase() ?? '')).length > 1 && (
             <div className="flex items-center gap-2 mb-4 flex-wrap">
               <span className="text-[11px] font-medium uppercase" style={{ color: '#6B7280', letterSpacing: '0.3px' }}>Filter:</span>
               <button
@@ -959,7 +970,7 @@ export default function KDPPage() {
                 }}>
                 All Books
               </button>
-              {kdp.books.map((b, i) => {
+              {kdp.books.filter(b => !excludedAsins.has(b.asin?.toUpperCase() ?? '')).map((b, i) => {
                 const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
                 const c = BOOK_COLORS[i] || '#6B7280'
                 const isSelected = selectedBooks.has(b.asin)
@@ -995,9 +1006,10 @@ export default function KDPPage() {
           {/* Book Performance Charts */}
           {(() => {
             const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
+            const dashboardBooks = kdp.books.filter(b => !excludedAsins.has(b.asin?.toUpperCase() ?? ''))
             const visibleBooks = selectedBooks.size > 0
-              ? kdp.books.filter(b => selectedBooks.has(b.asin))
-              : kdp.books
+              ? dashboardBooks.filter(b => selectedBooks.has(b.asin))
+              : dashboardBooks
 
             function BookBar({ books, metric, title }: { books: typeof visibleBooks; metric: 'units' | 'kenp'; title: string }) {
               const maxVal = Math.max(...books.map(b => b[metric]), 1)
