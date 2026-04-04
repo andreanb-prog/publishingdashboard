@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       results.promotionCode = { status: 'already_exists', id: existing.id, code: existing.code }
     } else {
       const promoCode = await stripe.promotionCodes.create({
-        coupon_id: couponId,
+        promotion: { coupon: couponId, type: 'coupon' },
         code: 'DEVACCESS2026',
         max_redemptions: 3,
       })
