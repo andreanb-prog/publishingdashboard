@@ -39,9 +39,10 @@ function fmt(date: Date): string {
 }
 
 function toLocalDate(isoStr: string): Date {
-  // Parse yyyy-mm-dd or ISO string in local timezone
+  // Parse using UTC components to avoid midnight-UTC dates shifting back one day
+  // in timezones behind UTC (e.g. US Eastern).
   const d = new Date(isoStr)
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
 }
 
 function formatDate(isoStr: string): string {
