@@ -1,6 +1,7 @@
 'use client'
 // app/dashboard/launch/LaunchClient.tsx
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { Pencil } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface LaunchTask {
@@ -692,6 +693,186 @@ function phaseColor(phase: string): { bg: string; color: string } {
   return { bg: '#F3F4F6', color: '#4B5563' }
 }
 
+// ── Inline edit helpers ─────────────────────────────────────────────────────────
+
+function InlineTextField({
+  value,
+  onSave,
+  placeholder,
+  className: extraClass,
+  style,
+}: {
+  value: string
+  onSave: (val: string) => void | Promise<void>
+  placeholder?: string
+  className?: string
+  style?: React.CSSProperties
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  useEffect(() => { if (!editing) setDraft(value) }, [value, editing])
+
+  async function commit() {
+    const t = draft.trim()
+    setEditing(false)
+    if (t !== value) await onSave(t)
+  }
+
+  const fieldStyle: React.CSSProperties = {
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    ...style,
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={() => void commit()}
+        onKeyDown={e => {
+          if (e.key === 'Enter') { e.preventDefault(); void commit() }
+          if (e.key === 'Escape') { setEditing(false); setDraft(value) }
+        }}
+        className={`font-semibold text-[13px] bg-transparent border-b outline-none w-full ${extraClass ?? ''}`}
+        style={{ ...fieldStyle, borderColor: '#E9A020' }}
+        placeholder={placeholder}
+      />
+    )
+  }
+  return (
+    <span
+      className={`inline-flex items-center gap-1 group/ifield cursor-text ${extraClass ?? ''}`}
+      style={fieldStyle}
+      onClick={() => { setEditing(true); setDraft(value) }}
+    >
+      <span className="font-semibold text-[13px]">
+        {value || <span style={{ color: '#9CA3AF' }}>{placeholder ?? 'Click to edit'}</span>}
+      </span>
+      <Pencil size={10} className="opacity-0 group-hover/ifield:opacity-50 transition-opacity shrink-0" style={{ color: '#9CA3AF' }} />
+    </span>
+  )
+}
+
+function InlineDateField({
+  value,
+  onSave,
+}: {
+  value: string | null
+  onSave: (val: string) => void | Promise<void>
+}) {
+  const [editing, setEditing] = useState(false)
+
+  const display = value
+    ? toLocalDate(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : 'Set date'
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="date"
+        defaultValue={value ? value.slice(0, 10) : ''}
+        onBlur={async e => {
+          if (e.target.value) await onSave(e.target.value)
+          setEditing(false)
+        }}
+        onKeyDown={e => { if (e.key === 'Escape') setEditing(false) }}
+        className="text-[11px] bg-transparent outline-none border-b"
+        style={{ borderColor: '#E9A020', color: '#6B7280', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      />
+    )
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-0.5 group/idate cursor-pointer text-[11px] text-gray-400 hidden sm:inline-flex"
+      onClick={() => setEditing(true)}
+    >
+      {display}
+      <Pencil size={9} className="opacity-0 group-hover/idate:opacity-50 transition-opacity shrink-0" style={{ color: '#9CA3AF' }} />
+    </span>
+  )
+}
+
+function InlinePhaseSelect({
+  value,
+  onSave,
+}: {
+  value: string
+  onSave: (val: string) => void | Promise<void>
+}) {
+  const [editing, setEditing] = useState(false)
+  const pc = phaseColor(value)
+
+  if (editing) {
+    return (
+      <select
+        autoFocus
+        defaultValue={value}
+        onBlur={async e => { await onSave(e.target.value); setEditing(false) }}
+        onChange={async e => { await onSave(e.target.value); setEditing(false) }}
+        className="text-[10px] font-bold px-2 py-0.5 rounded-full outline-none cursor-pointer"
+        style={{ background: pc.bg, color: pc.color, border: 'none', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      >
+        {PHASE_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+      </select>
+    )
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-0.5 group/iphase cursor-pointer text-[10px] font-bold px-2 py-0.5 rounded-full"
+      style={{ background: pc.bg, color: pc.color }}
+      onClick={() => setEditing(true)}
+    >
+      {value}
+      <Pencil size={8} className="opacity-0 group-hover/iphase:opacity-60 transition-opacity shrink-0" />
+    </span>
+  )
+}
+
+function LaunchRow({ launch, onDelete }: { launch: LaunchRecord; onDelete: (id: string) => void }) {
+  const [data, setData] = useState(launch)
+
+  async function patch(updates: Partial<LaunchRecord>) {
+    const res = await fetch(`/api/launches/${data.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    })
+    if (res.ok) {
+      const { launch: updated } = await res.json()
+      setData(prev => ({ ...prev, ...updated }))
+    }
+  }
+
+  const displayPhase = data.phase === 'Custom' && data.customPhase ? data.customPhase : data.phase
+
+  return (
+    <div className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0">
+      <div className="flex-1 min-w-0">
+        <InlineTextField
+          value={data.bookTitle}
+          onSave={title => patch({ bookTitle: title })}
+          style={{ color: '#1E2D3D' }}
+        />
+      </div>
+      <InlinePhaseSelect value={displayPhase} onSave={phase => patch({ phase })} />
+      <InlineDateField
+        value={data.startDate}
+        onSave={date => patch({ startDate: date })}
+      />
+      <button
+        onClick={() => onDelete(data.id)}
+        className="text-gray-300 hover:text-red-400 transition-colors ml-1 text-[16px] leading-none"
+        title="Delete launch"
+        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}
+      >
+        ×
+      </button>
+    </div>
+  )
+}
+
 // ── Launches panel ─────────────────────────────────────────────────────────────
 function deriveLaunchPhase(launchDateIso: string): string {
   const today = new Date()
@@ -703,9 +884,11 @@ function deriveLaunchPhase(launchDateIso: string): string {
   return 'Post-Launch'
 }
 
-function LaunchesPanel({ initialLaunches, activeLaunch }: {
+function LaunchesPanel({ initialLaunches, activeLaunch, onActiveLaunchTitleChange, onActiveLaunchDateChange }: {
   initialLaunches: LaunchRecord[]
   activeLaunch?: { launchDate: string; bookTitle: string | null } | null
+  onActiveLaunchTitleChange?: (title: string) => void
+  onActiveLaunchDateChange?: (date: string) => Promise<void>
 }) {
   const [launches, setLaunches]   = useState<LaunchRecord[]>(initialLaunches)
   const [showAdd,  setShowAdd]    = useState(false)
@@ -772,58 +955,42 @@ function LaunchesPanel({ initialLaunches, activeLaunch }: {
 
       <div className="flex flex-col gap-2">
         {/* Active task-based launch */}
-        {activeLaunch && (
-          <a
-            href="#launch-tasks"
-            className="flex items-center gap-2 py-2 border-b border-gray-50 no-underline"
-            style={{ textDecoration: 'none' }}
-          >
-            <span className="font-semibold text-[13px] flex-1" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-              {activeLaunch.bookTitle || 'Untitled launch'}
-            </span>
-            {(() => {
-              const phase = deriveLaunchPhase(activeLaunch.launchDate)
-              const pc = phaseColor(phase)
-              return (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: pc.bg, color: pc.color }}>
-                  {phase}
-                </span>
-              )
-            })()}
-            <span className="text-[11px] text-gray-400 hidden sm:block">
-              {formatShort(activeLaunch.launchDate)}
-            </span>
-          </a>
-        )}
-
-        {/* Campaign Organizer launches */}
-        {launches.map(l => {
-          const pc = phaseColor(l.phase)
-          const displayPhase = l.phase === 'Custom' && l.customPhase ? l.customPhase : l.phase
+        {activeLaunch && (() => {
+          const phase = deriveLaunchPhase(activeLaunch.launchDate)
+          const pc = phaseColor(phase)
           return (
-            <div key={l.id} className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0">
-              <span className="font-semibold text-[13px] flex-1" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                {l.bookTitle}
+            <div className="flex items-center gap-2 py-2 border-b border-gray-50">
+              <div className="flex-1 min-w-0">
+                <InlineTextField
+                  value={activeLaunch.bookTitle ?? ''}
+                  placeholder="Untitled launch"
+                  onSave={title => onActiveLaunchTitleChange?.(title)}
+                  style={{ color: '#1E2D3D' }}
+                />
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: pc.bg, color: pc.color }}>
+                {phase}
               </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: pc.bg, color: pc.color }}>
-                {displayPhase}
-              </span>
-              {l.startDate && (
-                <span className="text-[11px] text-gray-400 hidden sm:block">
-                  {new Date(l.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </span>
-              )}
-              <button
-                onClick={() => handleDelete(l.id)}
-                className="text-gray-300 hover:text-red-400 transition-colors ml-1 text-[16px] leading-none"
-                title="Delete launch"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}
+              <InlineDateField
+                value={activeLaunch.launchDate}
+                onSave={async date => { await onActiveLaunchDateChange?.(date) }}
+              />
+              <a
+                href="#launch-tasks"
+                className="text-gray-300 hover:text-amber-400 transition-colors text-[13px] leading-none shrink-0"
+                style={{ textDecoration: 'none' }}
+                title="Jump to tasks"
               >
-                ×
-              </button>
+                ↓
+              </a>
             </div>
           )
-        })}
+        })()}
+
+        {/* Campaign Organizer launches */}
+        {launches.map(l => (
+          <LaunchRow key={l.id} launch={l} onDelete={handleDelete} />
+        ))}
       </div>
 
       {showAdd && (
@@ -979,11 +1146,26 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
     showToast(msg, 'amber')
   }, [showToast])
 
-  // Restore channelFilter from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('launch_channel_filter')
-    if (saved) setChannelFilter(saved)
+  const handleActiveLaunchTitleChange = useCallback((title: string) => {
+    setBookTitle(title || null)
   }, [])
+
+  // Restore channelFilter and bookTitle from localStorage on mount
+  useEffect(() => {
+    const savedFilter = localStorage.getItem('launch_channel_filter')
+    if (savedFilter) setChannelFilter(savedFilter)
+    if (!bookTitle) {
+      const savedTitle = localStorage.getItem('launch_book_title')
+      if (savedTitle) setBookTitle(savedTitle)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Persist bookTitle to localStorage
+  useEffect(() => {
+    if (bookTitle) localStorage.setItem('launch_book_title', bookTitle)
+    else localStorage.removeItem('launch_book_title')
+  }, [bookTitle])
 
   // Persist channelFilter to localStorage
   useEffect(() => {
@@ -1017,6 +1199,18 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
       loadTasks(activeFilter)
     }
   }, [activeFilter, launchDate, loadTasks])
+
+  const handleActiveLaunchDateChange = useCallback(async (date: string) => {
+    const res = await fetch('/api/launch/setup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ launchDate: date, bookTitle: bookTitle }),
+    })
+    if (res.ok) {
+      setLaunchDate(date)
+      await loadTasks(activeFilter)
+    }
+  }, [bookTitle, activeFilter, loadTasks])
 
   const handleSetup = async (date: string, title: string) => {
     setLaunchDate(date)
@@ -1117,7 +1311,9 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
         {/* Launches panel */}
         <LaunchesPanel
           initialLaunches={initialLaunches}
-          activeLaunch={{ launchDate, bookTitle }}
+          activeLaunch={launchDate ? { launchDate, bookTitle } : null}
+          onActiveLaunchTitleChange={handleActiveLaunchTitleChange}
+          onActiveLaunchDateChange={handleActiveLaunchDateChange}
         />
 
         {/* Header card */}
