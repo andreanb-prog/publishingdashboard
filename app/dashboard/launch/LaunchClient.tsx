@@ -814,56 +814,77 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
         )}
 
         {/* Phase tabs */}
-        <div className="flex gap-1.5 flex-wrap">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => { setActiveFilter(tab.id); setChannelFilter('All') }}
-              className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all"
-              style={activeFilter === tab.id
-                ? { background: '#E9A020', color: '#1E2D3D' }
-                : { background: '#F5F0E8', color: '#6B7280' }
-              }
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Channel filter pills */}
-        <div className="flex gap-1.5 flex-wrap">
-          {(['All', 'Ads', 'Email', 'Creative', 'Social', 'General'] as const).map(ch => {
-            const isActive = channelFilter === ch
-            if (ch === 'All') {
-              return (
-                <button
-                  key={ch}
-                  onClick={() => setChannelFilter('All')}
-                  className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all border"
-                  style={isActive
-                    ? { background: '#1E2D3D', color: '#FFFFFF', borderColor: '#1E2D3D' }
-                    : { background: 'transparent', color: '#6B7280', borderColor: '#D1D5DB' }
-                  }
-                >
-                  All
-                </button>
-              )
-            }
-            const s = CHANNEL_COLORS[ch]
+        <div className="border-b flex gap-0" style={{ borderColor: 'rgba(0,0,0,0.08)' }}>
+          {TABS.map(tab => {
+            const isActive = activeFilter === tab.id
             return (
               <button
-                key={ch}
-                onClick={() => setChannelFilter(prev => prev === ch ? 'All' : ch)}
-                className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all border"
-                style={isActive
-                  ? { background: s.dot, color: '#FFFFFF', borderColor: s.dot }
-                  : { background: 'transparent', color: s.text, borderColor: s.text }
-                }
+                key={tab.id}
+                onClick={() => { setActiveFilter(tab.id); setChannelFilter('All') }}
+                className="relative pb-2.5 pt-1 px-3.5 transition-colors whitespace-nowrap"
+                style={{
+                  fontSize: '14px',
+                  fontWeight: isActive ? 600 : 400,
+                  color: isActive ? '#C48018' : '#9CA3AF',
+                  background: 'transparent',
+                  border: 'none',
+                }}
               >
-                {ch}
+                {tab.label}
+                {isActive && (
+                  <span
+                    className="absolute bottom-0 left-0 right-0 rounded-t-sm"
+                    style={{ height: '2px', background: '#E9A020' }}
+                  />
+                )}
               </button>
             )
           })}
+        </div>
+
+        {/* Channel filter pills */}
+        <div>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-400 mb-1.5">Filter by channel</p>
+          <div className="flex gap-1.5 flex-wrap">
+            {(['All', 'Ads', 'Email', 'Creative', 'Social', 'General'] as const).map(ch => {
+              const isActive = channelFilter === ch
+              if (ch === 'All') {
+                return (
+                  <button
+                    key={ch}
+                    onClick={() => setChannelFilter('All')}
+                    className="rounded-full font-medium transition-all"
+                    style={{
+                      fontSize: '11px',
+                      padding: '3px 10px',
+                      background: isActive ? '#1E2D3D' : 'transparent',
+                      color: isActive ? '#FFFFFF' : '#9CA3AF',
+                      border: `0.5px solid ${isActive ? '#1E2D3D' : '#D1D5DB'}`,
+                    }}
+                  >
+                    All
+                  </button>
+                )
+              }
+              const s = CHANNEL_COLORS[ch]
+              return (
+                <button
+                  key={ch}
+                  onClick={() => setChannelFilter(prev => prev === ch ? 'All' : ch)}
+                  className="rounded-full font-medium transition-all"
+                  style={{
+                    fontSize: '11px',
+                    padding: '3px 10px',
+                    background: isActive ? s.bg : 'transparent',
+                    color: isActive ? s.text : '#9CA3AF',
+                    border: `0.5px solid ${isActive ? s.dot : s.dot}`,
+                  }}
+                >
+                  {ch}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* Week strip */}
