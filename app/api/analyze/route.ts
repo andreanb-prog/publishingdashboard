@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   // Run analysis asynchronously while streaming progress events to the client
   ;(async () => {
     try {
-      console.log('=== ANALYZE POST (SSE) ===', { month, hasKdp: !!kdp, hasMeta: !!meta })
+      console.log('=== ANALYZE POST (SSE) ===', { userId: session.user.id, month, hasKdp: !!kdp, hasMeta: !!meta, hasPin: !!pinterest, hasML: !!mailerLite })
 
       // ── Load existing record once — used for fingerprint cache AND data preservation ──
       const existingRecord = await db.analysis.findFirst({ where: { userId: session.user.id, month } })
@@ -285,8 +285,9 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       console.log('=== saved ===')
       await send({ type: 'complete', analysis, success: true })
     } catch (error) {
-      console.error('Analysis error (SSE):', error)
-      await send({ type: 'error', message: 'Analysis failed' })
+      const errMsg = error instanceof Error ? error.message : String(error)
+      console.error('Analysis error (SSE):', errMsg, error)
+      await send({ type: 'error', message: errMsg })
     } finally {
       try { writer.close() } catch { /* already closed */ }
     }

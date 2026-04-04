@@ -151,6 +151,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
   const [error, setError]                   = useState<string | null>(null)
   const [isTouch, setIsTouch]               = useState(false)
   const [cyclingMsgIdx, setCyclingMsgIdx]   = useState(0)
+  const [successSummary, setSuccessSummary] = useState<string | null>(null)
 
   useEffect(() => {
     setIsTouch(window.matchMedia('(pointer: coarse)').matches)
@@ -367,7 +368,12 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kdp: kdpData, meta: metaData, mailerLite: mlData, pinterest: pinData, month }),
       })
-      if (!res.ok || !res.body) throw new Error('analyze')
+      if (!res.ok || !res.body) {
+        let errText = ''
+        try { errText = await res.text() } catch { /* ignore */ }
+        console.error('[upload] /api/analyze failed', res?.status, errText)
+        throw new Error(errText || `Server error ${res?.status ?? 'unknown'}`)
+      }
 
       // Read SSE events — server drives stage 3, 4, then complete/error
       const reader = res.body.getReader()
@@ -407,6 +413,11 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
               if (evt.stage === 3 || evt.stage === 4) startSlowTimer(evt.stage as StageId)
             } else if (evt.type === 'complete') {
               if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
+              const parts: string[] = []
+              if (kdpData?.books?.length) parts.push(`${kdpData.books.length} KDP title${kdpData.books.length > 1 ? 's' : ''}`)
+              if (metaData?.ads?.length) parts.push(`${metaData.ads.length} Meta ad${metaData.ads.length > 1 ? 's' : ''}`)
+              if (pinData?.pinCount) parts.push(`${pinData.pinCount} Pinterest pin${pinData.pinCount > 1 ? 's' : ''}`)
+              setSuccessSummary(parts.length ? `Upload complete — ${parts.join(', ')} imported` : 'Upload complete')
               advanceToStage(5)
               navigated = true
               setTimeout(() => {
@@ -432,13 +443,14 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
 
       if (!navigated) throw new Error('analyze')
 
-    } catch {
+    } catch (err) {
+      console.error('[upload] analysis error:', err)
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
       const failed = stageRef.current
-      setStageError({
-        stage: failed,
-        message: failed <= 3 ? 'Could not save your data. Please try again.' : 'Analysis failed — please try again.',
-      })
+      const generic = failed <= 3 ? 'Could not save your data. Please try again.' : 'Analysis failed — please try again.'
+      const specific = err instanceof Error && err.message && err.message !== 'analyze' && !err.message.startsWith('Failed to fetch')
+        ? err.message : generic
+      setStageError({ stage: failed, message: specific })
       setAnalyzing(false)
     }
   }
@@ -455,7 +467,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
         ref={inputRef}
         type="file"
         multiple
-        accept=".xlsx,.xls,.csv,.txt,.pdf,.epub,application/epub+zip"
+        accept=".csv,.xlsx,.pdf,.txt,.epub,application/epub+zip"
         style={{ display: 'none', position: 'absolute', left: '-9999px' }}
         onChange={e => { handleFiles(e.target.files); e.target.value = '' }}
       />
@@ -658,10 +670,16 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                     {STAGES[currentStage - 1].title}
                   </div>
 
-                  {/* Message */}
+                  {/* Success summary at stage 5 */}
+                  {currentStage === 5 && successSummary ? (
+                    <div className="text-[13px] px-4 max-w-xs font-semibold" style={{ color: '#6EBF8B' }}>
+                      {successSummary}
+                    </div>
+                  ) : (
                   <div className="text-[15px] px-4 max-w-xs leading-relaxed italic" style={{ color: '#1E2D3D', opacity: 0.6, minHeight: 40 }}>
                     {CYCLING_MESSAGES[cyclingMsgIdx]}
                   </div>
+                  )}
 
                   {/* Slow message */}
                   {showSlow && currentStage < 5 && (
