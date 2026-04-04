@@ -38,7 +38,7 @@ export async function GET() {
 
   // ── MailerLite ──────────────────────────────────────────────────
   let mailerlite: IntegrationStatus
-  const mlKey = user?.mailerLiteKey || process.env.MAILERLITE_API_KEY || null
+  const mlKey = user?.mailerLiteKey || null
 
   if (!mlKey) {
     mailerlite = {
@@ -110,7 +110,7 @@ export async function GET() {
   let kdp: IntegrationStatus
   const latestAnalysis = user?.analyses?.[0]
 
-  if (!latestAnalysis) {
+  if (!latestAnalysis || !(latestAnalysis.data as any)?.kdp) {
     kdp = {
       status: 'red',
       text: 'No data yet',
