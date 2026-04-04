@@ -3,6 +3,37 @@ import { NextRequest } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { anthropic } from '@/lib/anthropic'
+import { db } from '@/lib/db'
+
+function buildBibleContext(book: {
+  genre: string | null
+  subgenre: string | null
+  tropes: string[]
+  customTropes: string[]
+  blurb: string | null
+  hookLines: string[]
+  compTitles: string[]
+  targetReader: string | null
+  characterNotes: string | null
+  moodNotes: string | null
+  manuscriptText: string | null
+}): string {
+  const allTropes = [...(book.tropes ?? []), ...(book.customTropes ?? [])].join(', ')
+  const lines: string[] = []
+  if (book.genre) lines.push(`- Genre: ${book.genre}${book.subgenre ? ` / ${book.subgenre}` : ''}`)
+  if (allTropes) lines.push(`- Tropes: ${allTropes}`)
+  if (book.blurb) lines.push(`- Blurb: ${book.blurb}`)
+  if ((book.hookLines ?? []).length > 0) lines.push(`- Hook lines: ${book.hookLines.join(' | ')}`)
+  if ((book.compTitles ?? []).length > 0) lines.push(`- Comp titles: ${book.compTitles.join(', ')}`)
+  if (book.targetReader) lines.push(`- Target reader: ${book.targetReader}`)
+  if (book.characterNotes) lines.push(`- Characters: ${book.characterNotes}`)
+  if (book.moodNotes) lines.push(`- Mood: ${book.moodNotes}`)
+  if (book.manuscriptText) {
+    const excerpt = book.manuscriptText.slice(0, 2000).trim()
+    lines.push(`- Key manuscript context: ${excerpt}`)
+  }
+  return lines.length > 0 ? `Book context:\n${lines.join('\n')}\n\n` : ''
+}
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -14,10 +45,24 @@ export async function POST(req: NextRequest) {
     phase,
     channel,
     bookTitle,
+    bookId,
     launchDate,
     daysToLaunch,
     adTasks,
   } = await req.json()
+
+  let bibleContext = ''
+  if (bookId) {
+    const book = await db.book.findFirst({
+      where: { id: bookId, userId: session.user.id },
+      select: {
+        genre: true, subgenre: true, tropes: true, customTropes: true,
+        blurb: true, hookLines: true, compTitles: true, targetReader: true,
+        characterNotes: true, moodNotes: true, manuscriptText: true,
+      },
+    })
+    if (book) bibleContext = buildBibleContext(book)
+  }
 
   const title = bookTitle ?? 'my book'
   const launchFormatted = launchDate
@@ -33,7 +78,7 @@ export async function POST(req: NextRequest) {
   let prompt: string
 
   if (actionType === 'brief') {
-    prompt = `You are a creative strategist for romance fiction ads. Give me a Canva creative brief for the task: "${taskName}".
+    prompt = `${bibleContext}You are a creative strategist for romance fiction ads. Give me a Canva creative brief for the task: "${taskName}".
 
 Book: ${title}
 Phase: ${phase}
@@ -56,7 +101,7 @@ Keep it practical and specific. Under 200 words.`
         : null
 
     if (adLines) {
-      prompt = `You are a paid ads strategist for romance fiction. Review this task: "${taskName}".
+      prompt = `${bibleContext}You are a paid ads strategist for romance fiction. Review this task: "${taskName}".
 
 Book: ${title}
 Phase: ${phase}
@@ -70,7 +115,7 @@ Tell me:
 
 Be direct. Under 150 words.`
     } else {
-      prompt = `You are a paid ads strategist for romance fiction. Review this launch task: "${taskName}".
+      prompt = `${bibleContext}You are a paid ads strategist for romance fiction. Review this launch task: "${taskName}".
 
 Book: ${title}
 Phase: ${phase}

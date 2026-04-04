@@ -97,9 +97,23 @@ model Book {
   launchDate      DateTime?
   phase           String?   // "pre-order" | "launch" | "post-launch" | "evergreen"
   colorCode       String?
-  tropes          String?
+  tropeNotes      String?   // free-text tropes (launch planner legacy field)
   compAuthors     String?
   targetWordCount Int?
+  // Book Bible fields
+  genre                String?
+  subgenre             String?
+  tropes               String[]
+  customTropes         String[]
+  blurb                String?   @db.Text
+  hookLines            String[]
+  characterNotes       String?   @db.Text
+  moodNotes            String?   @db.Text
+  compTitles           String[]
+  targetReader         String?
+  manuscriptText       String?   @db.Text
+  manuscriptUploadedAt DateTime?
+  bibleUpdatedAt       DateTime? @updatedAt
   createdAt             DateTime  @default(now())
 
   @@index([userId])

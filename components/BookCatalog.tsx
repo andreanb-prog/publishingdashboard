@@ -4,6 +4,7 @@
 // Drag-to-reorder cards, add/edit modal, cover image upload/URL/Amazon pull.
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import Link from 'next/link'
 import {
   DndContext,
   closestCenter,
@@ -260,6 +261,13 @@ function SortableBookCard({
         >
           {book.excludeFromDashboard ? '👁 Show' : '🚫 Hide'}
         </button>
+        <Link
+          href={`/dashboard/books/${book.id}/bible`}
+          className="text-[12px] font-semibold px-2 py-1 rounded transition-colors no-underline"
+          style={{ color: '#E9A020' }}
+        >
+          Book Bible →
+        </Link>
         <button
           onClick={() => onEdit(book)}
           className="text-[12px] font-semibold text-stone-500 hover:text-[#1E2D3D] px-2 py-1 rounded transition-colors border-none bg-transparent cursor-pointer"

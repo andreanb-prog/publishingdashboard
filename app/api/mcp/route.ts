@@ -106,7 +106,7 @@ function buildServer(userId: string): McpServer {
       const books = await db.book.findMany({
         where: { userId },
         orderBy: { sortOrder: 'asc' },
-        select: { id: true, title: true, asin: true, launchDate: true, phase: true, colorCode: true, tropes: true },
+        select: { id: true, title: true, asin: true, launchDate: true, phase: true, colorCode: true, tropeNotes: true },
       })
       return { content: [{ type: 'text', text: JSON.stringify({ books }) }] }
     },
@@ -122,7 +122,7 @@ function buildServer(userId: string): McpServer {
       const book = await db.book.findFirst({
         where: { id: book_id, userId },
         select: {
-          title: true, seriesName: true, seriesOrder: true, tropes: true,
+          title: true, seriesName: true, seriesOrder: true, tropeNotes: true,
           compAuthors: true, launchDate: true, phase: true, targetWordCount: true,
         },
       })
@@ -136,7 +136,7 @@ function buildServer(userId: string): McpServer {
       const parts = [book.title]
       if (daysToLaunch !== null) parts.push(`${daysToLaunch} days to launch`)
       if (book.phase) parts.push(`Phase: ${book.phase}`)
-      if (book.tropes) parts.push(`Tropes: ${book.tropes}`)
+      if (book.tropeNotes) parts.push(`Tropes: ${book.tropeNotes}`)
       const session_context = parts.join('. ')
 
       return {
@@ -146,7 +146,7 @@ function buildServer(userId: string): McpServer {
             title: book.title,
             series: book.seriesName,
             bookNumber: book.seriesOrder,
-            tropes: book.tropes,
+            tropes: book.tropeNotes,
             compAuthors: book.compAuthors,
             launchDate: book.launchDate,
             phase: book.phase,
