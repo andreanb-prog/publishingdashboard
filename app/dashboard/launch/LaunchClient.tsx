@@ -669,7 +669,20 @@ function phaseColor(phase: string): { bg: string; color: string } {
 }
 
 // ── Launches panel ─────────────────────────────────────────────────────────────
-function LaunchesPanel({ initialLaunches }: { initialLaunches: LaunchRecord[] }) {
+function deriveLaunchPhase(launchDateIso: string): string {
+  const today = new Date()
+  const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const launchMid = toLocalDate(launchDateIso)
+  const days = Math.round((launchMid.getTime() - todayMid.getTime()) / (1000 * 60 * 60 * 24))
+  if (days > 7) return 'Pre-order'
+  if (days >= 0) return 'Launch Week'
+  return 'Post-Launch'
+}
+
+function LaunchesPanel({ initialLaunches, activeLaunch }: {
+  initialLaunches: LaunchRecord[]
+  activeLaunch?: { launchDate: string; bookTitle: string | null } | null
+}) {
   const [launches, setLaunches]   = useState<LaunchRecord[]>(initialLaunches)
   const [showAdd,  setShowAdd]    = useState(false)
   const [newTitle, setNewTitle]   = useState('')
@@ -722,18 +735,44 @@ function LaunchesPanel({ initialLaunches }: { initialLaunches: LaunchRecord[] })
             className="text-[12px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
             style={{ background: '#FFF4E0', color: '#E9A020', border: '1px solid #F6D38A' }}
           >
-            + Add launch
+            + Plan next launch
           </button>
         )}
       </div>
 
-      {launches.length === 0 && !showAdd && (
+      {!activeLaunch && launches.length === 0 && !showAdd && (
         <p className="text-[12px] text-gray-400 mb-0">
-          No launches yet — add one to use it in the Campaign Organizer.
+          No launches yet — plan one to get started.
         </p>
       )}
 
       <div className="flex flex-col gap-2">
+        {/* Active task-based launch */}
+        {activeLaunch && (
+          <a
+            href="#launch-tasks"
+            className="flex items-center gap-2 py-2 border-b border-gray-50 no-underline"
+            style={{ textDecoration: 'none' }}
+          >
+            <span className="font-semibold text-[13px] flex-1" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              {activeLaunch.bookTitle || 'Untitled launch'}
+            </span>
+            {(() => {
+              const phase = deriveLaunchPhase(activeLaunch.launchDate)
+              const pc = phaseColor(phase)
+              return (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: pc.bg, color: pc.color }}>
+                  {phase}
+                </span>
+              )
+            })()}
+            <span className="text-[11px] text-gray-400 hidden sm:block">
+              {formatShort(activeLaunch.launchDate)}
+            </span>
+          </a>
+        )}
+
+        {/* Campaign Organizer launches */}
         {launches.map(l => {
           const pc = phaseColor(l.phase)
           const displayPhase = l.phase === 'Custom' && l.customPhase ? l.customPhase : l.phase
@@ -1052,10 +1091,13 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
 
         {/* Launches panel */}
-        <LaunchesPanel initialLaunches={initialLaunches} />
+        <LaunchesPanel
+          initialLaunches={initialLaunches}
+          activeLaunch={{ launchDate, bookTitle }}
+        />
 
         {/* Header card */}
-        <div className="bg-white rounded-2xl border border-gray-100 px-5 py-4 flex items-center gap-4 flex-wrap shadow-sm">
+        <div id="launch-tasks" className="bg-white rounded-2xl border border-gray-100 px-5 py-4 flex items-center gap-4 flex-wrap shadow-sm">
           <div className="flex items-center gap-2 flex-wrap">
             {bookTitle && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold"
