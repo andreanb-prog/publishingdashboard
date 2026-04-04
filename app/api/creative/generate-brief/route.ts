@@ -58,34 +58,43 @@ export async function POST(req: NextRequest) {
     if (book) bibleContext = buildBibleContext(book)
   }
 
-  const prompt = `${bibleContext}You are a creative strategist for romance fiction ads. Write a concise ad creative brief for:
+  const hasBible = bibleContext.length > 0
+  const hookInstruction = hasBible
+    ? 'For the hook, pull from a real moment of tension, desire, or conflict in the manuscript context — make it feel specific and emotionally charged.'
+    : 'For the hook, generate a punchy emotional line based on the angle, phase, and format — no generic phrases.'
+
+  const prompt = `${bibleContext}You are a creative strategist for romance fiction ads. Generate an ad creative brief AND a hook line for:
 Book: ${bookTitle || 'this book'}
 Phase: ${phase || 'unspecified'}
 Angle: ${angle || 'unspecified'}
 Format: ${format || 'unspecified'}
-Hook text: ${hookText || 'none provided'}
+${hookText ? `Existing hook text (improve or replace): ${hookText}` : ''}
 
-Include: the one job this ad must do, the emotion to lead with, what to show visually, and the call to action. Keep it under 150 words.`
+Return ONLY valid JSON in this exact shape, no markdown, no extra text:
+{"brief":"...","hook":"..."}
 
-  const stream = await anthropic.messages.stream({
+brief: the full creative brief — include the one job this ad must do, the emotion to lead with, what to show visually, and the call to action. Keep it under 150 words.
+hook: one short punchy hook line under 15 words. ${hookInstruction} Examples: "She said yes. He had three hours to disappear." or "He was off-limits. She couldn't stop thinking about him."`
+
+  const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: 300,
+    max_tokens: 500,
     messages: [{ role: 'user', content: prompt }],
   })
 
-  const encoder = new TextEncoder()
-  const readable = new ReadableStream({
-    async start(controller) {
-      for await (const chunk of stream) {
-        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-          controller.enqueue(encoder.encode(chunk.delta.text))
-        }
-      }
-      controller.close()
-    },
-  })
+  const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
 
-  return new Response(readable, {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-  })
+  let brief = ''
+  let hook = ''
+  try {
+    const parsed = JSON.parse(raw)
+    brief = parsed.brief ?? ''
+    hook = parsed.hook ?? ''
+  } catch {
+    // Fallback: treat entire response as brief if JSON parse fails
+    brief = raw
+    hook = ''
+  }
+
+  return Response.json({ brief, hook })
 }

@@ -570,22 +570,17 @@ function NewCreativeModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookTitle: selectedBook?.title ?? '',
+          bookId: bookId || null,
           phase,
           angle: ANGLE_LABELS[angle] ?? angle,
           format: FORMAT_LABELS[format] ?? format,
           hookText,
         }),
       })
-      if (!res.ok || !res.body) throw new Error('Failed')
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let text = ''
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        text += decoder.decode(value, { stream: true })
-        setBrief(text)
-      }
+      if (!res.ok) throw new Error('Failed')
+      const data = await res.json()
+      setBrief(data.brief ?? '')
+      if (data.hook) setHookText(data.hook)
     } catch {
       setBrief('Could not generate brief. Please try again.')
     } finally {
@@ -834,22 +829,17 @@ function EditCreativeModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookTitle: selectedBook?.title ?? '',
+          bookId: bookId || null,
           phase,
           angle: ANGLE_LABELS[angle] ?? angle,
           format: FORMAT_LABELS[format] ?? format,
           hookText,
         }),
       })
-      if (!res.ok || !res.body) throw new Error('Failed')
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let text = ''
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        text += decoder.decode(value, { stream: true })
-        setBrief(text)
-      }
+      if (!res.ok) throw new Error('Failed')
+      const data = await res.json()
+      setBrief(data.brief ?? '')
+      if (data.hook) setHookText(data.hook)
     } catch {
       setBrief('Could not generate brief. Please try again.')
     } finally {
