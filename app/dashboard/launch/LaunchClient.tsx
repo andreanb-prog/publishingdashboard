@@ -604,6 +604,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
   const [streakEvents, setStreakEvents] = useState<StreakEvent[]>([])
   const [toast, setToast] = useState({ message: '', visible: false })
   const [showChangeDate, setShowChangeDate] = useState(false)
+  const [channelFilter, setChannelFilter] = useState<string>('All')
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const showToast = useCallback((message: string) => {
@@ -613,6 +614,17 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
       setToast(t => ({ ...t, visible: false }))
     }, 3000)
   }, [])
+
+  // Restore channelFilter from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('launch_channel_filter')
+    if (saved) setChannelFilter(saved)
+  }, [])
+
+  // Persist channelFilter to localStorage
+  useEffect(() => {
+    localStorage.setItem('launch_channel_filter', channelFilter)
+  }, [channelFilter])
 
   // Load streak on mount
   useEffect(() => {
@@ -682,6 +694,9 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
   else if (daysToLaunch > 0) countdownLabel = `${daysToLaunch} days to launch`
   else countdownLabel = `${Math.abs(daysToLaunch)} days since launch`
 
+  // ── Apply channel filter ──────────────────────────────────────────────────────
+  const filteredTasks = channelFilter === 'All' ? tasks : tasks.filter(t => t.channel === channelFilter)
+
   // ── Split tasks into sections for This Week view ─────────────────────────────
   const todayStr = fmt(todayMid)
   const weekEndDate = new Date(todayMid)
@@ -692,7 +707,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
   const thisWeekTasks: LaunchTask[] = []
   const upcomingTasks: LaunchTask[] = []
 
-  for (const task of tasks) {
+  for (const task of filteredTasks) {
     if (task.status === 'done' || task.status === 'skipped') continue
     const due = toLocalDate(task.dueDate)
     const dueStr = fmt(due)
@@ -803,7 +818,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
           {TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveFilter(tab.id)}
+              onClick={() => { setActiveFilter(tab.id); setChannelFilter('All') }}
               className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all"
               style={activeFilter === tab.id
                 ? { background: '#E9A020', color: '#1E2D3D' }
@@ -813,6 +828,42 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
               {tab.label}
             </button>
           ))}
+        </div>
+
+        {/* Channel filter pills */}
+        <div className="flex gap-1.5 flex-wrap">
+          {(['All', 'Ads', 'Email', 'Creative', 'Social', 'General'] as const).map(ch => {
+            const isActive = channelFilter === ch
+            if (ch === 'All') {
+              return (
+                <button
+                  key={ch}
+                  onClick={() => setChannelFilter('All')}
+                  className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all border"
+                  style={isActive
+                    ? { background: '#1E2D3D', color: '#FFFFFF', borderColor: '#1E2D3D' }
+                    : { background: 'transparent', color: '#6B7280', borderColor: '#D1D5DB' }
+                  }
+                >
+                  All
+                </button>
+              )
+            }
+            const s = CHANNEL_COLORS[ch]
+            return (
+              <button
+                key={ch}
+                onClick={() => setChannelFilter(prev => prev === ch ? 'All' : ch)}
+                className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all border"
+                style={isActive
+                  ? { background: s.dot, color: '#FFFFFF', borderColor: s.dot }
+                  : { background: 'transparent', color: s.text, borderColor: s.text }
+                }
+              >
+                {ch}
+              </button>
+            )
+          })}
         </div>
 
         {/* Week strip */}
@@ -886,10 +937,10 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
               </>
             ) : (
               <>
-                {tasks.filter(t => t.status !== 'done' && t.status !== 'skipped').length === 0 && (
+                {filteredTasks.filter(t => t.status !== 'done' && t.status !== 'skipped').length === 0 && (
                   <div className="py-8 text-center text-gray-400 text-sm">No tasks in this phase.</div>
                 )}
-                {tasks.map(task => (
+                {filteredTasks.map(task => (
                   task.status !== 'done' && task.status !== 'skipped' ? (
                     <TaskRow
                       key={task.id}
@@ -905,7 +956,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   ) : null
                 ))}
                 {/* Done tasks — dimmed at bottom */}
-                {tasks.filter(t => t.status === 'done').map(task => (
+                {filteredTasks.filter(t => t.status === 'done').map(task => (
                   <TaskRow
                     key={task.id}
                     task={task}
