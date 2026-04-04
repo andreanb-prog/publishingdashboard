@@ -259,16 +259,19 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
   let totalKENP         = 0
   let totalRoyaltiesUSD = 0
   let paidUnits         = 0
+  let rowCount          = 0
 
   for (const row of rows) {
     const asin  = str(pick(row, 'ASIN', 'Asin', 'asin'))
     const title = str(pick(row, 'Title', 'Book Title', 'title'))
     if (!asin && !title) continue
 
-    const units   = num(pick(row, 'Units Sold', 'Net Units Sold', 'Paid Units Sold', 'Paid Units', 'Units'))
+    // Prefer 'Net Units Sold' (after refunds) over gross 'Units Sold' — Royalty Estimator CSV has both
+    const units   = num(pick(row, 'Net Units Sold', 'Units Sold', 'Paid Units Sold', 'Paid Units', 'Units'))
     const kenp    = num(pick(row, 'KENP Read', 'KENP Pages Read', 'KU Pages Read', 'Pages Read', 'KENP'))
+    // 'Royalties (USD)' must come before 'Royalty' — otherwise 'Royalty Type' (a text field) fuzzy-matches first
     const royalty = num(pick(row,
-      'Royalty', 'Net Royalty', 'Est. Royalty', 'Royalties', 'Net Royalties',
+      'Royalties (USD)', 'Royalty', 'Net Royalty', 'Est. Royalty', 'Royalties', 'Net Royalties',
       'Total Royalty', 'Total Royalties', 'Est. KU Royalty', 'Estimated Royalty',
     ))
 
@@ -291,6 +294,7 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
     totalKENP         += kenp
     if (isUSD) totalRoyaltiesUSD += royalty
     paidUnits         += units
+    rowCount++
   }
 
   const books      = Array.from(bookMap.values()).sort((a, b) => b.units - a.units)
@@ -303,5 +307,6 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
     month, totalRoyaltiesUSD, totalUnits, totalKENP,
     books, dailyUnits: [], dailyKENP: [],
     summary: { paidUnits, freeUnits: 0, paperbackUnits: 0 },
+    rowCount,
   }
 }

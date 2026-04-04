@@ -8,6 +8,7 @@ export interface KDPData {
   books: BookData[]
   dailyUnits: DailyData[]
   dailyKENP: DailyData[]
+  rowCount?: number
   summary: {
     paidUnits: number
     freeUnits: number

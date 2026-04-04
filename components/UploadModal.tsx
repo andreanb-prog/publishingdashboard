@@ -259,8 +259,9 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
             return
           }
           const bookCount = kdpResult.books?.length ?? 0
+          const rowCount  = kdpResult.rowCount ?? 0
           const kdpSummary = bookCount > 0
-            ? `${bookCount} book${bookCount !== 1 ? 's' : ''} · ${kdpResult.totalUnits} units · ${(kdpResult.totalKENP ?? 0).toLocaleString()} KENP reads`
+            ? `${rowCount} row${rowCount !== 1 ? 's' : ''} imported for ${bookCount} title${bookCount !== 1 ? 's' : ''}`
             : 'Parsed — no rows found. Make sure you exported All Titles.'
           update({ type: 'kdp', status: 'done', data: kdpResult, summary: kdpSummary })
         } else if (detectedType === 'meta') {
@@ -302,8 +303,9 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
             return
           }
           const bookCount = kdpResult.books?.length ?? 0
+          const rowCount  = kdpResult.rowCount ?? 0
           const kdpSummary = bookCount > 0
-            ? `${bookCount} book${bookCount !== 1 ? 's' : ''} · ${kdpResult.totalUnits} units · ${(kdpResult.totalKENP ?? 0).toLocaleString()} KENP reads`
+            ? `${rowCount} row${rowCount !== 1 ? 's' : ''} imported for ${bookCount} title${bookCount !== 1 ? 's' : ''}`
             : 'Parsed — no rows found. Make sure you exported All Titles.'
           update({ type: 'kdp', status: 'done', data: kdpResult, summary: kdpSummary })
         } else {
@@ -437,10 +439,15 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
             } else if (evt.type === 'complete') {
               if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
               const parts: string[] = []
-              if (kdpData?.books?.length) parts.push(`${kdpData.books.length} KDP title${kdpData.books.length > 1 ? 's' : ''}`)
-              if (metaData?.ads?.length) parts.push(`${metaData.ads.length} Meta ad${metaData.ads.length > 1 ? 's' : ''}`)
-              if (pinData?.pinCount) parts.push(`${pinData.pinCount} Pinterest pin${pinData.pinCount > 1 ? 's' : ''}`)
-              setSuccessSummary(parts.length ? `Upload complete — ${parts.join(', ')} imported` : 'Upload complete')
+              if (kdpData?.books?.length) {
+                const rows = kdpData.rowCount ?? 0
+                parts.push(rows > 0
+                  ? `${rows} row${rows !== 1 ? 's' : ''} imported for ${kdpData.books.length} title${kdpData.books.length !== 1 ? 's' : ''}`
+                  : `${kdpData.books.length} KDP title${kdpData.books.length !== 1 ? 's' : ''}`)
+              }
+              if (metaData?.ads?.length) parts.push(`${metaData.ads.length} Meta ad${metaData.ads.length !== 1 ? 's' : ''}`)
+              if (pinData?.pinCount) parts.push(`${pinData.pinCount} Pinterest pin${pinData.pinCount !== 1 ? 's' : ''}`)
+              setSuccessSummary(parts.length ? `Upload complete — ${parts.join(', ')}` : 'Upload complete')
               advanceToStage(5)
               navigated = true
               setTimeout(() => {

@@ -1,6 +1,6 @@
 'use client'
 // app/dashboard/kdp/page.tsx
-import { Suspense, useEffect, useRef, useState, useMemo } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import ChartJS from 'chart.js/auto'
 import Link from 'next/link'
 import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
@@ -718,7 +718,8 @@ export default function KDPPage() {
   const [excludedAsins, setExcludedAsins] = useState<Set<string>>(new Set())
   const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(null)
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
+    setLoading(true)
     Promise.all([
       fetch('/api/analyze').then(r => r.json()).catch(() => ({})),
       fetch('/api/roas').then(r => r.json()).catch(() => ({ logs: [] })),
@@ -748,6 +749,12 @@ export default function KDPPage() {
       setExcludedAsins(excluded)
     }).finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    fetchData()
+    window.addEventListener('dashboard-data-refresh', fetchData)
+    return () => window.removeEventListener('dashboard-data-refresh', fetchData)
+  }, [fetchData])
 
   const allDailyUnits = useMemo(() => {
     const merged: DailyData[] = []

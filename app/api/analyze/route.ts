@@ -12,8 +12,8 @@ type KdpDataQuality = 'OK' | 'SUSPECT_DATA' | 'INCOMPLETE_DATA'
 function validateKdpData(kdp: KDPData): KdpDataQuality {
   const { totalRoyaltiesUSD, totalUnits, books } = kdp
 
-  // Fewer than 3 distinct books/entries → likely a partial or wrongly-exported file
-  if ((books?.length ?? 0) < 3 && totalUnits > 10) return 'INCOMPLETE_DATA'
+  // Zero books parsed → the file is definitely wrong/empty
+  if ((books?.length ?? 0) === 0 && totalUnits > 10) return 'INCOMPLETE_DATA'
 
   if (totalUnits > 0) {
     const royaltiesPerUnit = totalRoyaltiesUSD / totalUnits
