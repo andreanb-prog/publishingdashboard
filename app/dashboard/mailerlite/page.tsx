@@ -11,28 +11,59 @@ import { getCoachTitle } from '@/lib/coachTitle'
 import { fmtPct } from '@/lib/utils'
 import { InsightCallouts } from '@/components/InsightCallout'
 import type { Analysis, MailerLiteAutomation, MailerLiteData } from '@/types'
+import type { LiveCampaign, FlaggedCampaign } from '@/app/api/mailerlite/campaigns/route'
 
 // ── Build a live coach insight from real MailerLite numbers ───────────────────
 // Always derived from live data so stale cached emailCoach never shows.
-function buildEmailCoach(ml: MailerLiteData): string {
+function buildEmailCoach(
+  ml: MailerLiteData,
+  topCampaigns?: { subject: string; openRate: number; clickRate: number }[],
+  flaggedCampaign?: FlaggedCampaign | null,
+): string {
   const s1 = `Your list has ${ml.listSize.toLocaleString()} active subscribers with a ${ml.openRate}% open rate and ${ml.clickRate}% click rate.`
 
   let s2 = ''
+  const top = topCampaigns?.filter(c => c.subject && c.subject !== c.subject.toUpperCase())
   if (ml.openRate >= 30) {
-    s2 = `Your open rate is exceptional — well above the 20–25% author average. Go to MailerLite, note the subject line patterns from your top campaigns, and replicate that format in your next send.`
+    const examples = top?.slice(0, 2).map(c => `"${c.subject}"`).join(' and ')
+    s2 = `Your open rate is exceptional — well above the 20–25% author average. ${
+      examples
+        ? `Your top-performing subjects — ${examples} — show what's resonating. Stick with that pattern and test a small variation on your next send.`
+        : 'Note the subject line patterns from your top campaigns and replicate that format in your next send.'
+    }`
   } else if (ml.openRate >= 20) {
-    s2 = `Your open rate is in the healthy range. Go to MailerLite, look at your top 3 performing subject lines, and test a curiosity-gap or number-led subject on your next send to push it above 30%.`
+    const best = top?.[0]
+    s2 = `Your open rate is in the healthy range. ${
+      best
+        ? `Your best-performing subject "${best.subject}" (${best.openRate}% open) is a good benchmark — test a curiosity-gap or number-led variation to push above 30%.`
+        : 'Test a curiosity-gap or number-led subject on your next send to push it above 30%.'
+    }`
   } else {
-    s2 = `Your open rate is below the 20% author average. Go to MailerLite, check your last 5 subject lines, and test a more specific or personal hook — "I almost didn't send this" outperforms generic titles consistently.`
+    const worst = top?.slice(-1)[0]
+    s2 = `Your open rate is below the 20% author average. ${
+      worst
+        ? `Subjects like "${worst.subject}" may be too generic — try a more specific or personal hook. "I almost didn't send this" consistently outperforms broad titles.`
+        : 'Test a more specific or personal hook — "I almost didn\'t send this" outperforms generic titles consistently.'
+    }`
   }
 
   let s3 = ''
-  if (ml.unsubscribes > 50) {
-    s3 = `You've had ${ml.unsubscribes} unsubscribes recently — higher than normal. Go to MailerLite, check which campaign triggered the spike, and reduce send frequency or tighten your subject line relevance before your next campaign.`
+  if (flaggedCampaign) {
+    const dateStr = flaggedCampaign.sentAt
+      ? new Date(flaggedCampaign.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : 'recently'
+    s3 = `"${flaggedCampaign.name}" triggered an unsubscribe spike on ${dateStr} (${flaggedCampaign.unsubscribeRate}% unsub rate). Subject: "${flaggedCampaign.subject}". Reduce send frequency or tighten audience targeting before your next send.`
+  } else if (ml.unsubscribes > 50) {
+    s3 = `You've had ${ml.unsubscribes} unsubscribes recently — higher than normal. Check send frequency or tighten your subject line relevance before your next campaign.`
   } else if (ml.clickRate >= 4) {
-    s3 = `Your ${ml.clickRate}% click rate is exceptional. Go to MailerLite, identify which CTA placement and button copy drove this, and replicate it in your next campaign.`
+    const best = topCampaigns?.sort((a, b) => b.clickRate - a.clickRate)[0]
+    s3 = `Your ${ml.clickRate}% click rate is exceptional. ${
+      best
+        ? `The CTA in "${best.subject}" clearly worked — identify what made it click and replicate it.`
+        : 'Identify which CTA placement and button copy drove this, and replicate it in your next campaign.'
+    }`
   } else if (ml.clickRate < 2) {
-    s3 = `Your click rate is below 2%. Go to MailerLite, move your primary CTA above the fold in your next email, and test a button instead of a hyperlink to improve click-through.`
+    s3 = `Your click rate is below 2%. Move your primary CTA above the fold in your next email, and test a button instead of a hyperlink to improve click-through.`
   }
 
   return [s1, s2, s3].filter(Boolean).join(' ')
@@ -129,6 +160,174 @@ function CampaignOpenRateChart({ campaigns, target }: { campaigns: import('@/typ
   )
 }
 
+// ── Campaign skeleton ─────────────────────────────────────────────────────────
+function CampaignSkeleton() {
+  return (
+    <div className="rounded-xl overflow-hidden mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div className="px-5 py-3.5 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
+        Recent Campaigns
+      </div>
+      <table className="w-full border-collapse" style={{ minWidth: 520 }}>
+        <thead>
+          <tr style={{ background: '#F5F5F4' }}>
+            {['Subject', 'Sent', 'Open Rate', 'Click Rate', 'Unsubs', 'Date'].map(h => (
+              <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
+                style={{ color: '#6B7280' }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {[0, 1, 2].map(i => (
+            <tr key={i} className="border-t" style={{ borderColor: 'rgba(0,0,0,0.06)', background: i % 2 === 1 ? '#FFF8F0' : 'white' }}>
+              {[200, 60, 60, 60, 50, 60].map((w, j) => (
+                <td key={j} className="px-4 py-3">
+                  <div className="h-3 rounded animate-pulse" style={{ width: w, background: '#E5E7EB' }} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ── Live campaign performance section ─────────────────────────────────────────
+function CampaignPerformanceSection({
+  campaigns,
+  flaggedCampaign,
+  loading,
+  error,
+}: {
+  campaigns: LiveCampaign[]
+  flaggedCampaign: FlaggedCampaign | null
+  loading: boolean
+  error: boolean
+}) {
+  if (loading) return <CampaignSkeleton />
+
+  if (error) {
+    return (
+      <div className="rounded-xl mb-5 px-5 py-8 text-center" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <p className="text-[12px]" style={{ color: '#6B7280' }}>
+          Couldn't load campaign data. Check your MailerLite connection in Settings.
+        </p>
+      </div>
+    )
+  }
+
+  if (campaigns.length === 0) {
+    return (
+      <div className="rounded-xl mb-5 px-5 py-8 text-center" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <p className="text-[12px]" style={{ color: '#6B7280' }}>
+          No campaigns sent yet. Your campaign performance will appear here after your first send.
+        </p>
+      </div>
+    )
+  }
+
+  const best = [...campaigns].sort((a, b) => b.openRate - a.openRate)[0]
+
+  function openColor(rate: number) {
+    if (rate >= 30) return '#6EBF8B'
+    if (rate >= 20) return '#E9A020'
+    return '#F97B6B'
+  }
+  function clickColor(rate: number) {
+    if (rate >= 4) return '#6EBF8B'
+    if (rate >= 2) return '#E9A020'
+    return '#F97B6B'
+  }
+
+  return (
+    <div className="mb-5">
+      {/* Best performer callout */}
+      <div className="rounded-xl px-5 py-3.5 mb-3 flex items-center gap-2.5"
+        style={{ background: 'rgba(110,191,139,0.10)', border: '1px solid rgba(110,191,139,0.25)' }}>
+        <span className="text-[13px]">🏆</span>
+        <span className="text-[12.5px]" style={{ color: '#1E2D3D' }}>
+          <span className="font-semibold">Best performer: </span>
+          <span className="italic" title={best.subject}>
+            {best.subject.length > 60 ? best.subject.slice(0, 60) + '…' : best.subject}
+          </span>
+          <span style={{ color: '#6B7280' }}> — </span>
+          <span style={{ color: '#6EBF8B' }} className="font-semibold">{best.openRate}% open rate</span>
+          <span style={{ color: '#6B7280' }}>, </span>
+          <span style={{ color: '#6EBF8B' }} className="font-semibold">{best.clickRate}% click rate</span>
+        </span>
+      </div>
+
+      {/* Unsubscribe spike alert */}
+      {flaggedCampaign && (
+        <div className="rounded-xl px-5 py-3.5 mb-3 flex items-start gap-2.5"
+          style={{ background: 'rgba(233,160,32,0.10)', border: '1px solid rgba(233,160,32,0.30)' }}>
+          <span className="text-[14px] mt-0.5">⚠️</span>
+          <span className="text-[12.5px]" style={{ color: '#1E2D3D' }}>
+            <span className="font-semibold">{flaggedCampaign.name}</span> triggered an unsubscribe spike
+            {' '}— <span className="font-semibold" style={{ color: '#E9A020' }}>{flaggedCampaign.unsubscribeRate}% unsub rate</span>
+            {flaggedCampaign.sentAt ? ` on ${new Date(flaggedCampaign.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}.
+            {' '}Subject: "<em>{flaggedCampaign.subject}</em>". Check send frequency or audience targeting.
+          </span>
+        </div>
+      )}
+
+      {/* Campaign table */}
+      <div className="rounded-xl overflow-x-auto" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <div className="px-5 py-3.5 flex items-center gap-2" style={{ borderBottom: '1px solid #EEEBE6' }}>
+          <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Recent Campaigns</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.06)', color: '#6B7280' }}>
+            Live · last 10 sent
+          </span>
+        </div>
+        <table className="w-full border-collapse text-[12px]" style={{ minWidth: 520 }}>
+          <thead>
+            <tr style={{ background: '#F5F5F4' }}>
+              {['Subject', 'Sent', 'Open Rate', 'Click Rate', 'Unsubs', 'Date'].map(h => (
+                <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
+                  style={{ color: '#6B7280' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {campaigns.map((c, i) => (
+              <tr key={c.id || i} className="border-t"
+                style={{ borderColor: 'rgba(0,0,0,0.06)', background: i % 2 === 1 ? '#FFF8F0' : 'white' }}>
+                <td className="px-4 py-2.5 max-w-[240px]" style={{ color: '#1E2D3D' }}>
+                  <span
+                    title={c.subject}
+                    className="block truncate"
+                    style={{ maxWidth: 240 }}
+                  >
+                    {c.subject.length > 50 ? c.subject.slice(0, 50) + '…' : c.subject}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 font-mono text-[11px]" style={{ color: '#6B7280' }}>
+                  {c.sent > 0 ? c.sent.toLocaleString() : '—'}
+                </td>
+                <td className="px-4 py-2.5 font-mono font-semibold" style={{ color: openColor(c.openRate) }}>
+                  {c.openRate}%
+                </td>
+                <td className="px-4 py-2.5 font-mono font-semibold" style={{ color: clickColor(c.clickRate) }}>
+                  {c.clickRate}%
+                </td>
+                <td className="px-4 py-2.5 font-mono" style={{ color: c.isSpike ? '#F97B6B' : '#6B7280' }}>
+                  {c.unsubscribes ?? 0}
+                  {c.isSpike && <span className="ml-1 text-[10px]">⚠</span>}
+                </td>
+                <td className="px-4 py-2.5 text-[11px]" style={{ color: '#6B7280' }}>
+                  {c.sentAt
+                    ? new Date(c.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    : '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export default function MailerLitePage() {
   const [coachTitle] = useState(() => getCoachTitle())
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
@@ -136,6 +335,10 @@ export default function MailerLitePage() {
   const [liveml, setLiveml] = useState<MailerLiteData | null>(null)
   const [goals, setGoals] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
+  const [liveCampaigns, setLiveCampaigns] = useState<LiveCampaign[]>([])
+  const [flaggedCampaign, setFlaggedCampaign] = useState<FlaggedCampaign | null>(null)
+  const [campaignsLoading, setCampaignsLoading] = useState(true)
+  const [campaignsError, setCampaignsError] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -160,10 +363,22 @@ export default function MailerLitePage() {
         .then(d => { if (d.goals) setGoals(d.goals) })
         .catch(() => {}),
     ]).finally(() => setLoading(false))
+
+    fetch('/api/mailerlite/campaigns')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => {
+        setLiveCampaigns(d.campaigns ?? [])
+        setFlaggedCampaign(d.flaggedCampaign ?? null)
+      })
+      .catch(() => { setCampaignsError(true) })
+      .finally(() => setCampaignsLoading(false))
   }, [])
 
   // Prefer live data from API; fall back to stored analysis snapshot
   const ml = liveml ?? analysis?.mailerLite ?? null
+
+  // Top campaigns sorted by open rate for coach copy
+  const topCampaigns = [...liveCampaigns].sort((a, b) => b.openRate - a.openRate)
 
   // Use user's custom targets if set, else fall back to author averages
   const openTarget  = goals.email_open_rate  ?? 20
@@ -221,7 +436,7 @@ export default function MailerLitePage() {
           ]} />
 
           {analysis && <InsightCallouts analysis={{ ...analysis, meta: undefined, kdp: undefined, pinterest: undefined }} page="mailerlite" />}
-          {ml && <DarkCoachBox color="#34d399" title={coachTitle}>{buildEmailCoach(ml)}</DarkCoachBox>}
+          {ml && <DarkCoachBox color="#34d399" title={coachTitle}>{buildEmailCoach(ml, topCampaigns, flaggedCampaign)}</DarkCoachBox>}
 
           {/* Email Health Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
@@ -456,47 +671,13 @@ export default function MailerLitePage() {
             </div>
           )}
 
-          {/* Recent campaigns */}
-          {ml.campaigns.length > 0 && (
-            <div className="rounded-xl overflow-x-auto"
-              style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-              <div className="px-5 py-3.5 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
-                Recent Campaigns
-              </div>
-              <table className="w-full border-collapse text-[12px]" style={{ minWidth: 480 }}>
-                <thead>
-                  <tr style={{ background: '#F5F5F4' }}>
-                    {['Campaign', 'Sent', 'Open Rate', 'Click Rate', 'Unsubs'].map(h => (
-                      <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
-                        style={{ color: '#6B7280' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {ml.campaigns.slice(0, 8).map((c, i) => (
-                    <tr key={i} className="border-t hover:bg-stone-50"
-                      style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-                      <td className="px-4 py-2.5 max-w-[200px] truncate" style={{ color: '#1E2D3D' }}>{c.name.replace(/^Copy of /i, '')}</td>
-                      <td className="px-4 py-2.5 font-mono text-[11px]" style={{ color: '#6B7280' }}>
-                        {c.sentAt
-                          ? new Date(c.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                          : '—'}
-                      </td>
-                      <td className="px-4 py-2.5 font-mono"
-                        style={{ color: c.openRate >= 22 ? '#34d399' : '#fbbf24' }}>
-                        {c.openRate}%
-                      </td>
-                      <td className="px-4 py-2.5 font-mono" style={{ color: '#d6d3d1' }}>{c.clickRate}%</td>
-                      <td className="px-4 py-2.5 font-mono"
-                        style={{ color: c.unsubscribes > 10 ? '#fb7185' : '#6B7280' }}>
-                        {c.unsubscribes ?? 0}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {/* Live campaign performance table */}
+          <CampaignPerformanceSection
+            campaigns={liveCampaigns}
+            flaggedCampaign={flaggedCampaign}
+            loading={campaignsLoading}
+            error={campaignsError}
+          />
         </>
       )}
     </DarkPage>
