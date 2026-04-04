@@ -45,12 +45,16 @@ export async function GET(req: NextRequest) {
     const expiresIn = longData.expires_in || 5184000 // default 60 days
     console.log('[Meta Callback] Long-lived token:', accessToken ? 'success' : 'using short-lived')
 
-    // Step 3: Save token to DB — account selection happens on the next page
+    // Step 3: Save token to DB — clear the previously stored ad account ID so that
+    // reconnecting with a different Facebook account starts completely clean.
+    // Account selection happens on the next page (/meta/select-account).
     await db.user.update({
       where: { id: userId },
       data: {
         metaAccessToken:  accessToken,
         metaTokenExpires: new Date(Date.now() + expiresIn * 1000),
+        metaAdAccountId:  null,  // cleared — user must re-select or sync will auto-discover
+        metaLastSync:     null,  // cleared — prevents stale "last synced" display
       },
     })
 

@@ -8,6 +8,8 @@ type IntegrationStatus = {
   text: string
   actionText?: string
   actionHref?: string
+  accountName?: string
+  adAccountId?: string
 }
 
 type ConnectionHealth = {
@@ -70,6 +72,7 @@ export function ConnectionStatus() {
   const [open, setOpen] = useState(false)
   const [mlSync, setMlSync] = useState<SyncState>('idle')
   const [metaSync, setMetaSync] = useState<SyncState>('idle')
+  const [metaSyncError, setMetaSyncError] = useState<string | null>(null)
   const [allSync, setAllSync] = useState<SyncState>('idle')
   const ref = useRef<HTMLDivElement>(null)
 
@@ -100,15 +103,25 @@ export function ConnectionStatus() {
     async function onMetaConnected() {
       await refreshHealth()
       setMetaSync('syncing')
+      setMetaSyncError(null)
       try {
         const res = await fetch('/api/meta/sync', { method: 'POST' })
-        if (res.ok) window.dispatchEvent(new CustomEvent('meta:synced'))
-        await refreshHealth()
-        setMetaSync('ok')
-        setTimeout(() => setMetaSync('idle'), 2500)
+        const json = await res.json().catch(() => ({}))
+        if (res.ok) {
+          window.dispatchEvent(new CustomEvent('meta:synced'))
+          await refreshHealth()
+          setMetaSync('ok')
+          setTimeout(() => setMetaSync('idle'), 2500)
+        } else {
+          setMetaSyncError(json.error ?? 'Sync failed — check your ad account and try again')
+          setMetaSync('error')
+          await refreshHealth()
+          setTimeout(() => { setMetaSync('idle'); setMetaSyncError(null) }, 8000)
+        }
       } catch {
+        setMetaSyncError('Sync failed — check your connection and try again')
         setMetaSync('error')
-        setTimeout(() => setMetaSync('idle'), 2500)
+        setTimeout(() => { setMetaSync('idle'); setMetaSyncError(null) }, 6000)
       }
     }
     window.addEventListener('meta:connected', onMetaConnected)
@@ -141,16 +154,24 @@ export function ConnectionStatus() {
 
   async function syncMeta() {
     setMetaSync('syncing')
+    setMetaSyncError(null)
     try {
       const res = await fetch('/api/meta/sync', { method: 'POST' })
-      if (!res.ok) throw new Error()
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMetaSyncError(json.error ?? 'Sync failed — try again')
+        setMetaSync('error')
+        setTimeout(() => { setMetaSync('idle'); setMetaSyncError(null) }, 6000)
+        return
+      }
       await refreshHealth()
       window.dispatchEvent(new CustomEvent('meta:synced'))
       setMetaSync('ok')
       setTimeout(() => setMetaSync('idle'), 2500)
     } catch {
+      setMetaSyncError('Sync failed — check your connection and try again')
       setMetaSync('error')
-      setTimeout(() => setMetaSync('idle'), 2500)
+      setTimeout(() => { setMetaSync('idle'); setMetaSyncError(null) }, 6000)
     }
   }
 
@@ -289,6 +310,25 @@ export function ConnectionStatus() {
                         </>
                       )}
                     </div>
+                    {key === 'meta' && item.status === 'green' && item.accountName && (
+                      <div className="mt-1 text-[11px] leading-snug" style={{ color: '#9CA3AF' }}>
+                        FB account: <span style={{ color: '#1E2D3D', fontWeight: 600 }}>{item.accountName}</span>
+                        {item.adAccountId && (
+                          <span> · {item.adAccountId}</span>
+                        )}
+                      </div>
+                    )}
+                    {key === 'meta' && item.status === 'green' && !item.accountName && item.adAccountId && (
+                      <div className="mt-1 text-[11px]" style={{ color: '#9CA3AF' }}>
+                        Ad account: {item.adAccountId}
+                      </div>
+                    )}
+                    {key === 'meta' && metaSync === 'error' && metaSyncError && (
+                      <div className="mt-1.5 text-[11px] leading-snug px-2 py-1.5 rounded-md"
+                        style={{ background: 'rgba(249,123,107,0.08)', color: '#F97B6B' }}>
+                        {metaSyncError}
+                      </div>
+                    )}
                   </div>
                 </div>
               )

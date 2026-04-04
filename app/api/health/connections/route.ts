@@ -25,6 +25,7 @@ export async function GET() {
       metaAccessToken: true,
       metaTokenExpires: true,
       metaLastSync: true,
+      metaAdAccountId: true,
       subscriptionStatus: true,
       analyses: {
         orderBy: { createdAt: 'desc' },
@@ -72,7 +73,7 @@ export async function GET() {
   }
 
   // ── Meta Ads ────────────────────────────────────────────────────
-  let meta: IntegrationStatus
+  let meta: IntegrationStatus & { accountName?: string; adAccountId?: string }
 
   if (!user?.metaAccessToken) {
     meta = {
@@ -91,9 +92,20 @@ export async function GET() {
         actionHref: '/dashboard/settings',
       }
     } else {
+      // Fetch the connected Facebook account name so the user can verify it's the right one
+      let accountName: string | undefined
+      try {
+        const meRes = await fetch(
+          `https://graph.facebook.com/v21.0/me?fields=id,name&access_token=${user.metaAccessToken}`,
+          { cache: 'no-store' }
+        )
+        const meData = await meRes.json()
+        if (meData.name && !meData.error) accountName = meData.name
+      } catch { /* non-fatal — don't block health check */ }
+
       const lastSync = user.metaLastSync
       if (!lastSync) {
-        meta = { status: 'green', text: 'Connected · not yet synced' }
+        meta = { status: 'green', text: 'Connected · not yet synced', accountName, adAccountId: user.metaAdAccountId ?? undefined }
       } else {
         const hoursSinceSync = (now.getTime() - lastSync.getTime()) / (1000 * 60 * 60)
         const minsSince = hoursSinceSync * 60
@@ -101,7 +113,7 @@ export async function GET() {
           : minsSince < 60 ? `${Math.floor(minsSince)}m ago`
           : hoursSinceSync < 24 ? `${Math.floor(hoursSinceSync)}h ago`
           : `${Math.floor(hoursSinceSync / 24)}d ago`
-        meta = { status: 'green', text: `Connected · last synced ${syncLabel}` }
+        meta = { status: 'green', text: `Connected · last synced ${syncLabel}`, accountName, adAccountId: user.metaAdAccountId ?? undefined }
       }
     }
   }

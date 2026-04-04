@@ -180,6 +180,15 @@ export async function POST(req: NextRequest) {
 
     console.log(`[Meta Sync] Will try ${allAccounts.length} accounts: ${allAccounts.map(a => a.id).join(', ')}`)
 
+    // No ad accounts discovered at all → wrong FB account connected
+    if (allAccounts.length === 0) {
+      console.log('[Meta Sync] No ad accounts found — aborting with user-facing error')
+      return NextResponse.json({
+        error: 'No ad account found. Make sure you\'re connecting the Facebook account that has your Ads Manager. Disconnect and try again with the correct account.',
+        code: 'NO_AD_ACCOUNT',
+      }, { status: 400 })
+    }
+
     // ── Step 4: Fetch insights from each account ───────────────────────────────
     const allAds: MetaAd[] = []
     let totalSpend = 0
@@ -205,6 +214,18 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`[Meta Sync] Total: ${allAds.length} ads, $${totalSpend.toFixed(2)} spend. Best account: ${bestAccountId}`)
+
+    // Accounts were found but every one returned zero ads — almost always means the user
+    // connected a personal Facebook profile that has view access to an account but no actual
+    // spend data, or the linked account has no activity in the last 30 days.
+    if (allAds.length === 0) {
+      console.log('[Meta Sync] Zero ads across all accounts — returning descriptive error')
+      return NextResponse.json({
+        error: 'No ad data found in the last 30 days. If you\'re running ads, make sure you\'re connecting the Facebook account that owns your Ads Manager. Disconnect and reconnect with the correct account.',
+        code: 'NO_AD_DATA',
+        accountsChecked: allAccounts.map(a => a.id),
+      }, { status: 400 })
+    }
 
     // Update stored ad account to the one with the most spend
     if (bestAccountId) {

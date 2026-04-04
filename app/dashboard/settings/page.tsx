@@ -360,6 +360,8 @@ export default function SettingsPage() {
     })
     setMetaConnected(false)
     setMetaLastSync(null)
+    setMetaSuccess(false)
+    setMetaError(false)
     window.dispatchEvent(new CustomEvent('meta:disconnected'))
   }
 
