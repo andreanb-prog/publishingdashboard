@@ -879,38 +879,16 @@ export default function SettingsPage() {
                 </div>
               )}
             </>
-          ) : isAdmin ? (
+          ) : (
             <>
               <AmberBtn onClick={connectMeta}>Connect Meta Ads →</AmberBtn>
-              <div
-                className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
-                style={{ background: 'rgba(233,160,32,0.06)', border: '0.5px solid rgba(233,160,32,0.25)', color: '#92610a' }}
-              >
-                Only your account can connect in development mode.{' '}
-                <a
-                  href="https://developers.facebook.com/docs/app-review"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold hover:underline"
-                  style={{ color: '#E9A020' }}
-                >
-                  Submit for app review →
-                </a>
-              </div>
               {metaError && (
                 <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
                   style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
-                  ✕ Couldn't connect — check permissions and try again.
+                  ✕ Couldn&apos;t connect — check permissions and try again.
                 </div>
               )}
             </>
-          ) : (
-            <div
-              className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
-              style={{ background: 'rgba(30,45,61,0.04)', border: '0.5px solid rgba(30,45,61,0.1)', color: '#6B7280' }}
-            >
-              Meta Ads connection coming soon — check back shortly.
-            </div>
           )}
         </IntegCard>
 

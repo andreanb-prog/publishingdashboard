@@ -121,7 +121,11 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
     if (iKENP      >= 0) totalKENP         = num(data[iKENP])
     if (iRoyalty   >= 0) totalRoyaltiesUSD = num(data[iRoyalty])
 
-    // Warn on any columns we couldn't map
+    // If ALL critical columns are missing, this isn't a KDP report
+    if (iMonth < 0 && iPaid < 0 && iKENP < 0 && iRoyalty < 0) {
+      throw new Error("This doesn't look like a KDP Royalty Estimator report. Download it from KDP → Reports → Royalty Estimator and select All Titles.")
+    }
+    // Warn on any individual columns we couldn't map
     const missing: string[] = []
     if (iMonth     < 0) missing.push('month')
     if (iPaid      < 0) missing.push('paidUnits')

@@ -249,7 +249,14 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
 
         if (detectedType === 'kdp') {
           const { parseKDPFile } = await import('@/lib/parsers/kdp')
-          const kdpResult = parseKDPFile(new Uint8Array(buf))
+          let kdpResult
+          try {
+            kdpResult = parseKDPFile(new Uint8Array(buf))
+          } catch (parseErr: unknown) {
+            const msg = parseErr instanceof Error ? parseErr.message : "This doesn't look like a KDP Royalty Estimator report."
+            update({ type: 'unknown', status: 'error', data: null, errorMessage: msg })
+            return
+          }
           const bookCount = kdpResult.books?.length ?? 0
           const kdpSummary = bookCount > 0
             ? `${bookCount} book${bookCount !== 1 ? 's' : ''} · ${kdpResult.totalUnits} units · ${(kdpResult.totalKENP ?? 0).toLocaleString()} KENP reads`

@@ -312,28 +312,14 @@ export default function WelcomePage() {
                     <div className="text-[14px] font-bold" style={{ color: '#1E2D3D' }}>Meta Ads</div>
                     <div className="text-[11.5px]" style={{ color: '#6B7280' }}>CTR, CPC, spend — synced daily automatically</div>
                   </div>
-                  {isAdmin ? (
-                    <a
-                      href="/api/meta/connect"
-                      className="px-4 py-2 rounded-lg text-[12px] font-semibold no-underline transition-all hover:opacity-90"
-                      style={{ background: '#60A5FA', color: 'white' }}
-                    >
-                      Connect →
-                    </a>
-                  ) : (
-                    <span
-                      className="px-3 py-1.5 rounded-lg text-[11px] font-semibold"
-                      style={{ background: 'rgba(30,45,61,0.06)', color: '#9CA3AF', border: '1px solid #EEEBE6' }}
-                    >
-                      Coming Soon
-                    </span>
-                  )}
+                  <a
+                    href="/api/meta/connect"
+                    className="px-4 py-2 rounded-lg text-[12px] font-semibold no-underline transition-all hover:opacity-90"
+                    style={{ background: '#60A5FA', color: 'white' }}
+                  >
+                    Connect →
+                  </a>
                 </div>
-                {!isAdmin && (
-                  <p className="mt-3 text-[11px]" style={{ color: '#9CA3AF' }}>
-                    Facebook Ads integration is on its way — you'll be able to connect your ad account here soon.
-                  </p>
-                )}
               </div>
 
               <button
