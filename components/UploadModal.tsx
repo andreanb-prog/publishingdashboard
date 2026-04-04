@@ -280,14 +280,37 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
         const metaHits = ['Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'Campaign name', 'Ad set name', 'Impressions']
           .filter(s => text.includes(s)).length
 
+        const lowerText = text.toLowerCase()
+        const kdpCsvHits = ['kenp', 'royalt', 'units sold', 'asin', 'marketplace'].filter(s => lowerText.includes(s)).length
+
         if (isPin) {
           const { parsePinterestFile } = await import('@/lib/parsers/pinterest')
           update({ type: 'pinterest', status: 'done', data: parsePinterestFile(text) })
         } else if (metaHits >= 2) {
           const { parseMetaFile } = await import('@/lib/parsers/meta')
           update({ type: 'meta', status: 'done', data: parseMetaFile(text) })
+        } else if (kdpCsvHits >= 2) {
+          // KDP flat CSV — XLSX can read CSV buffers directly
+          const { parseKDPFile } = await import('@/lib/parsers/kdp')
+          const buf = await file.arrayBuffer()
+          let kdpResult
+          try {
+            kdpResult = parseKDPFile(new Uint8Array(buf))
+          } catch (parseErr: unknown) {
+            const msg = parseErr instanceof Error ? parseErr.message : "This doesn't look like a KDP Royalty Estimator report."
+            update({ type: 'unknown', status: 'error', data: null, errorMessage: msg })
+            return
+          }
+          const bookCount = kdpResult.books?.length ?? 0
+          const kdpSummary = bookCount > 0
+            ? `${bookCount} book${bookCount !== 1 ? 's' : ''} · ${kdpResult.totalUnits} units · ${(kdpResult.totalKENP ?? 0).toLocaleString()} KENP reads`
+            : 'Parsed — no rows found. Make sure you exported All Titles.'
+          update({ type: 'kdp', status: 'done', data: kdpResult, summary: kdpSummary })
         } else {
-          update({ type: 'unknown', status: 'unknown', data: null })
+          update({
+            type: 'unknown', status: 'error', data: null,
+            errorMessage: "Can\u2019t identify this file. Expected: KDP report (.xlsx), Meta Ads (.csv or .xlsx), or Pinterest (.csv).",
+          })
         }
       }
     } catch {
