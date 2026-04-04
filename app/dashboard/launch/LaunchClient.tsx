@@ -89,15 +89,21 @@ function channelStyle(channel: string) {
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────────
-function Toast({ message, visible }: { message: string; visible: boolean }) {
+function Toast({ message, visible, variant = 'navy' }: { message: string; visible: boolean; variant?: 'navy' | 'amber' }) {
   return (
     <div
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300"
       style={{ opacity: visible ? 1 : 0, pointerEvents: 'none', transform: `translateX(-50%) translateY(${visible ? 0 : 8}px)` }}
     >
-      <div className="bg-[#1E2D3D] text-white text-sm px-4 py-2.5 rounded-xl shadow-lg font-medium">
-        {message}
-      </div>
+      {variant === 'amber' ? (
+        <div className="text-white shadow-lg font-medium rounded-full" style={{ fontSize: '12px', padding: '8px 16px', background: '#E9A020' }}>
+          {message}
+        </div>
+      ) : (
+        <div className="bg-[#1E2D3D] text-white text-sm px-4 py-2.5 rounded-xl shadow-lg font-medium">
+          {message}
+        </div>
+      )}
     </div>
   )
 }
@@ -127,7 +133,7 @@ function PhaseLabel({ dueDate, launchDate }: { dueDate: string; launchDate: stri
 }
 
 // ── Action button ──────────────────────────────────────────────────────────────
-function ActionButton({ actionType, actionPrompt, launchDate, bookTitle, daysToLaunch, phase, adTasks }: {
+function ActionButton({ actionType, actionPrompt, launchDate, bookTitle, daysToLaunch, phase, adTasks, onCopy }: {
   actionType: string
   actionPrompt: string
   launchDate: string
@@ -135,11 +141,12 @@ function ActionButton({ actionType, actionPrompt, launchDate, bookTitle, daysToL
   daysToLaunch: number
   phase: string
   adTasks: LaunchTask[]
+  onCopy: (msg: string) => void
 }) {
   const labels: Record<string, string> = { copy: 'Copy ↗', brief: 'Brief ↗', review: 'Review ↗' }
   const label = labels[actionType] ?? 'Action ↗'
 
-  const handleClick = () => {
+  const handleClick = async () => {
     const title = bookTitle ?? 'my book'
     const launchFormatted = toLocalDate(launchDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     const daysLabel = daysToLaunch > 0
@@ -170,7 +177,9 @@ function ActionButton({ actionType, actionPrompt, launchDate, bookTitle, daysToL
         .replace(/\[LAUNCH_DATE\]/g, launchFormatted)
     }
 
-    window.open(`https://claude.ai/new?q=${encodeURIComponent(prompt)}`, '_blank', 'noopener,noreferrer')
+    await navigator.clipboard.writeText(prompt)
+    window.open('https://claude.ai/new', '_blank', 'noopener,noreferrer')
+    onCopy('Prompt copied — paste it into Claude to get started')
   }
 
   return (
@@ -264,6 +273,7 @@ function TaskRow({
           daysToLaunch={daysToLaunch}
           phase={task.phase}
           adTasks={adTasks}
+          onCopy={onCopy}
         />
       )}
     </div>
@@ -602,18 +612,22 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
   const [activeFilter, setActiveFilter] = useState<string>('this_week')
   const [streak, setStreak] = useState<StreakData | null>(null)
   const [streakEvents, setStreakEvents] = useState<StreakEvent[]>([])
-  const [toast, setToast] = useState({ message: '', visible: false })
+  const [toast, setToast] = useState({ message: '', visible: false, variant: 'navy' as 'navy' | 'amber' })
   const [showChangeDate, setShowChangeDate] = useState(false)
   const [channelFilter, setChannelFilter] = useState<string>('All')
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const showToast = useCallback((message: string) => {
-    setToast({ message, visible: true })
+  const showToast = useCallback((message: string, variant: 'navy' | 'amber' = 'navy') => {
+    setToast({ message, visible: true, variant })
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
     toastTimerRef.current = setTimeout(() => {
       setToast(t => ({ ...t, visible: false }))
     }, 3000)
   }, [])
+
+  const showPromptCopiedToast = useCallback((msg: string) => {
+    showToast(msg, 'amber')
+  }, [showToast])
 
   // Restore channelFilter from localStorage on mount
   useEffect(() => {
@@ -746,7 +760,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
 
   return (
     <div className="min-h-screen pb-16" style={{ background: '#FFF8F0' }}>
-      <Toast message={toast.message} visible={toast.visible} />
+      <Toast message={toast.message} visible={toast.visible} variant={toast.variant} />
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
 
@@ -918,7 +932,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   adTasks={adTasks}
                   isOverdue={true}
                   onComplete={handleComplete}
-                  onCopy={showToast}
+                  onCopy={showPromptCopiedToast}
                 />
                 <TaskSection
                   title="Today"
@@ -928,7 +942,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   daysToLaunch={daysToLaunch}
                   adTasks={adTasks}
                   onComplete={handleComplete}
-                  onCopy={showToast}
+                  onCopy={showPromptCopiedToast}
                 />
                 <TaskSection
                   title="This Week"
@@ -938,7 +952,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   daysToLaunch={daysToLaunch}
                   adTasks={adTasks}
                   onComplete={handleComplete}
-                  onCopy={showToast}
+                  onCopy={showPromptCopiedToast}
                 />
                 <TaskSection
                   title="Upcoming"
@@ -948,7 +962,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   daysToLaunch={daysToLaunch}
                   adTasks={adTasks}
                   onComplete={handleComplete}
-                  onCopy={showToast}
+                  onCopy={showPromptCopiedToast}
                 />
                 {overdueTasks.length === 0 && todayTasks.length === 0 && thisWeekTasks.length === 0 && upcomingTasks.length === 0 && (
                   <div className="py-8 text-center text-gray-400 text-sm">
@@ -972,7 +986,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                       adTasks={adTasks}
                       isOverdue={false}
                       onComplete={handleComplete}
-                      onCopy={showToast}
+                      onCopy={showPromptCopiedToast}
                     />
                   ) : null
                 ))}
@@ -987,7 +1001,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                     adTasks={adTasks}
                     isOverdue={false}
                     onComplete={handleComplete}
-                    onCopy={showToast}
+                    onCopy={showPromptCopiedToast}
                   />
                 ))}
               </>
