@@ -24,7 +24,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     text = buffer.toString('utf-8')
   } else if (fileName.endsWith('.pdf')) {
     try {
-      const pdfjsLib = await import('pdfjs-dist')
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
+      const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js') as any
       pdfjsLib.GlobalWorkerOptions.workerSrc = '' // disable worker for serverless
       const uint8Array = new Uint8Array(buffer)
       const loadingTask = pdfjsLib.getDocument({ data: uint8Array })
@@ -33,10 +34,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i)
         const content = await page.getTextContent()
-        const pageText = content.items
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((item: any) => item.str ?? '')
-          .join(' ')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pageText = content.items.map((item: any) => item.str ?? '').join(' ')
         pages.push(pageText)
       }
       text = pages.join('\n\n')
@@ -49,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({
         success: true,
         wordCount: 0,
-        warning: 'PDF uploaded — text extraction will be available shortly',
+        warning: 'Manuscript saved. Text extraction will be available in the next update — your file is safely stored.',
       })
     }
   } else if (fileName.endsWith('.epub')) {
