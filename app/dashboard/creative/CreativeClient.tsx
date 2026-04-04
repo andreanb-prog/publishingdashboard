@@ -606,7 +606,7 @@ function NewCreativeModal({
           <div>
             <label style={labelStyle}>Creative name *</label>
             <input value={name} onChange={e => setName(e.target.value)}
-              placeholder="e.g. MOLR Emotional Hook v1" style={inputStyle} />
+              placeholder="e.g. Book Title — Emotional Hook v1" style={inputStyle} />
           </div>
 
           {/* Book + Phase row */}
