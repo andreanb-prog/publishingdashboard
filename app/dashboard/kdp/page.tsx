@@ -139,9 +139,6 @@ function DateRangePicker({
           </div>
         )}
       </div>
-      <p className="text-[11px] mt-1.5" style={{ color: '#9CA3AF' }}>
-        KDP data typically lags 48–72 hours. Recent days may show incomplete numbers.
-      </p>
     </div>
   )
 }
@@ -719,6 +716,7 @@ export default function KDPPage() {
   const [loading,     setLoading]     = useState(true)
   const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set())
   const [excludedAsins, setExcludedAsins] = useState<Set<string>>(new Set())
+  const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -732,6 +730,7 @@ export default function KDPPage() {
         (a: any) => a.data ?? a
       )
       setAllAnalyses(analyses)
+      if (analyzeData.kdpLastUploadedAt) setKdpLastUploadedAt(analyzeData.kdpLastUploadedAt)
       setRoasLogs((roasData.logs ?? []).map((r: any) => ({
         ...r,
         date: (r.date as string).substring(0, 10),
@@ -857,6 +856,12 @@ export default function KDPPage() {
             customStart={customStart} customEnd={customEnd}
             onCustomStart={setCustomStart} onCustomEnd={setCustomEnd} />
           <p className="text-[11px] mt-1.5" style={{ color: '#9CA3AF' }}>
+            {kdpLastUploadedAt
+              ? <>Showing data from your last upload — {new Date(kdpLastUploadedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload a new report</a> to see the latest numbers.</>
+              : <>No data uploaded yet. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload your KDP report</a> to get started.</>
+            }
+          </p>
+          <p className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>
             KDP data typically lags 48–72 hours. Recent days may show incomplete numbers.
           </p>
         </div>
