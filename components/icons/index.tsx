@@ -18,6 +18,7 @@ export {
   Bot,
   Megaphone,
   LogOut,
+  Rocket,
 } from 'lucide-react'
 
 // Custom SVG icons (kept for legacy use)

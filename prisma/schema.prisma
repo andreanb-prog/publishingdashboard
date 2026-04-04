@@ -228,3 +228,55 @@ model UserPromoCode {
   @@unique([userId, promoCodeId])
   @@index([userId])
 }
+
+model LaunchTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  channel         String   // "Ads" | "Email" | "Creative" | "Social"
+  daysFromLaunch  Int      // negative = before launch, positive = after
+  description     String
+  actionType      String?  // "copy" | "brief" | "review" | null
+  actionPrompt    String?  // the Claude prompt to fire when action button clicked
+  phase           String   // "pre-order" | "launch" | "post-launch" | "evergreen"
+  createdAt       DateTime @default(now())
+}
+
+model LaunchTask {
+  id           String   @id @default(cuid())
+  userId       String
+  bookId       String?
+  templateId   String?
+  name         String
+  channel      String
+  phase        String
+  dueDate      DateTime
+  status       String   @default("not_started") // "not_started" | "in_progress" | "done" | "skipped"
+  actionType   String?
+  actionPrompt String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model UserStreak {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
+  lastCheckInDate  DateTime?
+  freezesAvailable Int       @default(0)
+  totalCheckIns    Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model StreakEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  date       DateTime
+  actionType String   // "task_complete" | "spend_log" | "check_in" | "upload"
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
