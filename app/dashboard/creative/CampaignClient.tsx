@@ -2,7 +2,7 @@
 // app/dashboard/creative/CampaignClient.tsx
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
-  ChevronRight, ChevronDown, Plus, Trash2, Copy, Link, X, Check, Pencil,
+  ChevronRight, ChevronDown, Plus, Trash2, Copy, Link, X, Check, Pencil, MoreHorizontal,
 } from 'lucide-react'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -142,14 +142,21 @@ function InlineEditableName({
   value,
   onSave,
   style,
+  forceEditKey,
 }: {
   value: string
   onSave: (name: string) => Promise<void>
   style?: React.CSSProperties
+  forceEditKey?: number
 }) {
   const [editing, setEditing] = useState(false)
   const [draft,   setDraft]   = useState(value)
   const [saving,  setSaving]  = useState(false)
+
+  useEffect(() => {
+    if (forceEditKey) { setEditing(true); setDraft(value) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forceEditKey])
 
   async function commit() {
     const trimmed = draft.trim()
@@ -636,6 +643,84 @@ function GenerateModal({
   )
 }
 
+// ─── Confirm delete dialog ────────────────────────────────────────────────────
+
+function ConfirmDialog({
+  message,
+  onConfirm,
+  onCancel,
+}: {
+  message: string
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(30,45,61,0.4)' }}
+      onClick={e => { if (e.target === e.currentTarget) onCancel() }}>
+      <div className="w-full max-w-sm rounded-2xl p-6 flex flex-col gap-4"
+        style={{ background: '#FFFFFF', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <p className="text-[14px] m-0 leading-relaxed" style={{ color: '#1E2D3D' }}>{message}</p>
+        <div className="flex gap-2 justify-end">
+          <button onClick={onCancel}
+            className="px-4 py-2 rounded-xl text-[13px] font-semibold"
+            style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}>
+            Cancel
+          </button>
+          <button onClick={onConfirm}
+            className="px-4 py-2 rounded-xl text-[13px] font-bold"
+            style={{ background: '#F97B6B', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Three-dot menu ───────────────────────────────────────────────────────────
+
+function ThreeDotMenu({
+  onRename,
+  onDelete,
+}: {
+  onRename: () => void
+  onDelete: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="relative flex-shrink-0">
+      <button
+        onClick={e => { e.stopPropagation(); setOpen(v => !v) }}
+        className="p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}
+        title="More options">
+        <MoreHorizontal size={15} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-20" onClick={e => { e.stopPropagation(); setOpen(false) }} />
+          <div className="absolute z-30 right-0 top-7 w-36 rounded-xl shadow-xl overflow-hidden"
+            style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}>
+            <button
+              onClick={e => { e.stopPropagation(); setOpen(false); onRename() }}
+              className="w-full text-left px-3 py-2.5 text-[12px] font-semibold flex items-center gap-2 hover:bg-gray-50"
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <Pencil size={11} /> Rename
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); setOpen(false); onDelete() }}
+              className="w-full text-left px-3 py-2.5 text-[12px] font-semibold flex items-center gap-2"
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#F97B6B', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <Trash2 size={11} /> Delete
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── Main CampaignClient ──────────────────────────────────────────────────────
 
 export function CampaignClient({
@@ -652,6 +737,8 @@ export function CampaignClient({
   const [addAdFor,        setAddAdFor]        = useState<string | null>(null)
   const [showGenerate,    setShowGenerate]    = useState(false)
   const [toast,           setToast]           = useState<{ msg: string; ok: boolean } | null>(null)
+  const [confirmDelete,   setConfirmDelete]   = useState<{ type: 'campaign' | 'adset'; id: string; campaignId?: string } | null>(null)
+  const [renameTriggers,  setRenameTriggers]  = useState<Record<string, number>>({})
 
   const showToast = useCallback((msg: string, ok = true) => setToast({ msg, ok }), [])
 
@@ -691,6 +778,20 @@ export function CampaignClient({
       setCampaigns(prev => prev.filter(c => c.id !== id))
       showToast('Campaign deleted')
     } catch { showToast('Delete failed', false) }
+  }
+
+  async function deleteAdSet(adSetId: string, campaignId: string) {
+    try {
+      await fetch(`/api/adsets/${adSetId}`, { method: 'DELETE' })
+      setCampaigns(prev => prev.map(c =>
+        c.id === campaignId ? { ...c, adSets: c.adSets.filter(s => s.id !== adSetId) } : c
+      ))
+      showToast('Ad set deleted')
+    } catch { showToast('Delete failed', false) }
+  }
+
+  function triggerRename(id: string) {
+    setRenameTriggers(prev => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }))
   }
 
   async function addAdSet(campaignId: string, name: string, targeting: string, audience: string) {
@@ -959,7 +1060,7 @@ export function CampaignClient({
                 className="rounded-2xl overflow-hidden"
                 style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}>
                 {/* Campaign row */}
-                <div className="flex items-center gap-3 px-4 py-3.5 cursor-pointer select-none"
+                <div className="flex items-center gap-3 px-4 py-3.5 cursor-pointer select-none group"
                   onClick={() => toggleCampaign(campaign.id)}
                   style={{ borderBottom: expanded ? '1px solid #F3F4F6' : 'none' }}>
                   {/* Expand icon */}
@@ -975,6 +1076,7 @@ export function CampaignClient({
                       value={campaign.name}
                       onSave={(name) => patchCampaign(campaign.id, name)}
                       style={{ fontWeight: 700, fontSize: 14, color: '#1E2D3D' }}
+                      forceEditKey={renameTriggers[campaign.id]}
                     />
                   </div>
                   {/* Badges */}
@@ -997,14 +1099,11 @@ export function CampaignClient({
                       {campaign.adSets.length} sets · {totalAds} ads
                     </span>
                   </div>
-                  {/* Delete */}
-                  <button
-                    onClick={e => { e.stopPropagation(); deleteCampaign(campaign.id) }}
-                    className="p-1 rounded-md opacity-0 group-hover:opacity-100"
-                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}
-                    title="Delete campaign">
-                    <Trash2 size={13} />
-                  </button>
+                  {/* Three-dot menu */}
+                  <ThreeDotMenu
+                    onRename={() => triggerRename(campaign.id)}
+                    onDelete={() => setConfirmDelete({ type: 'campaign', id: campaign.id })}
+                  />
                 </div>
 
                 {/* Ad sets */}
@@ -1017,7 +1116,7 @@ export function CampaignClient({
                       return (
                         <div key={adSet.id}>
                           {/* Ad set row */}
-                          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer"
+                          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer group"
                             style={{ marginLeft: 20, background: '#F9F7F4', border: '1px solid #EEEBE6' }}
                             onClick={() => toggleAdSet(adSet.id)}>
                             <div style={{ color: '#9CA3AF', flexShrink: 0 }}>
@@ -1028,6 +1127,7 @@ export function CampaignClient({
                                 value={adSet.name}
                                 onSave={(name) => patchAdSet(adSet.id, campaign.id, name)}
                                 style={{ fontWeight: 600, fontSize: 13, color: '#1E2D3D' }}
+                                forceEditKey={renameTriggers[adSet.id]}
                               />
                             </div>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
@@ -1051,6 +1151,11 @@ export function CampaignClient({
                               title="Add ad">
                               <Plus size={10} /> Add ad
                             </button>
+                            {/* Three-dot menu */}
+                            <ThreeDotMenu
+                              onRename={() => triggerRename(adSet.id)}
+                              onDelete={() => setConfirmDelete({ type: 'adset', id: adSet.id, campaignId: campaign.id })}
+                            />
                           </div>
 
                           {/* Ads */}
@@ -1107,6 +1212,25 @@ export function CampaignClient({
         <GenerateModal
           onClose={() => setShowGenerate(false)}
           onGenerate={handleGenerate}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          message={
+            confirmDelete.type === 'campaign'
+              ? 'Delete this campaign and all its ad sets? This cannot be undone.'
+              : 'Delete this ad set and all its ads? This cannot be undone.'
+          }
+          onConfirm={() => {
+            if (confirmDelete.type === 'campaign') {
+              void deleteCampaign(confirmDelete.id)
+            } else {
+              void deleteAdSet(confirmDelete.id, confirmDelete.campaignId!)
+            }
+            setConfirmDelete(null)
+          }}
+          onCancel={() => setConfirmDelete(null)}
         />
       )}
 

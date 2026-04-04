@@ -33,3 +33,22 @@ export async function PATCH(
   const updated = await db.adSet.update({ where: { id: params.id }, data })
   return NextResponse.json({ adSet: updated })
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const adSet = await db.adSet.findUnique({
+    where: { id: params.id },
+    include: { campaign: { select: { userId: true } } },
+  })
+  if (!adSet || adSet.campaign.userId !== session.user.id) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  await db.adSet.delete({ where: { id: params.id } })
+  return NextResponse.json({ success: true })
+}
