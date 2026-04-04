@@ -506,6 +506,16 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
   const [metaLastSync, setMetaLastSync] = useState<string | null>(null)
   const [syncingMeta,  setSyncingMeta]  = useState(false)
   const [syncingML,    setSyncingML]    = useState(false)
+  const [metaErrorBanner, setMetaErrorBanner] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.location.search.includes('meta_error=true')) {
+      setMetaErrorBanner(true)
+      const clean = window.location.pathname + window.location.search.replace(/[?&]?meta_error=true/, '')
+      window.history.replaceState(null, '', clean || window.location.pathname)
+    }
+  }, [])
 
   useEffect(() => {
     Promise.all([
@@ -668,6 +678,31 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <OnboardingBanner userName={userName} />
       <SetupChecklist analysis={analysis} />
+
+      {/* Meta OAuth error banner */}
+      {metaErrorBanner && (
+        <div className="mb-4 rounded-xl px-5 py-3.5 flex items-center gap-3"
+          style={{ background: 'rgba(233,160,32,0.08)', border: '1px solid rgba(233,160,32,0.3)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M8 2L14.5 13H1.5L8 2Z" stroke="#E9A020" strokeWidth="1.5" strokeLinejoin="round" />
+            <path d="M8 6.5V9.5" stroke="#E9A020" strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="8" cy="11.5" r="0.75" fill="#E9A020" />
+          </svg>
+          <p className="flex-1 text-[13px]" style={{ color: '#92610a', margin: 0 }}>
+            Facebook connection hit a snag — don&apos;t worry, everything else is working fine.{' '}
+            <a href="/dashboard/settings" className="font-semibold underline" style={{ color: '#E9A020' }}>
+              Try again from Settings.
+            </a>
+          </p>
+          <button
+            onClick={() => setMetaErrorBanner(false)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B07E1A', fontSize: 18, lineHeight: 1, padding: '0 2px' }}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Generating banner — shown while AI coaching is being created in the background */}
       {generating && (

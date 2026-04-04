@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const reason = searchParams.get('error_description') || error || 'Authorization was cancelled or failed'
     console.error('[Meta Callback] Error:', reason)
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/dashboard/meta/error?reason=${encodeURIComponent(reason)}`
+      `${process.env.NEXTAUTH_URL ?? 'https://authordash.io'}/dashboard?meta_error=true`
     )
   }
 
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       const reason = tokenData.error?.message || 'Token exchange failed'
       console.error('[Meta Callback] Token error:', tokenData)
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/dashboard/meta/error?reason=${encodeURIComponent(reason)}`
+        `${process.env.NEXTAUTH_URL ?? 'https://authordash.io'}/dashboard?meta_error=true`
       )
     }
 
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
     if (!verify?.metaAccessToken) {
       console.error('[Meta Callback] Read-back failed — token not persisted for user:', userId)
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/dashboard/meta/error?reason=${encodeURIComponent('Token could not be saved — please try again')}`
+        `${process.env.NEXTAUTH_URL ?? 'https://authordash.io'}/dashboard?meta_error=true`
       )
     }
 
@@ -80,13 +80,11 @@ export async function GET(req: NextRequest) {
     // P2025 = Prisma "Record to update not found" — userId from state didn't match any user
     if (err?.code === 'P2025') {
       console.error('[Meta Callback] User not found for id from state param:', userId)
-      return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/dashboard/meta/error?reason=${encodeURIComponent('Session mismatch — please sign out, sign back in, and try connecting Meta again')}`
-      )
+    } else {
+      console.error('[Meta Callback] Error:', err)
     }
-    console.error('[Meta Callback] Error:', err)
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/dashboard/meta/error?reason=${encodeURIComponent('An unexpected error occurred')}`
+      `${process.env.NEXTAUTH_URL ?? 'https://authordash.io'}/dashboard?meta_error=true`
     )
   }
 }
