@@ -538,20 +538,41 @@ function NewCreativeModal({
   const [targeting, setTargeting] = useState('cold')
   const [brief,     setBrief]     = useState('')
   const [hookText,  setHookText]  = useState('')
-  const [saving,    setSaving]    = useState(false)
+  const [saving,         setSaving]         = useState(false)
+  const [generatingBrief, setGeneratingBrief] = useState(false)
 
   const selectedBook = books.find(b => b.id === bookId)
 
-  function buildBriefPrompt() {
-    const bookTitle = selectedBook?.title ?? 'this book'
-    const sizeList  = sizes.join(', ')
-    const angleLabel = (ANGLE_LABELS[angle] ?? angle) || 'unspecified'
-    return `Write a Canva creative brief for "${bookTitle}" — ${PHASE_LABELS[phase] ?? phase} phase, ${angleLabel} angle. Format: ${FORMAT_LABELS[format] ?? format}. Sizes: ${sizeList}. Include visual direction, text overlay placement, mood, and color guidance for each size.`
-  }
-
-  async function handleCopyBriefPrompt() {
-    try { await navigator.clipboard.writeText(buildBriefPrompt()) } catch { /* ignore */ }
-    window.open('https://claude.ai/new', '_blank')
+  async function handleGenerateBrief() {
+    setGeneratingBrief(true)
+    setBrief('')
+    try {
+      const res = await fetch('/api/creative/generate-brief', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookTitle: selectedBook?.title ?? '',
+          phase,
+          angle: ANGLE_LABELS[angle] ?? angle,
+          format: FORMAT_LABELS[format] ?? format,
+          hookText,
+        }),
+      })
+      if (!res.ok || !res.body) throw new Error('Failed')
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let text = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        text += decoder.decode(value, { stream: true })
+        setBrief(text)
+      }
+    } catch {
+      setBrief('Could not generate brief. Please try again.')
+    } finally {
+      setGeneratingBrief(false)
+    }
   }
 
   function toggleSize(id: string) {
@@ -705,16 +726,17 @@ function NewCreativeModal({
             <div className="flex items-center justify-between mb-1">
               <label style={{ ...labelStyle, marginBottom: 0 }}>Brief</label>
               <button
-                onClick={handleCopyBriefPrompt}
+                onClick={handleGenerateBrief}
+                disabled={generatingBrief}
                 className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md"
-                style={{ background: '#FFF4E0', color: '#E9A020', border: '1px solid #F6D38A', cursor: 'pointer' }}>
-                Generate brief <ExternalLink size={10} />
+                style={{ background: '#FFF4E0', color: '#E9A020', border: '1px solid #F6D38A', cursor: generatingBrief ? 'not-allowed' : 'pointer', opacity: generatingBrief ? 0.6 : 1 }}>
+                {generatingBrief ? 'Generating…' : 'Generate brief'}
               </button>
             </div>
             <textarea
               value={brief}
               onChange={e => setBrief(e.target.value)}
-              placeholder="Paste the Claude-generated brief here…"
+              placeholder="Click "Generate brief" to auto-fill, or type your own…"
               rows={4}
               style={{ ...inputStyle, resize: 'vertical' }}
             />
