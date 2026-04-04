@@ -524,6 +524,172 @@ function StreakWidget({ streak, events }: { streak: StreakData; events: StreakEv
   )
 }
 
+// ── Launch record type ─────────────────────────────────────────────────────────
+interface LaunchRecord {
+  id: string
+  bookTitle: string
+  asin: string | null
+  phase: string
+  customPhase: string | null
+  startDate: string | null
+  endDate: string | null
+  notes: string | null
+  status: string
+  createdAt: string
+  updatedAt: string
+}
+
+const PHASE_OPTIONS = ['Pre-order', 'Launch Week', 'Evergreen', 'Custom']
+
+function phaseColor(phase: string): { bg: string; color: string } {
+  if (phase === 'Pre-order')   return { bg: '#EFF6FF', color: '#1E40AF' }
+  if (phase === 'Launch Week') return { bg: '#F0FFF4', color: '#166534' }
+  if (phase === 'Evergreen')   return { bg: '#F5F3FF', color: '#6B21A8' }
+  return { bg: '#F3F4F6', color: '#4B5563' }
+}
+
+// ── Launches panel ─────────────────────────────────────────────────────────────
+function LaunchesPanel({ initialLaunches }: { initialLaunches: LaunchRecord[] }) {
+  const [launches, setLaunches]   = useState<LaunchRecord[]>(initialLaunches)
+  const [showAdd,  setShowAdd]    = useState(false)
+  const [newTitle, setNewTitle]   = useState('')
+  const [newPhase, setNewPhase]   = useState('Pre-order')
+  const [newStart, setNewStart]   = useState('')
+  const [saving,   setSaving]     = useState(false)
+
+  async function handleAdd() {
+    if (!newTitle.trim()) return
+    setSaving(true)
+    try {
+      const res = await fetch('/api/launches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookTitle: newTitle.trim(), phase: newPhase, startDate: newStart || null }),
+      })
+      if (res.ok) {
+        const { launch } = await res.json()
+        setLaunches(prev => [launch, ...prev])
+        setShowAdd(false)
+        setNewTitle('')
+        setNewStart('')
+        setNewPhase('Pre-order')
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    await fetch(`/api/launches/${id}`, { method: 'DELETE' })
+    setLaunches(prev => prev.filter(l => l.id !== id))
+  }
+
+  const inp: React.CSSProperties = {
+    border: '1px solid #E5E7EB', borderRadius: 8, padding: '6px 10px',
+    fontSize: 12, fontFamily: "'Plus Jakarta Sans', sans-serif",
+    outline: 'none', background: '#FAFAFA', color: '#1E2D3D', width: '100%',
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 px-5 py-4 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-bold text-[14px] m-0" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          My Launches
+        </h3>
+        {!showAdd && (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="text-[12px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            style={{ background: '#FFF4E0', color: '#E9A020', border: '1px solid #F6D38A' }}
+          >
+            + Add launch
+          </button>
+        )}
+      </div>
+
+      {launches.length === 0 && !showAdd && (
+        <p className="text-[12px] text-gray-400 mb-0">
+          No launches yet — add one to use it in the Campaign Organizer.
+        </p>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {launches.map(l => {
+          const pc = phaseColor(l.phase)
+          const displayPhase = l.phase === 'Custom' && l.customPhase ? l.customPhase : l.phase
+          return (
+            <div key={l.id} className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0">
+              <span className="font-semibold text-[13px] flex-1" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                {l.bookTitle}
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: pc.bg, color: pc.color }}>
+                {displayPhase}
+              </span>
+              {l.startDate && (
+                <span className="text-[11px] text-gray-400 hidden sm:block">
+                  {new Date(l.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </span>
+              )}
+              <button
+                onClick={() => handleDelete(l.id)}
+                className="text-gray-300 hover:text-red-400 transition-colors ml-1 text-[16px] leading-none"
+                title="Delete launch"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}
+              >
+                ×
+              </button>
+            </div>
+          )
+        })}
+      </div>
+
+      {showAdd && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <div className="flex flex-col gap-2">
+            <input
+              autoFocus
+              value={newTitle}
+              onChange={e => setNewTitle(e.target.value)}
+              placeholder="Book title"
+              style={inp}
+              onKeyDown={e => { if (e.key === 'Enter') void handleAdd() }}
+            />
+            <div className="flex gap-2">
+              <select value={newPhase} onChange={e => setNewPhase(e.target.value)} style={{ ...inp, cursor: 'pointer', flex: 1 }}>
+                {PHASE_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <input
+                type="date"
+                value={newStart}
+                onChange={e => setNewStart(e.target.value)}
+                style={{ ...inp, flex: 1 }}
+                title="Start date (optional)"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleAdd}
+                disabled={!newTitle.trim() || saving}
+                className="text-[12px] font-bold px-4 py-1.5 rounded-lg disabled:opacity-50"
+                style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer' }}
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+              <button
+                onClick={() => { setShowAdd(false); setNewTitle(''); setNewStart(''); setNewPhase('Pre-order') }}
+                className="text-[12px] font-semibold px-3 py-1.5 rounded-lg"
+                style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Setup card ─────────────────────────────────────────────────────────────────
 function SetupCard({ onSetup }: { onSetup: (launchDate: string, bookTitle: string) => void }) {
   const [bookTitle, setBookTitle] = useState('')
@@ -603,9 +769,10 @@ interface LaunchClientProps {
   initialTasks: LaunchTask[]
   initialLaunchDate: string | null
   initialBookTitle: string | null
+  initialLaunches: LaunchRecord[]
 }
 
-export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle }: LaunchClientProps) {
+export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle, initialLaunches }: LaunchClientProps) {
   const [tasks, setTasks] = useState<LaunchTask[]>(initialTasks)
   const [launchDate, setLaunchDate] = useState<string | null>(initialLaunchDate)
   const [bookTitle, setBookTitle] = useState<string | null>(initialBookTitle)
@@ -763,6 +930,9 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} />
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+
+        {/* Launches panel */}
+        <LaunchesPanel initialLaunches={initialLaunches} />
 
         {/* Header card */}
         <div className="bg-white rounded-2xl border border-gray-100 px-5 py-4 flex items-center gap-4 flex-wrap shadow-sm">

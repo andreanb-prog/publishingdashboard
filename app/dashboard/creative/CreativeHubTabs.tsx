@@ -67,7 +67,6 @@ export function CreativeHubTabs({
       {activeTab === 'campaigns' && (
         <CampaignClient
           initialCampaigns={initialCampaigns}
-          books={books}
           creatives={initialCreatives.map((c: Creative) => ({
             id: c.id as string,
             name: c.name as string,

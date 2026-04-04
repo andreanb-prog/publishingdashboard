@@ -11,11 +11,16 @@ export default async function LaunchPage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
 
-  // Check if user has existing launch tasks
-  const existingTasks = await db.launchTask.findMany({
-    where: { userId: session.user.id },
-    orderBy: { dueDate: 'asc' },
-  })
+  const [existingTasks, launches] = await Promise.all([
+    db.launchTask.findMany({
+      where: { userId: session.user.id },
+      orderBy: { dueDate: 'asc' },
+    }),
+    db.launch.findMany({
+      where: { userId: session.user.id },
+      orderBy: { startDate: 'desc' },
+    }),
+  ])
 
   // Derive launch date from tasks
   let launchDate: string | null = null
@@ -64,11 +69,26 @@ export default async function LaunchPage() {
     updatedAt: t.updatedAt.toISOString(),
   }))
 
+  const initialLaunches = launches.map(l => ({
+    id: l.id,
+    bookTitle: l.bookTitle,
+    asin: l.asin ?? null,
+    phase: l.phase,
+    customPhase: l.customPhase ?? null,
+    startDate: l.startDate?.toISOString() ?? null,
+    endDate:   l.endDate?.toISOString()   ?? null,
+    notes: l.notes ?? null,
+    status: l.status,
+    createdAt: l.createdAt.toISOString(),
+    updatedAt: l.updatedAt.toISOString(),
+  }))
+
   return (
     <LaunchClient
       initialTasks={initialTasks}
       initialLaunchDate={launchDate}
       initialBookTitle={bookTitle}
+      initialLaunches={initialLaunches}
     />
   )
 }

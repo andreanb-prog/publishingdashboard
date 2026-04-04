@@ -76,6 +76,7 @@ model User {
   listBuildingLogs      ListBuildingLog[]
   bookFunnelDownloads   BookFunnelDownload[]
   bookfunnelWebhookSecret String?
+  launches      Launch[]
   createdAt     DateTime       @default(now())
 }
 
@@ -387,6 +388,24 @@ model AdSet {
   ads         Ad[]
 
   @@index([campaignId])
+}
+
+model Launch {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookTitle   String
+  asin        String?
+  phase       String    // "Pre-order" | "Launch Week" | "Evergreen" | "Custom"
+  customPhase String?
+  startDate   DateTime?
+  endDate     DateTime?
+  notes       String?
+  status      String    @default("upcoming") // "upcoming" | "active" | "complete"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
 }
 
 model Ad {

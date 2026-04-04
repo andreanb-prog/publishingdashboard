@@ -47,13 +47,6 @@ interface Campaign {
   adSets: AdSet[]
 }
 
-interface Book {
-  id: string
-  title: string
-  phase: string | null
-  colorCode: string | null
-}
-
 interface Creative {
   id: string
   name: string
@@ -499,23 +492,44 @@ function AdRow({
 
 // ─── Generate Structure modal ─────────────────────────────────────────────────
 
+interface LaunchOption { id: string; bookTitle: string; phase: string; label: string }
+
 function GenerateModal({
-  books,
   onClose,
   onGenerate,
 }: {
-  books: Book[]
   onClose: () => void
-  onGenerate: (template: string, bookId: string, bookTitle: string) => Promise<void>
+  onGenerate: (template: string, launchLabel: string) => Promise<void>
 }) {
-  const [template, setTemplate] = useState<'blank' | 'standard' | 'minimal' | 'starter'>('standard')
-  const [bookId,   setBookId]   = useState(books[0]?.id ?? '')
-  const [loading,  setLoading]  = useState(false)
-  const bookTitle = books.find(b => b.id === bookId)?.title ?? 'My Book'
+  const [template,     setTemplate]     = useState<'blank' | 'standard' | 'minimal' | 'starter'>('standard')
+  const [launches,     setLaunches]     = useState<LaunchOption[]>([])
+  const [launchId,     setLaunchId]     = useState('')
+  const [launchsLoad,  setLaunchsLoad]  = useState(true)
+  const [loading,      setLoading]      = useState(false)
+
+  useEffect(() => {
+    fetch('/api/launches')
+      .then(r => r.json())
+      .then(data => {
+        const opts: LaunchOption[] = (data.launches ?? []).map((l: { id: string; bookTitle: string; phase: string; customPhase?: string }) => ({
+          id: l.id,
+          bookTitle: l.bookTitle,
+          phase: l.phase,
+          label: `${l.bookTitle} — ${l.phase === 'Custom' && l.customPhase ? l.customPhase : l.phase}`,
+        }))
+        setLaunches(opts)
+        if (opts.length > 0) setLaunchId(opts[0].id)
+      })
+      .catch(() => {})
+      .finally(() => setLaunchsLoad(false))
+  }, [])
+
+  const selectedLabel = launches.find(l => l.id === launchId)?.label ?? ''
 
   async function handleGenerate() {
+    if (!launchId) return
     setLoading(true)
-    await onGenerate(template, bookId, bookTitle)
+    await onGenerate(template, selectedLabel)
     setLoading(false)
     onClose()
   }
@@ -526,6 +540,12 @@ function GenerateModal({
     borderRadius: 12, padding: '12px 16px', cursor: 'pointer', textAlign: 'left',
     width: '100%', fontFamily: "'Plus Jakarta Sans', sans-serif",
   })
+
+  const selStyle: React.CSSProperties = {
+    border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 12px',
+    fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none',
+    background: '#FAFAFA', color: '#1E2D3D', cursor: 'pointer', width: '100%',
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -544,17 +564,25 @@ function GenerateModal({
         </div>
 
         <div className="px-6 py-5 flex flex-col gap-4">
-          {/* Book picker */}
+          {/* Launch picker */}
           <div>
-            <label className="block text-[12px] font-semibold mb-1.5" style={{ color: '#1E2D3D' }}>Book</label>
-            <select value={bookId} onChange={e => setBookId(e.target.value)}
-              className="w-full" style={{
-                border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 12px',
-                fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none',
-                background: '#FAFAFA', color: '#1E2D3D', cursor: 'pointer',
-              }}>
-              {books.map(b => <option key={b.id} value={b.id}>{b.title}</option>)}
-            </select>
+            <label className="block text-[12px] font-semibold mb-1.5" style={{ color: '#1E2D3D' }}>Launch</label>
+            {launchsLoad ? (
+              <div className="text-[12px] py-2" style={{ color: '#9CA3AF' }}>Loading…</div>
+            ) : launches.length === 0 ? (
+              <div className="text-[12px] py-2" style={{ color: '#9CA3AF' }}>
+                No launches yet —{' '}
+                <a href="/dashboard/launch" className="underline" style={{ color: '#E9A020' }}>
+                  create one in Launch Planner first
+                </a>
+              </div>
+            ) : (
+              <select value={launchId} onChange={e => setLaunchId(e.target.value)} style={selStyle}>
+                {launches.map(l => (
+                  <option key={l.id} value={l.id}>{l.label}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Template choices */}
@@ -592,9 +620,9 @@ function GenerateModal({
         </div>
 
         <div className="px-6 pb-6 flex gap-3">
-          <button onClick={handleGenerate} disabled={loading || !bookId}
+          <button onClick={handleGenerate} disabled={loading || !launchId || launchsLoad}
             className="flex-1 py-2.5 rounded-xl font-bold text-[14px]"
-            style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: loading || !launchId ? 'not-allowed' : 'pointer', opacity: loading || !launchId ? 0.6 : 1 }}>
             {loading ? 'Generating…' : 'Generate'}
           </button>
           <button onClick={onClose}
@@ -612,11 +640,9 @@ function GenerateModal({
 
 export function CampaignClient({
   initialCampaigns,
-  books,
   creatives,
 }: {
   initialCampaigns: Campaign[]
-  books: Book[]
   creatives: Creative[]
 }) {
   const [campaigns,       setCampaigns]       = useState<Campaign[]>(initialCampaigns)
@@ -761,15 +787,15 @@ export function CampaignClient({
 
   // ── Generate structure ──
 
-  async function handleGenerate(template: string, bookId: string, bookTitle: string) {
+  async function handleGenerate(template: string, launchLabel: string) {
     if (template === 'blank') {
-      const c = await createCampaign({ name: `${bookTitle} — New Campaign`, phase: 'launch', objective: 'traffic', bookId })
+      const c = await createCampaign({ name: `${launchLabel} — New Campaign`, phase: 'launch', objective: 'traffic' })
       if (c) { setCampaigns(prev => [c, ...prev]); showToast('Blank campaign created') }
       return
     }
 
     if (template === 'minimal') {
-      const c = await createCampaign({ name: `${bookTitle} Launch — Traffic`, phase: 'launch', objective: 'traffic', bookId })
+      const c = await createCampaign({ name: `${launchLabel} — Traffic`, phase: 'launch', objective: 'traffic' })
       if (!c) return
       const res = await fetch(`/api/campaigns/${c.id}/adsets`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -786,7 +812,7 @@ export function CampaignClient({
     }
 
     if (template === 'starter') {
-      const c = await createCampaign({ name: `${bookTitle} — Awareness`, phase: 'launch', objective: 'traffic', bookId })
+      const c = await createCampaign({ name: `${launchLabel} — Awareness`, phase: 'launch', objective: 'traffic' })
       if (!c) return
       const asRes = await fetch(`/api/campaigns/${c.id}/adsets`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -796,7 +822,7 @@ export function CampaignClient({
         const { adSet } = await asRes.json()
         const adRes = await fetch(`/api/adsets/${adSet.id}/ads`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ generatedName: `${bookTitle} — Ad 1` }),
+          body: JSON.stringify({ generatedName: `${launchLabel} — Ad 1` }),
         })
         const ads = adRes.ok ? [(await adRes.json()).ad] : []
         setCampaigns(prev => [{ ...c, adSets: [{ ...adSet, ads }] }, ...prev])
@@ -813,8 +839,8 @@ export function CampaignClient({
 
     // Pre-order campaign
     const preorder = await createCampaign({
-      name: `${bookTitle} Pre-Order — List Building`,
-      phase: 'pre-order', objective: 'list-building', bookId,
+      name: `${launchLabel} — Pre-Order`,
+      phase: 'pre-order', objective: 'list-building',
     })
     if (preorder) {
       const [res1, res2] = await Promise.all([
@@ -831,9 +857,7 @@ export function CampaignClient({
       if (res1.ok) { const { adSet } = await res1.json(); adSets.push(adSet) }
       if (res2.ok) { const { adSet } = await res2.json(); adSets.push(adSet) }
 
-      // Add ads to each ad set (2 per set)
-      const allAdSets = [...adSets]
-      for (const adSet of allAdSets) {
+      for (const adSet of [...adSets]) {
         const angles = ['EMOTIONAL', 'TENSION']
         for (let i = 0; i < angles.length; i++) {
           const name = buildAdName('B1', 'pre-order', 'list-building', angles[i], 'IMAGE', i + 1)
@@ -844,21 +868,21 @@ export function CampaignClient({
           if (r.ok) { const { ad } = await r.json(); adSet.ads.push(ad) }
         }
       }
-      newCampaigns.push({ ...preorder, adSets: allAdSets })
+      newCampaigns.push({ ...preorder, adSets })
     }
 
     // Launch campaign
-    const launch = await createCampaign({
-      name: `${bookTitle} Launch — Traffic`,
-      phase: 'launch', objective: 'traffic', bookId,
+    const launchCampaign = await createCampaign({
+      name: `${launchLabel} — Launch`,
+      phase: 'launch', objective: 'traffic',
     })
-    if (launch) {
+    if (launchCampaign) {
       const [res1, res2] = await Promise.all([
-        fetch(`/api/campaigns/${launch.id}/adsets`, {
+        fetch(`/api/campaigns/${launchCampaign.id}/adsets`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: 'Warm — Website Retarget', targeting: 'warm', audience: 'Website visitors' }),
         }),
-        fetch(`/api/campaigns/${launch.id}/adsets`, {
+        fetch(`/api/campaigns/${launchCampaign.id}/adsets`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: 'Cold — Lookalike — Scaled', targeting: 'cold', audience: 'Scaled lookalike' }),
         }),
@@ -879,7 +903,7 @@ export function CampaignClient({
           if (r.ok) { const { ad } = await r.json(); adSets[si].ads.push(ad) }
         }
       }
-      newCampaigns.push({ ...launch, adSets })
+      newCampaigns.push({ ...launchCampaign, adSets })
     }
 
     setCampaigns(prev => [...newCampaigns, ...prev])
@@ -1081,7 +1105,6 @@ export function CampaignClient({
 
       {showGenerate && (
         <GenerateModal
-          books={books}
           onClose={() => setShowGenerate(false)}
           onGenerate={handleGenerate}
         />
