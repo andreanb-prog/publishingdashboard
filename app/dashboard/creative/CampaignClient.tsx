@@ -508,7 +508,7 @@ function GenerateModal({
   onClose: () => void
   onGenerate: (template: string, bookId: string, bookTitle: string) => Promise<void>
 }) {
-  const [template, setTemplate] = useState<'blank' | 'standard' | 'minimal'>('standard')
+  const [template, setTemplate] = useState<'blank' | 'standard' | 'minimal' | 'starter'>('standard')
   const [bookId,   setBookId]   = useState(books[0]?.id ?? '')
   const [loading,  setLoading]  = useState(false)
   const bookTitle = books.find(b => b.id === bookId)?.title ?? 'My Book'
@@ -559,12 +559,6 @@ function GenerateModal({
 
           {/* Template choices */}
           <div className="flex flex-col gap-2">
-            <button style={optStyle(template === 'blank')} onClick={() => setTemplate('blank')}>
-              <div className="font-bold text-[13px]" style={{ color: template === 'blank' ? '#E9A020' : '#1E2D3D' }}>
-                My structure
-              </div>
-              <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>Blank canvas — add campaigns manually</div>
-            </button>
             <button style={optStyle(template === 'standard')} onClick={() => setTemplate('standard')}>
               <div className="font-bold text-[13px]" style={{ color: template === 'standard' ? '#E9A020' : '#1E2D3D' }}>
                 Standard
@@ -579,7 +573,22 @@ function GenerateModal({
               </div>
               <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>One campaign, one ad set — build from there</div>
             </button>
+            <button style={optStyle(template === 'starter')} onClick={() => setTemplate('starter')}>
+              <div className="font-bold text-[13px]" style={{ color: template === 'starter' ? '#E9A020' : '#1E2D3D' }}>
+                Just Starting Out
+              </div>
+              <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>One simple campaign, one audience — no jargon, just a place to begin.</div>
+            </button>
+            <button style={optStyle(template === 'blank')} onClick={() => setTemplate('blank')}>
+              <div className="font-bold text-[13px]" style={{ color: template === 'blank' ? '#E9A020' : '#1E2D3D' }}>
+                My structure
+              </div>
+              <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>Blank canvas — add campaigns manually</div>
+            </button>
           </div>
+          <p className="text-[11px] text-center m-0" style={{ color: '#9CA3AF' }}>
+            All names are suggestions — click any to rename.
+          </p>
         </div>
 
         <div className="px-6 pb-6 flex gap-3">
@@ -773,6 +782,29 @@ export function CampaignClient({
         setCampaigns(prev => [c, ...prev])
       }
       showToast('Minimal structure created')
+      return
+    }
+
+    if (template === 'starter') {
+      const c = await createCampaign({ name: `${bookTitle} — Awareness`, phase: 'launch', objective: 'traffic', bookId })
+      if (!c) return
+      const asRes = await fetch(`/api/campaigns/${c.id}/adsets`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'My Audience', targeting: '' }),
+      })
+      if (asRes.ok) {
+        const { adSet } = await asRes.json()
+        const adRes = await fetch(`/api/adsets/${adSet.id}/ads`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ generatedName: `${bookTitle} — Ad 1` }),
+        })
+        const ads = adRes.ok ? [(await adRes.json()).ad] : []
+        setCampaigns(prev => [{ ...c, adSets: [{ ...adSet, ads }] }, ...prev])
+      } else {
+        setCampaigns(prev => [c, ...prev])
+      }
+      setExpandedCampaigns(prev => new Set(Array.from(prev).concat(c.id)))
+      showToast('Campaign created — click any name to rename')
       return
     }
 
