@@ -11,12 +11,12 @@ const ROADMAP = [
   {
     week: 'Week 1 — Foundation',
     title: 'Set up your boards',
-    body: 'Create 4 boards: "Stillwater Series," "Forced Proximity Romance," "Romance Book Recommendations," and "Book Aesthetic — Elle Wilder." Add 10 saved pins to each to seed the algorithm before posting your own.',
+    body: 'Create 4 boards: one for your series, one for your main trope, one for "Romance Book Recommendations," and one for your book aesthetic. Add 10 saved pins to each to seed the algorithm before posting your own.',
   },
   {
     week: 'Week 2–3 — Content',
     title: 'Post your first original pins',
-    body: 'Create 3 pin types: (1) Book cover + trope hook text overlay, (2) "If you like X you\'ll love MOLR" comparison, (3) Aesthetic mood board for the Stillwater world. Post 3–5x per week using Canva templates.',
+    body: 'Create 3 pin types: (1) Book cover + trope hook text overlay, (2) "If you like X you\'ll love [your book]" comparison, (3) Aesthetic mood board for your story world. Post 3–5x per week using Canva templates.',
   },
   {
     week: 'Week 4 — Optimize',
@@ -86,21 +86,21 @@ export default function PinterestPage() {
 
   if (loading) {
     return (
-      <DarkPage title="📌 Pinterest" subtitle="Dec 2025 – Mar 2026 · Building from zero · Your 30-day plan">
+      <DarkPage title="📌 Pinterest" subtitle="Building from zero · Your 30-day plan">
         <PageSkeleton cols={3} rows={3} />
       </DarkPage>
     )
   }
 
   return (
-    <DarkPage title="📌 Pinterest" subtitle="Dec 2025 – Mar 2026 · Building from zero · Your 30-day plan">
+    <DarkPage title="📌 Pinterest" subtitle="Building from zero · Your 30-day plan">
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-3.5 mb-7">
         {[
-          { label: 'Total Impressions', value: pin?.totalImpressions || 20, sub: 'Dec 2025 – Mar 2026', color: '#f472b6' },
-          { label: 'Active Pins', value: pin?.pinCount || 2, sub: 'Stillwater Series board', color: '#fb7185' },
-          { label: 'Account Age', value: pin?.accountAge || '~6 weeks', sub: 'Active since mid-Feb 2026', color: '#fbbf24' },
+          { label: 'Total Impressions', value: pin?.totalImpressions ?? '—', sub: 'From your uploaded data', color: '#f472b6' },
+          { label: 'Active Pins', value: pin?.pinCount ?? '—', sub: 'From your uploaded data', color: '#fb7185' },
+          { label: 'Total Saves', value: pin?.totalSaves ?? '—', sub: 'From your uploaded data', color: '#fbbf24' },
         ].map((item, i) => (
           <div key={i} className="rounded-xl p-5 relative overflow-hidden"
             style={{ background: 'white', border: '1px solid #EEEBE6' }}>
@@ -115,7 +115,7 @@ export default function PinterestPage() {
 
       {/* Coach box */}
       <DarkCoachBox color="#f472b6" title={coachTitle}>
-        {coach || `Your data is honest: 20 impressions, 2 pins, brand new account. That's not a problem — that's a starting line. Pinterest is one of the most powerful long-term channels for romance authors because pins keep working for months and years. A pin you create today about your forced proximity trope could still be driving readers to your book in 2028. Start posting this week. Consistency beats perfection here.`}
+        {coach || `Pinterest is one of the most powerful long-term channels for romance authors because pins keep working for months and years. A pin you create today about your tropes could still be driving readers to your book years from now. Upload your Pinterest CSV or log your weekly numbers below to get personalized coaching. Start posting consistently — that's the only thing that matters early on.`}
       </DarkCoachBox>
 
       {/* 30-day roadmap */}
@@ -200,19 +200,13 @@ export default function PinterestPage() {
             </tr>
           </thead>
           <tbody>
-            {/* Baseline from file */}
-            <tr style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-              <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>Feb 18 – Mar 31</td>
-              <td className="px-4 py-3 font-mono" style={{ color: '#1E2D3D' }}>20</td>
-              <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>0</td>
-              <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>0</td>
-              <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>2</td>
-              <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>0%</td>
-              <td className="px-4 py-3">
-                <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full"
-                  style={{ background: 'rgba(167,139,250,0.12)', color: '#a78bfa' }}>🔵 Just started</span>
-              </td>
-            </tr>
+            {logs.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-6 text-center text-[12px]" style={{ color: '#9CA3AF' }}>
+                  No weekly logs yet — use the form above to log your first week.
+                </td>
+              </tr>
+            )}
             {logs.map((log, i) => {
               const sr = log.saveRate || 0
               const isGood = sr >= 2
