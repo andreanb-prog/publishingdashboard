@@ -19,9 +19,10 @@ export async function GET(req: NextRequest) {
   let whereClause: Record<string, unknown> = { userId: session.user.id }
 
   if (filter === 'this_week') {
-    // Tasks due within 7 days from today, including overdue (before today)
+    // All incomplete tasks due on or before 7 days from now (includes overdue from any phase)
     whereClause = {
       userId: session.user.id,
+      status: { notIn: ['done', 'skipped'] },
       dueDate: { lte: weekEnd },
     }
   } else if (filter === 'all') {
