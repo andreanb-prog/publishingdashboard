@@ -99,7 +99,12 @@ const TARGETING_CONFIG: Record<string, { label: string; color: string; bg: strin
   retarget:   { label: 'Retarget',   color: '#8B5CF6', bg: '#F5F3FF' },
   newsletter: { label: 'Newsletter', color: '#6EBF8B', bg: '#F0FFF4' },
 }
-const SIZE_OPTIONS = ['1080x1080', '1080x1920', '1200x628']
+const SIZE_OPTIONS: { id: string; name: string; dims: string; placements: string }[] = [
+  { id: '1080x1080', name: 'Feed Square',    dims: '1080 × 1080', placements: 'Facebook feed, Instagram feed' },
+  { id: '1200x628',  name: 'Feed Landscape', dims: '1200 × 628',  placements: 'Facebook feed, link preview' },
+  { id: '1080x1920', name: 'Story / Reel',   dims: '1080 × 1920', placements: 'Instagram stories, Facebook stories, Reels' },
+  { id: '1080x1350', name: 'Portrait',       dims: '1080 × 1350', placements: 'Instagram feed portrait, Facebook feed' },
+]
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -549,8 +554,8 @@ function NewCreativeModal({
     window.open('https://claude.ai/new', '_blank')
   }
 
-  function toggleSize(s: string) {
-    setSizes(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
+  function toggleSize(id: string) {
+    setSizes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
   async function handleSubmit() {
@@ -651,24 +656,37 @@ function NewCreativeModal({
           {/* Sizes */}
           <div>
             <label style={labelStyle}>Sizes</label>
-            <div className="flex gap-2 flex-wrap">
-              {SIZE_OPTIONS.map(s => (
-                <label key={s} className="flex items-center gap-1.5 cursor-pointer"
-                  style={{ fontSize: 12, color: '#1E2D3D' }}>
-                  <div
-                    onClick={() => toggleSize(s)}
-                    className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 cursor-pointer"
+            <div className="grid grid-cols-2 gap-2">
+              {SIZE_OPTIONS.map(s => {
+                const selected = sizes.includes(s.id)
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => toggleSize(s.id)}
+                    className="text-left rounded-xl p-3 transition-all"
                     style={{
-                      background: sizes.includes(s) ? '#1E2D3D' : '#F3F4F6',
-                      border: `1px solid ${sizes.includes(s) ? '#1E2D3D' : '#D1D5DB'}`,
+                      background:  selected ? '#FFF8EC' : '#FFFFFF',
+                      border:      selected ? '2px solid #E9A020' : '1.5px solid #E5E7EB',
+                      cursor: 'pointer',
                     }}
                   >
-                    {sizes.includes(s) && <Check size={10} color="#fff" strokeWidth={3} />}
-                  </div>
-                  {s}
-                </label>
-              ))}
+                    <div className="font-bold text-[12px] mb-0.5" style={{ color: selected ? '#E9A020' : '#1E2D3D' }}>
+                      {s.name}
+                    </div>
+                    <div className="text-[11px] font-semibold mb-1" style={{ color: selected ? '#C97D0E' : '#6B7280' }}>
+                      {s.dims}
+                    </div>
+                    <div className="text-[10px] leading-snug" style={{ color: '#9CA3AF' }}>
+                      {s.placements}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
+            <p className="text-[11px] leading-relaxed mt-2" style={{ color: '#9CA3AF', margin: '8px 0 0' }}>
+              For most campaigns: start with <strong style={{ color: '#6B7280' }}>Feed Square (1080×1080)</strong> + <strong style={{ color: '#6B7280' }}>Story (1080×1920)</strong>. Add <strong style={{ color: '#6B7280' }}>Portrait (1080×1350)</strong> for Instagram feed optimization.
+            </p>
           </div>
 
           {/* Targeting */}
