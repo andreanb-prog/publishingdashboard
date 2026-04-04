@@ -74,13 +74,14 @@ function getWeekDays(): Date[] {
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-// Channel colors
+// Channel colors — using hex to avoid Tailwind purging dynamically-composed class names
+// (the custom `sky` override in tailwind.config.js clobbers the sky scale)
 const CHANNEL_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  Ads:     { bg: 'bg-sky-100',    text: 'text-sky-800',    dot: '#60A5FA' },
-  Email:   { bg: 'bg-green-100',  text: 'text-green-800',  dot: '#6EBF8B' },
-  Creative:{ bg: 'bg-purple-100', text: 'text-purple-800', dot: '#A78BFA' },
-  Social:  { bg: 'bg-green-100',  text: 'text-green-800',  dot: '#86EFAC' },
-  General: { bg: 'bg-gray-100',   text: 'text-gray-600',   dot: '#9CA3AF' },
+  Ads:     { bg: '#EFF6FF', text: '#1E40AF', dot: '#60A5FA' },
+  Email:   { bg: '#DCFCE7', text: '#166534', dot: '#6EBF8B' },
+  Creative:{ bg: '#F3E8FF', text: '#6B21A8', dot: '#A78BFA' },
+  Social:  { bg: '#DCFCE7', text: '#166534', dot: '#86EFAC' },
+  General: { bg: '#F3F4F6', text: '#4B5563', dot: '#9CA3AF' },
 }
 
 function channelStyle(channel: string) {
@@ -105,7 +106,10 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
 function ChannelPill({ channel }: { channel: string }) {
   const s = channelStyle(channel)
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${s.bg} ${s.text}`}>
+    <span
+      className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
+      style={{ background: s.bg, color: s.text }}
+    >
       {channel}
     </span>
   )
