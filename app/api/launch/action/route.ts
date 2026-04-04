@@ -16,6 +16,7 @@ function buildBibleContext(book: {
   targetReader: string | null
   characterNotes: string | null
   moodNotes: string | null
+  manuscriptSummary: string | null
   manuscriptText: string | null
 }): string {
   const allTropes = [...(book.tropes ?? []), ...(book.customTropes ?? [])].join(', ')
@@ -28,9 +29,10 @@ function buildBibleContext(book: {
   if (book.targetReader) lines.push(`- Target reader: ${book.targetReader}`)
   if (book.characterNotes) lines.push(`- Characters: ${book.characterNotes}`)
   if (book.moodNotes) lines.push(`- Mood: ${book.moodNotes}`)
-  if (book.manuscriptText) {
-    const excerpt = book.manuscriptText.slice(0, 2000).trim()
-    lines.push(`- Key manuscript context: ${excerpt}`)
+  if (book.manuscriptSummary) {
+    lines.push(`- Manuscript analysis: ${book.manuscriptSummary}`)
+  } else if (book.manuscriptText) {
+    lines.push(`- Key manuscript context: ${book.manuscriptText.slice(0, 2000).trim()}`)
   }
   return lines.length > 0 ? `Book context:\n${lines.join('\n')}\n\n` : ''
 }
@@ -58,7 +60,7 @@ export async function POST(req: NextRequest) {
       select: {
         genre: true, subgenre: true, tropes: true, customTropes: true,
         blurb: true, hookLines: true, compTitles: true, targetReader: true,
-        characterNotes: true, moodNotes: true, manuscriptText: true,
+        characterNotes: true, moodNotes: true, manuscriptSummary: true, manuscriptText: true,
       },
     })
     if (book) bibleContext = buildBibleContext(book)

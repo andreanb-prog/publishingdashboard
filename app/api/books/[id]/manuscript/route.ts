@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { anthropic } from '@/lib/anthropic'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -108,6 +109,55 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       manuscriptText: text,
       manuscriptUploadedAt: new Date(),
     },
+  })
+
+  // Smart extraction — sample beginning, middle, and end so key moments throughout
+  // the manuscript are represented regardless of where they fall structurally.
+  let manuscriptSummary: string | null = null
+  if (text.length > 500) {
+    try {
+      console.log('[manuscript] running smart extraction pass')
+      const len = text.length
+      const beginning = text.slice(0, 12000)
+      const middle = text.slice(Math.floor(len / 2) - 5000, Math.floor(len / 2) + 5000)
+      const ending = text.slice(Math.max(0, len - 12000))
+      const sample = `[BEGINNING]\n${beginning}\n\n[MIDDLE]\n${middle}\n\n[ENDING]\n${ending}`
+
+      const result = await anthropic.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 800,
+        messages: [
+          {
+            role: 'user',
+            content: `You are analyzing a romance manuscript to extract key creative elements for marketing purposes. Read the excerpts below (beginning, middle, and end of the book) and extract:
+1. Hero and heroine names and key traits
+2. The core conflict or tension between them
+3. 3-5 of the most emotionally charged lines or moments (quote briefly)
+4. The central trope(s) in action
+5. The emotional arc in one sentence
+6. 3 potential ad hook lines based on actual moments in the book
+
+Return as JSON only — no markdown, no explanation, just the JSON object.
+
+${sample}`,
+          },
+        ],
+      })
+
+      const raw = result.content[0].type === 'text' ? result.content[0].text.trim() : ''
+      // Validate it's JSON before saving
+      JSON.parse(raw)
+      manuscriptSummary = raw
+      console.log('[manuscript] extraction complete, summary length:', raw.length)
+    } catch (err) {
+      // Non-fatal — brief generation will fall back gracefully
+      console.error('[manuscript] extraction pass failed:', err)
+    }
+  }
+
+  await db.book.update({
+    where: { id: params.id },
+    data: { manuscriptSummary },
   })
 
   console.log('[manuscript] done')

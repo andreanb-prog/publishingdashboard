@@ -112,6 +112,7 @@ model Book {
   compTitles           String[]
   targetReader         String?
   manuscriptText       String?   @db.Text
+  manuscriptSummary    String?   @db.Text
   manuscriptUploadedAt DateTime?
   bibleUpdatedAt       DateTime? @updatedAt
   createdAt             DateTime  @default(now())
