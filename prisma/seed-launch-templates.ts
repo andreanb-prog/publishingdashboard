@@ -11,7 +11,7 @@ const templates = [
     daysFromLaunch: -30,
     description: 'Tropes, hook angles, comp authors',
     actionType: 'copy',
-    actionPrompt: 'Write a Facebook/Instagram ad copy brief for my book launch. Include: 3 hook angles based on my book\'s core appeal, 2 comp author angles, and a primary CTA. Format as a creative brief I can hand to a copywriter.',
+    actionPrompt: 'Write a Facebook/Instagram ad copy brief for [BOOK_TITLE], launching [LAUNCH_DATE]. Include: 3 hook angles based on the book\'s core appeal, 2 comp author angles, and a primary CTA. Format as a creative brief I can hand to a copywriter.',
     phase: 'pre-order',
   },
   {
@@ -20,7 +20,7 @@ const templates = [
     daysFromLaunch: -28,
     description: 'Cover reveal set (4 variants)',
     actionType: 'brief',
-    actionPrompt: 'Write a creative brief for a cover reveal ad set with 4 variants. Include: main hero image direction, text overlay options, color palette guidance, and sizing specs for Feed (1:1), Stories (9:16), and Reels.',
+    actionPrompt: 'Write a creative brief for a cover reveal ad set for [BOOK_TITLE] (launching [LAUNCH_DATE]) with 4 variants. Include: main hero image direction, text overlay options, color palette guidance, and sizing specs for Feed (1:1), Stories (9:16), and Reels.',
     phase: 'pre-order',
   },
   {
@@ -29,7 +29,7 @@ const templates = [
     daysFromLaunch: -21,
     description: 'Trope stack angle',
     actionType: 'copy',
-    actionPrompt: 'Write 3 pre-order ad copy variations for my book. Each should be 125 characters or less for primary text, with a headline and description. Lead with a strong hook that speaks to my target readers. Tone: warm, reader-first.',
+    actionPrompt: 'Write 3 pre-order ad copy variations for [BOOK_TITLE] (launching [LAUNCH_DATE]). Each should be 125 characters or less for primary text, with a headline and description. Lead with a strong hook that speaks to readers of this genre. Tone: warm, reader-first.',
     phase: 'pre-order',
   },
   {
@@ -56,7 +56,7 @@ const templates = [
     daysFromLaunch: -14,
     description: 'Kill under 1% CTR, scale winner',
     actionType: 'review',
-    actionPrompt: 'Help me review my pre-order ad results. I\'ll share my CTR, CPC, and spend for each ad variant. Tell me which to kill (under 1% CTR), which to scale, and what copy tweaks to test next.',
+    actionPrompt: 'I\'m running pre-order Meta ads for [BOOK_TITLE], launching [LAUNCH_DATE]. Based on what you know about my campaigns, review my current ad performance and tell me: which ads to kill (under 1% CTR), which to scale, and what copy angle to test next.',
     phase: 'pre-order',
   },
   {
@@ -74,7 +74,7 @@ const templates = [
     daysFromLaunch: -14,
     description: '4 variants',
     actionType: 'brief',
-    actionPrompt: 'Write a creative brief for a hook/tension ad creative set with 4 variants. Focus on emotional tension, unresolved conflict, and reader curiosity. Each variant should test a different emotional angle.',
+    actionPrompt: 'Write a creative brief for a hook/tension ad creative set for [BOOK_TITLE] (launching [LAUNCH_DATE]) with 4 variants. Focus on emotional tension, unresolved conflict, and reader curiosity. Each variant should test a different emotional angle.',
     phase: 'pre-order',
   },
   {
@@ -110,7 +110,7 @@ const templates = [
     daysFromLaunch: -3,
     description: 'Final review before launch',
     actionType: 'review',
-    actionPrompt: 'Help me do a final pre-launch ad campaign review. I\'ll walk through my campaign structure. Check for: audience overlap, budget allocation, creative fatigue risks, and anything that could cause disapproval.',
+    actionPrompt: 'I\'m 3 days from launching [BOOK_TITLE] on [LAUNCH_DATE]. Review my pre-launch Meta campaign structure and flag any risks: audience overlap, budget allocation, creative fatigue, or anything that could cause ad disapproval. Give me a clear go/no-go with specific fixes.',
     phase: 'pre-order',
   },
   {
@@ -128,7 +128,7 @@ const templates = [
     daysFromLaunch: -1,
     description: 'Cover, blurb, categories, keywords',
     actionType: 'review',
-    actionPrompt: 'Help me do a final QA pass on my Amazon book listing. I\'ll share my current blurb, categories, and keywords. Check for: keyword optimization, category fit, blurb hook strength, and anything readers or the algorithm might penalize.',
+    actionPrompt: 'I\'m launching [BOOK_TITLE] tomorrow ([LAUNCH_DATE]). Do a final QA pass on my Amazon listing. Check my blurb hook, category fit, keyword optimization, and anything that could hurt launch day discoverability. Tell me exactly what to fix today.',
     phase: 'pre-order',
   },
   // Launch phase
@@ -174,7 +174,7 @@ const templates = [
     daysFromLaunch: 3,
     description: 'Adjust budget, swap copy',
     actionType: 'review',
-    actionPrompt: 'Help me review my launch day 3 ad performance. I\'ll share spend, CTR, CPC, and ROAS. Tell me: which campaigns to scale, which to pause, and what copy swaps to test based on early reader response.',
+    actionPrompt: 'I\'m on day 3 of my [BOOK_TITLE] launch campaign. My launch was [LAUNCH_DATE]. Based on what you know about my Meta campaigns, review my current ad performance and tell me: which ads to kill (under 1% CTR), which to scale, and what copy angle to test next based on early reader response.',
     phase: 'launch',
   },
   {
@@ -192,7 +192,7 @@ const templates = [
     daysFromLaunch: 7,
     description: 'Reader quotes as social proof',
     actionType: 'copy',
-    actionPrompt: 'Help me write 3 ad copy variations using reader review quotes as social proof. I\'ll share the best reviews. Transform them into hooks that feel authentic and drive clicks without sounding salesy.',
+    actionPrompt: 'I launched [BOOK_TITLE] on [LAUNCH_DATE] and early reader reviews are coming in. Write 3 ad copy variations using reader review quotes as social proof. Pull from the strongest emotional angles readers respond to for this genre. Make them feel authentic, not salesy.',
     phase: 'launch',
   },
   // Post-launch phase
@@ -220,7 +220,7 @@ const templates = [
     daysFromLaunch: 21,
     description: 'Series funnel creative',
     actionType: 'brief',
-    actionPrompt: 'Write a creative brief for a series funnel ad. Goal: get new readers to start at Book 1 and read through the full series. Include: hook angle for series starters, binge-reading angle, and visual direction.',
+    actionPrompt: 'Write a creative brief for a series funnel ad following the [BOOK_TITLE] launch ([LAUNCH_DATE]). Goal: get new readers to start at Book 1 and read through the full series. Include: hook angle for series starters, binge-reading angle, and visual direction.',
     phase: 'post-launch',
   },
   {

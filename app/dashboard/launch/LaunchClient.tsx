@@ -123,17 +123,23 @@ function PhaseLabel({ dueDate, launchDate }: { dueDate: string; launchDate: stri
 }
 
 // ── Action button ──────────────────────────────────────────────────────────────
-function ActionButton({ actionType, actionPrompt, onCopy }: {
+function ActionButton({ actionType, actionPrompt, launchDate, bookTitle, onCopy }: {
   actionType: string
   actionPrompt: string
+  launchDate: string
+  bookTitle: string | null
   onCopy: (msg: string) => void
 }) {
   const labels: Record<string, string> = { copy: 'Copy ↗', brief: 'Brief ↗', review: 'Review ↗' }
   const label = labels[actionType] ?? 'Action ↗'
 
   const handleClick = async () => {
+    const launchFormatted = new Date(launchDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    const resolved = actionPrompt
+      .replace(/\[BOOK_TITLE\]/g, bookTitle ?? 'my book')
+      .replace(/\[LAUNCH_DATE\]/g, launchFormatted)
     try {
-      await navigator.clipboard.writeText(actionPrompt)
+      await navigator.clipboard.writeText(resolved)
       onCopy('Prompt copied — paste into Claude chat')
     } catch {
       onCopy('Copy failed — check clipboard permissions')
@@ -154,12 +160,14 @@ function ActionButton({ actionType, actionPrompt, onCopy }: {
 function TaskRow({
   task,
   launchDate,
+  bookTitle,
   isOverdue,
   onComplete,
   onCopy,
 }: {
   task: LaunchTask
   launchDate: string
+  bookTitle: string | null
   isOverdue: boolean
   onComplete: (id: string) => void
   onCopy: (msg: string) => void
@@ -219,6 +227,8 @@ function TaskRow({
         <ActionButton
           actionType={task.actionType}
           actionPrompt={task.actionPrompt}
+          launchDate={launchDate}
+          bookTitle={bookTitle}
           onCopy={onCopy}
         />
       )}
@@ -231,6 +241,7 @@ function TaskSection({
   title,
   tasks,
   launchDate,
+  bookTitle,
   isOverdue,
   onComplete,
   onCopy,
@@ -238,6 +249,7 @@ function TaskSection({
   title: string
   tasks: LaunchTask[]
   launchDate: string
+  bookTitle: string | null
   isOverdue?: boolean
   onComplete: (id: string) => void
   onCopy: (msg: string) => void
@@ -265,6 +277,7 @@ function TaskSection({
               key={task.id}
               task={task}
               launchDate={launchDate}
+              bookTitle={bookTitle}
               isOverdue={isOverdue ?? false}
               onComplete={onComplete}
               onCopy={onCopy}
@@ -785,6 +798,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   title="Overdue"
                   tasks={overdueTasks}
                   launchDate={launchDate}
+                  bookTitle={bookTitle}
                   isOverdue={true}
                   onComplete={handleComplete}
                   onCopy={showToast}
@@ -793,6 +807,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   title="Today"
                   tasks={todayTasks}
                   launchDate={launchDate}
+                  bookTitle={bookTitle}
                   onComplete={handleComplete}
                   onCopy={showToast}
                 />
@@ -800,6 +815,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   title="This Week"
                   tasks={thisWeekTasks}
                   launchDate={launchDate}
+                  bookTitle={bookTitle}
                   onComplete={handleComplete}
                   onCopy={showToast}
                 />
@@ -807,6 +823,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   title="Upcoming"
                   tasks={upcomingTasks}
                   launchDate={launchDate}
+                  bookTitle={bookTitle}
                   onComplete={handleComplete}
                   onCopy={showToast}
                 />
@@ -827,6 +844,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                       key={task.id}
                       task={task}
                       launchDate={launchDate}
+                      bookTitle={bookTitle}
                       isOverdue={false}
                       onComplete={handleComplete}
                       onCopy={showToast}
@@ -839,6 +857,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                     key={task.id}
                     task={task}
                     launchDate={launchDate}
+                    bookTitle={bookTitle}
                     isOverdue={false}
                     onComplete={handleComplete}
                     onCopy={showToast}
