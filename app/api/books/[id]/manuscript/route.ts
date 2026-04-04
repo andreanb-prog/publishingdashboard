@@ -63,22 +63,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
   } else if (fileName.endsWith('.epub')) {
-    console.log('[manuscript] parsing as EPUB')
+    console.log('[manuscript] parsing as EPUB with adm-zip')
     try {
-      const { EPub } = await import('epub2')
-      const epub = await EPub.createAsync(buffer as unknown as string)
-      console.log('[manuscript] EPUB opened, chapters:', epub.flow.length)
-      const chapters = await Promise.all(
-        epub.flow.map((chapter: { id: string }) =>
-          new Promise<string>((resolve) => {
-            epub.getChapter(chapter.id, (err: unknown, body: string) => {
-              if (err || !body) { resolve(''); return }
-              resolve(body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())
-            })
-          })
-        )
-      )
-      text = chapters.filter(Boolean).join('\n\n')
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const AdmZip = require('adm-zip')
+      const zip = new AdmZip(buffer)
+      const entries = zip.getEntries() as { entryName: string; getData: () => Buffer }[]
+      console.log('[manuscript] EPUB zip opened, entries:', entries.length)
+      const chapters: string[] = []
+      for (const entry of entries) {
+        const name = entry.entryName.toLowerCase()
+        if (name.endsWith('.xhtml') || name.endsWith('.html') || name.endsWith('.htm')) {
+          const raw = entry.getData().toString('utf-8')
+          const stripped = raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+          if (stripped) chapters.push(stripped)
+        }
+      }
+      text = chapters.join('\n\n')
       console.log('[manuscript] EPUB text extracted, chars:', text.length)
     } catch (err) {
       console.error('[manuscript] EPUB parse error:', err)
