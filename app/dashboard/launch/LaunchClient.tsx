@@ -141,7 +141,7 @@ function ActionButton({ actionType, actionPrompt, launchDate, bookTitle, daysToL
 
   const handleClick = () => {
     const title = bookTitle ?? 'my book'
-    const launchFormatted = new Date(launchDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    const launchFormatted = toLocalDate(launchDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     const daysLabel = daysToLaunch > 0
       ? `${daysToLaunch} days out`
       : daysToLaunch === 0
