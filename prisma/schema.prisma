@@ -323,3 +323,36 @@ model DecisionsLog {
   @@index([userId])
   @@index([bookId])
 }
+
+model Creative {
+  id            String   @id @default(cuid())
+  userId        String
+  bookId        String?
+  name          String
+  variant       String?
+  phase         String   // "pre-order" | "launch" | "post-launch" | "evergreen"
+  angle         String?  // "emotional" | "tension" | "trope-stack" | "social-proof" | "passage-quote"
+  format        String   // "static-image" | "reel" | "carousel" | "story"
+  sizes         String[] // ["1080x1080", "1080x1920"]
+  status        String   @default("briefed") // "briefed" | "in-canva" | "ready" | "live" | "paused" | "cut"
+  thumbnailUrl  String?
+  brief         String?
+  hookText      String?
+  captionCopy   String?
+  headlineCopy  String?
+  targeting     String?  // "cold" | "warm" | "retarget" | "newsletter"
+  ctr           Float?
+  cpc           Float?
+  spend         Float?
+  impressions   Int?
+  clicks        Int?
+  costPerResult Float?
+  adAccountId   String?
+  metaAdId      String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([bookId])
+}

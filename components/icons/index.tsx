@@ -19,6 +19,9 @@ export {
   Megaphone,
   LogOut,
   Rocket,
+  Palette,
+  LayoutGrid,
+  Columns,
 } from 'lucide-react'
 
 // Custom SVG icons (kept for legacy use)
