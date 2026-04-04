@@ -155,6 +155,7 @@ export interface CoachingInsight {
   body: string
   action?: string
   channel: 'kdp' | 'meta' | 'email' | 'swaps' | 'pinterest' | 'general'
+  confidence?: 'high' | 'medium' | 'low'
 }
 
 export interface ChannelScore {

@@ -47,6 +47,15 @@ function fmt(n: number | undefined, prefix = '', decimals = 0) {
   return `${prefix}${n.toLocaleString(undefined, { maximumFractionDigits: decimals })}`
 }
 
+function fmtRelDate(iso: string): string {
+  const d = new Date(iso)
+  const diff = Date.now() - d.getTime()
+  if (diff < 60_000) return 'just now'
+  if (diff < 3_600_000) return `${Math.round(diff / 60_000)}m ago`
+  if (diff < 86_400_000) return `${Math.round(diff / 3_600_000)}h ago`
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 function Trend({ curr, prev }: { curr?: number; prev?: number }) {
   if (curr == null || prev == null || prev === 0) return <span className="text-stone-500">—</span>
   const pct = ((curr - prev) / prev) * 100
@@ -380,6 +389,33 @@ function useCountUp(target: number, active: boolean, duration = 800): number {
   return val
 }
 
+// ── Other Observations — collapsible section for low-confidence action items ──
+function OtherObservations({ items }: { items: CoachingInsight[] }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="mt-3 rounded-xl overflow-hidden" style={{ background: 'white', border: '0.5px solid #EEEBE6' }}>
+      <button onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left bg-transparent border-none cursor-pointer">
+        <span className="text-[12px] font-semibold" style={{ color: '#6B7280' }}>
+          Other observations ({items.length})
+        </span>
+        <span className="text-[11px] transition-transform duration-200"
+          style={{ color: '#6B7280', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-3" style={{ borderTop: '0.5px solid #EEEBE6' }}>
+          {items.map((item, i) => (
+            <div key={i} className="pt-3">
+              <div className="text-[12.5px] font-semibold mb-1" style={{ color: '#6B7280' }}>{item.title}</div>
+              <div className="text-[12px] leading-[1.6]" style={{ color: '#9CA3AF' }}>{item.body}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 export function OverviewClient({ userName }: { userName?: string | null } = {}) {
   const [analysis,  setAnalysis]  = useState<any>(null)
@@ -436,20 +472,26 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
   const animKenp  = useCountUp(_kenpTarget,  isFresh && !!analysis?.kdp)
   const animCtr   = useCountUp(_ctrTarget,   isFresh && !!analysis?.meta?.bestAd)
 
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [refreshKey,   setRefreshKey]   = useState(0)
+  const [liveML,       setLiveML]       = useState<import('@/types').MailerLiteData | null>(null)
+  const [metaLastSync, setMetaLastSync] = useState<string | null>(null)
+  const [syncingMeta,  setSyncingMeta]  = useState(false)
+  const [syncingML,    setSyncingML]    = useState(false)
 
   useEffect(() => {
     Promise.all([
       fetch('/api/analyze').then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({})),
       fetch('/api/rank').then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({ logs: [] })),
       fetch('/api/roas').then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({ logs: [] })),
-    ]).then(([analyzeData, rankData, roasData]) => {
+      fetch('/api/mailerlite').then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([analyzeData, rankData, roasData, mlData]) => {
       // Read the single latest analysis blob
       const analysis = analyzeData.analysis ?? null
       console.log('[Overview] analysis keys:', analysis ? Object.keys(analysis) : 'null')
       console.log('[Overview] kdp:', analysis?.kdp ? `units=${analysis.kdp.totalUnits} kenp=${analysis.kdp.totalKENP} royalties=${analysis.kdp.totalRoyaltiesUSD}` : 'MISSING')
       setAnalysis(analysis)
       setKdpLastUploadedAt(analyzeData.kdpLastUploadedAt ?? null)
+      setMetaLastSync(analyzeData.metaLastSync ?? null)
 
       // Keep analyses array for history table — each item's .data field has the blob
       const rows: Analysis[] = (analyzeData.analyses ?? [])
@@ -459,8 +501,35 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
 
       setRankLogs(rankData.logs ?? [])
       setRoasLogs(roasData.logs ?? [])
+      if (mlData?.data) setLiveML(mlData.data)
     }).catch(console.error).finally(() => setLoading(false))
   }, [refreshKey])
+
+  async function handleSyncMeta() {
+    setSyncingMeta(true)
+    try {
+      const res = await fetch('/api/meta/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.data) setAnalysis((prev: any) => prev ? { ...prev, meta: data.data } : { meta: data.data })
+        setMetaLastSync(new Date().toISOString())
+        window.dispatchEvent(new Event('meta:synced'))
+      }
+    } catch { /* ignore */ }
+    setSyncingMeta(false)
+  }
+
+  async function handleSyncML() {
+    setSyncingML(true)
+    try {
+      const res = await fetch('/api/mailerlite')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.data) setLiveML(data.data)
+      }
+    } catch { /* ignore */ }
+    setSyncingML(false)
+  }
 
   // Re-fetch when an upload completes (fired by UploadModal on any page)
   useEffect(() => {
@@ -695,67 +764,82 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
           Highest impact actions based on your real performance data
         </p>
 
-        {analysis?.actionPlan?.length ? (
-          <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '0.5px solid #EEEBE6' }}>
-            {(analysis.actionPlan as CoachingInsight[]).slice(0, 3).map((item, i) => {
-              const href = item.channel === 'kdp' ? '/dashboard/kdp'
-                : item.channel === 'meta' ? '/dashboard/meta'
-                : item.channel === 'email' ? '/dashboard/mailerlite'
-                : item.channel === 'pinterest' ? '/dashboard/pinterest'
-                : '/dashboard?upload=1'
-              const colors = ['#F97B6B', '#E9A020', '#60A5FA']
-              const color = colors[i] ?? colors[2]
-              const isOpen = expandedPriority === i
-              return (
-                <div key={i}
-                  style={{
-                    borderBottom: i < 2 ? '0.5px solid #EEEBE6' : 'none',
-                    background: isOpen ? '#FFF8F0' : 'white',
-                    borderLeft: isOpen ? `3px solid ${color}` : '3px solid transparent',
-                    transition: 'background 0.2s ease, border-left-color 0.2s ease',
-                  }}>
-                  {/* Collapsed row */}
-                  <button
-                    onClick={() => setExpandedPriority(isOpen ? null : i)}
-                    className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left bg-transparent border-none cursor-pointer"
-                  >
-                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
-                      style={{ background: color, color: 'white' }}>
-                      {i + 1}
-                    </span>
-                    <span className="flex-1 text-[13.5px] font-bold" style={{ color: '#1E2D3D' }}>
-                      {item.title}
-                    </span>
-                    <span className="text-[12px] flex-shrink-0 transition-transform duration-200"
-                      style={{ color: '#6B7280', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                      ▾
-                    </span>
-                  </button>
-
-                  {/* Expanded detail */}
-                  <div className="overflow-hidden transition-all duration-300 ease-out"
-                    style={{ maxHeight: isOpen ? '300px' : '0px', opacity: isOpen ? 1 : 0 }}>
-                    <div className="px-4 pb-4 pl-[60px]">
-                      <div className="text-[12.5px] leading-[1.7] mb-3" style={{ color: '#374151' }}>
-                        {item.body}
-                        {item.action && (
-                          <span className="ml-1">
-                            <strong style={{ color: '#E9A020' }}>Impact:</strong> {item.action}
+        {analysis?.actionPlan?.length ? (() => {
+          const allItems = analysis.actionPlan as CoachingInsight[]
+          const mainItems  = allItems.filter(item => item.confidence !== 'low').slice(0, 3)
+          const otherItems = allItems.filter(item => item.confidence === 'low')
+          const highColors = ['#F97B6B', '#E9A020', '#60A5FA']
+          return (
+            <>
+              {mainItems.length > 0 && (
+                <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '0.5px solid #EEEBE6' }}>
+                  {mainItems.map((item, i) => {
+                    const href = item.channel === 'kdp' ? '/dashboard/kdp'
+                      : item.channel === 'meta' ? '/dashboard/meta'
+                      : item.channel === 'email' ? '/dashboard/mailerlite'
+                      : item.channel === 'pinterest' ? '/dashboard/pinterest'
+                      : '/dashboard?upload=1'
+                    const isMedium = item.confidence === 'medium'
+                    const color = isMedium ? '#E9A020' : (highColors[i] ?? highColors[2])
+                    const isOpen = expandedPriority === i
+                    return (
+                      <div key={i}
+                        style={{
+                          borderBottom: i < mainItems.length - 1 ? '0.5px solid #EEEBE6' : 'none',
+                          background: isOpen ? '#FFF8F0' : 'white',
+                          borderLeft: isOpen ? `3px solid ${color}` : '3px solid transparent',
+                          transition: 'background 0.2s ease, border-left-color 0.2s ease',
+                        }}>
+                        <button
+                          onClick={() => setExpandedPriority(isOpen ? null : i)}
+                          className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left bg-transparent border-none cursor-pointer"
+                        >
+                          <span className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
+                            style={{ background: color, color: 'white' }}>
+                            {i + 1}
                           </span>
-                        )}
+                          <span className="flex-1 min-w-0">
+                            {isMedium && (
+                              <span className="text-[10px] font-bold uppercase tracking-wide mr-1.5"
+                                style={{ color: '#E9A020' }}>Worth checking:</span>
+                            )}
+                            <span className="text-[13.5px] font-bold" style={{ color: '#1E2D3D' }}>{item.title}</span>
+                          </span>
+                          <span className="text-[12px] flex-shrink-0 transition-transform duration-200"
+                            style={{ color: '#6B7280', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                            ▾
+                          </span>
+                        </button>
+                        <div className="overflow-hidden transition-all duration-300 ease-out"
+                          style={{ maxHeight: isOpen ? '300px' : '0px', opacity: isOpen ? 1 : 0 }}>
+                          <div className="px-4 pb-4 pl-[60px]">
+                            <div className="text-[12.5px] leading-[1.7] mb-3" style={{ color: '#374151' }}>
+                              {item.body}
+                              {item.action && (
+                                <span className="ml-1">
+                                  <strong style={{ color: '#E9A020' }}>Next step:</strong> {item.action}
+                                </span>
+                              )}
+                            </div>
+                            <Link href={href}
+                              className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-[11.5px] font-bold no-underline transition-all hover:opacity-90"
+                              style={{ background: color, color: 'white' }}>
+                              Read the Full Story →
+                            </Link>
+                          </div>
+                        </div>
                       </div>
-                      <Link href={href}
-                        className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-[11.5px] font-bold no-underline transition-all hover:opacity-90"
-                        style={{ background: color, color: 'white' }}>
-                        Read the Full Story →
-                      </Link>
-                    </div>
-                  </div>
+                    )
+                  })}
                 </div>
-              )
-            })}
-          </div>
-        ) : analysis ? (
+              )}
+
+              {otherItems.length > 0 && (
+                <OtherObservations items={otherItems} />
+              )}
+            </>
+          )
+        })() : analysis ? (
           <InsightCallouts analysis={analysis} page="overview" />
         ) : (
           <div className="text-[13px] py-4" style={{ color: '#6B7280' }}>
@@ -907,11 +991,27 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
                       } as ChannelScore
                     }
 
+                    // Fallback for MailerLite using live API data if available
+                    if (!score && card.key === 'mailerlite') {
+                      const ml = liveML ?? analysis?.mailerLite
+                      if (ml) {
+                        const status = ml.openRate >= 25 ? 'GREEN' : ml.openRate >= 15 ? 'AMBER' : 'RED'
+                        score = {
+                          channel: 'mailerlite',
+                          status,
+                          headline: `${ml.listSize.toLocaleString()} subscribers`,
+                          metric: ml.listSize.toLocaleString(),
+                          subline: `${ml.openRate}% open · ${ml.clickRate}% click`,
+                          badge: status === 'GREEN' ? 'Growing' : status === 'AMBER' ? 'Watch' : 'Fix this',
+                        } as ChannelScore
+                      }
+                    }
+
                     const badge = (score?.status ? STATUS_BADGE[score.status] : null) ?? STATUS_BADGE.NEW
                     return (
-                      <Link key={card.key} href={card.href}
-                        className={`card p-4 cursor-pointer hover:-translate-y-0.5 transition-all
-                                    border-t-[3px] ${card.colorClass} no-underline animate-fade-up`}>
+                      <div key={card.key}
+                        className={`card p-4 hover:-translate-y-0.5 transition-all border-t-[3px] ${card.colorClass} animate-fade-up relative`}>
+                        <Link href={card.href} className="absolute inset-0 z-0 no-underline" aria-label={card.name} />
                         <span className="mb-2.5 block"><card.icon size={20} strokeWidth={1.75} color={card.iconColor} /></span>
                         <div className="text-[10.5px] font-bold tracking-[0.8px] uppercase text-stone-500 mb-1">
                           {card.name}
@@ -938,7 +1038,43 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
                             </p>
                           </div>
                         )}
-                      </Link>
+                        {/* Data freshness footer */}
+                        <div className="mt-2 pt-1.5 flex items-center gap-2" style={{ borderTop: '0.5px solid #EEEBE6' }}>
+                          {card.key === 'kdp' && (
+                            kdpLastUploadedAt
+                              ? <span className="text-[9.5px] text-stone-400">Last upload: {fmtRelDate(kdpLastUploadedAt)}</span>
+                              : <span className="text-[9.5px] text-stone-400">No upload yet</span>
+                          )}
+                          {card.key === 'mailerlite' && (
+                            <>
+                              <span className="text-[9.5px] font-bold" style={{ color: '#34d399' }}>● Live</span>
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSyncML() }}
+                                disabled={syncingML}
+                                className="relative z-10 text-[9.5px] font-medium transition-colors"
+                                style={{ color: syncingML ? '#9CA3AF' : '#6B7280', cursor: syncingML ? 'not-allowed' : 'pointer', background: 'none', border: 'none', padding: 0 }}
+                              >
+                                {syncingML ? '↻ Syncing…' : '↻ Sync'}
+                              </button>
+                            </>
+                          )}
+                          {card.key === 'meta' && (
+                            <>
+                              <span className="text-[9.5px] text-stone-400">
+                                {metaLastSync ? `Synced ${fmtRelDate(metaLastSync)}` : 'Not synced'}
+                              </span>
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSyncMeta() }}
+                                disabled={syncingMeta}
+                                className="relative z-10 text-[9.5px] font-medium transition-colors"
+                                style={{ color: syncingMeta ? '#9CA3AF' : '#6B7280', cursor: syncingMeta ? 'not-allowed' : 'pointer', background: 'none', border: 'none', padding: 0 }}
+                              >
+                                {syncingMeta ? '↻ Syncing…' : '↻ Sync'}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     )
                   })}
                 </div>

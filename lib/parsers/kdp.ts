@@ -133,14 +133,20 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
     }
   }
 
-  // ── Orders Processed sheet ────────────────────────────────────────────────
-  const ordersSheet = workbook.Sheets['Orders Processed']
+  // ── Orders / Sales sheet: try "Orders Processed" first, then any sheet
+  //    that isn't Summary or KENP Read (handles alternate export formats)  ──
+  const KENP_NAMES = new Set(['KENP Read', 'KENP', 'Kindle Edition Normalized Page Read'])
+  const ordersSheetName =
+    workbook.SheetNames.find(n => n === 'Orders Processed') ??
+    workbook.SheetNames.find(n => n !== 'Summary' && !KENP_NAMES.has(n))
+  const ordersSheet = ordersSheetName ? workbook.Sheets[ordersSheetName] : null
   const ordersData  = ordersSheet
     ? (XLSX.utils.sheet_to_json(ordersSheet) as Record<string, unknown>[])
     : []
 
   // ── KENP Read sheet ───────────────────────────────────────────────────────
-  const kenpSheet = workbook.Sheets['KENP Read']
+  const kenpSheetName = workbook.SheetNames.find(n => KENP_NAMES.has(n)) ?? 'KENP Read'
+  const kenpSheet = workbook.Sheets[kenpSheetName]
   const kenpData  = kenpSheet
     ? (XLSX.utils.sheet_to_json(kenpSheet) as Record<string, unknown>[])
     : []
@@ -151,11 +157,21 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
 
   const bookMap = new Map<string, BookData>()
 
+  let ordersRoyaltiesUSD = 0
   for (const row of ordersData) {
-    const asin        = str(pick(row, 'ASIN', 'Asin', 'asin'))
+    const asin        = str(pick(row, 'ASIN', 'ASIN/ISBN', 'Asin', 'asin'))
     const title       = str(pick(row, 'Title', 'Book Title', 'title'))
-    const units       = num(pick(row, 'Paid Units', 'Units Sold', 'Net Units Sold', 'Units'))
+    const units       = num(pick(row, 'Net Units Sold', 'Paid Units', 'Units Sold', 'Units'))
     const royaltyType = str(pick(row, 'Royalty Type', 'Type', 'Format', 'Binding')).toLowerCase()
+    const royalty     = num(pick(row,
+      'Royalty', 'Net Royalty', 'Est. Royalty', 'Royalties', 'Net Royalties',
+      'Total Royalty', 'Total Royalties', 'Estimated Royalty',
+    ))
+    const currency    = str(pick(row, 'Currency', 'currency')).toUpperCase().trim()
+
+    // Sum USD royalties from all rows (currency blank = assume USD)
+    if (currency === 'USD' || currency === '') ordersRoyaltiesUSD += royalty
+
     if (!asin) continue
     // Detect paperback: 60%/40% royalty rate, or explicit "print"/"paperback" labels
     const isPaperback = royaltyType.includes('60') || royaltyType.includes('40%') ||
@@ -169,7 +185,12 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
       })
     }
     bookMap.get(asin)!.units += units
+    bookMap.get(asin)!.royalties += currency === 'USD' || currency === '' ? royalty : 0
   }
+  // Prefer per-row royalty sum over the Summary single-row value (which may be
+  // per-marketplace or incomplete). Fall back to Summary value if orders sheet
+  // had no royalty data at all.
+  if (ordersRoyaltiesUSD > 0) totalRoyaltiesUSD = ordersRoyaltiesUSD
 
   for (const row of kenpData) {
     const asin = str(pick(row, 'ASIN', 'Asin', 'asin'))
@@ -247,6 +268,9 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
       'Total Royalty', 'Total Royalties', 'Est. KU Royalty', 'Estimated Royalty',
     ))
 
+    const currency = str(pick(row, 'Currency', 'currency')).toUpperCase().trim()
+    const isUSD    = currency === 'USD' || currency === ''
+
     const key = asin || title
     if (!bookMap.has(key)) {
       bookMap.set(key, {
@@ -258,10 +282,10 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
     const book = bookMap.get(key)!
     book.units     += units
     book.kenp      += kenp
-    book.royalties += royalty
+    book.royalties += isUSD ? royalty : 0
 
     totalKENP         += kenp
-    totalRoyaltiesUSD += royalty
+    if (isUSD) totalRoyaltiesUSD += royalty
     paidUnits         += units
   }
 

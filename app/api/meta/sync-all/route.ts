@@ -1,4 +1,7 @@
 // app/api/meta/sync-all/route.ts — Cron: sync all connected Meta accounts
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 

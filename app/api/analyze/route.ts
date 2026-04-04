@@ -6,6 +6,28 @@ import { anthropic, CLAUDE_MODEL, COACHING_SYSTEM_PROMPT } from '@/lib/anthropic
 import { db } from '@/lib/db'
 import type { KDPData, MetaData, MailerLiteData, PinterestData, Analysis } from '@/types'
 
+// ── KDP data quality validation ───────────────────────────────────────────────
+type KdpDataQuality = 'OK' | 'SUSPECT_DATA' | 'INCOMPLETE_DATA'
+
+function validateKdpData(kdp: KDPData): KdpDataQuality {
+  const { totalRoyaltiesUSD, totalUnits, books } = kdp
+
+  // Fewer than 3 distinct books/entries → likely a partial or wrongly-exported file
+  if ((books?.length ?? 0) < 3 && totalUnits > 10) return 'INCOMPLETE_DATA'
+
+  if (totalUnits > 0) {
+    const royaltiesPerUnit = totalRoyaltiesUSD / totalUnits
+    // royaltiesPerUnit < $0.30 with > 10 units means even 99¢ @ 35% ($0.347)
+    // can't explain it — strongly suggests only a single row was parsed instead of summing all
+    if (royaltiesPerUnit < 0.30 && totalUnits > 10) return 'SUSPECT_DATA'
+  }
+
+  // totalRoyalties < $1 with > 5 units → almost certainly a partial parse
+  if (totalRoyaltiesUSD < 1.00 && totalUnits > 5) return 'SUSPECT_DATA'
+
+  return 'OK'
+}
+
 // ── Fingerprint: skip Claude if the same data was already analyzed ────────────
 function makeFingerprint(kdp?: KDPData, meta?: MetaData, pinterest?: PinterestData): string {
   const parts = [
@@ -63,6 +85,20 @@ export async function POST(req: NextRequest) {
       })
       console.log('=== historical fetched ===', historical.length, 'records')
 
+      // ── KDP data quality gate — abort before Claude if data looks partial ────
+      if (kdp) {
+        const kdpQuality = validateKdpData(kdp)
+        if (kdpQuality !== 'OK') {
+          console.warn('[analyze] KDP data quality check failed:', kdpQuality, {
+            totalUnits: kdp.totalUnits,
+            totalRoyaltiesUSD: kdp.totalRoyaltiesUSD,
+            books: kdp.books?.length ?? 0,
+          })
+          await send({ type: 'kdpDataQuality', quality: kdpQuality })
+          return
+        }
+      }
+
       const dataSummary   = buildDataSummary({ kdp, meta, mailerLite, pinterest })
       const historySummary = buildHistorySummary(historical)
 
@@ -88,6 +124,8 @@ COPY QUALITY RULES — follow these in every field of the JSON response:
 - Every action item must name a specific action AND a specific platform (e.g. "Go to Meta Ads Manager and pause the low-CTR ads", not "consider adjusting your ads").
 - NEVER end an insight with a hedge like "you know your readers best" — end with the action.
 - ALWAYS be specific about numbers: use the actual metric values from the data (e.g. "your CTR is 0.8%", "you sold 14 units"). NEVER say "your numbers are low" or "your engagement is poor" without naming the exact figure.
+- COACHING TONE: Every actionPlan title and body MUST follow the pattern: "[What we're seeing] — [what it might mean] — [what to check or do]". NEVER lead with a conclusion (e.g. "Fix KDP royalty crisis") before verification. The product is a supportive coach, not a panic button. Write "Your royalties look lower than expected — this sometimes happens with 99¢ launch pricing or a partial upload. Check your KDP export covers the full month." NOT "Fix KDP royalty crisis".
+- 99¢ PRICING RULE: royaltiesPerUnit = totalRoyalties ÷ unitsSold. If royaltiesPerUnit is between $0.20–$0.50, the author is almost certainly using 99¢ pricing (35% royalty = $0.347/unit). Do NOT flag this as a crisis or urgent issue. Only flag a royalty problem if royaltiesPerUnit < $0.20 AND unitsSold > 20.
 
 Respond with a JSON object in exactly this structure (no markdown, raw JSON only):
 {
@@ -116,10 +154,11 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
     {
       "priority": 1,
       "type": "RED",
-      "title": "action title",
-      "body": "plain English explanation with specific numbers from the data — must end with the action, never a hedge",
+      "title": "action title following the pattern: [what we're seeing] — [what to do]",
+      "body": "plain English explanation following the pattern: [what we're seeing] — [what it might mean] — [what to check or do]. Must include the actual metric value. Must end with the specific action, never a hedge.",
       "action": "Start with Send/Test/Cut/Scale/Fix/Upload/Pause/Launch/Schedule + specific platform (e.g. 'Go to Meta Ads Manager and pause the low-CTR ad')",
-      "channel": "meta"
+      "channel": "meta",
+      "confidence": "high | medium | low — high: multiple data signals agree and the finding is clear; medium: one signal, reasonable but not certain; low: thin data or ambiguous — do not frame as urgent"
     }
   ],
   "insights": {
@@ -323,11 +362,17 @@ export async function GET(req: NextRequest) {
   const month = searchParams.get('month')
 
   // Fetch recent records — enough to backfill any missing channel data per-channel
-  const recentRecords = await db.analysis.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: 'desc' },
-    take: 12,
-  })
+  const [recentRecords, userRow] = await Promise.all([
+    db.analysis.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 12,
+    }),
+    db.$queryRawUnsafe<{ metaLastSync: Date | null }[]>(
+      `SELECT "metaLastSync" FROM "User" WHERE "id" = $1 LIMIT 1`,
+      session.user.id
+    ).then(rows => rows[0] ?? null),
+  ])
 
   // First 6 for history charts/tables
   const analyses = recentRecords.slice(0, 6)
@@ -358,5 +403,6 @@ export async function GET(req: NextRequest) {
   console.log('[GET] pinterest:', analysis?.pinterest ? `impressions=${analysis.pinterest.totalImpressions}` : 'MISSING')
   console.log('[GET] kdpLastUploadedAt:', kdpLastUploadedAt)
 
-  return NextResponse.json({ analyses, analysis: analysis || null, kdpLastUploadedAt })
+  const metaLastSync = userRow?.metaLastSync ? userRow.metaLastSync.toISOString() : null
+  return NextResponse.json({ analyses, analysis: analysis || null, kdpLastUploadedAt, metaLastSync })
 }

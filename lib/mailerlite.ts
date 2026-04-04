@@ -21,6 +21,7 @@ async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; dat
   const url = `${ML}${path}`
   try {
     const res = await fetch(url, {
+      cache: 'no-store',
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',

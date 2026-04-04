@@ -453,14 +453,33 @@ export default function MetaPage() {
   const [sortKey,    setSortKey]   = useState<ColKey | null>(null)
   const [sortDir,    setSortDir]   = useState<SortDir>('desc')
   const [loading,    setLoading]   = useState(true)
+  const [syncing,    setSyncing]   = useState(false)
+  const [metaLastSync, setMetaLastSync] = useState<string | null>(null)
   const pickerRef  = useRef<HTMLDivElement>(null)
   const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function loadMetaData() {
     return fetch('/api/analyze')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(d => { if (d.analysis) setAnalysis(d.analysis as Analysis) })
+      .then(d => {
+        if (d.analysis) setAnalysis(d.analysis as Analysis)
+        if (d.metaLastSync) setMetaLastSync(d.metaLastSync)
+      })
       .catch(() => {})
+  }
+
+  async function handleSync() {
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/meta/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.data) setAnalysis(prev => prev ? { ...prev, meta: data.data } : { meta: data.data } as any)
+        setMetaLastSync(new Date().toISOString())
+        window.dispatchEvent(new Event('meta:synced'))
+      }
+    } catch { /* ignore */ }
+    setSyncing(false)
   }
 
   useEffect(() => {
@@ -627,6 +646,32 @@ export default function MetaPage() {
               meta_spend:       meta.totalSpend,
             }}
           />
+
+          {/* Sync bar */}
+          <div className="flex items-center gap-3 mb-3">
+            {metaLastSync ? (
+              <span className="text-[11px]" style={{ color: '#6B7280' }}>
+                Last synced: {new Date(metaLastSync).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+              </span>
+            ) : (
+              <span className="text-[11px]" style={{ color: '#6B7280' }}>Data from last sync</span>
+            )}
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold transition-all"
+              style={{
+                background: syncing ? 'rgba(96,165,250,0.08)' : 'rgba(96,165,250,0.12)',
+                border: '1px solid rgba(96,165,250,0.3)',
+                color: '#60A5FA',
+                cursor: syncing ? 'not-allowed' : 'pointer',
+                opacity: syncing ? 0.7 : 1,
+              }}
+            >
+              <span style={{ display: 'inline-block', animation: syncing ? 'spin 1s linear infinite' : 'none' }}>↻</span>
+              {syncing ? 'Syncing…' : 'Sync now'}
+            </button>
+          </div>
 
           {/* KPI strip with goal comparison */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-7">

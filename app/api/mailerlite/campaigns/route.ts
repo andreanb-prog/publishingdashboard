@@ -1,4 +1,7 @@
 // app/api/mailerlite/campaigns/route.ts
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -47,6 +50,7 @@ export async function GET(req: NextRequest) {
     const res = await fetch(
       `${ML}/campaigns?filter[status]=sent&limit=10&sort=-sent_at`,
       {
+        cache: 'no-store',
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',

@@ -27,6 +27,20 @@ function detectInsights(analysis: Analysis): Insight[] {
     })
   }
 
+  // Royalty-per-unit check — only flag as a crisis when pricing clearly can't explain it.
+  // 99¢ books at 35% royalty earn ~$0.347/unit, which is normal and intentional.
+  // Only alarm when royaltiesPerUnit < $0.20 AND sold > 20 units (not explainable by 99¢ pricing).
+  if (kdp && kdp.totalUnits > 20 && kdp.totalRoyaltiesUSD > 0) {
+    const royaltiesPerUnit = kdp.totalRoyaltiesUSD / kdp.totalUnits
+    if (royaltiesPerUnit < 0.20) {
+      insights.push({
+        mode: 'alarm',
+        source: 'kdp',
+        text: `Your royalties look lower than expected — **$${royaltiesPerUnit.toFixed(3)} per unit** across ${kdp.totalUnits} sales. This sometimes happens with a partial upload or books priced near $0. Check that your KDP export covers the full date range and that your book pricing in KDP is set correctly.`,
+      })
+    }
+  }
+
   if (meta && meta.avgCTR < 0.8 && meta.ads.length >= 2) {
     insights.push({
       mode: 'alarm',
