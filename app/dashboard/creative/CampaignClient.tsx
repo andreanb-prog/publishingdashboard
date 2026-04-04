@@ -2,7 +2,7 @@
 // app/dashboard/creative/CampaignClient.tsx
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
-  ChevronRight, ChevronDown, Plus, Trash2, Copy, Link, X, Check,
+  ChevronRight, ChevronDown, Plus, Trash2, Copy, Link, X, Check, Pencil,
 } from 'lucide-react'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -139,6 +139,74 @@ function StatusBadge({ status }: { status: string }) {
     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
       style={{ background: cfg.bg, color: cfg.color }}>
       {status}
+    </span>
+  )
+}
+
+// ─── Inline editable name ────────────────────────────────────────────────────
+
+function InlineEditableName({
+  value,
+  onSave,
+  style,
+}: {
+  value: string
+  onSave: (name: string) => Promise<void>
+  style?: React.CSSProperties
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft,   setDraft]   = useState(value)
+  const [saving,  setSaving]  = useState(false)
+
+  async function commit() {
+    const trimmed = draft.trim()
+    if (!trimmed || trimmed === value) { setEditing(false); setDraft(value); return }
+    setSaving(true)
+    await onSave(trimmed)
+    setSaving(false)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === 'Enter') { e.preventDefault(); void commit() }
+          if (e.key === 'Escape') { setEditing(false); setDraft(value) }
+        }}
+        onClick={e => e.stopPropagation()}
+        disabled={saving}
+        style={{
+          ...style,
+          border: '1.5px solid #E9A020',
+          borderRadius: 6,
+          padding: '2px 6px',
+          outline: 'none',
+          background: '#FFFDF7',
+          minWidth: 80,
+          width: '100%',
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+        }}
+      />
+    )
+  }
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 group/name cursor-text"
+      style={style}
+      onClick={e => { e.stopPropagation(); setEditing(true); setDraft(value) }}
+    >
+      {value}
+      <Pencil
+        size={10}
+        className="opacity-0 group-hover/name:opacity-60 transition-opacity flex-shrink-0"
+        style={{ color: '#9CA3AF' }}
+      />
     </span>
   )
 }
@@ -355,9 +423,11 @@ function AdRow({
       style={{ marginLeft: 80, background: '#FAFAFA', border: '1px solid #F3F4F6' }}>
       {/* Name */}
       <div className="flex-1 min-w-0">
-        <span className="font-mono text-[12px] font-semibold" style={{ color: '#1E2D3D' }}>
-          {ad.generatedName}
-        </span>
+        <InlineEditableName
+          value={ad.generatedName}
+          onSave={(name) => onPatch(ad.id, { generatedName: name })}
+          style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 600, color: '#1E2D3D' }}
+        />
         {linkedCreative && (
           <div className="text-[10px] mt-0.5" style={{ color: '#9CA3AF' }}>
             → {linkedCreative.name}
@@ -629,6 +699,30 @@ export function CampaignClient({
     } catch { showToast('Failed to add ad', false) }
   }
 
+  async function patchCampaign(campaignId: string, name: string) {
+    try {
+      const res = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }),
+      })
+      if (!res.ok) throw new Error()
+      setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, name } : c))
+    } catch { showToast('Failed to rename campaign', false) }
+  }
+
+  async function patchAdSet(adSetId: string, campaignId: string, name: string) {
+    try {
+      const res = await fetch(`/api/adsets/${adSetId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }),
+      })
+      if (!res.ok) throw new Error()
+      setCampaigns(prev => prev.map(c =>
+        c.id === campaignId
+          ? { ...c, adSets: c.adSets.map(s => s.id === adSetId ? { ...s, name } : s) }
+          : c
+      ))
+    } catch { showToast('Failed to rename ad set', false) }
+  }
+
   async function patchAd(adId: string, campaignId: string, patch: Partial<Ad>) {
     try {
       const res = await fetch(`/api/ads/${adId}`, {
@@ -771,12 +865,17 @@ export function CampaignClient({
         <h2 className="font-bold text-[18px] m-0" style={{ color: '#1E2D3D' }}>
           Campaign Organizer
         </h2>
-        <button
-          onClick={() => setShowGenerate(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-[13px]"
-          style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}>
-          <Plus size={14} strokeWidth={2.5} /> Generate structure
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={() => setShowGenerate(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-[13px]"
+            style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <Plus size={14} strokeWidth={2.5} /> Generate structure
+          </button>
+          <span className="text-[10px]" style={{ color: '#9CA3AF' }}>
+            All names are suggestions — click any to rename
+          </span>
+        </div>
       </div>
 
       {/* Tree */}
@@ -815,8 +914,12 @@ export function CampaignClient({
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                     style={{ background: phaseCfg.color }} />
                   {/* Name */}
-                  <div className="flex-1 font-bold text-[14px]" style={{ color: '#1E2D3D' }}>
-                    {campaign.name}
+                  <div className="flex-1 min-w-0">
+                    <InlineEditableName
+                      value={campaign.name}
+                      onSave={(name) => patchCampaign(campaign.id, name)}
+                      style={{ fontWeight: 700, fontSize: 14, color: '#1E2D3D' }}
+                    />
                   </div>
                   {/* Badges */}
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -864,8 +967,12 @@ export function CampaignClient({
                             <div style={{ color: '#9CA3AF', flexShrink: 0 }}>
                               {adSetExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                             </div>
-                            <div className="flex-1 font-semibold text-[13px]" style={{ color: '#1E2D3D' }}>
-                              {adSet.name}
+                            <div className="flex-1 min-w-0">
+                              <InlineEditableName
+                                value={adSet.name}
+                                onSave={(name) => patchAdSet(adSet.id, campaign.id, name)}
+                                style={{ fontWeight: 600, fontSize: 13, color: '#1E2D3D' }}
+                              />
                             </div>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
                               style={{ background: tCfg.bg, color: tCfg.color }}>
