@@ -154,12 +154,13 @@ function InlineAIPanel({
   adTasks: LaunchTask[]
   onClose: () => void
 }) {
-  const [content, setContent]   = useState('')
-  const [loading, setLoading]   = useState(true)
-  const [copied,  setCopied]    = useState(false)
+  const [content, setContent]     = useState('')
+  const [loading, setLoading]     = useState(true)
+  const [copied,  setCopied]      = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
-    let cancelled = false
+    const controller = new AbortController()
     setContent('')
     setLoading(true)
 
@@ -176,21 +177,28 @@ function InlineAIPanel({
         daysToLaunch,
         adTasks: adTasks.map(t => ({ name: t.name, status: t.status })),
       }),
+      signal: controller.signal,
     })
       .then(async res => {
         if (!res.ok || !res.body) { setLoading(false); return }
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done || cancelled) break
-          setContent(prev => prev + decoder.decode(value, { stream: true }))
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            setContent(prev => prev + decoder.decode(value, { stream: true }))
+          }
+        } catch {
+          // AbortError or cancelled reader — stop silently
         }
         setLoading(false)
       })
-      .catch(() => { if (!cancelled) setLoading(false) })
+      .catch(err => {
+        if (err?.name !== 'AbortError') setLoading(false)
+      })
 
-    return () => { cancelled = true }
+    return () => { controller.abort() }
   }, [actionType, taskName, phase, channel, bookTitle, launchDate, daysToLaunch, adTasks])
 
   async function handleCopy() {
@@ -205,17 +213,30 @@ function InlineAIPanel({
     <div
       className="mt-2 rounded-xl overflow-hidden"
       style={{ background: '#FFFDF7', border: '1px solid #F6D38A', marginLeft: 40 }}
+      onClick={e => e.stopPropagation()}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2"
-        style={{ borderBottom: '1px solid #F6D38A', background: '#FFF8EC' }}>
-        <span className="text-[11px] font-bold" style={{ color: '#E9A020', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-          {title}
-        </span>
+        style={{ borderBottom: collapsed ? 'none' : '1px solid #F6D38A', background: '#FFF8EC' }}>
+        <div className="flex items-center gap-1.5">
+          {/* Collapse/expand chevron */}
+          <button
+            onClick={e => { e.stopPropagation(); setCollapsed(v => !v) }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: '2px 4px', lineHeight: 1, display: 'flex', alignItems: 'center' }}
+            aria-label={collapsed ? 'Expand' : 'Collapse'}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>
+              <polyline points="2,3.5 5,6.5 8,3.5" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <span className="text-[11px] font-bold" style={{ color: '#E9A020', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            {title}
+          </span>
+        </div>
         <div className="flex items-center gap-2">
-          {!loading && content && (
+          {!collapsed && !loading && content && (
             <button
-              onClick={handleCopy}
+              onClick={e => { e.stopPropagation(); handleCopy() }}
               className="text-[10px] font-semibold px-2 py-0.5 rounded-md transition-colors"
               style={{ background: copied ? '#6EBF8B' : '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}
             >
@@ -223,29 +244,32 @@ function InlineAIPanel({
             </button>
           )}
           <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: 16, lineHeight: 1 }}
+            onClick={e => { e.stopPropagation(); onClose() }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: 16, lineHeight: 1, padding: '4px 6px' }}
+            aria-label="Close"
           >
             ×
           </button>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="px-3 py-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-        {loading && !content && (
-          <div className="flex items-center gap-2 text-[12px]" style={{ color: '#9CA3AF' }}>
-            <span className="inline-block w-3 h-3 border-2 border-amber-300 border-t-amber-500 rounded-full animate-spin" />
-            Generating…
-          </div>
-        )}
-        {content && (
-          <p className="text-[12px] leading-relaxed m-0 whitespace-pre-wrap" style={{ color: '#1E2D3D' }}>
-            {content}
-            {loading && <span className="inline-block w-1 h-3 ml-0.5 animate-pulse" style={{ background: '#E9A020', verticalAlign: 'text-bottom' }} />}
-          </p>
-        )}
-      </div>
+      {/* Content — hidden when collapsed */}
+      {!collapsed && (
+        <div className="px-3 py-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          {loading && !content && (
+            <div className="flex items-center gap-2 text-[12px]" style={{ color: '#9CA3AF' }}>
+              <span className="inline-block w-3 h-3 border-2 border-amber-300 border-t-amber-500 rounded-full animate-spin" />
+              Generating…
+            </div>
+          )}
+          {content && (
+            <p className="text-[12px] leading-relaxed m-0 whitespace-pre-wrap" style={{ color: '#1E2D3D' }}>
+              {content}
+              {loading && <span className="inline-block w-1 h-3 ml-0.5 animate-pulse" style={{ background: '#E9A020', verticalAlign: 'text-bottom' }} />}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
