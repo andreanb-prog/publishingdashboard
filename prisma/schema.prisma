@@ -356,3 +356,51 @@ model Creative {
   @@index([userId])
   @@index([bookId])
 }
+
+model Campaign {
+  id             String   @id @default(cuid())
+  userId         String
+  bookId         String?
+  name           String
+  phase          String
+  objective      String
+  status         String   @default("draft") // "draft" | "active" | "paused" | "ended"
+  dailyBudget    Float?
+  metaCampaignId String?
+  createdAt      DateTime @default(now())
+  adSets         AdSet[]
+
+  @@index([userId])
+}
+
+model AdSet {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  name        String
+  targeting   String
+  audience    String?
+  dailyBudget Float?
+  status      String   @default("draft")
+  metaAdSetId String?
+  createdAt   DateTime @default(now())
+  ads         Ad[]
+
+  @@index([campaignId])
+}
+
+model Ad {
+  id            String   @id @default(cuid())
+  adSetId       String
+  adSet         AdSet    @relation(fields: [adSetId], references: [id], onDelete: Cascade)
+  generatedName String
+  creativeId    String?
+  status        String   @default("draft")
+  ctr           Float?
+  cpc           Float?
+  spend         Float?
+  metaAdId      String?
+  createdAt     DateTime @default(now())
+
+  @@index([adSetId])
+}

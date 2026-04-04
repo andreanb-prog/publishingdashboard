@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { CreativeClient } from './CreativeClient'
+import { CreativeHubTabs } from './CreativeHubTabs'
 
 export const metadata = { title: 'Creative Hub — AuthorDash' }
 
@@ -11,7 +11,7 @@ export default async function CreativePage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
 
-  const [books, creatives] = await Promise.all([
+  const [books, creatives, campaigns] = await Promise.all([
     db.book.findMany({
       where: { userId: session.user.id },
       orderBy: { sortOrder: 'asc' },
@@ -21,6 +21,16 @@ export default async function CreativePage() {
       where: { userId: session.user.id },
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     }),
+    db.campaign.findMany({
+      where: { userId: session.user.id },
+      include: {
+        adSets: {
+          include: { ads: { orderBy: { createdAt: 'asc' } } },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
   ])
 
   const serializedCreatives = creatives.map(c => ({
@@ -29,5 +39,21 @@ export default async function CreativePage() {
     updatedAt: c.updatedAt.toISOString(),
   }))
 
-  return <CreativeClient initialCreatives={serializedCreatives} books={books} />
+  const serializedCampaigns = campaigns.map(c => ({
+    ...c,
+    createdAt: c.createdAt.toISOString(),
+    adSets: c.adSets.map(s => ({
+      ...s,
+      createdAt: s.createdAt.toISOString(),
+      ads: s.ads.map(a => ({ ...a, createdAt: a.createdAt.toISOString() })),
+    })),
+  }))
+
+  return (
+    <CreativeHubTabs
+      initialCreatives={serializedCreatives}
+      initialCampaigns={serializedCampaigns}
+      books={books}
+    />
+  )
 }
