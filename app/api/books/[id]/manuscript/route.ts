@@ -29,10 +29,29 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       const parsed = await pdfParse(buffer)
       text = parsed.text ?? ''
     } catch {
-      return NextResponse.json({ error: 'PDF parsing failed. Try uploading a .txt version of your manuscript.' }, { status: 422 })
+      return NextResponse.json({ error: 'PDF parsing failed. Try uploading a .txt or .epub version of your manuscript.' }, { status: 422 })
+    }
+  } else if (fileName.endsWith('.epub')) {
+    try {
+      const { EPub } = await import('epub2')
+      const epub = await EPub.createAsync(buffer as unknown as string)
+      const chapters = await Promise.all(
+        epub.flow.map((chapter: { id: string }) =>
+          new Promise<string>((resolve) => {
+            epub.getChapter(chapter.id, (err: unknown, body: string) => {
+              if (err || !body) { resolve(''); return }
+              // Strip HTML tags
+              resolve(body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())
+            })
+          })
+        )
+      )
+      text = chapters.filter(Boolean).join('\n\n')
+    } catch {
+      return NextResponse.json({ error: 'EPUB parsing failed. Try uploading a .txt version of your manuscript.' }, { status: 422 })
     }
   } else {
-    return NextResponse.json({ error: 'Only .pdf and .txt files are supported' }, { status: 400 })
+    return NextResponse.json({ error: 'Only .pdf, .txt, and .epub files are supported' }, { status: 400 })
   }
 
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length

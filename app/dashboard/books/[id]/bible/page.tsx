@@ -468,7 +468,7 @@ export default function BookBiblePage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.txt"
+                accept=".pdf,.txt,.epub,application/epub+zip"
                 className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f) }}
               />
@@ -502,7 +502,7 @@ export default function BookBiblePage() {
                     <line x1="9" y1="15" x2="15" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
                   <p className="text-[13.5px] font-semibold text-[#1E2D3D]">Drop your manuscript here</p>
-                  <p className="text-[12px] text-stone-400 mt-1">PDF or TXT · Click to browse</p>
+                  <p className="text-[12px] text-stone-400 mt-1">PDF, TXT, or EPUB · Click to browse</p>
                 </>
               )}
               {uploadState === 'error' && (

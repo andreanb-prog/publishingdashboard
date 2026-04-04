@@ -637,7 +637,7 @@ function BookModal({
               <input
                 ref={manuscriptFileRef}
                 type="file"
-                accept=".pdf,.txt"
+                accept=".pdf,.txt,.epub,application/epub+zip"
                 className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleManuscriptUpload(f) }}
               />
@@ -696,7 +696,7 @@ function BookModal({
                   ) : (
                     <>
                       <p className="text-[12.5px] font-semibold text-stone-500">Drop manuscript here or click to browse</p>
-                      <p className="text-[11px] text-stone-400 mt-0.5">PDF or TXT</p>
+                      <p className="text-[11px] text-stone-400 mt-0.5">PDF, TXT, or EPUB</p>
                     </>
                   )}
                 </div>
