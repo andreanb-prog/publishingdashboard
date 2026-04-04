@@ -16,6 +16,7 @@ interface ParsedFile {
   status: FileStatus
   data: KDPData | MetaData | PinterestData | null
   errorMessage?: string
+  summary?: string
 }
 
 interface StageInfo {
@@ -231,24 +232,38 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
         const buf  = await file.arrayBuffer()
         const wb   = XLSX.read(new Uint8Array(buf), { type: 'array', cellDates: true })
 
-        let detectedType: 'kdp' | 'meta' | null = null
-        for (const sheetName of wb.SheetNames) {
-          const csv = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName], { blankrows: false })
-          if (csv.includes('KENP') || csv.includes('Royalty Date')) { detectedType = 'kdp'; break }
-          const hits = ['Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'Campaign name', 'Ad set name']
-            .filter(s => csv.includes(s)).length
-          if (hits >= 2) { detectedType = 'meta'; break }
+        // KDP-specific sheet names are the most reliable signal — check these first
+        const kdpSheetNames = ['Orders Processed', 'KENP Read', 'KENP']
+        const hasKdpSheets = wb.SheetNames.some((n: string) => kdpSheetNames.includes(n))
+
+        let detectedType: 'kdp' | 'meta' | null = hasKdpSheets ? 'kdp' : null
+        if (!detectedType) {
+          for (const sheetName of wb.SheetNames) {
+            const csv = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName], { blankrows: false })
+            if (csv.includes('KENP') || csv.includes('Royalty Date') || csv.includes('Est. KU Royalty')) { detectedType = 'kdp'; break }
+            const hits = ['Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'Campaign name', 'Ad set name']
+              .filter(s => csv.includes(s)).length
+            if (hits >= 2) { detectedType = 'meta'; break }
+          }
         }
 
         if (detectedType === 'kdp') {
           const { parseKDPFile } = await import('@/lib/parsers/kdp')
-          update({ type: 'kdp', status: 'done', data: parseKDPFile(new Uint8Array(buf)) })
+          const kdpResult = parseKDPFile(new Uint8Array(buf))
+          const bookCount = kdpResult.books?.length ?? 0
+          const kdpSummary = bookCount > 0
+            ? `${bookCount} book${bookCount !== 1 ? 's' : ''} · ${kdpResult.totalUnits} units · ${(kdpResult.totalKENP ?? 0).toLocaleString()} KENP reads`
+            : 'Parsed — no rows found. Make sure you exported All Titles.'
+          update({ type: 'kdp', status: 'done', data: kdpResult, summary: kdpSummary })
         } else if (detectedType === 'meta') {
           const { parseMetaFile } = await import('@/lib/parsers/meta')
           const csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]], { blankrows: false })
           update({ type: 'meta', status: 'done', data: parseMetaFile(csv) })
         } else {
-          update({ type: 'unknown', status: 'unknown', data: null })
+          update({
+            type: 'unknown', status: 'error', data: null,
+            errorMessage: "Can\u2019t identify this file. If it\u2019s your KDP report, download it from KDP \u2192 Reports \u2192 Royalty Estimator and select All Titles.",
+          })
         }
       } else {
         // CSV — parse entirely in the browser, no server round-trip
@@ -557,6 +572,11 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                                 {f.status === 'error' && (
                                   <div className="text-[11px]" style={{ color: '#F97B6B' }}>
                                     {f.errorMessage ?? 'Could not read this file'}
+                                  </div>
+                                )}
+                                {f.status === 'done' && f.summary && (
+                                  <div className="text-[11px]" style={{ color: '#6EBF8B' }}>
+                                    ✓ {f.summary}
                                   </div>
                                 )}
                               </div>
