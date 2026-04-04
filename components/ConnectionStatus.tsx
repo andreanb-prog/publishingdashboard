@@ -9,6 +9,7 @@ type IntegrationStatus = {
   actionText?: string
   actionHref?: string
   accountName?: string
+  adAccountName?: string
   adAccountId?: string
 }
 
@@ -310,17 +311,16 @@ export function ConnectionStatus() {
                         </>
                       )}
                     </div>
-                    {key === 'meta' && item.status === 'green' && item.accountName && (
-                      <div className="mt-1 text-[11px] leading-snug" style={{ color: '#9CA3AF' }}>
-                        FB account: <span style={{ color: '#1E2D3D', fontWeight: 600 }}>{item.accountName}</span>
-                        {item.adAccountId && (
-                          <span> · {item.adAccountId}</span>
+                    {key === 'meta' && item.status === 'green' && (item.accountName || item.adAccountName || item.adAccountId) && (
+                      <div className="mt-1 text-[11px] leading-snug space-y-0.5" style={{ color: '#9CA3AF' }}>
+                        {item.accountName && (
+                          <div>FB: <span style={{ color: '#1E2D3D', fontWeight: 600 }}>{item.accountName}</span></div>
                         )}
-                      </div>
-                    )}
-                    {key === 'meta' && item.status === 'green' && !item.accountName && item.adAccountId && (
-                      <div className="mt-1 text-[11px]" style={{ color: '#9CA3AF' }}>
-                        Ad account: {item.adAccountId}
+                        {item.adAccountName ? (
+                          <div>Ad account: <span style={{ color: '#1E2D3D', fontWeight: 600 }}>{item.adAccountName}</span></div>
+                        ) : item.adAccountId ? (
+                          <div style={{ color: '#9CA3AF' }}>Ad account: {item.adAccountId}</div>
+                        ) : null}
                       </div>
                     )}
                     {key === 'meta' && metaSync === 'error' && metaSyncError && (

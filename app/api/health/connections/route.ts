@@ -73,7 +73,7 @@ export async function GET() {
   }
 
   // ── Meta Ads ────────────────────────────────────────────────────
-  let meta: IntegrationStatus & { accountName?: string; adAccountId?: string }
+  let meta: IntegrationStatus & { accountName?: string; adAccountName?: string; adAccountId?: string }
 
   if (!user?.metaAccessToken) {
     meta = {
@@ -92,20 +92,25 @@ export async function GET() {
         actionHref: '/dashboard/settings',
       }
     } else {
-      // Fetch the connected Facebook account name so the user can verify it's the right one
+      // Fetch the connected Facebook account name and ad account name in parallel
       let accountName: string | undefined
-      try {
-        const meRes = await fetch(
+      let adAccountName: string | undefined
+      await Promise.all([
+        fetch(
           `https://graph.facebook.com/v21.0/me?fields=id,name&access_token=${user.metaAccessToken}`,
           { cache: 'no-store' }
-        )
-        const meData = await meRes.json()
-        if (meData.name && !meData.error) accountName = meData.name
-      } catch { /* non-fatal — don't block health check */ }
+        ).then(r => r.json()).then(d => { if (d.name && !d.error) accountName = d.name }).catch(() => {}),
+        user.metaAdAccountId
+          ? fetch(
+              `https://graph.facebook.com/v21.0/${user.metaAdAccountId}?fields=id,name&access_token=${user.metaAccessToken}`,
+              { cache: 'no-store' }
+            ).then(r => r.json()).then(d => { if (d.name && !d.error) adAccountName = d.name }).catch(() => {})
+          : Promise.resolve(),
+      ])
 
       const lastSync = user.metaLastSync
       if (!lastSync) {
-        meta = { status: 'green', text: 'Connected · not yet synced', accountName, adAccountId: user.metaAdAccountId ?? undefined }
+        meta = { status: 'green', text: 'Connected · not yet synced', accountName, adAccountName, adAccountId: user.metaAdAccountId ?? undefined }
       } else {
         const hoursSinceSync = (now.getTime() - lastSync.getTime()) / (1000 * 60 * 60)
         const minsSince = hoursSinceSync * 60
@@ -113,7 +118,7 @@ export async function GET() {
           : minsSince < 60 ? `${Math.floor(minsSince)}m ago`
           : hoursSinceSync < 24 ? `${Math.floor(hoursSinceSync)}h ago`
           : `${Math.floor(hoursSinceSync / 24)}d ago`
-        meta = { status: 'green', text: `Connected · last synced ${syncLabel}`, accountName, adAccountId: user.metaAdAccountId ?? undefined }
+        meta = { status: 'green', text: `Connected · last synced ${syncLabel}`, accountName, adAccountName, adAccountId: user.metaAdAccountId ?? undefined }
       }
     }
   }

@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { FileUp, BarChart2, BookOpen, Sparkles, CheckCircle, Upload } from 'lucide-react'
-import type { KDPData, MetaData, PinterestData } from '@/types'
+import type { KDPData, BookData, MetaData, PinterestData } from '@/types'
 
 type FileType = 'kdp' | 'meta' | 'pinterest' | 'adtracker' | 'unknown'
 type FileStatus = 'reading' | 'done' | 'error' | 'unknown'
@@ -65,6 +65,64 @@ const BADGE: Record<FileType, { label: string; bg: string; color: string }> = {
   unknown:   { label: 'Unknown — we\'ll try to read it', bg: '#FFF4E0', color: '#E9A020' },
 }
 
+// ── KDP multi-file merge ────────────────────────────────────────────────────
+function mergeKDPFiles(kdpFiles: ParsedFile[]): { data: KDPData; monthCount: number; monthRange: string } | null {
+  const dataList = kdpFiles.filter(f => f.data).map(f => f.data as KDPData)
+  if (!dataList.length) return null
+
+  // Deduplicate by month — last uploaded wins for the same month
+  const byMonth = new Map<string, KDPData>()
+  for (const d of dataList) byMonth.set(d.month, d)
+  const unique = Array.from(byMonth.values()).sort((a, b) => a.month.localeCompare(b.month))
+
+  // Merge daily data — Map keyed by date prevents double-counting
+  const dailyUnitsMap = new Map<string, number>()
+  const dailyKENPMap  = new Map<string, number>()
+  for (const d of unique) {
+    for (const { date, value } of d.dailyUnits) dailyUnitsMap.set(date, value)
+    for (const { date, value } of d.dailyKENP)  dailyKENPMap.set(date, value)
+  }
+
+  // Merge books by ASIN (or title as fallback) — sum across months
+  const bookMap = new Map<string, BookData>()
+  for (const d of unique) {
+    for (const b of d.books) {
+      const key = b.asin || b.title
+      if (!bookMap.has(key)) {
+        bookMap.set(key, { ...b })
+      } else {
+        const ex = bookMap.get(key)!
+        ex.units     += b.units
+        ex.kenp      += b.kenp
+        ex.royalties += b.royalties
+      }
+    }
+  }
+
+  const books = Array.from(bookMap.values()).sort((a, b) => b.units - a.units)
+
+  const merged: KDPData = {
+    month: unique[unique.length - 1].month,
+    totalRoyaltiesUSD: unique.reduce((s, d) => s + d.totalRoyaltiesUSD, 0),
+    totalUnits: books.reduce((s, b) => s + b.units, 0),
+    totalKENP:  books.reduce((s, b) => s + b.kenp,  0),
+    books,
+    dailyUnits: Array.from(dailyUnitsMap.entries()).map(([date, value]) => ({ date, value })).sort((a, b) => a.date.localeCompare(b.date)),
+    dailyKENP:  Array.from(dailyKENPMap.entries()).map(([date, value]) => ({ date, value })).sort((a, b) => a.date.localeCompare(b.date)),
+    summary: {
+      paidUnits:      unique.reduce((s, d) => s + d.summary.paidUnits, 0),
+      freeUnits:      unique.reduce((s, d) => s + d.summary.freeUnits, 0),
+      paperbackUnits: unique.reduce((s, d) => s + d.summary.paperbackUnits, 0),
+    },
+  }
+
+  const fmt = (m: string) => new Date(m + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+  const months = unique.map(d => d.month)
+  const monthRange = months.length === 1 ? fmt(months[0]) : `${fmt(months[0])} – ${fmt(months[months.length - 1])}`
+
+  return { data: merged, monthCount: months.length, monthRange }
+}
+
 interface UploadModalProps {
   open: boolean
   onClose: () => void
@@ -86,6 +144,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
   const [stageVisible, setStageVisible]     = useState(true)
   const [showSlow, setShowSlow]             = useState(false)
   const [stageError, setStageError]         = useState<{ stage: StageId; message: string } | null>(null)
+  const [kdpDataQuality, setKdpDataQuality] = useState<'SUSPECT_DATA' | 'INCOMPLETE_DATA' | null>(null)
   const [progressPct, setProgressPct]       = useState(0)
   const [error, setError]                   = useState<string | null>(null)
   const [isTouch, setIsTouch]               = useState(false)
@@ -114,6 +173,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
       setStageVisible(true)
       setShowSlow(false)
       setStageError(null)
+      setKdpDataQuality(null)
       setProgressPct(0)
     }
   }, [open])
@@ -210,12 +270,15 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
   }
 
   // Derive data for analysis
+  const doneFiles = files.filter(f => f.status === 'done' && f.type !== 'unknown' && f.type !== 'adtracker')
+  // KDP: collect ALL files and merge (deduplicates by month, combines across months)
+  const kdpFiles   = doneFiles.filter(f => f.type === 'kdp')
+  const kdpMerged  = mergeKDPFiles(kdpFiles)
+  const kdpData    = kdpMerged?.data ?? null
+  // Other types: last uploaded wins
   const byType = new Map<FileType, ParsedFile>()
-  files
-    .filter(f => f.status === 'done' && f.type !== 'unknown' && f.type !== 'adtracker')
-    .forEach(f => byType.set(f.type, f))
-  const kdpData  = (byType.get('kdp')?.data  as KDPData      | undefined) ?? null
-  const metaData = (byType.get('meta')?.data as MetaData     | undefined) ?? null
+  doneFiles.filter(f => f.type !== 'kdp').forEach(f => byType.set(f.type, f))
+  const metaData = (byType.get('meta')?.data as MetaData      | undefined) ?? null
   const pinData  = (byType.get('pinterest')?.data as PinterestData | undefined) ?? null
   const hasAny     = !!(kdpData || metaData || pinData)
   const anyReading = files.some(f => f.status === 'reading')
@@ -304,7 +367,12 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           try {
             const evt = JSON.parse(line.slice(6))
 
-            if (evt.type === 'stage') {
+            if (evt.type === 'kdpDataQuality') {
+              if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
+              setKdpDataQuality(evt.quality as 'SUSPECT_DATA' | 'INCOMPLETE_DATA')
+              setAnalyzing(false)
+              break outer
+            } else if (evt.type === 'stage') {
               advanceToStage(evt.stage as StageId)
               if (evt.stage === 3 || evt.stage === 4) startSlowTimer(evt.stage as StageId)
             } else if (evt.type === 'complete') {
@@ -511,6 +579,17 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                     </div>
                   )}
 
+                  {/* KDP months-loaded summary */}
+                  {kdpMerged && (
+                    <div className="mb-4 px-3 py-2 rounded-lg text-[12px]"
+                      style={{ background: '#FFF4E0', border: '0.5px solid rgba(233,160,32,0.4)', color: '#92400E' }}>
+                      <span className="font-semibold">
+                        {kdpMerged.monthCount} {kdpMerged.monthCount === 1 ? 'month' : 'months'} of data loaded
+                      </span>
+                      {' '}({kdpMerged.monthRange})
+                    </div>
+                  )}
+
                   {/* Inline error */}
                   {error && (
                     <div className="rounded-lg px-4 py-3 mb-2 text-[13px] leading-relaxed"
@@ -553,6 +632,22 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                   {showSlow && currentStage < 5 && (
                     <div className="mt-3 text-[12px] px-4 max-w-xs" style={{ color: '#9CA3AF', animation: 'stageFadeIn 0.4s ease' }}>
                       {SLOW_MESSAGES[currentStage]}
+                    </div>
+                  )}
+
+                  {/* KDP data quality warning */}
+                  {kdpDataQuality && (
+                    <div className="mt-4 w-full max-w-xs">
+                      <div className="rounded-lg px-4 py-3 mb-3 text-[13px] text-center"
+                        style={{ background: 'rgba(233,160,32,0.10)', border: '1px solid rgba(233,160,32,0.35)', color: '#92400E' }}>
+                        <div className="font-semibold mb-1">Your KDP data may not have uploaded completely.</div>
+                        Check that you exported the full date range and try uploading again.
+                      </div>
+                      <button onClick={() => { setKdpDataQuality(null); setFiles([]); rawFiles.current.clear() }}
+                        className="w-full py-2.5 rounded-lg text-[13px] font-bold hover:opacity-90 transition-all"
+                        style={{ background: '#E9A020', color: '#0d1f35', border: 'none', cursor: 'pointer' }}>
+                        Re-upload KDP File
+                      </button>
                     </div>
                   )}
 
