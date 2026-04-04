@@ -90,7 +90,7 @@ export function SetupChecklist({ analysis }: { analysis: Analysis | null }) {
 
   const steps: StepDef[] = [
     {
-      id: 'kdp', label: 'Upload your KDP report',
+      id: 'kdp', label: 'Upload your KDP report (file upload, not API)',
       actionLabel: 'Upload →', href: '/dashboard?upload=1',
       optional: false, complete: !!(analysis?.kdp),
     },

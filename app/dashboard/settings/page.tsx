@@ -791,6 +791,18 @@ export default function SettingsPage() {
                   </button>
                 )}
               </div>
+              {mlSaveState === 'saved' && (
+                <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
+                  style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
+                  MailerLite connected ✓
+                </div>
+              )}
+              {mlSaveState === 'error' && (
+                <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
+                  style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
+                  API key not saved — please check your key and try again.
+                </div>
+              )}
             </>
           )}
         </IntegCard>
@@ -904,8 +916,8 @@ export default function SettingsPage() {
         <IntegCard
           iconBg="#FFF3E0"
           icon={<BookOpen size={16} strokeWidth={1.75} color="#E9A020" />}
-          name="KDP Sales"
-          subtitle={kdpLastUpload ? `Last upload: ${fmtDate(kdpLastUpload)}` : 'No data yet'}
+          name="Upload Your KDP Report"
+          subtitle={kdpLastUpload ? `Last upload: ${fmtDate(kdpLastUpload)}` : 'File upload — not an API connection'}
           statusPill={
             kdpLastUpload ? (
               <StatusPill active={true} label={`● Uploaded ${fmtDate(kdpLastUpload)}`} />
@@ -914,8 +926,16 @@ export default function SettingsPage() {
             )
           }
         >
-          <AmberBtn onClick={openUploadModal}>Upload new file</AmberBtn>
-          <span className="text-[10px]" style={{ color: '#9CA3AF' }}>CSV or XLSX</span>
+          {!kdpLastUpload && (
+            <p className="text-[11px] leading-relaxed" style={{ color: '#6B7280' }}>
+              Download your report from <strong style={{ color: '#1E2D3D' }}>KDP → Reports → Royalty Estimator</strong>.
+              Select <em>All Titles</em>, choose your date range, and download. Then upload that file here.
+            </p>
+          )}
+          <AmberBtn onClick={openUploadModal}>{kdpLastUpload ? 'Upload new file' : 'Upload KDP report'}</AmberBtn>
+          <p className="text-[10px]" style={{ color: '#9CA3AF' }}>
+            KDP doesn&apos;t offer a direct API — you&apos;ll upload your report manually. We recommend uploading monthly.
+          </p>
         </IntegCard>
 
         {/* ── BookFunnel card ───────────────────────────────────────────── */}
