@@ -216,7 +216,8 @@ function TaskRow({
   return (
     <div
       className={`flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-gray-50 transition-colors group
-        ${isOverdue && !isDone ? 'border-l-2 border-red-400 pl-2.5' : ''}`}
+        ${isOverdue && !isDone ? 'border-l-2 pl-2.5' : ''}`}
+      style={isOverdue && !isDone ? { borderColor: '#E9A020' } : undefined}
     >
       {/* Checkbox */}
       <button
@@ -299,10 +300,10 @@ function TaskSection({
       {isOverdue ? (
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-red-500 mb-2 hover:opacity-80 transition-opacity"
+          className="flex items-center gap-1.5 text-sm font-semibold mb-2 hover:opacity-80 transition-opacity" style={{ color: '#E9A020' }}
         >
           <span className="text-xs">{collapsed ? '▶' : '▼'}</span>
-          {tasks.length} overdue {tasks.length === 1 ? 'task' : 'tasks'}
+          {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'} to catch up on
         </button>
       ) : (
         <div className="text-xs font-bold tracking-wide uppercase text-gray-400 mb-2 px-3">{title}</div>
@@ -837,7 +838,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
             {isThisWeek ? (
               <>
                 <TaskSection
-                  title="Overdue"
+                  title="Still to do"
                   tasks={overdueTasks}
                   launchDate={launchDate}
                   bookTitle={bookTitle}
