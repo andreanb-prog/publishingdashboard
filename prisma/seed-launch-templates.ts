@@ -4,7 +4,53 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 const templates = [
-  // Pre-order phase
+  // Pre-order phase — manuscript & editorial
+  {
+    name: 'Send manuscript to beta readers',
+    channel: 'General',
+    daysFromLaunch: -35,
+    description: 'Distribute manuscript to beta reader team',
+    actionType: null,
+    actionPrompt: null,
+    phase: 'pre-order',
+  },
+  {
+    name: 'Send manuscript to editor',
+    channel: 'General',
+    daysFromLaunch: -32,
+    description: 'Submit manuscript to developmental/copy editor',
+    actionType: null,
+    actionPrompt: null,
+    phase: 'pre-order',
+  },
+  {
+    name: 'Beta reader feedback due',
+    channel: 'General',
+    daysFromLaunch: -25,
+    description: 'Collect and review beta reader notes',
+    actionType: null,
+    actionPrompt: null,
+    phase: 'pre-order',
+  },
+  {
+    name: 'Editor feedback due — review and apply revisions',
+    channel: 'General',
+    daysFromLaunch: -23,
+    description: 'Review editor notes and apply revisions',
+    actionType: null,
+    actionPrompt: null,
+    phase: 'pre-order',
+  },
+  {
+    name: 'Final manuscript ready — send to formatter',
+    channel: 'General',
+    daysFromLaunch: -21,
+    description: 'Polished manuscript sent to interior formatter',
+    actionType: null,
+    actionPrompt: null,
+    phase: 'pre-order',
+  },
+  // Pre-order phase — marketing
   {
     name: 'Write ad copy brief',
     channel: 'Ads',
