@@ -123,27 +123,50 @@ function PhaseLabel({ dueDate, launchDate }: { dueDate: string; launchDate: stri
 }
 
 // ── Action button ──────────────────────────────────────────────────────────────
-function ActionButton({ actionType, actionPrompt, launchDate, bookTitle, onCopy }: {
+function ActionButton({ actionType, actionPrompt, launchDate, bookTitle, daysToLaunch, phase, adTasks }: {
   actionType: string
   actionPrompt: string
   launchDate: string
   bookTitle: string | null
-  onCopy: (msg: string) => void
+  daysToLaunch: number
+  phase: string
+  adTasks: LaunchTask[]
 }) {
   const labels: Record<string, string> = { copy: 'Copy ↗', brief: 'Brief ↗', review: 'Review ↗' }
   const label = labels[actionType] ?? 'Action ↗'
 
-  const handleClick = async () => {
+  const handleClick = () => {
+    const title = bookTitle ?? 'my book'
     const launchFormatted = new Date(launchDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-    const resolved = actionPrompt
-      .replace(/\[BOOK_TITLE\]/g, bookTitle ?? 'my book')
-      .replace(/\[LAUNCH_DATE\]/g, launchFormatted)
-    try {
-      await navigator.clipboard.writeText(resolved)
-      onCopy('Prompt copied — paste into Claude chat')
-    } catch {
-      onCopy('Copy failed — check clipboard permissions')
+    const daysLabel = daysToLaunch > 0
+      ? `${daysToLaunch} days out`
+      : daysToLaunch === 0
+      ? 'launch day'
+      : `${Math.abs(daysToLaunch)} days post-launch`
+
+    let prompt: string
+
+    if (actionType === 'review') {
+      const adLines = adTasks.length > 0
+        ? adTasks.map(t => `${t.name} (${t.status.replace(/_/g, ' ')})`).join(' | ')
+        : null
+      if (adLines) {
+        prompt = `I'm running Meta ads for ${title} launching ${launchFormatted} — ${daysLabel}. Here are my current ad tasks: ${adLines}. Tell me which to kill (under 1% CTR), which to scale, and what copy angle to test next.`
+      } else {
+        prompt = `I'm launching ${title} on ${launchFormatted} — ${daysLabel}. I'm in the ${phase} phase and haven't started running ads yet. Help me plan my Meta ads strategy: what copy angles to test, what audience targeting to use, and what budget to allocate.`
+      }
+    } else if (actionType === 'copy') {
+      prompt = `Write pre-order ad copy for ${title}. Launch date: ${launchFormatted} — ${daysLabel}. We're in the ${phase} phase. Use the emotional/tension angle — lead with feeling, not trope lists. Write 3 caption variants with headline and link description for each.`
+    } else if (actionType === 'brief') {
+      prompt = `Give me a Canva creative brief for ${title} — ${phase} phase, ${daysLabel}. I need 4 static image variants sized for Meta feed (1080x1080) and stories (1080x1920). Describe the visual direction, text overlay, and mood for each. The winning angle should be emotional/tension-driven.`
+    } else {
+      // Fallback: resolve placeholders in the stored prompt
+      prompt = (actionPrompt ?? '')
+        .replace(/\[BOOK_TITLE\]/g, title)
+        .replace(/\[LAUNCH_DATE\]/g, launchFormatted)
     }
+
+    window.open(`https://claude.ai/new?q=${encodeURIComponent(prompt)}`, '_blank', 'noopener,noreferrer')
   }
 
   return (
@@ -161,6 +184,8 @@ function TaskRow({
   task,
   launchDate,
   bookTitle,
+  daysToLaunch,
+  adTasks,
   isOverdue,
   onComplete,
   onCopy,
@@ -168,6 +193,8 @@ function TaskRow({
   task: LaunchTask
   launchDate: string
   bookTitle: string | null
+  daysToLaunch: number
+  adTasks: LaunchTask[]
   isOverdue: boolean
   onComplete: (id: string) => void
   onCopy: (msg: string) => void
@@ -229,7 +256,9 @@ function TaskRow({
           actionPrompt={task.actionPrompt}
           launchDate={launchDate}
           bookTitle={bookTitle}
-          onCopy={onCopy}
+          daysToLaunch={daysToLaunch}
+          phase={task.phase}
+          adTasks={adTasks}
         />
       )}
     </div>
@@ -242,6 +271,8 @@ function TaskSection({
   tasks,
   launchDate,
   bookTitle,
+  daysToLaunch,
+  adTasks,
   isOverdue,
   onComplete,
   onCopy,
@@ -250,6 +281,8 @@ function TaskSection({
   tasks: LaunchTask[]
   launchDate: string
   bookTitle: string | null
+  daysToLaunch: number
+  adTasks: LaunchTask[]
   isOverdue?: boolean
   onComplete: (id: string) => void
   onCopy: (msg: string) => void
@@ -278,6 +311,8 @@ function TaskSection({
               task={task}
               launchDate={launchDate}
               bookTitle={bookTitle}
+              daysToLaunch={daysToLaunch}
+              adTasks={adTasks}
               isOverdue={isOverdue ?? false}
               onComplete={onComplete}
               onCopy={onCopy}
@@ -668,6 +703,9 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
     }
   }
 
+  // ── Ads tasks (for context-aware review prompts) ─────────────────────────────
+  const adTasks = tasks.filter(t => t.channel === 'Ads')
+
   // ── Progress bar ─────────────────────────────────────────────────────────────
   const totalVisible = tasks.length
   const doneCount = tasks.filter(t => t.status === 'done').length
@@ -799,6 +837,8 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   tasks={overdueTasks}
                   launchDate={launchDate}
                   bookTitle={bookTitle}
+                  daysToLaunch={daysToLaunch}
+                  adTasks={adTasks}
                   isOverdue={true}
                   onComplete={handleComplete}
                   onCopy={showToast}
@@ -808,6 +848,8 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   tasks={todayTasks}
                   launchDate={launchDate}
                   bookTitle={bookTitle}
+                  daysToLaunch={daysToLaunch}
+                  adTasks={adTasks}
                   onComplete={handleComplete}
                   onCopy={showToast}
                 />
@@ -816,6 +858,8 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   tasks={thisWeekTasks}
                   launchDate={launchDate}
                   bookTitle={bookTitle}
+                  daysToLaunch={daysToLaunch}
+                  adTasks={adTasks}
                   onComplete={handleComplete}
                   onCopy={showToast}
                 />
@@ -824,6 +868,8 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   tasks={upcomingTasks}
                   launchDate={launchDate}
                   bookTitle={bookTitle}
+                  daysToLaunch={daysToLaunch}
+                  adTasks={adTasks}
                   onComplete={handleComplete}
                   onCopy={showToast}
                 />
@@ -845,6 +891,8 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                       task={task}
                       launchDate={launchDate}
                       bookTitle={bookTitle}
+                      daysToLaunch={daysToLaunch}
+                      adTasks={adTasks}
                       isOverdue={false}
                       onComplete={handleComplete}
                       onCopy={showToast}
@@ -858,6 +906,8 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                     task={task}
                     launchDate={launchDate}
                     bookTitle={bookTitle}
+                    daysToLaunch={daysToLaunch}
+                    adTasks={adTasks}
                     isOverdue={false}
                     onComplete={handleComplete}
                     onCopy={showToast}
