@@ -7,6 +7,7 @@ import { CHART_COLORS, BASE_CHART_OPTIONS, barDataset } from '@/lib/chartConfig'
 import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { GoalSection } from '@/components/GoalSection'
+import { CollapsibleSection } from '@/components/CollapsibleSection'
 import { getCoachTitle } from '@/lib/coachTitle'
 import { fmtPct } from '@/lib/utils'
 import { InsightCallouts } from '@/components/InsightCallout'
@@ -272,58 +273,62 @@ function CampaignPerformanceSection({
       )}
 
       {/* Campaign table */}
-      <div className="rounded-xl overflow-x-auto" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-        <div className="px-5 py-3.5 flex items-center gap-2" style={{ borderBottom: '1px solid #EEEBE6' }}>
-          <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Recent Campaigns</span>
+      <CollapsibleSection
+        title="Recent Campaigns"
+        storageKey="ml-section-campaigns"
+        badge={
           <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.06)', color: '#6B7280' }}>
             Live · last 10 sent
           </span>
-        </div>
-        <table className="w-full border-collapse text-[12px]" style={{ minWidth: 520 }}>
-          <thead>
-            <tr style={{ background: '#F5F5F4' }}>
-              {['Subject', 'Sent', 'Open Rate', 'Click Rate', 'Unsubs', 'Date'].map(h => (
-                <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
-                  style={{ color: '#6B7280' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {campaigns.map((c, i) => (
-              <tr key={c.id || i} className="border-t"
-                style={{ borderColor: 'rgba(0,0,0,0.06)', background: i % 2 === 1 ? '#FFF8F0' : 'white' }}>
-                <td className="px-4 py-2.5 max-w-[240px]" style={{ color: '#1E2D3D' }}>
-                  <span
-                    title={c.subject}
-                    className="block truncate"
-                    style={{ maxWidth: 240 }}
-                  >
-                    {c.subject.length > 50 ? c.subject.slice(0, 50) + '…' : c.subject}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 font-mono text-[11px]" style={{ color: '#6B7280' }}>
-                  {c.sent > 0 ? c.sent.toLocaleString() : '—'}
-                </td>
-                <td className="px-4 py-2.5 font-mono font-semibold" style={{ color: openColor(c.openRate) }}>
-                  {c.openRate}%
-                </td>
-                <td className="px-4 py-2.5 font-mono font-semibold" style={{ color: clickColor(c.clickRate) }}>
-                  {c.clickRate}%
-                </td>
-                <td className="px-4 py-2.5 font-mono" style={{ color: c.isSpike ? '#F97B6B' : '#6B7280' }}>
-                  {c.unsubscribes ?? 0}
-                  {c.isSpike && <span className="ml-1 text-[10px]">⚠</span>}
-                </td>
-                <td className="px-4 py-2.5 text-[11px]" style={{ color: '#6B7280' }}>
-                  {c.sentAt
-                    ? new Date(c.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                    : '—'}
-                </td>
+        }
+      >
+        <div style={{ overflowX: 'auto' }}>
+          <table className="w-full border-collapse text-[12px]" style={{ minWidth: 520 }}>
+            <thead>
+              <tr style={{ background: '#F5F5F4' }}>
+                {['Subject', 'Sent', 'Open Rate', 'Click Rate', 'Unsubs', 'Date'].map(h => (
+                  <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
+                    style={{ color: '#6B7280' }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {campaigns.map((c, i) => (
+                <tr key={c.id || i} className="border-t"
+                  style={{ borderColor: 'rgba(0,0,0,0.06)', background: i % 2 === 1 ? '#FFF8F0' : 'white' }}>
+                  <td className="px-4 py-2.5 max-w-[240px]" style={{ color: '#1E2D3D' }}>
+                    <span
+                      title={c.subject}
+                      className="block truncate"
+                      style={{ maxWidth: 240 }}
+                    >
+                      {c.subject.length > 50 ? c.subject.slice(0, 50) + '…' : c.subject}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 font-mono text-[11px]" style={{ color: '#6B7280' }}>
+                    {c.sent > 0 ? c.sent.toLocaleString() : '—'}
+                  </td>
+                  <td className="px-4 py-2.5 font-mono font-semibold" style={{ color: openColor(c.openRate) }}>
+                    {c.openRate}%
+                  </td>
+                  <td className="px-4 py-2.5 font-mono font-semibold" style={{ color: clickColor(c.clickRate) }}>
+                    {c.clickRate}%
+                  </td>
+                  <td className="px-4 py-2.5 font-mono" style={{ color: c.isSpike ? '#F97B6B' : '#6B7280' }}>
+                    {c.unsubscribes ?? 0}
+                    {c.isSpike && <span className="ml-1 text-[10px]">⚠</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-[11px]" style={{ color: '#6B7280' }}>
+                    {c.sentAt
+                      ? new Date(c.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CollapsibleSection>
     </div>
   )
 }
@@ -462,53 +467,57 @@ export default function MailerLitePage() {
           </div>
 
           {/* Your Audience, Benchmarked */}
-          <div className="rounded-xl overflow-x-auto mb-5"
-            style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-            <div className="px-5 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #EEEBE6' }}>
-              <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Your Audience, Benchmarked</span>
+          <CollapsibleSection
+            title="Your Audience, Benchmarked"
+            storageKey="ml-section-benchmarked"
+            className="mb-5"
+            badge={
               <span className="text-[11px] px-2 py-0.5 rounded-full cursor-default"
                 title="Based on email marketing data for indie authors and fiction publishers. Your genre may vary."
                 style={{ background: 'rgba(0,0,0,0.06)', color: '#6B7280' }}>
                 ⓘ Author benchmarks
               </span>
+            }
+          >
+            <div style={{ overflowX: 'auto' }}>
+              <table className="w-full border-collapse text-[12.5px]">
+                <thead>
+                  <tr style={{ background: '#F5F5F4' }}>
+                    {['Metric', 'Your Number', 'Author Average', 'Status'].map(h => (
+                      <th key={h} className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.8px]"
+                        style={{ color: '#6B7280' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {benchmarks.map((row, i) => {
+                    const isGood = row.good(row.yours)
+                    return (
+                      <tr key={i} className="border-t" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+                        <td className="px-4 py-3" style={{ color: '#1E2D3D' }}>{row.metric}</td>
+                        <td className="px-4 py-3 font-mono font-bold"
+                          style={{ color: isGood ? '#34d399' : '#fb7185' }}>
+                          {row.unit === '%' ? fmtPct(row.yours) : row.yours.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>
+                          {row.avg !== null ? `${row.avg}${row.unit}` : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full"
+                            style={{
+                              background: isGood ? 'rgba(52,211,153,0.12)' : 'rgba(251,113,133,0.12)',
+                              color: isGood ? '#34d399' : '#fb7185',
+                            }}>
+                            {isGood ? '🟢 Above Average' : '🔴 Needs Attention'}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
-            <table className="w-full border-collapse text-[12.5px]">
-              <thead>
-                <tr style={{ background: '#F5F5F4' }}>
-                  {['Metric', 'Your Number', 'Author Average', 'Status'].map(h => (
-                    <th key={h} className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.8px]"
-                      style={{ color: '#6B7280' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {benchmarks.map((row, i) => {
-                  const isGood = row.good(row.yours)
-                  return (
-                    <tr key={i} className="border-t" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-                      <td className="px-4 py-3" style={{ color: '#1E2D3D' }}>{row.metric}</td>
-                      <td className="px-4 py-3 font-mono font-bold"
-                        style={{ color: isGood ? '#34d399' : '#fb7185' }}>
-                        {row.unit === '%' ? fmtPct(row.yours) : row.yours.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>
-                        {row.avg !== null ? `${row.avg}${row.unit}` : '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full"
-                          style={{
-                            background: isGood ? 'rgba(52,211,153,0.12)' : 'rgba(251,113,133,0.12)',
-                            color: isGood ? '#34d399' : '#fb7185',
-                          }}>
-                          {isGood ? '🟢 Above Average' : '🔴 Needs Attention'}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          </CollapsibleSection>
 
           {/* ── Month-over-Month + Unsubscribe Spikes (#31) ─────────── */}
           {prevAnalysis?.mailerLite && (
@@ -598,77 +607,83 @@ export default function MailerLitePage() {
           )}
 
           {/* ── Automation Health (#31) ───────────────────────────────── */}
-          {ml!.automations && ml!.automations.length === 0 && (
-            <div className="rounded-xl mb-5 px-5 py-8 flex flex-col items-center gap-2" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-              <div className="text-[13px] font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>Automation Health</div>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center mb-1" style={{ background: '#F5F5F4' }}>
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.5" stroke="#D1D5DB" strokeWidth="1.5" strokeDasharray="3 2"/><path d="M9 6v4M9 12h.01" stroke="#D1D5DB" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              </div>
-              <p className="text-[12px] text-center" style={{ color: '#6B7280' }}>
-                No automations found — create one in MailerLite to see health data here
-              </p>
-            </div>
-          )}
-          {ml!.automations && ml!.automations.length > 0 && (
-            <div className="rounded-xl overflow-hidden mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-              <div className="px-5 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #EEEBE6' }}>
-                <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Automation Health</span>
+          {ml!.automations !== undefined && (
+            <CollapsibleSection
+              title="Automation Health"
+              storageKey="ml-section-automation"
+              className="mb-5"
+              badge={ml!.automations.length > 0 ? (
                 <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.06)', color: '#6B7280' }}>
                   Live from MailerLite
                 </span>
-              </div>
-              <table className="w-full border-collapse text-[12px]">
-                <thead>
-                  <tr style={{ background: '#F5F5F4' }}>
-                    {['Automation', 'Status', 'Subscribers', 'Open Rate', 'Click Rate', 'Health'].map(h => (
-                      <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
-                        style={{ color: '#6B7280' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {ml!.automations.map((auto: MailerLiteAutomation, i: number) => {
-                    const healthColors = { green: '#6EBF8B', amber: '#E9A020', red: '#F97B6B' }
-                    const healthLabels = { green: 'Healthy', amber: 'Needs Attention', red: 'Stalled' }
-                    return (
-                      <tr key={i} className="border-t" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-                        <td className="px-4 py-2.5 max-w-[200px] truncate" style={{ color: '#1E2D3D' }}>{auto.name}</td>
-                        <td className="px-4 py-2.5">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                            style={{
-                              background: auto.status === 'active' ? 'rgba(110,191,139,0.12)' : 'rgba(249,123,107,0.12)',
-                              color: auto.status === 'active' ? '#6EBF8B' : '#F97B6B',
-                            }}>
-                            {auto.status === 'active' ? 'Active' : 'Paused'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 font-mono" style={{ color: '#1E2D3D' }}>{auto.subscriberCount.toLocaleString()}</td>
-                        <td className="px-4 py-2.5 font-mono" style={{ color: auto.openRate >= 20 ? '#6EBF8B' : '#E9A020' }}>{auto.openRate}%</td>
-                        <td className="px-4 py-2.5 font-mono" style={{ color: auto.clickRate >= 1 ? '#6EBF8B' : '#E9A020' }}>{auto.clickRate}%</td>
-                        <td className="px-4 py-2.5">
-                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                            style={{ background: `${healthColors[auto.health]}20`, color: healthColors[auto.health] }}>
-                            {healthLabels[auto.health]}
-                          </span>
-                        </td>
+              ) : undefined}
+            >
+              {ml!.automations.length === 0 ? (
+                <div className="px-5 py-8 flex flex-col items-center gap-2">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center mb-1" style={{ background: '#F5F5F4' }}>
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.5" stroke="#D1D5DB" strokeWidth="1.5" strokeDasharray="3 2"/><path d="M9 6v4M9 12h.01" stroke="#D1D5DB" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                  </div>
+                  <p className="text-[12px] text-center" style={{ color: '#6B7280' }}>
+                    No automations found — create one in MailerLite to see health data here
+                  </p>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="w-full border-collapse text-[12px]">
+                    <thead>
+                      <tr style={{ background: '#F5F5F4' }}>
+                        {['Automation', 'Status', 'Subscribers', 'Open Rate', 'Click Rate', 'Health'].map(h => (
+                          <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
+                            style={{ color: '#6B7280' }}>{h}</th>
+                        ))}
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {ml!.automations.map((auto: MailerLiteAutomation, i: number) => {
+                        const healthColors = { green: '#6EBF8B', amber: '#E9A020', red: '#F97B6B' }
+                        const healthLabels = { green: 'Healthy', amber: 'Needs Attention', red: 'Stalled' }
+                        return (
+                          <tr key={i} className="border-t" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+                            <td className="px-4 py-2.5 max-w-[200px] truncate" style={{ color: '#1E2D3D' }}>{auto.name}</td>
+                            <td className="px-4 py-2.5">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                style={{
+                                  background: auto.status === 'active' ? 'rgba(110,191,139,0.12)' : 'rgba(249,123,107,0.12)',
+                                  color: auto.status === 'active' ? '#6EBF8B' : '#F97B6B',
+                                }}>
+                                {auto.status === 'active' ? 'Active' : 'Paused'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5 font-mono" style={{ color: '#1E2D3D' }}>{auto.subscriberCount.toLocaleString()}</td>
+                            <td className="px-4 py-2.5 font-mono" style={{ color: auto.openRate >= 20 ? '#6EBF8B' : '#E9A020' }}>{auto.openRate}%</td>
+                            <td className="px-4 py-2.5 font-mono" style={{ color: auto.clickRate >= 1 ? '#6EBF8B' : '#E9A020' }}>{auto.clickRate}%</td>
+                            <td className="px-4 py-2.5">
+                              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                                style={{ background: `${healthColors[auto.health]}20`, color: healthColors[auto.health] }}>
+                                {healthLabels[auto.health]}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CollapsibleSection>
           )}
 
           {/* Campaign Open Rate Trend — Chart.js via lib/chartConfig */}
           {ml.campaigns.length >= 3 && (
-            <div className="rounded-xl overflow-hidden mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-              <div className="px-5 py-3 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
-                Campaign Open Rate Trend
-              </div>
+            <CollapsibleSection
+              title="Campaign Open Rate Trend"
+              storageKey="ml-section-trend"
+              className="mb-5"
+            >
               <div className="px-5 py-4">
                 <CampaignOpenRateChart campaigns={ml.campaigns} target={openTarget} />
               </div>
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* Live campaign performance table */}

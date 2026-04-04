@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState, useMemo } from 'react'
 import ChartJS from 'chart.js/auto'
 import Link from 'next/link'
 import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
+import { CollapsibleSection } from '@/components/CollapsibleSection'
 import { FreshBanner } from '@/components/FreshBanner'
 import { InsightCallouts } from '@/components/InsightCallout'
 import { MetricTooltip } from '@/components/MetricHealth'
@@ -1084,17 +1085,12 @@ export default function KDPPage() {
           </div>
 
           {/* ── Chart 1 — Daily Units Sold (with Chart 5 heatmap toggle) ── */}
-          <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-[14px] font-semibold" style={{ color: '#1E2D3D' }}>Daily Units Sold</h3>
-                {compareMode && prevPeriod && (
-                  <span className="text-[10.5px]" style={{ color: '#6B7280' }}>
-                    vs {formatDisplayRange(prevPeriod.start, prevPeriod.end)}
-                  </span>
-                )}
-              </div>
-              {/* Chart 5 toggle */}
+          <CollapsibleSection
+            title="Daily Units Sold"
+            storageKey="kdp-section-daily-units"
+            className="mb-5"
+            subtitle={compareMode && prevPeriod ? `vs ${formatDisplayRange(prevPeriod.start, prevPeriod.end)}` : undefined}
+            headerRight={
               <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid #EEEBE6' }}>
                 <button
                   onClick={() => setHeatmapView(false)}
@@ -1111,67 +1107,70 @@ export default function KDPPage() {
                   Heatmap
                 </button>
               </div>
+            }
+          >
+            <div className="px-5 py-4">
+              {heatmapView ? (
+                <HeatmapCalendar data={filteredUnits} emailSendDates={emailSendDates} />
+              ) : (
+                <DailyAreaChart
+                  data={filteredUnits}
+                  lineColor={CHART_COLORS.coral}
+                  avgColor={CHART_COLORS.amber}
+                  peakDotColor={CHART_COLORS.amber}
+                />
+              )}
             </div>
-            {heatmapView ? (
-              <HeatmapCalendar data={filteredUnits} emailSendDates={emailSendDates} />
-            ) : (
-              <DailyAreaChart
-                data={filteredUnits}
-                lineColor={CHART_COLORS.coral}
-                avgColor={CHART_COLORS.amber}
-                peakDotColor={CHART_COLORS.amber}
-              />
-            )}
-          </div>
+          </CollapsibleSection>
 
           {/* ── Chart 2 — Daily KENP Reads ── */}
           {filteredKENP.length > 0 && (
-            <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-[14px] font-semibold" style={{ color: '#1E2D3D' }}>Daily KENP Reads</h3>
-                {compareMode && prevPeriod && (
-                  <span className="text-[10.5px]" style={{ color: '#6B7280' }}>
-                    vs {formatDisplayRange(prevPeriod.start, prevPeriod.end)}
-                  </span>
-                )}
+            <CollapsibleSection
+              title="Daily KENP Reads"
+              storageKey="kdp-section-kenp"
+              className="mb-5"
+              subtitle={compareMode && prevPeriod ? `vs ${formatDisplayRange(prevPeriod.start, prevPeriod.end)}` : 'Kindle Unlimited page reads · est. $0.0045/page'}
+            >
+              <div className="px-5 py-4">
+                <DailyAreaChart
+                  data={filteredKENP}
+                  lineColor={CHART_COLORS.amber}
+                  avgColor={CHART_COLORS.navy}
+                  peakDotColor={CHART_COLORS.coral}
+                  isKenp
+                />
               </div>
-              <p className="text-[12px] mb-[14px]" style={{ color: 'rgba(30,45,61,0.5)' }}>
-                Kindle Unlimited page reads · est. $0.0045/page
-              </p>
-              <DailyAreaChart
-                data={filteredKENP}
-                lineColor={CHART_COLORS.amber}
-                avgColor={CHART_COLORS.navy}
-                peakDotColor={CHART_COLORS.coral}
-                isKenp
-              />
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* ── Chart 3 — Ad Spend vs Royalties ── */}
-          <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="text-[14px] font-semibold" style={{ color: '#1E2D3D' }}>Ad Spend vs Royalties</h3>
-              <span className="text-[10.5px]" style={{ color: '#6B7280' }}>From ROAS log</span>
+          <CollapsibleSection
+            title="Ad Spend vs Royalties"
+            storageKey="kdp-section-ad-spend"
+            className="mb-5"
+            subtitle="Daily ad spend vs cumulative royalties — lines cross at break-even"
+            badge={<span className="text-[10.5px]" style={{ color: '#6B7280' }}>From ROAS log</span>}
+          >
+            <div className="px-5 py-4">
+              <AdSpendRoyaltiesChart logs={filteredRoas} />
             </div>
-            <p className="text-[12px] mb-[14px]" style={{ color: 'rgba(30,45,61,0.5)' }}>
-              Daily ad spend (bars) · cumulative royalties vs cumulative spend (lines cross at break-even)
-            </p>
-            <AdSpendRoyaltiesChart logs={filteredRoas} />
-          </div>
+          </CollapsibleSection>
 
           {/* ── Chart 4 — Email Sends vs Sales ── */}
-          <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-            <h3 className="text-[14px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>Email Sends vs Sales</h3>
-            <p className="text-[12px] mb-[14px]" style={{ color: 'rgba(30,45,61,0.5)' }}>
-              Units sold with email send days overlaid — peach dot = day after email
-            </p>
-            <EmailVsSalesChart
-              data={filteredUnits}
-              emailSendDates={emailSendDates}
-              emailCampaignMap={emailCampaignMap}
-            />
-          </div>
+          <CollapsibleSection
+            title="Email Sends vs Sales"
+            storageKey="kdp-section-email"
+            className="mb-5"
+            subtitle="Units sold with email send days overlaid — peach dot = day after email"
+          >
+            <div className="px-5 py-4">
+              <EmailVsSalesChart
+                data={filteredUnits}
+                emailSendDates={emailSendDates}
+                emailCampaignMap={emailCampaignMap}
+              />
+            </div>
+          </CollapsibleSection>
         </>
       )}
     </DarkPage>
