@@ -4,6 +4,18 @@ Your indie author marketing coach — powered by AI.
 
 ---
 
+## Connect AuthorDash to Claude
+
+Go to **claude.ai Settings → Integrations → Add MCP Server** and paste:
+
+```
+https://authordash.io/api/mcp
+```
+
+Use your AuthorDash session token as the Bearer token. Once connected, Claude can read your books, launch tasks, streak, ad hooks, and decisions log — and update them — without you having to copy-paste anything.
+
+---
+
 ## What this does
 
 - Analyzes your KDP report, Meta Ads export, and Pinterest CSV

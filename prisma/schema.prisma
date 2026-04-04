@@ -92,6 +92,13 @@ model Book {
   pubDate      DateTime?
   sortOrder             Int       @default(0)
   excludeFromDashboard  Boolean   @default(false)
+  // Launch Planner & MCP context fields
+  launchDate      DateTime?
+  phase           String?   // "pre-order" | "launch" | "post-launch" | "evergreen"
+  colorCode       String?
+  tropes          String?
+  compAuthors     String?
+  targetWordCount Int?
   createdAt             DateTime  @default(now())
 
   @@index([userId])
@@ -275,8 +282,44 @@ model StreakEvent {
   id         String   @id @default(cuid())
   userId     String
   date       DateTime
-  actionType String   // "task_complete" | "spend_log" | "check_in" | "upload"
+  actionType String   // "task_complete" | "spend_log" | "check_in" | "upload" | "claude_query"
   createdAt  DateTime @default(now())
 
   @@index([userId])
+}
+
+model HookTracker {
+  id          String    @id @default(cuid())
+  userId      String
+  bookId      String?
+  hook        String    @db.Text
+  trope       String?
+  format      String?
+  channel     String?
+  status      String    @default("NEW") // "NEW" | "TESTING" | "WINNER" | "PAUSED"
+  ctr         Float?
+  cpc         Float?
+  spend       Float?
+  impressions Int?
+  clicks      Int?
+  testDate    DateTime?
+  nextVariant String?   @db.Text
+  notes       String?   @db.Text
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([bookId])
+}
+
+model DecisionsLog {
+  id        String   @id @default(cuid())
+  userId    String
+  bookId    String?
+  phase     String?
+  summary   String
+  context   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([bookId])
 }
