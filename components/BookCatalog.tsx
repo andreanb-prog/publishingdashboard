@@ -422,7 +422,7 @@ function BookModal({
                 </a>
               )}
               {!form.asin && (
-                <span className="block mt-1 text-[11px] text-stone-400">Enter ASIN to verify on Amazon</span>
+                <span className="block mt-1 text-[11px] text-stone-400">No ASIN yet? That&apos;s ok — you can add it later once your book is published.</span>
               )}
             </div>
             <div>
@@ -891,7 +891,10 @@ export function BookCatalog() {
                   <CoverThumb coverUrl={book.coverUrl} asin={book.asin} title={book.title} colorIndex={posIdx >= 0 ? posIdx : i} />
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] font-medium truncate" style={{ color: '#1E2D3D' }}>{book.title}</div>
-                    {book.asin && <div className="text-[10px] font-mono" style={{ color: '#9CA3AF' }}>{book.asin}</div>}
+                    {book.asin
+                      ? <div className="text-[10px] font-mono" style={{ color: '#9CA3AF' }}>{book.asin}</div>
+                      : <div className="text-[10px] font-semibold mt-0.5 px-1.5 py-0.5 rounded inline-block" style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>No ASIN</div>
+                    }
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <div className="w-2 h-2 rounded-full" style={{ background: colorForIndex(posIdx >= 0 ? posIdx : i) }} />

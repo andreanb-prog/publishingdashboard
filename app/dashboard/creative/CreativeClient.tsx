@@ -2,7 +2,7 @@
 // app/dashboard/creative/CreativeClient.tsx
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import {
-  Camera, ExternalLink, LayoutGrid, Columns, ChevronDown, X, Plus, Check,
+  Camera, ExternalLink, LayoutGrid, Columns, ChevronDown, X, Plus, Check, Pencil,
 } from 'lucide-react'
 import {
   DndContext,
@@ -289,12 +289,14 @@ function CreativeCard({
   books,
   onUpdate,
   onDelete,
+  onEdit,
   compact = false,
 }: {
   creative: Creative
   books: Book[]
   onUpdate: (id: string, patch: Partial<Creative>) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  onEdit: () => void
   compact?: boolean
 }) {
   const [showLog, setShowLog] = useState(false)
@@ -333,7 +335,9 @@ function CreativeCard({
         border: '0.5px solid #E5DDD5',
         opacity: isCut ? 0.5 : 1,
         fontFamily: "'Plus Jakarta Sans', sans-serif",
+        cursor: 'pointer',
       }}
+      onClick={onEdit}
     >
       {/* Thumbnail */}
       <div className="relative" style={{ height: compact ? 100 : 130, background: '#F3F4F6' }}>
@@ -350,6 +354,15 @@ function CreativeCard({
             <span className="text-[10px]" style={{ color: '#9CA3AF' }}>No image</span>
           </div>
         )}
+        {/* Pencil icon top-left */}
+        <button
+          onClick={e => { e.stopPropagation(); onEdit() }}
+          className="absolute top-2 left-2 flex items-center justify-center w-6 h-6 rounded-md"
+          style={{ background: 'rgba(255,255,255,0.85)', border: '1px solid #E5E7EB', cursor: 'pointer' }}
+          title="Edit creative"
+        >
+          <Pencil size={11} color="#6B7280" />
+        </button>
         {/* Status badge top-right */}
         <div className="absolute top-2 right-2">
           <StatusBadge status={creative.status} />
@@ -397,26 +410,29 @@ function CreativeCard({
 
         {/* Performance chips */}
         {showLog ? (
-          <LogPerformanceForm
-            creative={creative}
-            onSave={async (patch) => {
-              await onUpdate(creative.id, patch)
-              setShowLog(false)
-            }}
-            onCancel={() => setShowLog(false)}
-          />
+          <div onClick={e => e.stopPropagation()}>
+            <LogPerformanceForm
+              creative={creative}
+              onSave={async (patch) => {
+                await onUpdate(creative.id, patch)
+                setShowLog(false)
+              }}
+              onCancel={() => setShowLog(false)}
+            />
+          </div>
         ) : (
           <>
             <PerformanceChips creative={creative} />
 
             {/* Action buttons */}
-            <div className="flex flex-wrap gap-1.5 mt-auto pt-1">
+            <div className="flex flex-wrap gap-1.5 mt-auto pt-1" onClick={e => e.stopPropagation()}>
               {creative.status === 'briefed' && (
                 <>
                   <a
                     href="https://www.canva.com"
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
                     className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-md no-underline"
                     style={{ background: '#EFF6FF', color: '#3B82F6', border: '1px solid #BFDBFE' }}
                   >
@@ -493,11 +509,13 @@ function SortableCreativeCard({
   books,
   onUpdate,
   onDelete,
+  onEdit,
 }: {
   creative: Creative
   books: Book[]
   onUpdate: (id: string, patch: Partial<Creative>) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  onEdit: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: creative.id,
@@ -513,7 +531,7 @@ function SortableCreativeCard({
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <CreativeCard creative={creative} books={books} onUpdate={onUpdate} onDelete={onDelete} compact />
+      <CreativeCard creative={creative} books={books} onUpdate={onUpdate} onDelete={onDelete} onEdit={onEdit} compact />
     </div>
   )
 }
@@ -778,6 +796,292 @@ function NewCreativeModal({
   )
 }
 
+// ─── Edit Creative Modal ──────────────────────────────────────────────────────
+
+function EditCreativeModal({
+  creative,
+  books,
+  onSave,
+  onDelete,
+  onClose,
+}: {
+  creative: Creative
+  books: Book[]
+  onSave: (id: string, patch: Partial<Creative>) => Promise<void>
+  onDelete: (id: string) => Promise<void>
+  onClose: () => void
+}) {
+  const [name,      setName]      = useState(creative.name)
+  const [bookId,    setBookId]    = useState(creative.bookId ?? '')
+  const [phase,     setPhase]     = useState(creative.phase)
+  const [angle,     setAngle]     = useState(creative.angle ?? '')
+  const [format,    setFormat]    = useState(creative.format)
+  const [sizes,     setSizes]     = useState<string[]>(creative.sizes ?? ['1080x1080'])
+  const [targeting, setTargeting] = useState(creative.targeting ?? 'cold')
+  const [brief,     setBrief]     = useState(creative.brief ?? '')
+  const [hookText,  setHookText]  = useState(creative.hookText ?? '')
+  const [saving,         setSaving]         = useState(false)
+  const [generatingBrief, setGeneratingBrief] = useState(false)
+
+  const selectedBook = books.find(b => b.id === bookId)
+
+  async function handleGenerateBrief() {
+    setGeneratingBrief(true)
+    setBrief('')
+    try {
+      const res = await fetch('/api/creative/generate-brief', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookTitle: selectedBook?.title ?? '',
+          phase,
+          angle: ANGLE_LABELS[angle] ?? angle,
+          format: FORMAT_LABELS[format] ?? format,
+          hookText,
+        }),
+      })
+      if (!res.ok || !res.body) throw new Error('Failed')
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let text = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        text += decoder.decode(value, { stream: true })
+        setBrief(text)
+      }
+    } catch {
+      setBrief('Could not generate brief. Please try again.')
+    } finally {
+      setGeneratingBrief(false)
+    }
+  }
+
+  function toggleSize(id: string) {
+    setSizes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  async function handleSave() {
+    if (!name.trim()) return
+    setSaving(true)
+    await onSave(creative.id, {
+      name: name.trim(),
+      bookId: bookId || null,
+      phase,
+      angle: angle || null,
+      format,
+      sizes,
+      targeting,
+      brief: brief || null,
+      hookText: hookText || null,
+    })
+    setSaving(false)
+    onClose()
+  }
+
+  async function handleDelete() {
+    if (!window.confirm('Delete this creative? This cannot be undone.')) return
+    await onDelete(creative.id)
+    onClose()
+  }
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#1E2D3D',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+  }
+  const inputStyle: React.CSSProperties = {
+    width: '100%', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 12px',
+    fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none',
+    background: '#FAFAFA', color: '#1E2D3D', boxSizing: 'border-box',
+  }
+  const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer' }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(30,45,61,0.4)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl overflow-y-auto"
+        style={{ background: '#FFFFFF', maxHeight: '90vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5"
+          style={{ borderBottom: '1px solid #EEEBE6' }}>
+          <h2 className="font-bold text-[18px]" style={{ color: '#1E2D3D', margin: 0 }}>
+            Edit creative
+          </h2>
+          <button onClick={onClose}
+            className="p-1.5 rounded-lg transition-colors"
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#6B7280' }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="px-6 py-5 flex flex-col gap-4">
+          {/* Name */}
+          <div>
+            <label style={labelStyle}>Creative name *</label>
+            <input value={name} onChange={e => setName(e.target.value)}
+              placeholder="e.g. Book Title — Emotional Hook v1" style={inputStyle} />
+          </div>
+
+          {/* Book + Phase row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label style={labelStyle}>Book</label>
+              <select value={bookId} onChange={e => setBookId(e.target.value)} style={selectStyle}>
+                <option value="">No book</option>
+                {books.map(b => <option key={b.id} value={b.id}>{b.title}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Phase</label>
+              <select value={phase} onChange={e => setPhase(e.target.value)} style={selectStyle}>
+                <option value="pre-order">Pre-order</option>
+                <option value="launch">Launch</option>
+                <option value="post-launch">Post-launch</option>
+                <option value="evergreen">Evergreen</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Angle + Format row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label style={labelStyle}>Angle</label>
+              <select value={angle} onChange={e => setAngle(e.target.value)} style={selectStyle}>
+                <option value="">None</option>
+                <option value="emotional">Emotional</option>
+                <option value="tension">Tension</option>
+                <option value="trope-stack">Trope stack</option>
+                <option value="social-proof">Social proof</option>
+                <option value="passage-quote">Passage quote</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Format</label>
+              <select value={format} onChange={e => setFormat(e.target.value)} style={selectStyle}>
+                <option value="static-image">Static image</option>
+                <option value="reel">Reel</option>
+                <option value="carousel">Carousel</option>
+                <option value="story">Story</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Sizes */}
+          <div>
+            <label style={labelStyle}>Sizes</label>
+            <div className="grid grid-cols-2 gap-2">
+              {SIZE_OPTIONS.map(s => {
+                const selected = sizes.includes(s.id)
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => toggleSize(s.id)}
+                    className="text-left rounded-xl p-3 transition-all"
+                    style={{
+                      background:  selected ? '#FFF8EC' : '#FFFFFF',
+                      border:      selected ? '2px solid #E9A020' : '1.5px solid #E5E7EB',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div className="font-bold text-[12px] mb-0.5" style={{ color: selected ? '#E9A020' : '#1E2D3D' }}>
+                      {s.name}
+                    </div>
+                    <div className="text-[11px] font-semibold mb-1" style={{ color: selected ? '#C97D0E' : '#6B7280' }}>
+                      {s.dims}
+                    </div>
+                    <div className="text-[10px] leading-snug" style={{ color: '#9CA3AF' }}>
+                      {s.placements}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Targeting */}
+          <div>
+            <label style={labelStyle}>Targeting</label>
+            <select value={targeting} onChange={e => setTargeting(e.target.value)} style={selectStyle}>
+              <option value="cold">Cold</option>
+              <option value="warm">Warm</option>
+              <option value="retarget">Retarget</option>
+              <option value="newsletter">Newsletter</option>
+            </select>
+          </div>
+
+          {/* Brief */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Brief</label>
+              <button
+                onClick={handleGenerateBrief}
+                disabled={generatingBrief}
+                className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md"
+                style={{ background: '#FFF4E0', color: '#E9A020', border: '1px solid #F6D38A', cursor: generatingBrief ? 'not-allowed' : 'pointer', opacity: generatingBrief ? 0.6 : 1 }}>
+                {generatingBrief ? 'Generating…' : 'Generate brief'}
+              </button>
+            </div>
+            <textarea
+              value={brief}
+              onChange={e => setBrief(e.target.value)}
+              placeholder='Click "Generate brief" to auto-fill, or type your own…'
+              rows={4}
+              style={{ ...inputStyle, resize: 'vertical' }}
+            />
+          </div>
+
+          {/* Hook */}
+          <div>
+            <label style={labelStyle}>Hook text</label>
+            <input value={hookText} onChange={e => setHookText(e.target.value)}
+              placeholder="e.g. She said yes. He had three hours to disappear." style={inputStyle} />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 pb-4 flex gap-3">
+          <button
+            onClick={handleSave}
+            disabled={!name.trim() || saving}
+            className="flex-1 py-2.5 rounded-xl font-bold text-[14px]"
+            style={{
+              background: !name.trim() || saving ? '#E5E7EB' : '#1E2D3D',
+              color: !name.trim() || saving ? '#9CA3AF' : '#fff',
+              border: 'none',
+              cursor: !name.trim() || saving ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl font-semibold text-[14px]"
+            style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+        </div>
+        <div className="px-6 pb-6 text-center">
+          <button
+            onClick={handleDelete}
+            className="text-[12px] font-semibold"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#F97B6B', textDecoration: 'underline' }}
+          >
+            Delete creative
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Kanban Column ────────────────────────────────────────────────────────────
 
 function KanbanColumn({
@@ -786,12 +1090,14 @@ function KanbanColumn({
   books,
   onUpdate,
   onDelete,
+  onEdit,
 }: {
   status: string
   creatives: Creative[]
   books: Book[]
   onUpdate: (id: string, patch: Partial<Creative>) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  onEdit: (c: Creative) => void
 }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.briefed
   const ids = creatives.map(c => c.id)
@@ -837,6 +1143,7 @@ function KanbanColumn({
                 books={books}
                 onUpdate={onUpdate}
                 onDelete={onDelete}
+                onEdit={() => onEdit(c)}
               />
             ))
           )}
@@ -859,9 +1166,10 @@ export function CreativeClient({
   const [selectedBook, setSelectedBook] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [view,         setView]         = useState<'grid' | 'kanban'>('grid')
-  const [showModal,    setShowModal]    = useState(false)
-  const [toast,        setToast]        = useState<{ msg: string; ok: boolean } | null>(null)
-  const [activeId,     setActiveId]     = useState<string | null>(null)
+  const [showModal,       setShowModal]       = useState(false)
+  const [editingCreative, setEditingCreative] = useState<Creative | null>(null)
+  const [toast,           setToast]           = useState<{ msg: string; ok: boolean } | null>(null)
+  const [activeId,        setActiveId]        = useState<string | null>(null)
 
   // Persist view to localStorage
   useEffect(() => {
@@ -1137,6 +1445,7 @@ export function CreativeClient({
                   books={books}
                   onUpdate={handleUpdate}
                   onDelete={handleDelete}
+                  onEdit={() => setEditingCreative(c)}
                 />
               ))}
             </div>
@@ -1161,6 +1470,7 @@ export function CreativeClient({
                   books={books}
                   onUpdate={handleUpdate}
                   onDelete={handleDelete}
+                  onEdit={c => setEditingCreative(c)}
                 />
               ))}
             </div>
@@ -1173,6 +1483,7 @@ export function CreativeClient({
                     books={books}
                     onUpdate={async () => {}}
                     onDelete={async () => {}}
+                    onEdit={() => {}}
                     compact
                   />
                 </div>
@@ -1188,6 +1499,22 @@ export function CreativeClient({
           books={books}
           onClose={() => setShowModal(false)}
           onCreate={handleCreate}
+        />
+      )}
+
+      {/* Edit creative modal */}
+      {editingCreative && (
+        <EditCreativeModal
+          creative={editingCreative}
+          books={books}
+          onSave={async (id, patch) => {
+            await handleUpdate(id, patch)
+            showToast('Creative updated')
+          }}
+          onDelete={async (id) => {
+            await handleDelete(id)
+          }}
+          onClose={() => setEditingCreative(null)}
         />
       )}
 
