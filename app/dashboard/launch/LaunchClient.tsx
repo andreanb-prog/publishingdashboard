@@ -75,8 +75,8 @@ const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 // Channel colors
 const CHANNEL_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  Ads:     { bg: 'bg-amber-100',  text: 'text-amber-800',  dot: '#F59E0B' },
-  Email:   { bg: 'bg-sky-100',    text: 'text-sky-800',    dot: '#0EA5E9' },
+  Ads:     { bg: 'bg-sky-100',    text: 'text-sky-800',    dot: '#60A5FA' },
+  Email:   { bg: 'bg-green-100',  text: 'text-green-800',  dot: '#6EBF8B' },
   Creative:{ bg: 'bg-purple-100', text: 'text-purple-800', dot: '#A78BFA' },
   Social:  { bg: 'bg-green-100',  text: 'text-green-800',  dot: '#86EFAC' },
   General: { bg: 'bg-gray-100',   text: 'text-gray-600',   dot: '#9CA3AF' },

@@ -11,7 +11,7 @@ const templates = [
     daysFromLaunch: -30,
     description: 'Tropes, hook angles, comp authors',
     actionType: 'copy',
-    actionPrompt: 'Write a Facebook/Instagram ad copy brief for a romance novel launch. Include: 3 trope-based hooks, 2 comp author angles, and a primary CTA. Format as a creative brief I can hand to a copywriter.',
+    actionPrompt: 'Write a Facebook/Instagram ad copy brief for my book launch. Include: 3 hook angles based on my book\'s core appeal, 2 comp author angles, and a primary CTA. Format as a creative brief I can hand to a copywriter.',
     phase: 'pre-order',
   },
   {
@@ -29,7 +29,7 @@ const templates = [
     daysFromLaunch: -21,
     description: 'Trope stack angle',
     actionType: 'copy',
-    actionPrompt: 'Write 3 pre-order Meta ad copy variations using a trope-stacking hook format. Each should be 125 characters or less for primary text, with a headline and description. Tone: warm, reader-first.',
+    actionPrompt: 'Write 3 pre-order ad copy variations for my book. Each should be 125 characters or less for primary text, with a headline and description. Lead with a strong hook that speaks to my target readers. Tone: warm, reader-first.',
     phase: 'pre-order',
   },
   {
@@ -60,10 +60,10 @@ const templates = [
     phase: 'pre-order',
   },
   {
-    name: 'Mastermind email — early access invite',
+    name: 'Send early access email to launch team',
     channel: 'Email',
     daysFromLaunch: -14,
-    description: 'Early access/beta invite',
+    description: 'Email your closest author contacts and early supporters about the launch',
     actionType: null,
     actionPrompt: null,
     phase: 'pre-order',
@@ -105,7 +105,7 @@ const templates = [
     phase: 'pre-order',
   },
   {
-    name: 'Ads Manager campaign fully built and reviewed',
+    name: 'Ad campaigns fully built and reviewed',
     channel: 'Ads',
     daysFromLaunch: -3,
     description: 'Final review before launch',
@@ -220,7 +220,7 @@ const templates = [
     daysFromLaunch: 21,
     description: 'Series funnel creative',
     actionType: 'brief',
-    actionPrompt: 'Write a creative brief for a series funnel ad. Goal: get new readers to start at Book 1 and read through to Book 3. Include: hook angle for series starters, binge-reading angle, and visual direction.',
+    actionPrompt: 'Write a creative brief for a series funnel ad. Goal: get new readers to start at Book 1 and read through the full series. Include: hook angle for series starters, binge-reading angle, and visual direction.',
     phase: 'post-launch',
   },
   {
