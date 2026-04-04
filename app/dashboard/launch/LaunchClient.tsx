@@ -132,53 +132,151 @@ function PhaseLabel({ dueDate, launchDate }: { dueDate: string; launchDate: stri
   )
 }
 
-// ── Action button ──────────────────────────────────────────────────────────────
-function ActionButton({ actionType, actionPrompt, launchDate, bookTitle, daysToLaunch, phase, adTasks, onCopy }: {
+// ── Inline AI panel ────────────────────────────────────────────────────────────
+function InlineAIPanel({
+  actionType,
+  taskName,
+  phase,
+  channel,
+  bookTitle,
+  launchDate,
+  daysToLaunch,
+  adTasks,
+  onClose,
+}: {
+  actionType: string
+  taskName: string
+  phase: string
+  channel: string
+  bookTitle: string | null
+  launchDate: string
+  daysToLaunch: number
+  adTasks: LaunchTask[]
+  onClose: () => void
+}) {
+  const [content, setContent]   = useState('')
+  const [loading, setLoading]   = useState(true)
+  const [copied,  setCopied]    = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setContent('')
+    setLoading(true)
+
+    fetch('/api/launch/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        actionType,
+        taskName,
+        phase,
+        channel,
+        bookTitle,
+        launchDate,
+        daysToLaunch,
+        adTasks: adTasks.map(t => ({ name: t.name, status: t.status })),
+      }),
+    })
+      .then(async res => {
+        if (!res.ok || !res.body) { setLoading(false); return }
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done || cancelled) break
+          setContent(prev => prev + decoder.decode(value, { stream: true }))
+        }
+        setLoading(false)
+      })
+      .catch(() => { if (!cancelled) setLoading(false) })
+
+    return () => { cancelled = true }
+  }, [actionType, taskName, phase, channel, bookTitle, launchDate, daysToLaunch, adTasks])
+
+  async function handleCopy() {
+    try { await navigator.clipboard.writeText(content) } catch { /* ignore */ }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const title = actionType === 'brief' ? 'Creative Brief' : 'Task Review'
+
+  return (
+    <div
+      className="mt-2 rounded-xl overflow-hidden"
+      style={{ background: '#FFFDF7', border: '1px solid #F6D38A', marginLeft: 40 }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2"
+        style={{ borderBottom: '1px solid #F6D38A', background: '#FFF8EC' }}>
+        <span className="text-[11px] font-bold" style={{ color: '#E9A020', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          {title}
+        </span>
+        <div className="flex items-center gap-2">
+          {!loading && content && (
+            <button
+              onClick={handleCopy}
+              className="text-[10px] font-semibold px-2 py-0.5 rounded-md transition-colors"
+              style={{ background: copied ? '#6EBF8B' : '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}
+            >
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: 16, lineHeight: 1 }}
+          >
+            ×
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-3 py-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        {loading && !content && (
+          <div className="flex items-center gap-2 text-[12px]" style={{ color: '#9CA3AF' }}>
+            <span className="inline-block w-3 h-3 border-2 border-amber-300 border-t-amber-500 rounded-full animate-spin" />
+            Generating…
+          </div>
+        )}
+        {content && (
+          <p className="text-[12px] leading-relaxed m-0 whitespace-pre-wrap" style={{ color: '#1E2D3D' }}>
+            {content}
+            {loading && <span className="inline-block w-1 h-3 ml-0.5 animate-pulse" style={{ background: '#E9A020', verticalAlign: 'text-bottom' }} />}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Action button (stateless — panel state managed by TaskRow) ─────────────────
+function ActionButton({ actionType, actionPrompt, phase, bookTitle, launchDate, daysToLaunch, isActive, onInlineToggle, onCopy }: {
   actionType: string
   actionPrompt: string
-  launchDate: string
-  bookTitle: string | null
-  daysToLaunch: number
   phase: string
-  adTasks: LaunchTask[]
+  bookTitle: string | null
+  launchDate: string
+  daysToLaunch: number
+  isActive: boolean
+  onInlineToggle: () => void
   onCopy: (msg: string) => void
 }) {
-  const labels: Record<string, string> = { copy: 'Copy ↗', brief: 'Brief ↗', review: 'Review ↗' }
-  const label = labels[actionType] ?? 'Action ↗'
+  const isInline = actionType === 'brief' || actionType === 'review'
+  const labels: Record<string, string> = { copy: 'Copy ↗', brief: 'Brief', review: 'Review' }
+  const label = labels[actionType] ?? 'Action'
 
   const handleClick = async () => {
+    if (isInline) { onInlineToggle(); return }
+
+    // "copy" — original clipboard behaviour
     const title = bookTitle ?? 'my book'
     const launchFormatted = toLocalDate(launchDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-    const daysLabel = daysToLaunch > 0
-      ? `${daysToLaunch} days out`
-      : daysToLaunch === 0
-      ? 'launch day'
-      : `${Math.abs(daysToLaunch)} days post-launch`
-
-    let prompt: string
-
-    if (actionType === 'review') {
-      const adLines = adTasks.length > 0
-        ? adTasks.map(t => `${t.name} (${t.status.replace(/_/g, ' ')})`).join(' | ')
-        : null
-      if (adLines) {
-        prompt = `I'm running Meta ads for ${title} launching ${launchFormatted} — ${daysLabel}. Here are my current ad tasks: ${adLines}. Tell me which to kill (under 1% CTR), which to scale, and what copy angle to test next.`
-      } else {
-        prompt = `I'm launching ${title} on ${launchFormatted} — ${daysLabel}. I'm in the ${phase} phase and haven't started running ads yet. Help me plan my Meta ads strategy: what copy angles to test, what audience targeting to use, and what budget to allocate.`
-      }
-    } else if (actionType === 'copy') {
-      prompt = `Write pre-order ad copy for ${title}. Launch date: ${launchFormatted} — ${daysLabel}. We're in the ${phase} phase. Use the emotional/tension angle — lead with feeling, not trope lists. Write 3 caption variants with headline and link description for each.`
-    } else if (actionType === 'brief') {
-      prompt = `Give me a Canva creative brief for ${title} — ${phase} phase, ${daysLabel}. I need 4 static image variants sized for Meta feed (1080x1080) and stories (1080x1920). Describe the visual direction, text overlay, and mood for each. The winning angle should be emotional/tension-driven.`
-    } else {
-      // Fallback: resolve placeholders in the stored prompt
-      prompt = (actionPrompt ?? '')
-        .replace(/\[BOOK_TITLE\]/g, title)
-        .replace(/\[LAUNCH_DATE\]/g, launchFormatted)
-    }
-
+    const daysLabel = daysToLaunch > 0 ? `${daysToLaunch} days out` : daysToLaunch === 0 ? 'launch day' : `${Math.abs(daysToLaunch)} days post-launch`
+    const prompt = actionType === 'copy'
+      ? `Write pre-order ad copy for ${title}. Launch date: ${launchFormatted} — ${daysLabel}. We're in the ${phase} phase. Use the emotional/tension angle — lead with feeling, not trope lists. Write 3 caption variants with headline and link description for each.`
+      : (actionPrompt ?? '').replace(/\[BOOK_TITLE\]/g, title).replace(/\[LAUNCH_DATE\]/g, launchFormatted)
     await navigator.clipboard.writeText(prompt)
-    window.open('https://claude.ai/new', '_blank', 'noopener,noreferrer')
     onCopy('Prompt copied — paste it into Claude to get started')
   }
 
@@ -186,6 +284,7 @@ function ActionButton({ actionType, actionPrompt, launchDate, bookTitle, daysToL
     <button
       onClick={handleClick}
       className="text-[11px] font-medium px-2.5 py-1 rounded-lg border border-amber-400 text-amber-700 hover:bg-amber-50 transition-colors whitespace-nowrap"
+      style={isActive ? { background: '#FFF8EC' } : undefined}
     >
       {label}
     </button>
@@ -213,7 +312,9 @@ function TaskRow({
   onCopy: (msg: string) => void
 }) {
   const isDone = task.status === 'done'
-  const [loading, setLoading] = useState(false)
+  const [loading,     setLoading]     = useState(false)
+  const [showPanel,   setShowPanel]   = useState(false)
+  const isInlineAction = task.actionType === 'brief' || task.actionType === 'review'
 
   const handleCheck = async () => {
     if (isDone || loading) return
@@ -224,56 +325,75 @@ function TaskRow({
 
   return (
     <div
-      className={`flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-gray-50 transition-colors group
-        ${isOverdue && !isDone ? 'border-l-2 pl-2.5' : ''}`}
+      className={`flex flex-col rounded-lg transition-colors group
+        ${isOverdue && !isDone ? 'border-l-2' : ''}`}
       style={isOverdue && !isDone ? { borderColor: '#E9A020' } : undefined}
     >
-      {/* Checkbox */}
-      <button
-        onClick={handleCheck}
-        disabled={loading}
-        className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all
-          ${isDone
-            ? 'bg-amber-400 border-amber-400'
-            : 'border-gray-300 hover:border-amber-400'
-          }`}
-        aria-label={isDone ? 'Done' : 'Mark done'}
-      >
-        {isDone && (
-          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-            <polyline points="1,4 3.5,6.5 9,1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+      {/* Main row */}
+      <div className={`flex items-center gap-3 py-2.5 px-3 hover:bg-gray-50 rounded-lg ${isOverdue && !isDone ? 'pl-2.5' : ''}`}>
+        {/* Checkbox */}
+        <button
+          onClick={handleCheck}
+          disabled={loading}
+          className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all
+            ${isDone
+              ? 'bg-amber-400 border-amber-400'
+              : 'border-gray-300 hover:border-amber-400'
+            }`}
+          aria-label={isDone ? 'Done' : 'Mark done'}
+        >
+          {isDone && (
+            <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+              <polyline points="1,4 3.5,6.5 9,1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+          {loading && (
+            <div className="w-2.5 h-2.5 border border-gray-400 border-t-transparent rounded-full animate-spin" />
+          )}
+        </button>
+
+        {/* Task name */}
+        <span className={`flex-1 text-sm text-[#1E2D3D] ${isDone ? 'line-through opacity-50' : ''}`}>
+          {task.name}
+        </span>
+
+        {/* Phase offset */}
+        <PhaseLabel dueDate={task.dueDate} launchDate={launchDate} />
+
+        {/* Channel pill */}
+        <ChannelPill channel={task.channel} />
+
+        {/* Due date */}
+        <span className="text-[11px] text-gray-400 hidden sm:block">{formatShort(task.dueDate)}</span>
+
+        {/* Action button */}
+        {task.actionType && task.actionPrompt && !isDone && (
+          <ActionButton
+            actionType={task.actionType}
+            actionPrompt={task.actionPrompt}
+            phase={task.phase}
+            bookTitle={bookTitle}
+            launchDate={launchDate}
+            daysToLaunch={daysToLaunch}
+            isActive={showPanel}
+            onInlineToggle={() => setShowPanel(v => !v)}
+            onCopy={onCopy}
+          />
         )}
-        {loading && (
-          <div className="w-2.5 h-2.5 border border-gray-400 border-t-transparent rounded-full animate-spin" />
-        )}
-      </button>
+      </div>
 
-      {/* Task name */}
-      <span className={`flex-1 text-sm text-[#1E2D3D] ${isDone ? 'line-through opacity-50' : ''}`}>
-        {task.name}
-      </span>
-
-      {/* Phase offset */}
-      <PhaseLabel dueDate={task.dueDate} launchDate={launchDate} />
-
-      {/* Channel pill */}
-      <ChannelPill channel={task.channel} />
-
-      {/* Due date */}
-      <span className="text-[11px] text-gray-400 hidden sm:block">{formatShort(task.dueDate)}</span>
-
-      {/* Action button */}
-      {task.actionType && task.actionPrompt && !isDone && (
-        <ActionButton
+      {/* Inline AI panel — rendered below the row */}
+      {showPanel && isInlineAction && task.actionType && (
+        <InlineAIPanel
           actionType={task.actionType}
-          actionPrompt={task.actionPrompt}
-          launchDate={launchDate}
-          bookTitle={bookTitle}
-          daysToLaunch={daysToLaunch}
+          taskName={task.name}
           phase={task.phase}
+          channel={task.channel}
+          bookTitle={bookTitle}
+          launchDate={launchDate}
+          daysToLaunch={daysToLaunch}
           adTasks={adTasks}
-          onCopy={onCopy}
+          onClose={() => setShowPanel(false)}
         />
       )}
     </div>
