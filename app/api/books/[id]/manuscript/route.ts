@@ -15,32 +15,42 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const file = formData.get('file') as File | null
   if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
+  // Detect file type by extension ONLY — no magic byte detection
   const fileName = file.name.toLowerCase()
+  console.log('[manuscript] upload started:', fileName, 'size:', file.size)
+
   const buffer = Buffer.from(await file.arrayBuffer())
+  console.log('[manuscript] buffer read, bytes:', buffer.length)
 
   let text = ''
 
   if (fileName.endsWith('.txt')) {
+    console.log('[manuscript] parsing as TXT')
     text = buffer.toString('utf-8')
+    console.log('[manuscript] TXT parsed, chars:', text.length)
+
   } else if (fileName.endsWith('.pdf')) {
+    console.log('[manuscript] parsing as PDF with pdfjs-dist legacy')
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
       const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js') as any
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '' // disable worker for serverless
-      const uint8Array = new Uint8Array(buffer)
-      const loadingTask = pdfjsLib.getDocument({ data: uint8Array })
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '' // disable worker threads for serverless
+      console.log('[manuscript] pdfjs-dist loaded, calling getDocument')
+      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) })
       const pdf = await loadingTask.promise
+      console.log('[manuscript] PDF opened, numPages:', pdf.numPages)
       const pages: string[] = []
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i)
         const content = await page.getTextContent()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pageText = content.items.map((item: any) => item.str ?? '').join(' ')
-        pages.push(pageText)
+        pages.push(content.items.map((item: any) => item.str ?? '').join(' '))
       }
       text = pages.join('\n\n')
-    } catch {
-      // Graceful fallback: save upload record without extracted text
+      console.log('[manuscript] PDF text extracted, chars:', text.length)
+    } catch (err) {
+      console.error('[manuscript] PDF parse error:', err)
+      // Graceful fallback — save the upload record, do not show an error to the user
       await db.book.update({
         where: { id: params.id },
         data: { manuscriptText: '', manuscriptUploadedAt: new Date() },
@@ -48,33 +58,48 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({
         success: true,
         wordCount: 0,
-        warning: 'Manuscript saved. Text extraction will be available in the next update — your file is safely stored.',
+        warning: 'Manuscript saved. For best results try uploading a .txt version.',
       })
     }
+
   } else if (fileName.endsWith('.epub')) {
+    console.log('[manuscript] parsing as EPUB')
     try {
       const { EPub } = await import('epub2')
       const epub = await EPub.createAsync(buffer as unknown as string)
+      console.log('[manuscript] EPUB opened, chapters:', epub.flow.length)
       const chapters = await Promise.all(
         epub.flow.map((chapter: { id: string }) =>
           new Promise<string>((resolve) => {
             epub.getChapter(chapter.id, (err: unknown, body: string) => {
               if (err || !body) { resolve(''); return }
-              // Strip HTML tags
               resolve(body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())
             })
           })
         )
       )
       text = chapters.filter(Boolean).join('\n\n')
-    } catch {
-      return NextResponse.json({ error: 'EPUB parsing failed. Try uploading a .txt version of your manuscript.' }, { status: 422 })
+      console.log('[manuscript] EPUB text extracted, chars:', text.length)
+    } catch (err) {
+      console.error('[manuscript] EPUB parse error:', err)
+      // Graceful fallback — do not show an error
+      await db.book.update({
+        where: { id: params.id },
+        data: { manuscriptText: '', manuscriptUploadedAt: new Date() },
+      })
+      return NextResponse.json({
+        success: true,
+        wordCount: 0,
+        warning: 'Manuscript saved. For best results try uploading a .txt version.',
+      })
     }
+
   } else {
     return NextResponse.json({ error: 'Only .pdf, .txt, and .epub files are supported' }, { status: 400 })
   }
 
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length
+  console.log('[manuscript] saving to DB, wordCount:', wordCount)
 
   await db.book.update({
     where: { id: params.id },
@@ -84,5 +109,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
   })
 
+  console.log('[manuscript] done')
   return NextResponse.json({ success: true, wordCount })
 }
