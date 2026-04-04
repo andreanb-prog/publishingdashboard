@@ -37,6 +37,7 @@ interface Book {
   coverUrl: string | null
   pubDate: string | null
   sortOrder: number
+  manuscriptUploadedAt: string | null
 }
 
 interface BookForm {
@@ -320,6 +321,31 @@ function BookModal({
   const [form, setForm] = useState<BookForm>(editing ? bookToForm(editing) : blankForm())
   const fileRef = useRef<HTMLInputElement>(null)
   const [coverPreviewError, setCoverPreviewError] = useState(false)
+  const manuscriptFileRef = useRef<HTMLInputElement>(null)
+  const [manuscriptState, setManuscriptState] = useState<'idle' | 'uploading' | 'done' | 'error'>(
+    editing?.manuscriptUploadedAt ? 'done' : 'idle'
+  )
+  const [manuscriptWordCount, setManuscriptWordCount] = useState<number | null>(null)
+  const [manuscriptError, setManuscriptError] = useState('')
+  const [manuscriptDragging, setManuscriptDragging] = useState(false)
+
+  async function handleManuscriptUpload(file: File) {
+    if (!editing) return
+    setManuscriptState('uploading')
+    setManuscriptError('')
+    const fd = new FormData()
+    fd.append('file', file)
+    try {
+      const res = await fetch(`/api/books/${editing.id}/manuscript`, { method: 'POST', body: fd })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Upload failed')
+      setManuscriptState('done')
+      setManuscriptWordCount(json.wordCount)
+    } catch (e) {
+      setManuscriptState('error')
+      setManuscriptError(e instanceof Error ? e.message : 'Upload failed')
+    }
+  }
 
   // When ASIN is entered, auto-switch to amazon tab if currently on url/upload
   useEffect(() => {
@@ -596,6 +622,87 @@ function BookModal({
               <p className="mt-2 text-[11px] text-red-400">Could not load image — check the URL or try uploading instead.</p>
             )}
           </div>
+
+          {/* Manuscript upload — edit mode only */}
+          {editing && (
+            <div className="border-t border-stone-100 pt-3">
+              <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
+                Manuscript
+              </label>
+              <p className="text-[11px] text-stone-400 mb-3 leading-relaxed">
+                Upload your manuscript or draft — used by your AI to generate better briefs, hooks, and ad copy. Optional — upload whatever you have.
+              </p>
+
+              {/* File input always in DOM */}
+              <input
+                ref={manuscriptFileRef}
+                type="file"
+                accept=".pdf,.txt"
+                className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleManuscriptUpload(f) }}
+              />
+
+              {manuscriptState === 'done' ? (
+                <div
+                  className="flex items-center justify-between px-3 py-2.5 rounded-lg border"
+                  style={{ borderColor: '#6EBF8B', background: 'rgba(110,191,139,0.06)' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="rgba(110,191,139,0.2)" />
+                      <path d="M7.5 12.5l3 3 6-6" stroke="#6EBF8B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="text-[12.5px] font-semibold" style={{ color: '#1E2D3D' }}>
+                      Manuscript uploaded{manuscriptWordCount ? ` — ${manuscriptWordCount.toLocaleString()} words` : ''}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => manuscriptFileRef.current?.click()}
+                    className="text-[11.5px] font-semibold border-none bg-transparent cursor-pointer transition-colors"
+                    style={{ color: '#E9A020' }}
+                  >
+                    Replace
+                  </button>
+                </div>
+              ) : manuscriptState === 'uploading' ? (
+                <div className="flex items-center gap-3 px-3 py-3 rounded-lg border border-stone-200 bg-white">
+                  <div className="w-4 h-4 rounded-full border-2 border-amber-400 border-t-transparent animate-spin shrink-0" />
+                  <span className="text-[12.5px] text-stone-500">Extracting text…</span>
+                </div>
+              ) : (
+                <div
+                  onDragEnter={e => { e.preventDefault(); setManuscriptDragging(true) }}
+                  onDragOver={e => { e.preventDefault(); setManuscriptDragging(true) }}
+                  onDragLeave={() => setManuscriptDragging(false)}
+                  onDrop={e => {
+                    e.preventDefault()
+                    setManuscriptDragging(false)
+                    const f = e.dataTransfer.files[0]
+                    if (f) handleManuscriptUpload(f)
+                  }}
+                  onClick={() => manuscriptFileRef.current?.click()}
+                  className="w-full py-4 border-2 border-dashed rounded-lg text-center cursor-pointer transition-all"
+                  style={{
+                    borderColor: manuscriptDragging ? '#E9A020' : '#d1d5db',
+                    background: manuscriptDragging ? 'rgba(233,160,32,0.04)' : 'white',
+                  }}
+                >
+                  {manuscriptState === 'error' ? (
+                    <>
+                      <p className="text-[12.5px] font-semibold" style={{ color: '#F97B6B' }}>Upload failed</p>
+                      <p className="text-[11px] text-stone-400 mt-0.5">{manuscriptError} · Click to try again</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[12.5px] font-semibold text-stone-500">Drop manuscript here or click to browse</p>
+                      <p className="text-[11px] text-stone-400 mt-0.5">PDF or TXT</p>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
