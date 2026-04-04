@@ -754,7 +754,7 @@ function NewCreativeModal({
             <textarea
               value={brief}
               onChange={e => setBrief(e.target.value)}
-              placeholder="Click "Generate brief" to auto-fill, or type your own…"
+              placeholder='Click "Generate brief" to auto-fill, or type your own…'
               rows={4}
               style={{ ...inputStyle, resize: 'vertical' }}
             />
