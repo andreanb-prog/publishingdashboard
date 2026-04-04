@@ -429,6 +429,18 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
   const [copying,     setCopying]     = useState(false)
   const [coachTitle]  = useState(() => getCoachTitle())
   const [expandedPriority, setExpandedPriority] = useState<number | null>(null)
+  const [donePriorities, setDonePriorities] = useState<Set<number>>(() => {
+    if (typeof window === 'undefined') return new Set()
+    const today = new Date().toISOString().slice(0, 10)
+    try {
+      const stored = localStorage.getItem('priorities-done')
+      if (!stored) return new Set<number>()
+      const { date, indices } = JSON.parse(stored)
+      if (date !== today) return new Set<number>()
+      return new Set<number>(indices)
+    } catch { return new Set<number>() }
+  })
+  const [showCompleted, setShowCompleted] = useState(true)
   const [isFresh,     setIsFresh]     = useState(false)
   const [storyMode,   setStoryMode]   = useState(() => {
     if (typeof window === 'undefined') return true
@@ -456,6 +468,23 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
     window.addEventListener('story-mode-change', onStoryModeChange)
     return () => window.removeEventListener('story-mode-change', onStoryModeChange)
   }, [])
+
+  // Persist done priorities (date-stamped, resets daily)
+  useEffect(() => {
+    if (donePriorities.size === 0) return
+    const today = new Date().toISOString().slice(0, 10)
+    try {
+      localStorage.setItem('priorities-done', JSON.stringify({ date: today, indices: Array.from(donePriorities) }))
+    } catch {}
+  }, [donePriorities])
+
+  function toggleDone(i: number) {
+    setDonePriorities(prev => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i); else { next.add(i); setExpandedPriority(null) }
+      return next
+    })
+  }
 
   // Detect ?fresh=1 for post-upload celebration count-up
   useEffect(() => {
@@ -757,9 +786,20 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
       {/* ══════ SECTION 1 — TODAY'S PRIORITIES ══════════════════════ */}
       {!loading && (
       <div className="mb-7">
-        <h2 className="font-sans text-[22px] font-bold tracking-tight mb-1" style={{ color: '#1E2D3D' }}>
-          Today&apos;s Priorities
-        </h2>
+        <div className="flex items-baseline justify-between mb-1">
+          <h2 className="font-sans text-[22px] font-bold tracking-tight" style={{ color: '#1E2D3D' }}>
+            Today&apos;s Priorities
+          </h2>
+          {donePriorities.size > 0 && (
+            <button
+              onClick={() => setShowCompleted(prev => !prev)}
+              className="text-[11.5px] font-semibold"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280' }}
+            >
+              {showCompleted ? 'Hide' : 'Show'} completed ({donePriorities.size})
+            </button>
+          )}
+        </div>
         <p className="text-[12.5px] mb-5" style={{ color: '#6B7280' }}>
           Highest impact actions based on your real performance data
         </p>
@@ -769,11 +809,13 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
           const mainItems  = allItems.filter(item => item.confidence !== 'low').slice(0, 3)
           const otherItems = allItems.filter(item => item.confidence === 'low')
           const highColors = ['#F97B6B', '#E9A020', '#60A5FA']
+          const visibleItems = mainItems.filter((_, i) => showCompleted || !donePriorities.has(i))
           return (
             <>
               {mainItems.length > 0 && (
                 <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '0.5px solid #EEEBE6' }}>
-                  {mainItems.map((item, i) => {
+                  {visibleItems.map((item) => {
+                    const i = mainItems.indexOf(item)
                     const href = item.channel === 'kdp' ? '/dashboard/kdp'
                       : item.channel === 'meta' ? '/dashboard/meta'
                       : item.channel === 'email' ? '/dashboard/mailerlite'
@@ -782,36 +824,56 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
                     const isMedium = item.confidence === 'medium'
                     const color = isMedium ? '#E9A020' : (highColors[i] ?? highColors[2])
                     const isOpen = expandedPriority === i
+                    const isDone = donePriorities.has(i)
                     return (
                       <div key={i}
                         style={{
                           borderBottom: i < mainItems.length - 1 ? '0.5px solid #EEEBE6' : 'none',
-                          background: isOpen ? '#FFF8F0' : 'white',
-                          borderLeft: isOpen ? `3px solid ${color}` : '3px solid transparent',
+                          background: isDone ? '#FAFAF9' : isOpen ? '#FFF8F0' : 'white',
+                          borderLeft: isDone ? '3px solid #D1D5DB' : isOpen ? `3px solid ${color}` : '3px solid transparent',
                           transition: 'background 0.2s ease, border-left-color 0.2s ease',
+                          opacity: isDone ? 0.65 : 1,
                         }}>
                         <button
-                          onClick={() => setExpandedPriority(isOpen ? null : i)}
-                          className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left bg-transparent border-none cursor-pointer"
+                          onClick={() => !isDone && setExpandedPriority(isOpen ? null : i)}
+                          className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left bg-transparent border-none"
+                          style={{ cursor: isDone ? 'default' : 'pointer' }}
                         >
                           <span className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
-                            style={{ background: color, color: 'white' }}>
-                            {i + 1}
+                            style={{ background: isDone ? '#D1D5DB' : color, color: 'white' }}>
+                            {isDone ? '✓' : i + 1}
                           </span>
                           <span className="flex-1 min-w-0">
-                            {isMedium && (
+                            {isMedium && !isDone && (
                               <span className="text-[10px] font-bold uppercase tracking-wide mr-1.5"
                                 style={{ color: '#E9A020' }}>Worth checking:</span>
                             )}
-                            <span className="text-[13.5px] font-bold" style={{ color: '#1E2D3D' }}>{item.title}</span>
+                            <span className="text-[13.5px] font-bold"
+                              style={{ color: isDone ? '#9CA3AF' : '#1E2D3D', textDecoration: isDone ? 'line-through' : 'none' }}>
+                              {item.title}
+                            </span>
+                            {isDone && (
+                              <span className="ml-2 text-[11px] font-semibold" style={{ color: '#9CA3AF' }}>Done</span>
+                            )}
                           </span>
-                          <span className="text-[12px] flex-shrink-0 transition-transform duration-200"
-                            style={{ color: '#6B7280', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                            ▾
-                          </span>
+                          {!isDone && (
+                            <span className="text-[12px] flex-shrink-0 transition-transform duration-200"
+                              style={{ color: '#6B7280', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                              ▾
+                            </span>
+                          )}
+                          {isDone && (
+                            <button
+                              onClick={e => { e.stopPropagation(); toggleDone(i) }}
+                              className="text-[10.5px] font-semibold flex-shrink-0"
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}
+                            >
+                              Undo
+                            </button>
+                          )}
                         </button>
                         <div className="overflow-hidden transition-all duration-300 ease-out"
-                          style={{ maxHeight: isOpen ? '300px' : '0px', opacity: isOpen ? 1 : 0 }}>
+                          style={{ maxHeight: isOpen && !isDone ? '360px' : '0px', opacity: isOpen && !isDone ? 1 : 0 }}>
                           <div className="px-4 pb-4 pl-[60px]">
                             <div className="text-[12.5px] leading-[1.7] mb-3" style={{ color: '#374151' }}>
                               {item.body}
@@ -821,11 +883,20 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
                                 </span>
                               )}
                             </div>
-                            <Link href={href}
-                              className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-[11.5px] font-bold no-underline transition-all hover:opacity-90"
-                              style={{ background: color, color: 'white' }}>
-                              Read the Full Story →
-                            </Link>
+                            <div className="flex items-center gap-3">
+                              <Link href={href}
+                                className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-[11.5px] font-bold no-underline transition-all hover:opacity-90"
+                                style={{ background: color, color: 'white' }}>
+                                Read the Full Story →
+                              </Link>
+                              <button
+                                onClick={() => toggleDone(i)}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11.5px] font-semibold transition-all hover:opacity-80"
+                                style={{ background: '#F0FFF4', color: '#6EBF8B', border: '1px solid #A7F3C8', cursor: 'pointer' }}
+                              >
+                                <span>✓</span> Mark as done
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
