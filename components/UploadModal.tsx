@@ -15,6 +15,7 @@ interface ParsedFile {
   type: FileType
   status: FileStatus
   data: KDPData | MetaData | PinterestData | null
+  errorMessage?: string
 }
 
 interface StageInfo {
@@ -215,8 +216,15 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
 
     const name = file.name.toLowerCase()
     const isExcel = name.endsWith('.xlsx') || name.endsWith('.xls')
+    const isPDF  = name.endsWith('.pdf')
+    const isEPUB = name.endsWith('.epub')
 
     try {
+      if (isPDF || isEPUB) {
+        update({ type: 'unknown', status: 'error', data: null, errorMessage: `${isEPUB ? 'EPUB' : 'PDF'} files are for manuscript uploads — use the Book Bible tab in your book's settings.` })
+        return
+      }
+
       if (isExcel) {
         // Lazily load xlsx so it only hits the bundle when an XLSX file is dropped
         const XLSX = await import('xlsx')
@@ -260,7 +268,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
         }
       }
     } catch {
-      update({ status: 'error', data: null })
+      update({ status: 'error', data: null, errorMessage: "Could not read this file. Make sure it's a KDP .xlsx, Meta .csv/.xlsx, or Pinterest .csv export." })
     }
   }
 
@@ -425,7 +433,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
         ref={inputRef}
         type="file"
         multiple
-        accept=".xlsx,.xls,.csv"
+        accept=".xlsx,.xls,.csv,.txt,.pdf,.epub,application/epub+zip"
         style={{ display: 'none', position: 'absolute', left: '-9999px' }}
         onChange={e => { handleFiles(e.target.files); e.target.value = '' }}
       />
@@ -548,7 +556,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                                 </div>
                                 {f.status === 'error' && (
                                   <div className="text-[11px]" style={{ color: '#F97B6B' }}>
-                                    Could not read this file
+                                    {f.errorMessage ?? 'Could not read this file'}
                                   </div>
                                 )}
                               </div>
