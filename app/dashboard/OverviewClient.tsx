@@ -689,9 +689,9 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
             <circle cx="8" cy="11.5" r="0.75" fill="#E9A020" />
           </svg>
           <p className="flex-1 text-[13px]" style={{ color: '#92610a', margin: 0 }}>
-            Facebook connection hit a snag — don&apos;t worry, everything else is working fine.{' '}
+            Facebook hit a snag — skip it for now and come back later. Everything else works great!{' '}
             <a href="/dashboard/settings" className="font-semibold underline" style={{ color: '#E9A020' }}>
-              Try again from Settings.
+              Try again from Settings →
             </a>
           </p>
           <button

@@ -335,7 +335,7 @@ export default function SettingsPage() {
   function connectMeta() {
     console.log('[Meta] Connect button clicked — redirecting to OAuth')
     try {
-      window.location.href = '/api/meta/connect'
+      window.location.replace('/api/meta/connect')
     } catch (err) {
       console.error('[Meta] Failed to initiate OAuth redirect:', err)
       showToast('Could not connect to Meta. Please try again.')

@@ -11,9 +11,7 @@ export async function GET(req: NextRequest) {
   if (error || !code || !userId) {
     const reason = searchParams.get('error_description') || error || 'Authorization was cancelled or failed'
     console.error('[Meta Callback] Error:', reason)
-    return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL ?? 'https://authordash.io'}/dashboard?meta_error=true`
-    )
+    return NextResponse.redirect(new URL('/dashboard?meta_error=true', req.url))
   }
 
   const appId = process.env.META_APP_ID!
@@ -31,9 +29,7 @@ export async function GET(req: NextRequest) {
     if (!tokenData.access_token) {
       const reason = tokenData.error?.message || 'Token exchange failed'
       console.error('[Meta Callback] Token error:', tokenData)
-      return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL ?? 'https://authordash.io'}/dashboard?meta_error=true`
-      )
+      return NextResponse.redirect(new URL('/dashboard?meta_error=true', req.url))
     }
 
     // Step 2: Exchange for long-lived token (60 days)
@@ -66,15 +62,13 @@ export async function GET(req: NextRequest) {
 
     if (!verify?.metaAccessToken) {
       console.error('[Meta Callback] Read-back failed — token not persisted for user:', userId)
-      return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL ?? 'https://authordash.io'}/dashboard?meta_error=true`
-      )
+      return NextResponse.redirect(new URL('/dashboard?meta_error=true', req.url))
     }
 
     console.log('[Meta Callback] Token saved for user:', userId, '— redirecting to account selection')
 
     // Step 5: Redirect to account selection — user picks which ad account to use
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL ?? 'https://authordash.io'}/dashboard/meta/select-account`)
+    return NextResponse.redirect(new URL('/dashboard/meta/select-account', req.url))
 
   } catch (err: any) {
     // P2025 = Prisma "Record to update not found" — userId from state didn't match any user
@@ -83,8 +77,6 @@ export async function GET(req: NextRequest) {
     } else {
       console.error('[Meta Callback] Error:', err)
     }
-    return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL ?? 'https://authordash.io'}/dashboard?meta_error=true`
-    )
+    return NextResponse.redirect(new URL('/dashboard?meta_error=true', req.url))
   }
 }
