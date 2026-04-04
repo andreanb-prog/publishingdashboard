@@ -181,6 +181,7 @@ export default function ListBuildingPage() {
 
   // ── BookFunnel state ───────────────────────────────────────────────────────
   const [bfStats, setBfStats] = useState<BfStats | null>(null)
+  const [metaSpend, setMetaSpend] = useState<number | null>(null)
 
   useEffect(() => {
     // Load persisted subValue
@@ -192,9 +193,12 @@ export default function ListBuildingPage() {
     Promise.all([
       fetch('/api/list-building').then(r => r.ok ? r.json() : Promise.reject()).catch(() => ({ logs: [] })),
       fetch('/api/bookfunnel').then(r => r.ok ? r.json() : Promise.reject()).catch(() => null),
-    ]).then(([listData, bf]) => {
+      fetch('/api/analyze').then(r => r.ok ? r.json() : Promise.reject()).catch(() => null),
+    ]).then(([listData, bf, analysis]) => {
       setCampaigns(listData.logs || [])
       if (bf) setBfStats({ totalCount: bf.totalCount, confirmRate: bf.confirmRate, topBook: bf.topBook, byBook: bf.byBook, byDate: bf.byDate })
+      const metaTotalSpend = analysis?.analysis?.meta?.totalSpend
+      if (typeof metaTotalSpend === 'number') setMetaSpend(metaTotalSpend)
     }).finally(() => setLoading(false))
   }, [])
 
@@ -240,8 +244,9 @@ export default function ListBuildingPage() {
     setCampaigns(prev => prev.filter(c => c.id !== id))
   }
 
-  // KPIs
-  const totalSpend = campaigns.reduce((s, c) => s + c.spend, 0)
+  // KPIs — use Meta synced spend when available, fall back to manually logged spend
+  const manualSpend = campaigns.reduce((s, c) => s + c.spend, 0)
+  const totalSpend = metaSpend !== null ? metaSpend : manualSpend
   const totalSubs  = campaigns.reduce((s, c) => s + c.subscribers, 0)
   const avgCostPerSub = totalSubs > 0 ? totalSpend / totalSubs : 0
   const subRoas = totalSpend > 0 ? (totalSubs * subValue) / totalSpend : 0
@@ -299,7 +304,7 @@ export default function ListBuildingPage() {
         <div className="overflow-x-auto">
           <div className="grid gap-3 min-w-[480px]" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
             {[
-              { label: 'Total Ad Spend', value: fmt$(totalSpend), color: 'text-[#0d1f35]' },
+              { label: metaSpend !== null ? 'Meta Ad Spend (30d)' : 'Total Ad Spend', value: fmt$(totalSpend), color: 'text-[#0d1f35]' },
               { label: 'New Subscribers', value: totalSubs.toLocaleString(), color: 'text-emerald-600' },
               { label: 'Cost Per Subscriber', value: avgCostPerSub > 0 ? fmt$(avgCostPerSub) : '—', color: avgCostPerSub > subValue ? 'text-red-500' : avgCostPerSub > subValue * 0.5 ? 'text-amber-600' : 'text-emerald-600' },
               { label: 'Subscriber ROAS', value: subRoas > 0 ? `${subRoas.toFixed(2)}x` : '—', color: subRoas >= 1 ? 'text-emerald-600' : 'text-red-500' },

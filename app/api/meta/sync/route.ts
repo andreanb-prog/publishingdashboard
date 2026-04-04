@@ -90,104 +90,13 @@ export async function POST(req: NextRequest) {
       console.log('[Meta Sync] Step 2: no stored account — skipping account test')
     }
 
-    // ── Step 3: Discover all ad accounts ──────────────────────────────────────
-    const discovered: { id: string; name: string; amount_spent?: string }[] = []
-
-    // Path 1: direct ad accounts on the user
-    try {
-      const res = await fetch(`${GRAPH}/me/adaccounts?fields=id,name,amount_spent&limit=50&access_token=${token}`)
-      const json = await res.json()
-      if (json.error) {
-        console.error('[Meta Sync] /me/adaccounts error:', json.error)
-      } else {
-        console.log(`[Meta Sync] Path 1 (/me/adaccounts): ${(json.data ?? []).length} accounts`)
-        for (const a of (json.data ?? [])) discovered.push(a)
-      }
-    } catch (e) {
-      console.error('[Meta Sync] Path 1 failed:', e)
-    }
-
-    // Path 2: business portfolio ad accounts
-    try {
-      const bizRes = await fetch(`${GRAPH}/me/businesses?fields=id,name&limit=50&access_token=${token}`)
-      const bizJson = await bizRes.json()
-      if (bizJson.error) {
-        console.error('[Meta Sync] /me/businesses error:', bizJson.error)
-      } else {
-        const businesses: { id: string; name: string }[] = bizJson.data ?? []
-        console.log(`[Meta Sync] Path 2: found ${businesses.length} businesses`)
-        for (const biz of businesses) {
-          try {
-            const acctRes = await fetch(`${GRAPH}/${biz.id}/owned_ad_accounts?fields=id,name,amount_spent&limit=50&access_token=${token}`)
-            const acctJson = await acctRes.json()
-            if (!acctJson.error) {
-              console.log(`  Business "${biz.name}" (${biz.id}): ${(acctJson.data ?? []).length} owned accounts`)
-              for (const a of (acctJson.data ?? [])) discovered.push(a)
-            }
-          } catch (e) {
-            console.error(`  Business ${biz.id} owned_ad_accounts failed:`, e)
-          }
-        }
-      }
-    } catch (e) {
-      console.error('[Meta Sync] Path 2 failed:', e)
-    }
-
-    // Path 3: Instagram-linked ad accounts
-    try {
-      const igRes = await fetch(`${GRAPH}/me/instagram_accounts?fields=id,name&limit=50&access_token=${token}`)
-      const igJson = await igRes.json()
-      if (igJson.error) {
-        console.log('[Meta Sync] /me/instagram_accounts:', igJson.error.message)
-      } else {
-        const igAccounts: { id: string; name: string }[] = igJson.data ?? []
-        console.log(`[Meta Sync] Path 3 (/me/instagram_accounts): ${igAccounts.length} accounts`)
-        for (const ig of igAccounts) {
-          try {
-            const adRes = await fetch(`${GRAPH}/${ig.id}/adaccounts?fields=id,name,amount_spent&access_token=${token}`)
-            const adJson = await adRes.json()
-            if (!adJson.error) {
-              console.log(`  Instagram "${ig.name}" (${ig.id}): ${(adJson.data ?? []).length} ad accounts`)
-              for (const a of (adJson.data ?? [])) discovered.push(a)
-            }
-          } catch (e) {
-            console.error(`  Instagram ${ig.id} adaccounts failed:`, e)
-          }
-        }
-      }
-    } catch (e) {
-      console.error('[Meta Sync] Path 3 failed:', e)
-    }
-
-    console.log(`[Meta Sync] All discovered accounts (${discovered.length}):`)
-    for (const a of discovered) {
-      const id = a.id.startsWith('act_') ? a.id : `act_${a.id}`
-      console.log(`  ${id}  name="${a.name}"  amount_spent=${a.amount_spent ?? '?'}`)
-    }
-
-    // Build deduplicated list — always try the known Elle Wilder account first
-    const seen = new Set<string>()
-    const allAccounts: { id: string; name: string }[] = []
-
-    const addAccount = (rawId: string, name: string) => {
-      const id = rawId.startsWith('act_') ? rawId : `act_${rawId}`
-      if (!seen.has(id)) { seen.add(id); allAccounts.push({ id, name }) }
-    }
-
-    // Stored account first (user's explicit selection), then anything discovered via OAuth
-    if (user.metaAdAccountId) addAccount(user.metaAdAccountId, 'stored account')
-    for (const a of discovered) addAccount(a.id, a.name)
-
-    console.log(`[Meta Sync] Will try ${allAccounts.length} accounts: ${allAccounts.map(a => a.id).join(', ')}`)
-
-    // No ad accounts discovered at all → wrong FB account connected
-    if (allAccounts.length === 0) {
-      console.log('[Meta Sync] No ad accounts found — aborting with user-facing error')
-      return NextResponse.json({
-        error: 'No ad account found. Make sure you\'re connecting the Facebook account that has your Ads Manager. Disconnect and try again with the correct account.',
-        code: 'NO_AD_ACCOUNT',
-      }, { status: 400 })
-    }
+    // ── Step 3: Use hardcoded ad account ─────────────────────────────────────
+    // This account was created via Instagram and is not discoverable via /me/adaccounts
+    const HARDCODED_ACCOUNT_ID = 'act_940232825191906'
+    const allAccounts: { id: string; name: string }[] = [
+      { id: HARDCODED_ACCOUNT_ID, name: 'Elle Wilder Ads' },
+    ]
+    console.log(`[Meta Sync] Using hardcoded account: ${HARDCODED_ACCOUNT_ID}`)
 
     // ── Step 4: Fetch insights from each account ───────────────────────────────
     const allAds: MetaAd[] = []
