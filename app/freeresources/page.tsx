@@ -349,7 +349,18 @@ export default function FreeResourcesPage() {
             Email me
           </a>{' '}
           — be detailed about where you got stuck and I&apos;ll do my best to help.
+
         </p>
+        <p className="text-sm mb-5" style={{ color: '#6B7280' }}>
+          Want to know when AuthorDash is LIVE?
+        </p>
+        <a
+          href="/waitlist"
+          className="inline-block px-6 py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+          style={{ background: '#E9A020', color: '#1E2D3D' }}
+        >
+          Join the Waitlist →
+        </a>
         <p className="text-sm" style={{ fontFamily: 'var(--font-playfair)', fontStyle: 'italic', color: '#1E2D3D' }}>
           Andrea Bonilla
         </p>
