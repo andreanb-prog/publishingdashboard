@@ -11,16 +11,22 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const domain = process.env.POSTMARK_INBOUND_DOMAIN ?? 'inbound.postmarkapp.com'
+  // Strip any localpart accidentally included in the domain env var
+  // e.g. "hash@inbound.postmarkapp.com" → "inbound.postmarkapp.com"
+  let domain = process.env.POSTMARK_INBOUND_DOMAIN ?? 'inbound.postmarkapp.com'
+  if (domain.includes('@')) domain = domain.split('@').pop()!
   const address = `swaps-${session.user.id}@${domain}`
 
-  // Store on the user record if not already set
+  // Store on the user record; overwrite if previously stored value was malformed (double @)
   const user = await db.user.findUnique({
     where: { id: session.user.id },
     select: { inboundEmailAddress: true },
   })
 
-  if (!user?.inboundEmailAddress) {
+  const storedAddress = user?.inboundEmailAddress ?? ''
+  const isMalformed   = (storedAddress.match(/@/g) ?? []).length > 1
+
+  if (!storedAddress || isMalformed) {
     await db.user.update({
       where: { id: session.user.id },
       data: { inboundEmailAddress: address },
