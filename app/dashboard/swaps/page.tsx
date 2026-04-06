@@ -1,6 +1,6 @@
 'use client'
 // app/(dashboard)/swaps/page.tsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DarkPage } from '@/components/DarkPage'
 
 const QUICK_OPTIONS = [
@@ -14,11 +14,116 @@ const QUICK_OPTIONS = [
   'Something else...',
 ]
 
+const DISMISS_KEY = 'swaps_inbound_banner_dismissed'
+
+function InboundBanner() {
+  const [address, setAddress]   = useState<string | null>(null)
+  const [copied, setCopied]     = useState(false)
+  const [dismissed, setDismissed] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem(DISMISS_KEY)) {
+      setDismissed(true)
+      return
+    }
+    fetch('/api/email/inbound-address')
+      .then(r => r.json())
+      .then(d => setAddress(d.address ?? null))
+      .catch(() => {})
+  }, [])
+
+  function dismiss() {
+    localStorage.setItem(DISMISS_KEY, '1')
+    setDismissed(true)
+  }
+
+  async function copy() {
+    if (!address) return
+    try {
+      await navigator.clipboard.writeText(address)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // fallback: select the input
+    }
+  }
+
+  if (dismissed || !address) return null
+
+  return (
+    <div className="mb-6 rounded-lg p-4 relative"
+      style={{
+        background:   '#FFF8F0',
+        borderLeft:   '3px solid #E9A020',
+        border:       '1px solid #EEEBE6',
+        borderLeftWidth: '3px',
+      }}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="text-[14px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
+            Set up automatic swap tracking
+          </div>
+          <p className="text-[13px] mb-3" style={{ color: '#6B7280' }}>
+            Forward your BookClicker emails to the address below and they&apos;ll appear here automatically.
+            Works with Gmail, Yahoo, Outlook, or any email client.
+          </p>
+
+          {/* Copyable address field */}
+          <div className="flex items-center gap-2 mb-3">
+            <input
+              readOnly
+              value={address}
+              className="flex-1 rounded px-3 py-2 text-[13px] font-mono outline-none"
+              style={{
+                background: '#FFF8F0',
+                border:     '1.5px solid #1E2D3D',
+                color:      '#1E2D3D',
+              }}
+            />
+            <button
+              onClick={copy}
+              className="px-3 py-2 rounded text-[12px] font-bold whitespace-nowrap transition-all border-none cursor-pointer"
+              style={{
+                background: copied ? '#6EBF8B' : '#E9A020',
+                color:      '#fff',
+                minWidth:   72,
+              }}
+            >
+              {copied ? 'Copied ✓' : 'Copy'}
+            </button>
+          </div>
+
+          <p className="text-[12px]" style={{ color: '#9CA3AF' }}>
+            In your email settings, create a forwarding rule for any email from bookclicker.com to this address.
+          </p>
+        </div>
+      </div>
+
+      {/* Dismiss */}
+      <button
+        onClick={dismiss}
+        className="absolute top-3 right-3 text-[11px] underline bg-transparent border-none cursor-pointer"
+        style={{ color: '#9CA3AF' }}
+      >
+        Dismiss
+      </button>
+    </div>
+  )
+}
+
 export default function SwapsPage() {
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [details, setDetails] = useState('')
+  const [selected, setSelected]   = useState<Set<string>>(new Set())
+  const [details, setDetails]     = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [swapCount, setSwapCount] = useState<number | null>(null)
+
+  useEffect(() => {
+    fetch('/api/swaps')
+      .then(r => r.json())
+      .then(d => setSwapCount(Array.isArray(d.swaps) ? d.swaps.length : 0))
+      .catch(() => setSwapCount(0))
+  }, [])
 
   function toggle(opt: string) {
     setSelected(prev => {
@@ -53,6 +158,9 @@ export default function SwapsPage() {
   return (
     <DarkPage title="Newsletter Swaps">
       <div className="max-w-2xl">
+        {/* Setup banner — only for first-time users with zero swaps */}
+        {swapCount === 0 && <InboundBanner />}
+
         {/* Header */}
         <div className="flex items-center gap-3 mb-5">
           <h2 className="text-[20px] font-semibold" style={{ color: '#1E2D3D' }}>

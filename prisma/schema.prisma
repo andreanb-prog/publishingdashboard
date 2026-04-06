@@ -76,7 +76,11 @@ model User {
   listBuildingLogs      ListBuildingLog[]
   bookFunnelDownloads   BookFunnelDownload[]
   bookfunnelWebhookSecret String?
+  inboundEmailAddress     String?   // Postmark inbound address for swap auto-detection
   launches      Launch[]
+  swapEntries   SwapEntry[]
+  swapPolicies  SwapPolicy[]
+  authorLists   AuthorList[]
   createdAt     DateTime       @default(now())
 }
 
@@ -427,6 +431,80 @@ model WaitlistEntry {
   id        String   @id @default(cuid())
   email     String   @unique
   createdAt DateTime @default(now())
+}
+
+model SwapEntry {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Core fields
+  promoType       String    // "swap" | "paid_promo"
+  role            String?   // "inbound" | "outbound" — null for paid promos
+  platform        String    // "bookclicker" | "bookfunnel" | "fpa" | "direct" | "fussy_librarian" | "booksweeps" | "bookbub" | "written_word_media" | "freebooksy" | "bargain_booksy" | "book_throne" | "robin_reads" | "spicy_romance_boyfriends" | "other"
+
+  // Partner info (swaps only)
+  partnerName     String?
+  partnerListName String?
+  partnerListSize Int?
+  partnerLink     String?
+
+  // My side
+  myBook          String?   // "MOLR" | "FDMBP" | "Book3" | "ListBuilding"
+  myList          String
+  theirBook       String?
+
+  // Type and timing
+  swapType        String?   // "solo" | "feature" | "mention"
+  promoDate       DateTime?
+  confirmation    String    @default("applied") // "applied" | "approved" | "cancelled" | "complete"
+  paymentType     String    @default("swap")    // "swap" | "paid"
+  cost            Float     @default(0)
+
+  // Performance
+  reportedOpenRate  Float?
+  reportedClickRate Float?
+  clicks            Int?
+  impressions       Int?
+  subsGained        Int?
+
+  // Flags
+  firstSwap       Boolean   @default(false)
+  overSwapFlag    Boolean   @default(false)
+  qualityRating   String?   // "a" | "b" | "c" | "d"
+
+  // Meta
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model SwapPolicy {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ruleName    String
+  category    String   // "content_heat" | "format" | "genre" | "audience"
+  appliesTo   String   // "inbound" | "outbound" | "both"
+  severity    String   // "block" | "warn"
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuthorList {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Ad {
