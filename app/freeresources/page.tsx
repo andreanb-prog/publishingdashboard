@@ -89,12 +89,10 @@ export default function FreeResourcesPage() {
             ✦ Free Resource
           </p>
           <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-5" style={{ color: '#1E2D3D' }}>
-            Never miss a swap send{' '}
-            <em style={{ color: '#F97B6B', fontStyle: 'italic' }}>again.</em>
+            Your BookClicker swap assistant — right inside Claude.
           </h1>
           <p className="text-lg leading-relaxed mb-6" style={{ color: '#374151' }}>
-            A free Claude skill that checks your BookClicker emails, audits your swap calendar,
-            and drafts every follow-up you need — in under 2 minutes.
+            Every morning, type one sentence. Claude tells you exactly which swaps you need to send today — and drafts them for you.
           </p>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>
             Shared by Andrea Bonilla · Happy Easter 🐣
@@ -127,11 +125,43 @@ export default function FreeResourcesPage() {
         </div>
       </section>
 
-      {/* What it does card */}
+      {/* How to use it card */}
       <section className="max-w-2xl mx-auto px-6 py-2">
+        <div className="rounded-2xl p-8 text-base leading-relaxed" style={{
+          background: '#ffffff',
+          border: '0.5px solid #E5E7EB',
+          color: '#374151',
+        }}>
+          <h2 className="text-lg font-bold mb-6" style={{ color: '#1E2D3D' }}>
+            How to use it
+          </h2>
+          <div className="space-y-4">
+            {[
+              { n: '1', text: <>Open <strong style={{ color: '#1E2D3D' }}>Claude</strong> (claude.ai) — it&apos;s free to sign up.</> },
+              { n: '2', text: <>Connect your Gmail inside Claude settings. This is how Claude reads your BookClicker emails.</> },
+              { n: '3', text: <>Click the <strong style={{ color: '#1E2D3D' }}>&ldquo;Open in Claude — skill pre-loaded&rdquo;</strong> button below. It opens Claude with all the instructions already loaded.</> },
+              { n: '4', text: <>Every morning, just type: <strong style={{ color: '#1E2D3D' }}>&ldquo;Run swap triage&rdquo;</strong> — and Claude does the rest.</> },
+            ].map(step => (
+              <div key={step.n} className="flex gap-3 items-start">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{
+                  background: '#1E2D3D',
+                  color: '#ffffff',
+                }}>{step.n}</span>
+                <p className="text-sm leading-relaxed pt-0.5">{step.text}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-sm mt-6" style={{ color: '#6B7280' }}>
+            That&apos;s it. No downloads. No spreadsheets. Just one sentence every morning.
+          </p>
+        </div>
+      </section>
+
+      {/* What happens when you run it card */}
+      <section className="max-w-2xl mx-auto px-6 py-2 mt-4">
         <div className="rounded-2xl p-8" style={{ background: '#1E2D3D' }}>
           <h2 className="text-lg font-bold mb-5" style={{ color: '#FFF8F0' }}>
-            What it does
+            What happens when you run it
           </h2>
           <div className="rounded-xl p-5 mb-6" style={{ background: '#FFF8F0' }}>
             <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: '#9CA3AF' }}>
