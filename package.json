@@ -18,6 +18,7 @@
     "@notionhq/client": "^5.16.0",
     "@phosphor-icons/react": "^2.1.10",
     "@prisma/client": "^6.3.0",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "adm-zip": "^0.5.17",
     "chart.js": "^4.5.1",
