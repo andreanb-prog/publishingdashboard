@@ -423,6 +423,12 @@ model Launch {
   @@index([userId])
 }
 
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
 model Ad {
   id            String   @id @default(cuid())
   adSetId       String
