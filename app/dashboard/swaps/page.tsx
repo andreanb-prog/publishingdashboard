@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { CollapsibleSection } from '@/components/CollapsibleSection'
-import { ChevronDown, X, AlertTriangle, CheckCircle, ExternalLink } from 'lucide-react'
+import { ChevronDown, X, AlertTriangle, CheckCircle, ExternalLink, Copy, Check } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -185,6 +185,73 @@ function SkeletonRow() {
       <div className="h-4 rounded w-32" style={{ background: '#F3F4F6' }} />
       <div className="h-4 rounded w-20" style={{ background: '#F3F4F6' }} />
       <div className="h-4 rounded flex-1" style={{ background: '#F3F4F6' }} />
+    </div>
+  )
+}
+
+// ─── Inbound Email Setup ─────────────────────────────────────────────────────
+
+function InboundEmailSetup() {
+  const [address, setAddress] = useState<string | null>(null)
+  const [copied, setCopied]   = useState(false)
+
+  useEffect(() => {
+    fetch('/api/email/inbound-address')
+      .then(r => r.json())
+      .then(d => { if (d.address) setAddress(d.address) })
+      .catch(() => {})
+  }, [])
+
+  function handleCopy() {
+    if (!address) return
+    navigator.clipboard.writeText(address).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div className="rounded-xl p-5 mb-1" style={{ background: '#FFF8F0', border: '1px solid #E9A020' }}>
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+          style={{ background: 'rgba(233,160,32,0.15)' }}>
+          <span style={{ fontSize: 14 }}>📬</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>
+            Auto-detect BookClicker emails
+          </p>
+          <p className="text-xs mb-3" style={{ color: '#6B7280' }}>
+            Forward your BookClicker emails to this address and they'll appear here automatically.
+            Set up a forwarding rule in your email settings for any email from <span className="font-medium">bookclicker.com</span>.
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              readOnly
+              value={address ?? 'Loading…'}
+              className="flex-1 min-w-0 text-xs px-3 py-2 rounded-lg outline-none select-all"
+              style={{ border: '1.5px solid #D1D5DB', background: 'white', color: '#1E2D3D', fontFamily: 'monospace' }}
+              onFocus={e => e.target.select()}
+            />
+            <button
+              onClick={handleCopy}
+              disabled={!address}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg flex-shrink-0 transition-all"
+              style={{
+                background: copied ? 'rgba(110,191,139,0.15)' : 'rgba(233,160,32,0.12)',
+                color: copied ? '#6EBF8B' : '#E9A020',
+                border: 'none',
+                cursor: address ? 'pointer' : 'not-allowed',
+              }}
+            >
+              {copied
+                ? <><Check size={13} /> Copied</>
+                : <><Copy size={13} /> Copy</>
+              }
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1361,25 +1428,27 @@ function PerformanceSummary({ swaps, loading }: { swaps: SwapEntry[]; loading: b
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SwapsPage() {
-  const [swaps,    setSwaps]    = useState<SwapEntry[]>([])
-  const [policies, setPolicies] = useState<SwapPolicy[]>([])
-  const [lists,    setLists]    = useState<AuthorList[]>([])
-  const [loading,  setLoading]  = useState(true)
+  const [swaps,      setSwaps]      = useState<SwapEntry[]>([])
+  const [policies,   setPolicies]   = useState<SwapPolicy[]>([])
+  const [lists,      setLists]      = useState<AuthorList[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [syncing,    setSyncing]    = useState(false)
+  const [syncMsg,    setSyncMsg]    = useState<{ text: string; color: string } | null>(null)
+
+  async function loadAll() {
+    const [sr, pr, lr] = await Promise.all([
+      fetch('/api/swaps'),
+      fetch('/api/swap-policies'),
+      fetch('/api/author-lists'),
+    ])
+    const [sd, pd, ld] = await Promise.all([sr.json(), pr.json(), lr.json()])
+    if (sd?.success) setSwaps(sd.swaps)
+    if (pd?.success) setPolicies(pd.policies)
+    if (ld?.success) setLists(ld.lists)
+  }
 
   useEffect(() => {
-    async function load() {
-      const [sr, pr, lr] = await Promise.all([
-        fetch('/api/swaps'),
-        fetch('/api/swap-policies'),
-        fetch('/api/author-lists'),
-      ])
-      const [sd, pd, ld] = await Promise.all([sr.json(), pr.json(), lr.json()])
-      if (sd?.success) setSwaps(sd.swaps)
-      if (pd?.success) setPolicies(pd.policies)
-      if (ld?.success) setLists(ld.lists)
-      setLoading(false)
-    }
-    load()
+    loadAll().finally(() => setLoading(false))
   }, [])
 
   async function handleStatusChange(id: string, confirmation: string) {
@@ -1392,16 +1461,53 @@ export default function SwapsPage() {
     if (data?.success) setSwaps(prev => prev.map(s => s.id === id ? data.entry : s))
   }
 
+  async function handleNotionSync() {
+    setSyncing(true)
+    setSyncMsg(null)
+    try {
+      const res  = await fetch('/api/sync/notion-swaps', { method: 'POST' })
+      const data = await res.json()
+      if (data?.success) {
+        setSyncMsg({ text: `Synced ${data.synced} swaps`, color: '#6EBF8B' })
+        await loadAll()
+      } else {
+        setSyncMsg({ text: 'Sync failed', color: '#F97B6B' })
+      }
+    } catch {
+      setSyncMsg({ text: 'Sync failed', color: '#F97B6B' })
+    } finally {
+      setSyncing(false)
+      setTimeout(() => setSyncMsg(null), 3000)
+    }
+  }
+
   return (
     <div className="px-4 py-6 max-w-6xl mx-auto" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: '#1E2D3D' }}>Swaps & Promos</h1>
-        <p className="text-sm mt-1" style={{ color: '#6B7280' }}>
-          Track newsletter swaps, paid promos, and partner relationships in one place.
-        </p>
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: '#1E2D3D' }}>Swaps & Promos</h1>
+          <p className="text-sm mt-1" style={{ color: '#6B7280' }}>
+            Track newsletter swaps, paid promos, and partner relationships in one place.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 flex-shrink-0 pt-1">
+          {syncMsg && (
+            <span className="text-xs font-semibold" style={{ color: syncMsg.color }}>
+              {syncMsg.text}
+            </span>
+          )}
+          <button
+            onClick={handleNotionSync}
+            disabled={syncing}
+            className="text-sm font-semibold px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80 disabled:opacity-60"
+            style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020', border: '1px solid rgba(233,160,32,0.3)', cursor: 'pointer' }}>
+            {syncing ? 'Syncing…' : '↻ Sync from Notion'}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
+        <InboundEmailSetup />
         <PolicySection
           policies={policies}
           loading={loading}
