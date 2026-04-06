@@ -169,6 +169,12 @@ export default function LoginPage() {
               style={{ color: '#6B7280' }}>
               Terms of Service
             </Link>
+            <span style={{ color: '#E7E5E4' }}>·</span>
+            <Link href="/freeresources"
+              className="text-[11px] no-underline hover:underline"
+              style={{ color: '#6B7280' }}>
+              Free Resources
+            </Link>
           </div>
         </div>
       </div>
