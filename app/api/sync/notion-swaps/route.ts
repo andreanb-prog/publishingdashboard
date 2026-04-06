@@ -120,7 +120,7 @@ export async function POST() {
   let cursor: string | undefined = undefined
 
   do {
-    const res = await notion.databases.query({
+    const res: Awaited<ReturnType<typeof notion.databases.query>> = await notion.databases.query({
       database_id: dbId,
       start_cursor: cursor,
       page_size: 100,
