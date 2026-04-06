@@ -134,7 +134,7 @@ export default function FreeResourcesPage() {
               { n: '1', text: <>Open <strong style={{ color: '#1E2D3D' }}>Claude</strong> (claude.ai) — it&apos;s free to sign up.</> },
               { n: '2', text: <>Connect your Gmail inside Claude settings. This is how Claude reads your BookClicker emails.</> },
               { n: '3', text: <>Click the <strong style={{ color: '#1E2D3D' }}>&ldquo;Open in Claude — skill pre-loaded&rdquo;</strong> button below. It opens Claude with all the instructions already loaded.</> },
-              { n: '4', text: <>Every morning, just type: <strong style={{ color: '#1E2D3D' }}>&ldquo;Run swap triage&rdquo;</strong> — and Claude does the rest.</> },
+              { n: '4', text: <>Every morning, just type <strong style={{ color: '#1E2D3D' }}>&ldquo;Run swap triage&rdquo;</strong> or one of the prompts below, like <strong style={{ color: '#1E2D3D' }}>&ldquo;Check my BookClicker emails&rdquo;</strong> — and Claude does the rest.</> },
             ].map(step => (
               <div key={step.n} className="flex gap-3 items-start">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{
@@ -159,7 +159,7 @@ export default function FreeResourcesPage() {
           </h2>
           <div className="rounded-xl p-5 mb-6" style={{ background: '#FFF8F0' }}>
             <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: '#9CA3AF' }}>
-              Say things like
+              Prompts that trigger the skill
             </p>
             <div className="flex flex-wrap gap-2">
               {[
