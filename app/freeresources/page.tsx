@@ -108,19 +108,13 @@ export default function FreeResourcesPage() {
           color: '#374151',
         }}>
           <p className="mb-4">
-            Hey! I&apos;m Andrea. I write steamy romance as Elle Wilder and I run a lot of newsletter swaps through BookClicker.
+            Hi, I&apos;m Andrea. I write steamy romances and like a lot of authors and publishers out there, I run a lot of newsletter swaps through BookClicker and BookFunnel.
           </p>
           <p className="mb-4">
-            For months I kept missing send days — not because I forgot to write the promo email, but because I lost track
-            of which swaps were <strong style={{ color: '#1E2D3D' }}>outbound</strong> (mine to send) versus
-            <strong style={{ color: '#1E2D3D' }}> inbound</strong> (theirs to send for me). The BookClicker inbox gets busy fast.
+            For months I&apos;ve been overwhelmed with the amount of emails tracking what gets approved and what gets rejected — and it takes up way too much real estate in my brain. So I built this Claude skill to handle it every morning.
           </p>
-          <p className="mb-4">
-            So I built this Claude skill. Every morning I open a new Claude chat, run swap triage, and in two minutes I have
-            a full list of what to send today, what&apos;s missing, and any drafted follow-ups I need to copy and paste.
-          </p>
-          <p>
-            This is the exact skill I use. It&apos;s free. No email required. Just grab it and go.
+          <p className="text-sm" style={{ color: '#6B7280' }}>
+            One PSA though: I still check my swaps manually just to make sure. I&apos;m still learning to use AI and trust it more.
           </p>
         </div>
       </section>
