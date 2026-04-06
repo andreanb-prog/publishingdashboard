@@ -196,12 +196,12 @@ const BANNER_DISMISSED_KEY = 'swaps-banner-dismissed'
 function InboundEmailSetup() {
   const [address,   setAddress]   = useState<string | null>(null)
   const [copied,    setCopied]    = useState(false)
-  const [dismissed, setDismissed] = useState(false)
+  const [dismissed, setDismissed] = useState(true)
+  const [mounted,   setMounted]   = useState(false)
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setDismissed(localStorage.getItem(BANNER_DISMISSED_KEY) === 'true')
-    }
+    setMounted(true)
+    setDismissed(localStorage.getItem(BANNER_DISMISSED_KEY) === 'true')
     fetch('/api/email/inbound-address')
       .then(r => r.json())
       .then(d => { if (d.address) setAddress(d.address) })
@@ -221,7 +221,7 @@ function InboundEmailSetup() {
     setDismissed(true)
   }
 
-  if (dismissed) return null
+  if (!mounted || dismissed) return null
 
   return (
     <div className="rounded-lg p-4 mb-6" style={{
