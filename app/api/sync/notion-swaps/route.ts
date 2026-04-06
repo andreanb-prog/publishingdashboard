@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { Client } from '@notionhq/client'
-import type { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints'
 
 const STARTER_POLICIES = [
   { ruleName: 'No box sets as features',            category: 'format',       appliesTo: 'both', severity: 'block' },
@@ -14,7 +12,7 @@ const STARTER_POLICIES = [
 
 // ── Notion property extractors ────────────────────────────────────────────────
 
-function getText(props: PageObjectResponse['properties'], key: string): string {
+function getText(props: Record<string, any>, key: string): string {
   const p = props[key]
   if (!p) return ''
   if (p.type === 'title')        return p.title.map((t: { plain_text: string }) => t.plain_text).join('').trim()
@@ -22,19 +20,19 @@ function getText(props: PageObjectResponse['properties'], key: string): string {
   return ''
 }
 
-function getSelect(props: PageObjectResponse['properties'], key: string): string {
+function getSelect(props: Record<string, any>, key: string): string {
   const p = props[key]
   if (p?.type === 'select' && p.select?.name) return p.select.name
   return ''
 }
 
-function getNumber(props: PageObjectResponse['properties'], key: string): number | null {
+function getNumber(props: Record<string, any>, key: string): number | null {
   const p = props[key]
   if (p?.type === 'number' && p.number != null) return p.number
   return null
 }
 
-function getDate(props: PageObjectResponse['properties'], key: string): Date | null {
+function getDate(props: Record<string, any>, key: string): Date | null {
   const p = props[key]
   if (p?.type === 'date' && p.date?.start) return new Date(p.date.start)
   return null
@@ -114,28 +112,36 @@ export async function POST() {
   }
 
   // ── Query Notion ────────────────────────────────────────────────────────────
-  const notion = new Client({ auth: apiKey })
-
-  const pages: PageObjectResponse[] = []
+  let allPages: any[] = []
   let cursor: string | undefined = undefined
 
   do {
-    const res: Awaited<ReturnType<typeof notion.databases.query>> = await notion.databases.query({
-      database_id: dbId,
-      start_cursor: cursor,
-      page_size: 100,
-    })
-    for (const page of res.results) {
-      if ('properties' in page) pages.push(page as PageObjectResponse)
-    }
-    cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined
+    const body: Record<string, any> = { page_size: 100 }
+    if (cursor) body.start_cursor = cursor
+
+    const response = await fetch(
+      `https://api.notion.com/v1/databases/${dbId}/query`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Notion-Version': '2022-06-28',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      }
+    )
+
+    const data = await response.json()
+    allPages = allPages.concat(data.results || [])
+    cursor = data.has_more ? data.next_cursor : undefined
   } while (cursor)
 
   // ── Map and upsert ──────────────────────────────────────────────────────────
   let created = 0
   let updated = 0
 
-  for (const page of pages) {
+  for (const page of allPages) {
     const props = page.properties
 
     const campaignName  = getText(props, 'Campaign Name')
@@ -197,5 +203,5 @@ export async function POST() {
     }
   }
 
-  return NextResponse.json({ success: true, synced: pages.length, created, updated })
+  return NextResponse.json({ success: true, synced: allPages.length, created, updated })
 }
