@@ -191,11 +191,17 @@ function SkeletonRow() {
 
 // ─── Inbound Email Setup ─────────────────────────────────────────────────────
 
+const BANNER_DISMISSED_KEY = 'swaps-banner-dismissed'
+
 function InboundEmailSetup() {
-  const [address, setAddress] = useState<string | null>(null)
-  const [copied, setCopied]   = useState(false)
+  const [address,   setAddress]   = useState<string | null>(null)
+  const [copied,    setCopied]    = useState(false)
+  const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setDismissed(localStorage.getItem(BANNER_DISMISSED_KEY) === 'true')
+    }
     fetch('/api/email/inbound-address')
       .then(r => r.json())
       .then(d => { if (d.address) setAddress(d.address) })
@@ -210,48 +216,71 @@ function InboundEmailSetup() {
     })
   }
 
+  function handleDismiss() {
+    localStorage.setItem(BANNER_DISMISSED_KEY, 'true')
+    setDismissed(true)
+  }
+
+  if (dismissed) return null
+
   return (
-    <div className="rounded-xl p-5 mb-1" style={{ background: '#FFF8F0', border: '1px solid #E9A020' }}>
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(233,160,32,0.15)' }}>
-          <span style={{ fontSize: 14 }}>📬</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>
-            Auto-detect BookClicker emails
-          </p>
-          <p className="text-xs mb-3" style={{ color: '#6B7280' }}>
-            Forward your BookClicker emails to this address and they'll appear here automatically.
-            Set up a forwarding rule in your email settings for any email from <span className="font-medium">bookclicker.com</span>.
-          </p>
-          <div className="flex items-center gap-2">
-            <input
-              readOnly
-              value={address ?? 'Loading…'}
-              className="flex-1 min-w-0 text-xs px-3 py-2 rounded-lg outline-none select-all"
-              style={{ border: '1.5px solid #D1D5DB', background: 'white', color: '#1E2D3D', fontFamily: 'monospace' }}
-              onFocus={e => e.target.select()}
-            />
-            <button
-              onClick={handleCopy}
-              disabled={!address}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg flex-shrink-0 transition-all"
-              style={{
-                background: copied ? 'rgba(110,191,139,0.15)' : 'rgba(233,160,32,0.12)',
-                color: copied ? '#6EBF8B' : '#E9A020',
-                border: 'none',
-                cursor: address ? 'pointer' : 'not-allowed',
-              }}
-            >
-              {copied
-                ? <><Check size={13} /> Copied</>
-                : <><Copy size={13} /> Copy</>
-              }
-            </button>
-          </div>
-        </div>
+    <div className="rounded-lg p-4 mb-6" style={{
+      background: '#FFF8F0',
+      borderLeft: '3px solid #E9A020',
+      border: '1px solid #F3E8D0',
+      borderLeftColor: '#E9A020',
+      borderLeftWidth: '3px',
+    }}>
+      <div className="flex justify-between items-start mb-1">
+        <p className="text-sm font-semibold" style={{ color: '#1E2D3D' }}>
+          Set up automatic swap tracking
+        </p>
+        <button
+          onClick={handleDismiss}
+          className="text-xs ml-4 flex-shrink-0"
+          style={{ color: '#9CA3AF', background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          Dismiss
+        </button>
       </div>
+
+      <p className="text-sm mb-3" style={{ color: '#6B7280' }}>
+        Forward your BookClicker emails to this address and they'll appear here automatically.
+        Works with Gmail, Yahoo, Outlook, AOL, or any email client.
+      </p>
+
+      <div className="flex items-center">
+        <input
+          readOnly
+          value={address ?? 'Loading…'}
+          className="flex-1 min-w-0 text-sm px-3 py-2 rounded outline-none"
+          style={{
+            fontFamily: 'monospace',
+            background: '#FFF8F0',
+            border: '1px solid #1E2D3D',
+            color: '#1E2D3D',
+          }}
+          onFocus={e => e.target.select()}
+        />
+        <button
+          onClick={handleCopy}
+          disabled={!address}
+          className="ml-2 text-xs font-semibold px-3 py-2 rounded flex-shrink-0 transition-all"
+          style={{
+            background: 'transparent',
+            color: copied ? '#6EBF8B' : '#E9A020',
+            border: `1px solid ${copied ? '#6EBF8B' : '#E9A020'}`,
+            cursor: address ? 'pointer' : 'not-allowed',
+          }}
+        >
+          {copied ? 'Copied ✓' : 'Copy'}
+        </button>
+      </div>
+
+      <p className="text-xs mt-2" style={{ color: '#9CA3AF' }}>
+        In your email settings, create a forwarding rule for any email from bookclicker.com to this address.
+        Or just forward them one at a time — open the email, tap Forward, and send it here.
+      </p>
     </div>
   )
 }
