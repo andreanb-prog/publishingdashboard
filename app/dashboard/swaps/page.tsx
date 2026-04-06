@@ -1199,20 +1199,21 @@ function PerformanceSummary({ swaps, loading }: { swaps: SwapEntry[]; loading: b
         partnerLifts.set(s.partnerName, arr)
       }
     })
-    let bestPartner: { name: string; lift: string } | null = null
-    let maxSubs = 0
-    partnerSubs.forEach((subs, name) => {
-      if (subs > maxSubs) {
-        maxSubs = subs
-        const lifts = partnerLifts.get(name) ?? []
-        bestPartner = {
-          name,
-          lift: lifts.length
-            ? (lifts.reduce((a, b) => a + b, 0) / lifts.length).toFixed(1) + '%'
-            : '—',
-        }
-      }
-    })
+    const bestPartnerEntry = Array.from(partnerSubs.entries()).reduce<[string,number]|null>(
+      (best, [name, subs]) => (!best || subs > best[1]) ? [name, subs] : best,
+      null
+    )
+    const bestPartner: { name: string; lift: string } | null = bestPartnerEntry
+      ? (() => {
+          const lifts = partnerLifts.get(bestPartnerEntry[0]) ?? []
+          return {
+            name: bestPartnerEntry[0],
+            lift: lifts.length
+              ? (lifts.reduce((a, b) => a + b, 0) / lifts.length).toFixed(1) + '%'
+              : '—',
+          }
+        })()
+      : null
 
     const allSwaps   = filtered.filter(s => s.promoType === 'swap')
     const applied    = allSwaps.filter(s => ['applied','approved','complete'].includes(s.confirmation)).length
@@ -1224,7 +1225,7 @@ function PerformanceSummary({ swaps, loading }: { swaps: SwapEntry[]; loading: b
       if (s.partnerName) partnerCounts.set(s.partnerName, (partnerCounts.get(s.partnerName) ?? 0) + 1)
     })
     const totalUnique    = partnerCounts.size
-    const repeatCount    = [...partnerCounts.values()].filter(v => v >= 2).length
+    const repeatCount    = Array.from(partnerCounts.values()).filter(v => v >= 2).length
     const conversionRate = totalUnique > 0
       ? ((repeatCount / totalUnique) * 100).toFixed(0) + '%' : '—'
 
@@ -1246,15 +1247,16 @@ function PerformanceSummary({ swaps, loading }: { swaps: SwapEntry[]; loading: b
         platformLifts.set(s.platform, arr)
       }
     })
-    let bestPlatform: { name: string; lift: string } | null = null
-    let maxAvg = 0
-    platformLifts.forEach((lifts, platform) => {
-      const avg = lifts.reduce((a, b) => a + b, 0) / lifts.length
-      if (avg > maxAvg) {
-        maxAvg = avg
-        bestPlatform = { name: PLATFORM_LABELS[platform] ?? platform, lift: avg.toFixed(1) + '%' }
-      }
-    })
+    const bestPlatformEntry = Array.from(platformLifts.entries()).reduce<[string,number]|null>(
+      (best, [platform, lifts]) => {
+        const avg = lifts.reduce((a, b) => a + b, 0) / lifts.length
+        return (!best || avg > best[1]) ? [platform, avg] : best
+      },
+      null
+    )
+    const bestPlatform: { name: string; lift: string } | null = bestPlatformEntry
+      ? { name: PLATFORM_LABELS[bestPlatformEntry[0]] ?? bestPlatformEntry[0], lift: bestPlatformEntry[1].toFixed(1) + '%' }
+      : null
 
     return { count: paid.length, totalSpend, avgCPS, bestPlatform }
   }, [filtered])

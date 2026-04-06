@@ -58,7 +58,8 @@ function parseImpressions(body: string): number | null {
 async function findSwapEntry(userId: string, partnerName: string | null, promoDate: Date | null) {
   if (!partnerName && !promoDate) return null
 
-  const where: Parameters<typeof db.swapEntry.findFirst>[0]['where'] = { userId }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = { userId }
 
   if (partnerName) {
     where.partnerName = { contains: partnerName, mode: 'insensitive' }
