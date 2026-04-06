@@ -6,7 +6,7 @@ import Link from 'next/link'
 const PAIN_POINTS = [
   { emoji: '📥', text: 'Downloading your KDP report into a spreadsheet you never quite finish building' },
   { emoji: '🔀', text: 'Jumping between Meta Ads Manager, MailerLite, and KDP just to understand one week' },
-  { emoji: '🔄', text: 'Running newsletter swaps with no idea if they're actually growing your list' },
+  { emoji: '🔄', text: "Running newsletter swaps with no idea if they're actually growing your list" },
   { emoji: '💸', text: 'Spending on ads without knowing your real return on investment' },
   { emoji: '🌫️', text: 'Getting insights that are vibes — not your actual numbers' },
   { emoji: '🔇', text: 'Making decisions blind because none of your tools talk to each other' },
@@ -36,7 +36,7 @@ const FEATURES = [
   {
     emoji: '🤖',
     title: 'AI Daily Action Plan',
-    desc: 'Every morning: what to Scale, Fix, Cut, and Test Next — based on your actual data, not someone else's best practices.',
+    desc: "Every morning: what to Scale, Fix, Cut, and Test Next — based on your actual data, not someone else's best practices.",
   },
 ]
 

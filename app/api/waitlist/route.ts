@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email' }, { status: 400 })
     }
 
-    await prisma.waitlistEntry.upsert({
+    await db.waitlistEntry.upsert({
       where: { email: email.toLowerCase().trim() },
       update: {},
       create: { email: email.toLowerCase().trim() },
