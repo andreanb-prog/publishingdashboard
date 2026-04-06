@@ -1,5 +1,7 @@
 // lib/anthropic.ts
 import Anthropic from '@anthropic-ai/sdk'
+import fs from 'fs'
+import path from 'path'
 
 // Singleton for server-side use with platform API key
 export const anthropic = new Anthropic({
@@ -13,7 +15,17 @@ export function createAnthropicClient(apiKey: string) {
 
 export const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
 
-export const COACHING_SYSTEM_PROMPT = `You are an expert performance marketing coach for indie authors and self-publishers across all genres. You have deep knowledge of:
+// AuthorDash domain knowledge — loaded from AUTHORDASH_DOMAIN_KNOWLEDGE.md
+const domainKnowledge = fs.readFileSync(
+  path.join(process.cwd(), 'AUTHORDASH_DOMAIN_KNOWLEDGE.md'),
+  'utf-8'
+)
+
+export const COACHING_SYSTEM_PROMPT = `${domainKnowledge}
+
+---
+
+You are an expert performance marketing coach for indie authors and self-publishers across all genres. You have deep knowledge of:
 - Amazon KDP and Kindle Unlimited economics
 - Facebook/Meta advertising for books in any genre
 - Email marketing best practices for fiction and nonfiction authors
