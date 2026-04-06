@@ -76,7 +76,7 @@ function mapPromoType(selectValue: string): string {
 
 function parsePartnerName(campaignName: string): string | null {
   // Strip leading emoji icon (📣, ♥️, ❤️, etc.) and whitespace
-  const stripped = campaignName.replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}❤♥📣\s]+/u, '').trim()
+  const stripped = campaignName.replace(/^[^\w\d('"]+/, '').trim()
   // Take everything before the first " — " or " - "
   const dashIdx = stripped.indexOf(' — ')
   if (dashIdx !== -1) return stripped.slice(0, dashIdx).trim()
