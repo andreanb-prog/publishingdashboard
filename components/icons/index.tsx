@@ -7,6 +7,7 @@ export {
   TrendingUp,
   Mail,
   Repeat2,
+  ArrowLeftRight,
   Pin,
   BarChart2,
   ArrowUpRight,

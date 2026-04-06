@@ -36,7 +36,7 @@ const ALL_NAV: NavEntry[] = [
   { section: 'Channels', label: 'KDP',            href: '/dashboard/kdp',          render: ic(IconKDP, '#E9A020') },
   { label: 'Meta / Facebook',                     href: '/dashboard/meta',         render: ic(IconMeta, '#60A5FA') },
   { label: 'MailerLite',                           href: '/dashboard/mailerlite',   render: ic(IconMailerLite, '#34d399') },
-  { label: 'Newsletter Swaps',                    href: '/dashboard/swaps',        render: ic(IconSwaps, '#E9A020') },
+  { label: 'Swaps & Promos',                       href: '/dashboard/swaps',        render: ic(IconSwaps, '#E9A020') },
   { label: 'Pinterest',                            href: '/dashboard/pinterest',    render: ic(IconPinterest, '#fb7185') },
   { section: 'Tools', label: 'Advanced Metrics',  href: '/dashboard/metrics',      render: ic(IconMetrics, '#E9A020') },
   { label: 'Rank Tracker',                        href: '/dashboard/rank',         render: ic(IconRank, '#34d399') },

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import {
-  LayoutDashboard, BookOpen, TrendingUp, Mail, Repeat2, Pin,
+  LayoutDashboard, BookOpen, TrendingUp, Mail, ArrowLeftRight, Pin,
   BarChart2, ArrowUpRight, DollarSign, Users, GraduationCap,
   Settings2, Database, LogOut, Rocket, Palette,
 } from '@/components/icons'
@@ -22,7 +22,7 @@ const CHANNEL_ITEMS: NavItem[] = [
   { label: 'KDP',              href: '/dashboard/kdp',           Icon: BookOpen     },
   { label: 'Meta / Facebook',  href: '/dashboard/meta',          Icon: TrendingUp   },
   { label: 'MailerLite',       href: '/dashboard/mailerlite',    Icon: Mail         },
-  { label: 'Newsletter Swaps', href: '/dashboard/swaps',         Icon: Repeat2      },
+  { label: 'Swaps & Promos',   href: '/dashboard/swaps',         Icon: ArrowLeftRight },
   { label: 'Pinterest',        href: '/dashboard/pinterest',     Icon: Pin          },
 ]
 

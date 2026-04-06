@@ -15,6 +15,7 @@ export function CollapsibleSection({
   headerRight,
   subtitle,
   className = '',
+  defaultOpen = true,
   children,
 }: {
   title: string
@@ -24,9 +25,10 @@ export function CollapsibleSection({
   headerRight?: React.ReactNode
   subtitle?: string
   className?: string
+  defaultOpen?: boolean
   children: React.ReactNode
 }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(defaultOpen)
 
   useEffect(() => {
     const stored = localStorage.getItem(storageKey)
