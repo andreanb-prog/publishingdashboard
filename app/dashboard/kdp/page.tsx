@@ -715,12 +715,23 @@ export default function KDPPage() {
   const [downloading,   setDownloading]   = useState(false)
   const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set())
   const [excludedAsins, setExcludedAsins] = useState<Set<string>>(new Set())
+  // ASINs the user has registered in Settings → My Books (used to filter out unknown titles)
+  const [knownAsins,   setKnownAsins]   = useState<Set<string>>(new Set())
+  // My Books list sorted by sortOrder — used for stable ASIN-based color assignment
+  const [myBooksList,  setMyBooksList]  = useState<any[]>([])
   const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(null)
 
   const fetchData = useCallback(() => {
     setLoading(true)
+    // Build query params from the current date preset so the server can filter by month range
+    const r = preset === 'custom'
+      ? { start: customStart, end: customEnd }
+      : getPresetRange(preset)
+    const qp = r.start && r.end
+      ? '?' + new URLSearchParams({ start: r.start, end: r.end }).toString()
+      : ''
     Promise.all([
-      fetch('/api/analyze').then(r => r.json()).catch(() => ({})),
+      fetch(`/api/analyze${qp}`).then(r => r.json()).catch(() => ({})),
       fetch('/api/roas').then(r => r.json()).catch(() => ({ logs: [] })),
       fetch('/api/mailerlite').then(r => r.json()).catch(() => ({ data: null })),
       fetch('/api/books').then(r => r.json()).catch(() => ({ books: [] })),
@@ -736,8 +747,13 @@ export default function KDPPage() {
         date: (r.date as string).substring(0, 10),
       })))
       if (mlData?.data?.campaigns) setMlCampaigns(mlData.data.campaigns)
+
+      const books: any[] = booksData.books ?? []
+      setMyBooksList(books)
+
+      // Build excluded set: books the user has explicitly hidden in Settings
       const excluded = new Set<string>(
-        (booksData.books ?? [])
+        books
           .filter((b: any) => b.excludeFromDashboard && b.asin)
           .map((b: any) => String(b.asin).trim().toUpperCase())
       )
@@ -746,8 +762,18 @@ export default function KDPPage() {
         : []
       strayExcluded.forEach((asin: string) => excluded.add(String(asin).trim().toUpperCase()))
       setExcludedAsins(excluded)
+
+      // Build known-ASINs set from My Books (non-excluded).
+      // When non-empty, any KDP book whose ASIN is not in this set will be hidden —
+      // this filters out books from other pen names (e.g. "162 Questions…").
+      const known = new Set<string>(
+        books
+          .filter((b: any) => b.asin)
+          .map((b: any) => String(b.asin).trim().toUpperCase())
+      )
+      setKnownAsins(known)
     }).finally(() => setLoading(false))
-  }, [])
+  }, [preset, customStart, customEnd])
 
   useEffect(() => {
     fetchData()
@@ -837,6 +863,27 @@ export default function KDPPage() {
 
   const kdp   = analysis?.kdp
   const coach = (analysis as any)?.kdpCoach
+
+  // Map ASIN → color index based on My Books sort order (B1=0, B2=1, …).
+  // This ensures color assignment is stable and tied to ASIN, not array position.
+  const bookColorMap = useMemo(() => {
+    const map: Record<string, number> = {}
+    myBooksList.forEach((b: any, i: number) => {
+      if (b.asin) map[String(b.asin).trim().toUpperCase()] = i
+    })
+    return map
+  }, [myBooksList])
+
+  // Returns true when a KDP book should appear on the dashboard:
+  // 1. Not explicitly excluded via Settings → My Books (excludeFromDashboard flag)
+  // 2. If My Books list is non-empty, only show books whose ASIN is registered there
+  //    (filters out books from other pen names that appear in the XLSX)
+  function isBookVisible(b: { asin?: string }): boolean {
+    const asinUpper = b.asin?.trim().toUpperCase() ?? ''
+    if (excludedAsins.has(asinUpper)) return false
+    if (knownAsins.size > 0 && asinUpper && !knownAsins.has(asinUpper)) return false
+    return true
+  }
 
   const handlePreset = (p: Preset) => {
     setPreset(p)
@@ -1022,7 +1069,7 @@ export default function KDPPage() {
           {coach && <DarkCoachBox color="#fbbf24" title={coachTitle}>{coach}</DarkCoachBox>}
 
           {/* Book Title Picker — excludes books marked as hidden in Settings > My Books */}
-          {kdp.books.filter(b => !excludedAsins.has(b.asin?.toUpperCase() ?? '')).length > 1 && (
+          {kdp.books.filter(isBookVisible).length > 1 && (
             <div className="flex items-center gap-2 mb-4 flex-wrap">
               <span className="text-[11px] font-medium uppercase" style={{ color: '#6B7280', letterSpacing: '0.3px' }}>Filter:</span>
               <button
@@ -1036,13 +1083,14 @@ export default function KDPPage() {
                 }}>
                 All Books
               </button>
-              {kdp.books.filter(b => !excludedAsins.has(b.asin?.toUpperCase() ?? '')).map((b, i) => {
+              {kdp.books.filter(isBookVisible).map((b) => {
                 const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
-                const c = BOOK_COLORS[i] || '#6B7280'
+                const colorIdx = bookColorMap[b.asin?.trim().toUpperCase() ?? ''] ?? kdp.books.indexOf(b)
+                const c = BOOK_COLORS[colorIdx] || '#6B7280'
                 const isSelected = selectedBooks.has(b.asin)
                 const isPB = (b as any).format === 'paperback'
                 return (
-                  <button key={b.asin || i}
+                  <button key={b.asin || b.shortTitle}
                     onClick={() => setSelectedBooks(prev => {
                       const next = new Set(prev)
                       if (next.has(b.asin)) next.delete(b.asin); else next.add(b.asin)
@@ -1072,7 +1120,7 @@ export default function KDPPage() {
           {/* Book Performance Charts */}
           {(() => {
             const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
-            const dashboardBooks = kdp.books.filter(b => !excludedAsins.has(b.asin?.toUpperCase() ?? ''))
+            const dashboardBooks = kdp.books.filter(isBookVisible)
             const visibleBooks = selectedBooks.size > 0
               ? dashboardBooks.filter(b => selectedBooks.has(b.asin))
               : dashboardBooks
@@ -1084,8 +1132,8 @@ export default function KDPPage() {
                   <h3 className="text-[14px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>{title}</h3>
                   <div className="space-y-3">
                     {books.map((b) => {
-                      const origIdx = kdp!.books.findIndex(x => x.asin === b.asin)
-                      const color = BOOK_COLORS[origIdx] || '#6B7280'
+                      const colorIdx = bookColorMap[b.asin?.trim().toUpperCase() ?? ''] ?? kdp!.books.indexOf(b)
+                      const color = BOOK_COLORS[colorIdx] || '#6B7280'
                       const val = b[metric]
                       return (
                         <div key={b.asin || b.shortTitle}>

@@ -89,30 +89,43 @@ function num(v: unknown): number { return Number(v || 0) }
 function str(v: unknown): string { return String(v || '') }
 
 /**
- * Deduplicate a books array by ASIN (or normalized title if no ASIN).
- * Merges units, kenp, and royalties across ebook/paperback/marketplace rows
- * into a single record per unique title. Preserves insertion order so color
- * assignment (B1=coral, B2=peach…) stays stable across uploads.
+ * Returns true if the string looks like a real ASIN (B0…) rather than an ISBN.
+ * ISBNs are 10 or 13 digits (optionally hyphenated), typically starting with 978/979.
+ * Paperback rows in KDP Dashboard XLSX often have an ISBN in the ASIN/ISBN column.
+ */
+function isRealAsin(asin: string): boolean {
+  if (!asin) return false
+  const s = asin.replace(/-/g, '').trim()
+  if (/^97[89]\d{10}$/.test(s)) return false  // ISBN-13
+  if (/^\d{9}[\dX]$/i.test(s)) return false   // ISBN-10
+  if (/^\d{10,}$/.test(s)) return false        // long numeric = likely ISBN variant
+  return s.length > 0
+}
+
+/**
+ * Deduplicate a books array by normalized title.
+ * Using title as the canonical key ensures that ebook (ASIN) and paperback (ISBN)
+ * rows for the same book always merge — even when the KDP Dashboard XLSX stores
+ * different identifiers per sheet. After merging, the entry is upgraded to use the
+ * real ASIN (not an ISBN) if one is available.
  */
 function deduplicateBooks(books: BookData[]): BookData[] {
   const seen = new Map<string, BookData>()
   for (const book of books) {
-    const key = book.asin?.trim()
-      || book.title.toLowerCase().trim()
-    if (!key) continue
-    if (seen.has(key)) {
-      const existing = seen.get(key)!
+    const titleKey = book.title.toLowerCase().trim()
+    if (!titleKey) continue
+    if (seen.has(titleKey)) {
+      const existing = seen.get(titleKey)!
       existing.units     += book.units
       existing.kenp      += book.kenp
       existing.royalties += book.royalties
-      // Keep the richer title/asin (prefer whichever has both)
-      if (!existing.asin && book.asin) {
-        existing.asin      = book.asin
-        existing.title     = book.title
+      // Upgrade to real ASIN if the current entry only has an ISBN or no ASIN
+      if (book.asin && isRealAsin(book.asin) && (!existing.asin || !isRealAsin(existing.asin))) {
+        existing.asin       = book.asin
         existing.shortTitle = book.shortTitle
       }
     } else {
-      seen.set(key, { ...book })
+      seen.set(titleKey, { ...book })
     }
   }
   return Array.from(seen.values()).sort((a, b) => b.units - a.units)

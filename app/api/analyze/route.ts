@@ -362,10 +362,19 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const month = searchParams.get('month')
 
+  // Optional date-range filter — convert YYYY-MM-DD dates to month strings for WHERE clause
+  const startDate = searchParams.get('start')  // e.g. "2026-04-01"
+  const endDate   = searchParams.get('end')    // e.g. "2026-04-30"
+  const startMonth = startDate ? startDate.substring(0, 7) : null  // "2026-04"
+  const endMonth   = endDate   ? endDate.substring(0, 7)   : null  // "2026-04"
+  const monthFilter = startMonth && endMonth
+    ? { month: { gte: startMonth, lte: endMonth } }
+    : {}
+
   // Fetch recent records — enough to backfill any missing channel data per-channel
   const [recentRecords, userRow] = await Promise.all([
     db.analysis.findMany({
-      where: { userId: session.user.id },
+      where: { userId: session.user.id, ...monthFilter },
       orderBy: { createdAt: 'desc' },
       take: 12,
     }),
