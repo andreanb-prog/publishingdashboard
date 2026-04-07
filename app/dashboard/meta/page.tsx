@@ -1,19 +1,112 @@
 'use client'
 // app/dashboard/meta/page.tsx
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState, useCallback } from 'react'
 import ChartJS from 'chart.js/auto'
 import { ChartLegend } from '@/components/ChartLegend'
 import { CHART_COLORS, BASE_CHART_OPTIONS, barDataset } from '@/lib/chartConfig'
 import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { FreshBanner } from '@/components/FreshBanner'
 import { InsightCallouts } from '@/components/InsightCallout'
-import { ViewingBar } from '@/components/ViewingBar'
 import { GoalSection } from '@/components/GoalSection'
 import { SortablePage } from '@/components/SortablePage'
 import { fmtPct, fmtCurrency } from '@/lib/utils'
 import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis, MetaAd } from '@/types'
 
+
+// ── Date range helpers ────────────────────────────────────────────────────────
+function fmt(d: Date) { return d.toISOString().split('T')[0] }
+
+function formatShortDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function formatDisplayRange(start: string, end: string): string {
+  if (!start || !end) return ''
+  return `${formatShortDate(start)} \u2013 ${formatShortDate(end)}`
+}
+
+type Preset = 'last7' | 'last30' | 'last90' | 'thisMonth' | 'lastMonth' | 'custom'
+
+function getPresetRange(preset: Preset): { start: string; end: string } {
+  const today = new Date()
+  switch (preset) {
+    case 'last7':
+      return { start: fmt(new Date(today.getTime() - 6 * 86400000)), end: fmt(today) }
+    case 'last30':
+      return { start: fmt(new Date(today.getTime() - 29 * 86400000)), end: fmt(today) }
+    case 'last90':
+      return { start: fmt(new Date(today.getTime() - 89 * 86400000)), end: fmt(today) }
+    case 'thisMonth':
+      return { start: fmt(new Date(today.getFullYear(), today.getMonth(), 1)), end: fmt(today) }
+    case 'lastMonth': {
+      const first = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+      const last  = new Date(today.getFullYear(), today.getMonth(), 0)
+      return { start: fmt(first), end: fmt(last) }
+    }
+    default:
+      return { start: '', end: '' }
+  }
+}
+
+const PRESETS: { key: Preset; label: string }[] = [
+  { key: 'last7',     label: 'Last 7 days' },
+  { key: 'last30',    label: 'Last 30 days' },
+  { key: 'last90',    label: 'Last 90 days' },
+  { key: 'thisMonth', label: 'This month' },
+  { key: 'lastMonth', label: 'Last month' },
+  { key: 'custom',    label: 'Custom' },
+]
+
+function DateRangePicker({
+  preset, onPreset, customStart, customEnd, onCustomStart, onCustomEnd,
+}: {
+  preset: Preset
+  onPreset: (p: Preset) => void
+  customStart: string
+  customEnd: string
+  onCustomStart: (v: string) => void
+  onCustomEnd: (v: string) => void
+}) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {PRESETS.map(p => (
+          <button
+            key={p.key}
+            onClick={() => onPreset(p.key)}
+            className="px-2.5 py-1 rounded-full text-[12px] font-medium transition-all duration-150"
+            style={{
+              background: preset === p.key ? '#E9A020' : '#FFF8F0',
+              color:      preset === p.key ? 'white' : '#1E2D3D',
+              border:     `0.5px solid ${preset === p.key ? '#E9A020' : '#EEEBE6'}`,
+            }}
+          >
+            {p.label}
+          </button>
+        ))}
+        {preset === 'custom' && (
+          <div className="flex items-center gap-2 mt-1 w-full ml-[62px]">
+            <input
+              type="date"
+              value={customStart}
+              onChange={e => onCustomStart(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-navy font-[Plus_Jakarta_Sans]"
+            />
+            <span style={{ color: '#6B7280' }}>→</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={e => onCustomEnd(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-navy font-[Plus_Jakarta_Sans]"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 // ── Column definitions ────────────────────────────────────────────────────────
 type ColKey =
@@ -67,15 +160,6 @@ function getSortValue(ad: MetaAd, key: ColKey): number {
   }
 }
 
-// ── Month range helper ────────────────────────────────────────────────────────
-function getMonthRange(month: string) {
-  const [year, mon] = month.split('-').map(Number)
-  const startDate = new Date(year, mon - 1, 1)
-  const endDate   = new Date(year, mon, 0)
-  const days      = endDate.getDate()
-  const fmt       = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  return { start: fmt(startDate), end: fmt(endDate), days }
-}
 
 // ── Rescue Panel ──────────────────────────────────────────────────────────────
 function RescuePanel({ ad }: { ad: MetaAd }) {
@@ -454,7 +538,16 @@ export default function MetaPage() {
   const [sortDir,    setSortDir]   = useState<SortDir>('desc')
   const [loading,    setLoading]   = useState(true)
   const [syncing,    setSyncing]   = useState(false)
+  const [dateLoading, setDateLoading] = useState(false)
   const [metaLastSync, setMetaLastSync] = useState<string | null>(null)
+  const [metaOverride, setMetaOverride] = useState<import('@/types').MetaData | null>(null)
+
+  // Date range state
+  const [preset,      setPreset]      = useState<Preset>('last30')
+  const [customStart, setCustomStart] = useState('')
+  const [customEnd,   setCustomEnd]   = useState('')
+  const [activeRange, setActiveRange] = useState<{ start: string; end: string }>(() => getPresetRange('last30'))
+
   const pickerRef  = useRef<HTMLDivElement>(null)
   const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -468,13 +561,28 @@ export default function MetaPage() {
       .catch(() => {})
   }
 
+  const fetchDateRange = useCallback((start: string, end: string) => {
+    if (!start || !end) return
+    setDateLoading(true)
+    fetch(`/api/meta/data?startDate=${start}&endDate=${end}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => {
+        setMetaOverride(d.data ?? null)
+      })
+      .catch(() => {})
+      .finally(() => setDateLoading(false))
+  }, [])
+
   async function handleSync() {
     setSyncing(true)
     try {
       const res = await fetch('/api/meta/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
       if (res.ok) {
         const data = await res.json()
-        if (data.data) setAnalysis(prev => prev ? { ...prev, meta: data.data } : { meta: data.data } as any)
+        if (data.data) {
+          setAnalysis(prev => prev ? { ...prev, meta: data.data } : { meta: data.data } as any)
+          setMetaOverride(null) // clear override so cached data shows fresh sync
+        }
         setMetaLastSync(new Date().toISOString())
         window.dispatchEvent(new Event('meta:synced'))
       }
@@ -502,6 +610,31 @@ export default function MetaPage() {
     window.addEventListener('meta:synced', onSynced)
     return () => window.removeEventListener('meta:synced', onSynced)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handlePreset(p: Preset) {
+    setPreset(p)
+    if (p !== 'custom') {
+      const range = getPresetRange(p)
+      setActiveRange(range)
+      fetchDateRange(range.start, range.end)
+    }
+  }
+
+  function handleCustomStart(v: string) {
+    setCustomStart(v)
+    if (v && customEnd) {
+      setActiveRange({ start: v, end: customEnd })
+      fetchDateRange(v, customEnd)
+    }
+  }
+
+  function handleCustomEnd(v: string) {
+    setCustomEnd(v)
+    if (customStart && v) {
+      setActiveRange({ start: customStart, end: v })
+      fetchDateRange(customStart, v)
+    }
+  }
 
   // Close picker when clicking outside
   useEffect(() => {
@@ -550,10 +683,9 @@ export default function MetaPage() {
     }
   }
 
-  const meta       = analysis?.meta
+  const meta       = metaOverride ?? analysis?.meta
   const rescueAds  = meta?.ads.filter(ad => ad.clicks === 0 || ad.ctr < 1) ?? []
   const maxCTR     = meta ? Math.max(...meta.ads.map(a => a.ctr), 1) : 1
-  const viewRange  = analysis?.month ? getMonthRange(analysis.month) : null
   const activeColDefs = ALL_COLUMNS.filter(c => activeCols.has(c.key))
 
   // Sort ads
@@ -627,11 +759,31 @@ export default function MetaPage() {
   return (
     <DarkPage title="Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
       <Suspense fallback={null}><FreshBanner /></Suspense>
+
+      {/* Date range picker — always shown */}
+      <div className="mb-4">
+        <DateRangePicker
+          preset={preset}
+          onPreset={handlePreset}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomStart={handleCustomStart}
+          onCustomEnd={handleCustomEnd}
+        />
+        {activeRange.start && activeRange.end && (
+          <p className="mt-2 text-[11.5px]" style={{ color: '#6B7280' }}>
+            {dateLoading
+              ? 'Loading…'
+              : `Showing data: ${formatDisplayRange(activeRange.start, activeRange.end)}`}
+          </p>
+        )}
+      </div>
+
       {!meta ? (
         <div className="text-center py-16" style={{ color: '#6B7280' }}>
           <div className="text-4xl mb-4">📣</div>
           <div className="font-sans text-xl mb-2" style={{ color: '#1E2D3D' }}>No Meta data yet</div>
-          <p className="text-sm mb-4">Upload your Meta Ads CSV to see your ad analysis</p>
+          <p className="text-sm mb-4">Connect your Meta Ads account and click Sync now to see your ad data</p>
           <a href="/dashboard?upload=1" className="inline-block px-6 py-2.5 rounded-lg font-semibold text-sm no-underline"
             style={{ background: '#e9a020', color: '#0d1f35' }}>Upload Files →</a>
         </div>
@@ -649,13 +801,6 @@ export default function MetaPage() {
 
           {/* Sync bar */}
           <div className="flex items-center gap-3 mb-3">
-            {metaLastSync ? (
-              <span className="text-[11px]" style={{ color: '#6B7280' }}>
-                Last synced: {new Date(metaLastSync).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-              </span>
-            ) : (
-              <span className="text-[11px]" style={{ color: '#6B7280' }}>Data from last sync</span>
-            )}
             <button
               onClick={handleSync}
               disabled={syncing}
@@ -671,6 +816,11 @@ export default function MetaPage() {
               <span style={{ display: 'inline-block', animation: syncing ? 'spin 1s linear infinite' : 'none' }}>↻</span>
               {syncing ? 'Syncing…' : 'Sync now'}
             </button>
+            {metaLastSync && (
+              <span className="text-[11px]" style={{ color: '#6B7280' }}>
+                Last synced: {new Date(metaLastSync).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+              </span>
+            )}
           </div>
 
           {/* KPI strip with goal comparison */}
@@ -743,15 +893,6 @@ export default function MetaPage() {
             </DarkCoachBox>
           )}
 
-          {/* Viewing bar */}
-          {viewRange && (
-            <ViewingBar
-              start={viewRange.start}
-              end={viewRange.end}
-              days={viewRange.days}
-              summary={`${fmtCurrency(meta.totalSpend)} total spend · ${meta.totalClicks.toLocaleString()} clicks`}
-            />
-          )}
 
           <SortablePage
             page="meta"
