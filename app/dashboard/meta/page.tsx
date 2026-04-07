@@ -539,6 +539,7 @@ export default function MetaPage() {
   const [loading,    setLoading]   = useState(true)
   const [syncing,    setSyncing]   = useState(false)
   const [dateLoading, setDateLoading] = useState(false)
+  const [permissionError, setPermissionError] = useState(false)
   const [metaLastSync, setMetaLastSync] = useState<string | null>(null)
   const [metaOverride, setMetaOverride] = useState<import('@/types').MetaData | null>(null)
 
@@ -575,19 +576,31 @@ export default function MetaPage() {
 
   async function handleSync() {
     setSyncing(true)
+    setPermissionError(false)
     try {
       const res = await fetch('/api/meta/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      const data = await res.json()
       if (res.ok) {
-        const data = await res.json()
         if (data.data) {
           setAnalysis(prev => prev ? { ...prev, meta: data.data } : { meta: data.data } as any)
           setMetaOverride(null) // clear override so cached data shows fresh sync
         }
         setMetaLastSync(new Date().toISOString())
         window.dispatchEvent(new Event('meta:synced'))
+      } else if (data.error === 'permission_denied') {
+        setPermissionError(true)
       }
     } catch { /* ignore */ }
     setSyncing(false)
+  }
+
+  async function handleDisconnectAndReconnect() {
+    await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'disconnect-meta' }),
+    }).catch(() => {})
+    window.location.replace('/api/meta/connect')
   }
 
   useEffect(() => {
@@ -822,6 +835,35 @@ export default function MetaPage() {
               </span>
             )}
           </div>
+
+          {/* Permission denied warning */}
+          {permissionError && (
+            <div className="rounded-xl p-5 mb-5" style={{ background: '#FFFBEB', border: '1.5px solid #E9A020' }}>
+              <div className="font-semibold text-[14px] mb-1" style={{ color: '#1E2D3D' }}>
+                Meta needs permission to read your ads.
+              </div>
+              <p className="text-[13px] leading-relaxed mb-4" style={{ color: '#6B7280' }}>
+                Your ad account hasn&apos;t granted AuthorDash read access yet. Fix this in 2 steps:
+              </p>
+              <ol className="space-y-2 mb-4 pl-1">
+                <li className="flex gap-2 text-[13px]" style={{ color: '#1E2D3D' }}>
+                  <span className="font-bold flex-shrink-0">1.</span>
+                  <span>Go to <strong>business.facebook.com</strong> → Business Settings → Ad Accounts → find <strong>Elle Wilder Books</strong> → People → confirm your account has <strong>Analyst</strong> or <strong>Advertiser</strong> role.</span>
+                </li>
+                <li className="flex gap-2 text-[13px]" style={{ color: '#1E2D3D' }}>
+                  <span className="font-bold flex-shrink-0">2.</span>
+                  <span>Come back here, disconnect Meta, and reconnect — this will re-request all required permissions.</span>
+                </li>
+              </ol>
+              <button
+                onClick={handleDisconnectAndReconnect}
+                className="px-4 py-2 rounded-lg text-[12.5px] font-semibold"
+                style={{ background: '#E9A020', color: 'white', border: 'none', cursor: 'pointer' }}
+              >
+                Disconnect &amp; Reconnect →
+              </button>
+            </div>
+          )}
 
           {/* KPI strip with goal comparison */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-7">

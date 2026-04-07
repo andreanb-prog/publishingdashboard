@@ -118,6 +118,7 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (err) {
+        if (err instanceof Error && err.message === 'PERMISSION_DENIED') throw err
         console.error(`[Meta Sync] Error fetching ${account.id}:`, err)
       }
     }
@@ -198,6 +199,13 @@ export async function POST(req: NextRequest) {
     console.log('=== META SYNC COMPLETE ===')
     return NextResponse.json({ success: true, data })
   } catch (err) {
+    if (err instanceof Error && err.message === 'PERMISSION_DENIED') {
+      console.error('[Meta Sync] Permission denied — ads_read not granted for this account')
+      return NextResponse.json({
+        error: 'permission_denied',
+        message: 'Your ad account hasn\'t granted AuthorDash read access. Disconnect and reconnect Meta to re-authorize with the correct permissions.',
+      }, { status: 403 })
+    }
     console.error('[Meta Sync] Unhandled error:', err)
     return NextResponse.json({ error: 'Sync failed' }, { status: 500 })
   }
@@ -251,6 +259,9 @@ async function fetchAccountAds(token: string, accountId: string): Promise<MetaAd
     const msg = json.error.message
     console.error(`[Meta Sync] Insights error for ${accountId} — code ${code}:`, msg)
     if (code === 190) throw new Error('TOKEN_EXPIRED')
+    if (code === 200 && (msg?.includes('ads_read') || msg?.includes('ads_management'))) {
+      throw new Error('PERMISSION_DENIED')
+    }
     throw new Error(`Meta API error ${code}: ${msg}`)
   }
 
