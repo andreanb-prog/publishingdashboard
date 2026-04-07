@@ -1,5 +1,5 @@
 // app/layout.tsx
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
@@ -28,6 +28,9 @@ export const metadata: Metadata = {
     ],
     apple: '/favicon.svg',
   },
+}
+
+export const viewport: Viewport = {
   themeColor: '#1E2D3D',
 }
 
