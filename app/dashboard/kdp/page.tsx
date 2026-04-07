@@ -125,16 +125,14 @@ function DateRangePicker({
               type="date"
               value={customStart}
               onChange={e => onCustomStart(e.target.value)}
-              className="rounded-lg px-3 py-1.5 text-[11.5px] font-mono"
-              style={{ background: 'white', border: '1px solid #D6D3D1', color: '#1E2D3D' }}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-navy font-[Plus_Jakarta_Sans]"
             />
             <span style={{ color: '#6B7280' }}>→</span>
             <input
               type="date"
               value={customEnd}
               onChange={e => onCustomEnd(e.target.value)}
-              className="rounded-lg px-3 py-1.5 text-[11.5px] font-mono"
-              style={{ background: 'white', border: '1px solid #D6D3D1', color: '#1E2D3D' }}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-navy font-[Plus_Jakarta_Sans]"
             />
           </div>
         )}
