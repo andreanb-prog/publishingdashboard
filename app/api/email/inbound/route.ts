@@ -4,11 +4,12 @@ import { db } from '@/lib/db'
 // Postmark inbound email webhook — always return 200, never 4xx/5xx (it will retry forever)
 
 interface PostmarkInboundPayload {
-  From:     string
-  To:       string
-  Subject:  string
-  TextBody: string
-  HtmlBody: string
+  From:         string
+  To:           string
+  Subject:      string
+  TextBody:     string
+  HtmlBody:     string
+  MailboxHash:  string  // extracted from +tag in To address, e.g. "swaps-{userId}"
 }
 
 function ok() {
@@ -84,17 +85,17 @@ export async function POST(req: NextRequest) {
     return ok()
   }
 
-  const { From = '', To = '', Subject = '', TextBody = '' } = payload
+  const { From = '', Subject = '', TextBody = '', MailboxHash = '' } = payload
   const subjectLower = Subject.toLowerCase()
   const fromLower    = From.toLowerCase()
 
-  // --- Extract userId from To address: swaps-[userId]@[domain] ---
-  const toMatch = To.match(/swaps-([^@\s]+)@/i)
-  if (!toMatch) {
-    console.log('[inbound] No userId in To address, skipping:', To)
+  // --- Extract userId from MailboxHash: "swaps-{userId}" ---
+  const hashMatch = MailboxHash.match(/^swaps-(.+)$/i)
+  if (!hashMatch) {
+    console.log('[inbound] No userId in MailboxHash, skipping:', MailboxHash)
     return ok()
   }
-  const userId = toMatch[1]
+  const userId = hashMatch[1]
 
   // --- Look up user ---
   const user = await db.user.findUnique({ where: { id: userId } })

@@ -11,22 +11,26 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Strip any localpart accidentally included in the domain env var
-  // e.g. "hash@inbound.postmarkapp.com" → "inbound.postmarkapp.com"
-  let domain = process.env.POSTMARK_INBOUND_DOMAIN ?? 'inbound.postmarkapp.com'
-  if (domain.includes('@')) domain = domain.split('@').pop()!
-  const address = `swaps-${session.user.id}@${domain}`
+  // POSTMARK_INBOUND_ADDRESS is the full Postmark server address, e.g.:
+  //   abc123@inbound.postmarkapp.com
+  // We use the mailbox hash (+tag) to encode the userId:
+  //   abc123+swaps-{userId}@inbound.postmarkapp.com
+  // Postmark extracts the tag into MailboxHash so the webhook can route to the right user.
+  const baseAddress = process.env.POSTMARK_INBOUND_ADDRESS ?? ''
+  if (!baseAddress) {
+    return NextResponse.json({ error: 'POSTMARK_INBOUND_ADDRESS not configured' }, { status: 500 })
+  }
 
-  // Store on the user record; overwrite if previously stored value was malformed (double @)
+  const [localpart, domain] = baseAddress.split('@')
+  const address = `${localpart}+swaps-${session.user.id}@${domain}`
+
+  // Store on the user record; overwrite if previously stored value was malformed or stale
   const user = await db.user.findUnique({
     where: { id: session.user.id },
     select: { inboundEmailAddress: true },
   })
 
-  const storedAddress = user?.inboundEmailAddress ?? ''
-  const isMalformed   = (storedAddress.match(/@/g) ?? []).length > 1
-
-  if (!storedAddress || isMalformed) {
+  if (!user?.inboundEmailAddress || user.inboundEmailAddress !== address) {
     await db.user.update({
       where: { id: session.user.id },
       data: { inboundEmailAddress: address },
