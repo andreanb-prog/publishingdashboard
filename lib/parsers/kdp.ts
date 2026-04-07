@@ -8,6 +8,25 @@ export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
     cellDates: true,
   })
 
+  // ── Wrong format detection: Prior Month Royalties report ─────────────────
+  // This report has A1="Sales Period", B1="February 2026" (or similar).
+  // It is NOT the correct format — AuthorDash needs the All Titles export.
+  const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+  if (firstSheet) {
+    const a1 = firstSheet['A1']?.v
+    const a1str = typeof a1 === 'string' ? a1.toLowerCase().trim() : ''
+    if (a1str === 'sales period') {
+      const b1 = firstSheet['B1']?.v ?? ''
+      throw new Error(
+        `This looks like a Prior Month Royalties report (${b1}). AuthorDash needs the All Titles export instead. Here's how to get it:\n` +
+        `1. Go to KDP → Reports → Sales Dashboard\n` +
+        `2. Click 'Download' in the top right\n` +
+        `3. Select 'All Titles' from the dropdown\n` +
+        `4. Choose your date range and download`
+      )
+    }
+  }
+
   // Detect format: Amazon exports two layouts:
   //   Multi-sheet: "Summary" + "Orders Processed" + "KENP Read" sheets
   //   Flat:        Single sheet with "Units Sold" / "KENP Read" / "Royalty" columns
@@ -253,7 +272,21 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
     ? (XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as Record<string, unknown>[])
     : []
 
-  if (rows.length) console.log('[KDP parser] Flat headers:', Object.keys(rows[0]))
+  if (rows.length) {
+    console.log('[KDP parser] Flat headers:', Object.keys(rows[0]))
+    // Check for correct headers but no sales data
+    const headers = Object.keys(rows[0]).map(h => h.toLowerCase())
+    const hasCorrectHeaders = headers.some(h => h.includes('asin') || h.includes('title'))
+    if (hasCorrectHeaders && rows.every(r => {
+      const asin  = str(pick(r as Record<string, unknown>, 'ASIN', 'Asin', 'asin'))
+      const title = str(pick(r as Record<string, unknown>, 'Title', 'Book Title', 'title'))
+      return !asin && !title
+    })) {
+      throw new Error(
+        'Your file has the right format but no sales data. Make sure you selected a date range with sales activity.'
+      )
+    }
+  }
 
   const bookMap = new Map<string, BookData>()
   let totalKENP         = 0
