@@ -711,7 +711,8 @@ export default function KDPPage() {
   const [customEnd,   setCustomEnd]   = useState('')
   const [compareMode, setCompareMode] = useState(false)
   const [heatmapView, setHeatmapView] = useState(false)
-  const [loading,     setLoading]     = useState(true)
+  const [loading,       setLoading]       = useState(true)
+  const [downloading,   setDownloading]   = useState(false)
   const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set())
   const [excludedAsins, setExcludedAsins] = useState<Set<string>>(new Set())
   const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(null)
@@ -845,6 +846,33 @@ export default function KDPPage() {
     }
   }
 
+  const handleDownloadTracker = async () => {
+    setDownloading(true)
+    try {
+      const body: Record<string, unknown> = {}
+      if (range.start && range.end) body.dateRange = { start: range.start, end: range.end }
+      const res = await fetch('/api/kdp/generate-tracker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert(err.error ?? 'Failed to generate tracker')
+        return
+      }
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = `AuthorDash_Ad_Tracker_${new Date().toISOString().split('T')[0]}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   if (loading) {
     return (
       <DarkPage title="KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties">
@@ -876,6 +904,18 @@ export default function KDPPage() {
           <p className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>
             KDP data typically lags 48–72 hours. Recent days may show incomplete numbers.
           </p>
+          {kdp && (
+            <div className="mt-2">
+              <button
+                onClick={handleDownloadTracker}
+                disabled={downloading}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-semibold text-sm transition-opacity"
+                style={{ background: '#E9A020', color: '#1E2D3D', opacity: downloading ? 0.7 : 1 }}
+              >
+                {downloading ? 'Building tracker…' : 'Download Ad Tracker →'}
+              </button>
+            </div>
+          )}
         </div>
       }>
       <Suspense fallback={null}><FreshBanner /></Suspense>
