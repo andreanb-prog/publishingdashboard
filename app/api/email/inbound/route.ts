@@ -11,6 +11,13 @@ export async function GET() {
   return NextResponse.json({ ok: true }, { status: 200 })
 }
 
+interface PostmarkAttachment {
+  Name:        string
+  Content:     string  // base64-encoded
+  ContentType: string
+  ContentLength: number
+}
+
 interface PostmarkInboundPayload {
   From:        string
   Subject:     string
@@ -18,6 +25,7 @@ interface PostmarkInboundPayload {
   HtmlBody:    string
   MailboxHash: string  // extracted from +tag in To address: "swaps-{userId}"
   MessageID:   string
+  Attachments: PostmarkAttachment[]
 }
 
 function ok() {
@@ -63,17 +71,48 @@ function parseImpressions(body: string): number | null {
   return m ? parseInt(m[1].replace(/,/g, ''), 10) : null
 }
 
-// Find a SwapEntry by partnerName + promoDate within ±3 days
+// ── .eml parser — extract Subject, From, and plain-text body ─────────────────
+
+function parseEml(raw: string): { subject: string; from: string; body: string } {
+  const lines = raw.replace(/\r\n/g, '\n').split('\n')
+  let subject = ''
+  let from    = ''
+  let inHeaders = true
+  const bodyLines: string[] = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    if (inHeaders) {
+      // Blank line separates headers from body
+      if (line.trim() === '') {
+        inHeaders = false
+        continue
+      }
+      // Handle folded headers (continuation lines start with whitespace)
+      if (/^[ \t]/.test(line)) continue
+
+      const subjectMatch = line.match(/^Subject:\s*(.*)/i)
+      if (subjectMatch) { subject = subjectMatch[1].trim(); continue }
+
+      const fromMatch = line.match(/^From:\s*(.*)/i)
+      if (fromMatch) { from = fromMatch[1].trim(); continue }
+    } else {
+      bodyLines.push(line)
+    }
+  }
+
+  return { subject, from, body: bodyLines.join('\n') }
+}
+
+// ── Find a SwapEntry by partnerName + promoDate within ±3 days ───────────────
+
 async function findSwapEntry(userId: string, partnerName: string | null, promoDate: Date | null) {
   if (!partnerName && !promoDate) return null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = { userId }
-
-  if (partnerName) {
-    where.partnerName = { contains: partnerName, mode: 'insensitive' }
-  }
-
+  if (partnerName) where.partnerName = { contains: partnerName, mode: 'insensitive' }
   if (promoDate) {
     const low  = new Date(promoDate); low.setDate(low.getDate() - 3)
     const high = new Date(promoDate); high.setDate(high.getDate() + 3)
@@ -83,7 +122,106 @@ async function findSwapEntry(userId: string, partnerName: string | null, promoDa
   return db.swapEntry.findFirst({ where })
 }
 
-// ── Handler ───────────────────────────────────────────────────────────────────
+// ── Classify and process a single email ──────────────────────────────────────
+
+async function processEmail(
+  userId: string,
+  subject: string,
+  body: string,
+  sourceLabel: string,  // for logging: "TextBody" or "attachment: foo.eml"
+) {
+  const subjectLower = subject.toLowerCase()
+
+  // ── New booking ───────────────────────────────────────────────────────────
+  if (subjectLower.includes('new booking')) {
+    console.log(`[INBOUND] [${sourceLabel}] Classified: new booking`)
+    const partnerName = parsePartnerName(body)
+    const promoDate   = parsePromoDate(body)
+    const listSize    = parseListSize(body)
+    console.log(`[INBOUND] [${sourceLabel}] Parsed —`, { partnerName, promoDate, listSize })
+
+    await db.swapEntry.create({
+      data: {
+        userId,
+        promoType:       'swap',
+        role:            'inbound',
+        platform:        'bookclicker',
+        confirmation:    'applied',
+        myList:          '',
+        partnerName:     partnerName ?? undefined,
+        partnerListSize: listSize    ?? undefined,
+        promoDate:       promoDate   ?? undefined,
+        notes:           `Auto-imported via ${sourceLabel}`,
+      },
+    })
+    console.log(`[INBOUND] [${sourceLabel}] Created SwapEntry:`, partnerName)
+    return
+  }
+
+  // ── Promo confirmation ────────────────────────────────────────────────────
+  if (subjectLower.includes('promo confirmation')) {
+    console.log(`[INBOUND] [${sourceLabel}] Classified: promo confirmation`)
+    const partnerName = parsePartnerName(body)
+    const promoDate   = parsePromoDate(body)
+    const clicks      = parseClicks(body)
+    const impressions = parseImpressions(body)
+    const listSize    = parseListSize(body)
+    console.log(`[INBOUND] [${sourceLabel}] Parsed —`, { partnerName, promoDate, clicks, impressions, listSize })
+
+    const entry = await findSwapEntry(userId, partnerName, promoDate)
+    if (entry) {
+      await db.swapEntry.update({
+        where: { id: entry.id },
+        data: {
+          confirmation: 'approved',
+          ...(clicks      != null && { clicks }),
+          ...(impressions != null && { impressions }),
+          ...(listSize    != null && { partnerListSize: listSize }),
+        },
+      })
+      console.log(`[INBOUND] [${sourceLabel}] Updated SwapEntry ${entry.id} → approved`)
+    } else {
+      console.log(`[INBOUND] [${sourceLabel}] No matching SwapEntry for`, { partnerName, promoDate })
+    }
+    return
+  }
+
+  // ── Swap accepted ─────────────────────────────────────────────────────────
+  if (subjectLower.includes('swap request has been accepted')) {
+    console.log(`[INBOUND] [${sourceLabel}] Classified: swap accepted`)
+    const partnerName = parsePartnerName(body)
+    const promoDate   = parsePromoDate(body)
+
+    const entry = await findSwapEntry(userId, partnerName, promoDate)
+    if (entry) {
+      await db.swapEntry.update({ where: { id: entry.id }, data: { confirmation: 'approved' } })
+      console.log(`[INBOUND] [${sourceLabel}] Updated SwapEntry ${entry.id} → approved`)
+    } else {
+      console.log(`[INBOUND] [${sourceLabel}] No matching SwapEntry for`, { partnerName, promoDate })
+    }
+    return
+  }
+
+  // ── Automatically cancelled ───────────────────────────────────────────────
+  if (subjectLower.includes('automatically cancelled')) {
+    console.log(`[INBOUND] [${sourceLabel}] Classified: cancelled`)
+    const partnerName = parsePartnerName(body)
+    const promoDate   = parsePromoDate(body)
+
+    const entry = await findSwapEntry(userId, partnerName, promoDate)
+    if (entry) {
+      await db.swapEntry.update({ where: { id: entry.id }, data: { confirmation: 'cancelled' } })
+      console.log(`[INBOUND] [${sourceLabel}] Updated SwapEntry ${entry.id} → cancelled`)
+    } else {
+      console.log(`[INBOUND] [${sourceLabel}] No matching SwapEntry for`, { partnerName, promoDate })
+    }
+    return
+  }
+
+  console.log(`[INBOUND] [${sourceLabel}] Unrecognized subject — no action:`, subject)
+}
+
+// ── Main handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   console.log('[INBOUND] POST received from Postmark')
@@ -97,126 +235,62 @@ export async function POST(req: NextRequest) {
     return ok()
   }
 
-  const { From = '', Subject = '', TextBody = '', MailboxHash = '', MessageID = '' } = payload
+  const {
+    From        = '',
+    Subject     = '',
+    TextBody    = '',
+    MailboxHash = '',
+    MessageID   = '',
+    Attachments = [],
+  } = payload
 
-  console.log('[INBOUND] Email details —', { MessageID, From, Subject, MailboxHash })
+  console.log('[INBOUND] Email details —', { MessageID, From, Subject, MailboxHash, attachmentCount: Attachments.length })
 
   // ── Identify user from MailboxHash: "swaps-{userId}" ─────────────────────
   const hashMatch = MailboxHash.match(/^swaps-(.+)$/i)
   if (!hashMatch) {
-    console.log('[inbound] No userId in MailboxHash — skipping. Hash was:', MailboxHash)
+    console.log('[INBOUND] No userId in MailboxHash — skipping. Hash was:', MailboxHash)
     return ok()
   }
   const userId = hashMatch[1]
-  console.log('[inbound] Resolved userId:', userId)
+  console.log('[INBOUND] Resolved userId:', userId)
 
   const user = await db.user.findUnique({ where: { id: userId } })
   if (!user) {
-    console.log('[inbound] No user found for id:', userId)
+    console.log('[INBOUND] No user found for id:', userId)
     return ok()
   }
-  console.log('[inbound] User found:', user.email)
-
-  const subjectLower = Subject.toLowerCase()
+  console.log('[INBOUND] User found:', user.email)
 
   try {
-    // ── New booking (partner is promoting Elle's book) ──────────────────────
-    if (subjectLower.includes('new booking')) {
-      console.log('[inbound] Classified as: new booking')
-      const partnerName = parsePartnerName(TextBody)
-      const promoDate   = parsePromoDate(TextBody)
-      const listSize    = parseListSize(TextBody)
-      console.log('[inbound] Parsed —', { partnerName, promoDate, listSize })
-
-      await db.swapEntry.create({
-        data: {
-          userId,
-          promoType:       'swap',
-          role:            'inbound',
-          platform:        'bookclicker',
-          confirmation:    'applied',
-          myList:          '',
-          partnerName:     partnerName ?? undefined,
-          partnerListSize: listSize    ?? undefined,
-          promoDate:       promoDate   ?? undefined,
-          notes:           `Auto-imported from Postmark (${MessageID})`,
-        },
-      })
-      console.log('[inbound] Created SwapEntry for new booking:', partnerName)
-      return ok()
+    // ── Process main email body ───────────────────────────────────────────
+    if (TextBody.trim()) {
+      await processEmail(userId, Subject, TextBody, `TextBody (${MessageID})`)
     }
 
-    // ── Promo confirmation (stats came back) ────────────────────────────────
-    if (subjectLower.includes('promo confirmation')) {
-      console.log('[inbound] Classified as: promo confirmation')
-      const partnerName = parsePartnerName(TextBody)
-      const promoDate   = parsePromoDate(TextBody)
-      const clicks      = parseClicks(TextBody)
-      const impressions = parseImpressions(TextBody)
-      const listSize    = parseListSize(TextBody)
-      console.log('[inbound] Parsed —', { partnerName, promoDate, clicks, impressions, listSize })
+    // ── Process .eml attachments (bulk forwarded emails) ──────────────────
+    const emlAttachments = Attachments.filter(
+      a => a.ContentType === 'message/rfc822' || a.Name.toLowerCase().endsWith('.eml')
+    )
 
-      const entry = await findSwapEntry(userId, partnerName, promoDate)
-      if (entry) {
-        await db.swapEntry.update({
-          where: { id: entry.id },
-          data: {
-            confirmation: 'approved',
-            ...(clicks      != null && { clicks }),
-            ...(impressions != null && { impressions }),
-            ...(listSize    != null && { partnerListSize: listSize }),
-          },
-        })
-        console.log('[inbound] Updated SwapEntry', entry.id, '→ approved')
-      } else {
-        console.log('[inbound] No matching SwapEntry found for', { partnerName, promoDate })
+    if (emlAttachments.length > 0) {
+      console.log(`[INBOUND] Processing ${emlAttachments.length} .eml attachment(s)`)
+    }
+
+    for (const attachment of emlAttachments) {
+      console.log('[INBOUND] Processing .eml attachment:', attachment.Name)
+      try {
+        const raw     = Buffer.from(attachment.Content, 'base64').toString('utf-8')
+        const parsed  = parseEml(raw)
+        console.log('[INBOUND] .eml parsed —', { subject: parsed.subject, from: parsed.from })
+        await processEmail(userId, parsed.subject, parsed.body, `attachment: ${attachment.Name}`)
+      } catch (err) {
+        console.error('[INBOUND] Failed to process attachment:', attachment.Name, err)
+        // Continue processing remaining attachments
       }
-      return ok()
     }
-
-    // ── Swap request accepted ───────────────────────────────────────────────
-    if (subjectLower.includes('swap request has been accepted')) {
-      console.log('[inbound] Classified as: swap accepted')
-      const partnerName = parsePartnerName(TextBody)
-      const promoDate   = parsePromoDate(TextBody)
-      console.log('[inbound] Parsed —', { partnerName, promoDate })
-
-      const entry = await findSwapEntry(userId, partnerName, promoDate)
-      if (entry) {
-        await db.swapEntry.update({
-          where: { id: entry.id },
-          data: { confirmation: 'approved' },
-        })
-        console.log('[inbound] Updated SwapEntry', entry.id, '→ approved')
-      } else {
-        console.log('[inbound] No matching SwapEntry found for', { partnerName, promoDate })
-      }
-      return ok()
-    }
-
-    // ── Automatically cancelled ─────────────────────────────────────────────
-    if (subjectLower.includes('automatically cancelled')) {
-      console.log('[inbound] Classified as: cancelled')
-      const partnerName = parsePartnerName(TextBody)
-      const promoDate   = parsePromoDate(TextBody)
-      console.log('[inbound] Parsed —', { partnerName, promoDate })
-
-      const entry = await findSwapEntry(userId, partnerName, promoDate)
-      if (entry) {
-        await db.swapEntry.update({
-          where: { id: entry.id },
-          data: { confirmation: 'cancelled' },
-        })
-        console.log('[inbound] Updated SwapEntry', entry.id, '→ cancelled')
-      } else {
-        console.log('[inbound] No matching SwapEntry found for', { partnerName, promoDate })
-      }
-      return ok()
-    }
-
-    console.log('[inbound] Unrecognized subject — no action taken:', Subject)
   } catch (err) {
-    console.error('[inbound] Error processing email (still returning 200):', err)
+    console.error('[INBOUND] Error processing email (still returning 200):', err)
   }
 
   return ok()
