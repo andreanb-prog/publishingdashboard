@@ -11,18 +11,16 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // POSTMARK_INBOUND_ADDRESS is the full Postmark server address, e.g.:
-  //   abc123@inbound.postmarkapp.com
-  // We use the mailbox hash (+tag) to encode the userId:
-  //   abc123+swaps-{userId}@inbound.postmarkapp.com
+  // POSTMARK_INBOUND_TOKEN is the Postmark server token (the part before @inbound.postmarkapp.com)
+  // Per-user routing uses the mailbox hash (+tag):
+  //   {TOKEN}+swaps-{userId}@inbound.postmarkapp.com
   // Postmark extracts the tag into MailboxHash so the webhook can route to the right user.
-  const baseAddress = process.env.POSTMARK_INBOUND_ADDRESS ?? ''
-  if (!baseAddress) {
-    return NextResponse.json({ error: 'POSTMARK_INBOUND_ADDRESS not configured' }, { status: 500 })
+  const token = process.env.POSTMARK_INBOUND_TOKEN ?? ''
+  if (!token) {
+    return NextResponse.json({ error: 'POSTMARK_INBOUND_TOKEN not configured' }, { status: 500 })
   }
 
-  const [localpart, domain] = baseAddress.split('@')
-  const address = `${localpart}+swaps-${session.user.id}@${domain}`
+  const address = `${token}+swaps-${session.user.id}@inbound.postmarkapp.com`
 
   // Store on the user record; overwrite if previously stored value was malformed or stale
   const user = await db.user.findUnique({
