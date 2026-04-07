@@ -11,6 +11,7 @@ import { GoalSection } from '@/components/GoalSection'
 import { SortablePage } from '@/components/SortablePage'
 import { fmtPct, fmtCurrency } from '@/lib/utils'
 import { getCoachTitle } from '@/lib/coachTitle'
+import { LastUploadBadge } from '@/components/LastUploadBadge'
 import type { Analysis, MetaAd } from '@/types'
 
 
@@ -773,6 +774,7 @@ export default function MetaPage() {
   return (
     <DarkPage title="Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
       <Suspense fallback={null}><FreshBanner /></Suspense>
+      <LastUploadBadge channel="meta" />
 
       {/* Date range picker — always shown */}
       <div className="mb-4">

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { db } from '@/lib/db'
 import { parseKDPFile } from '@/lib/parsers/kdp'
 
 export async function POST(req: NextRequest) {
@@ -15,6 +16,16 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer())
     const data = parseKDPFile(buffer)
+
+    // Record upload timestamp
+    await db.uploadLog.create({
+      data: {
+        userId:    session.user.id,
+        dataType:  'kdp',
+        fileName:  file.name,
+        uploadedAt: new Date(),
+      },
+    }).catch(() => {}) // non-fatal
 
     return NextResponse.json({ success: true, data })
   } catch (error) {

@@ -22,6 +22,7 @@ import {
   rollingAverage,
   peakPoints,
 } from '@/lib/chartConfig'
+import { LastUploadBadge } from '@/components/LastUploadBadge'
 import type { Analysis, DailyData, RoasLog, MailerLiteCampaign } from '@/types'
 
 
@@ -966,6 +967,7 @@ export default function KDPPage() {
         </div>
       }>
       <Suspense fallback={null}><FreshBanner /></Suspense>
+      <LastUploadBadge channel="kdp" />
       {!kdp ? (
         <div className="text-center py-16" style={{ color: '#6B7280' }}>
           <div className="text-4xl mb-4">📚</div>
