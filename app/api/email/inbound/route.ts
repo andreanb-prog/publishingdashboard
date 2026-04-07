@@ -1,7 +1,15 @@
+export const dynamic = 'force-dynamic'
+
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
 // Postmark inbound email webhook — always return 200, never 4xx/5xx (it will retry forever)
+
+// GET handler — Postmark may do a verification ping before sending emails
+export async function GET() {
+  console.log('[INBOUND] GET ping received')
+  return NextResponse.json({ ok: true }, { status: 200 })
+}
 
 interface PostmarkInboundPayload {
   From:        string
@@ -78,18 +86,20 @@ async function findSwapEntry(userId: string, partnerName: string | null, promoDa
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  console.log('[INBOUND] POST received from Postmark')
+
   let payload: PostmarkInboundPayload
 
   try {
     payload = await req.json()
   } catch {
-    console.error('[inbound] Failed to parse Postmark payload')
+    console.error('[INBOUND] Failed to parse Postmark payload')
     return ok()
   }
 
   const { From = '', Subject = '', TextBody = '', MailboxHash = '', MessageID = '' } = payload
 
-  console.log('[inbound] Received email —', { MessageID, From, Subject, MailboxHash })
+  console.log('[INBOUND] Email details —', { MessageID, From, Subject, MailboxHash })
 
   // ── Identify user from MailboxHash: "swaps-{userId}" ─────────────────────
   const hashMatch = MailboxHash.match(/^swaps-(.+)$/i)
