@@ -247,20 +247,35 @@ export async function POST(req: NextRequest) {
   console.log('[INBOUND] Email details —', { MessageID, From, Subject, MailboxHash, attachmentCount: Attachments.length })
 
   // ── Identify user from MailboxHash: "swaps-{userId}" ─────────────────────
-  const hashMatch = MailboxHash.match(/^swaps-(.+)$/i)
-  if (!hashMatch) {
-    console.log('[INBOUND] No userId in MailboxHash — skipping. Hash was:', MailboxHash)
-    return ok()
-  }
-  const userId = hashMatch[1]
-  console.log('[INBOUND] Resolved userId:', userId)
+  let user: { id: string; email: string | null } | null = null
 
-  const user = await db.user.findUnique({ where: { id: userId } })
+  const hashMatch = MailboxHash.match(/^swaps-(.+)$/i)
+  if (hashMatch) {
+    const userId = hashMatch[1]
+    console.log('[INBOUND] Resolved userId from MailboxHash:', userId)
+    user = await db.user.findUnique({ where: { id: userId }, select: { id: true, email: true } })
+    if (!user) console.log('[INBOUND] No user found for id:', userId)
+  }
+
+  // ── Beta fallback: no MailboxHash — find first active user ───────────────
   if (!user) {
-    console.log('[INBOUND] No user found for id:', userId)
+    console.log('[INBOUND] No userId in MailboxHash — trying beta fallback. Hash was:', MailboxHash)
+    user = await db.user.findFirst({
+      where: { metaAccessToken: { not: null } },
+      select: { id: true, email: true },
+    })
+    if (user) {
+      console.log('[INBOUND] Beta fallback resolved user:', user.email)
+    }
+  }
+
+  if (!user) {
+    console.log('[INBOUND] No user found — skipping email')
     return ok()
   }
   console.log('[INBOUND] User found:', user.email)
+
+  const userId = user.id
 
   try {
     // ── Process main email body ───────────────────────────────────────────
