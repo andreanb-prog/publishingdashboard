@@ -541,7 +541,8 @@ export default function MetaPage() {
   const [dateLoading, setDateLoading] = useState(false)
   const [permissionError, setPermissionError] = useState(false)
   const [metaLastSync, setMetaLastSync] = useState<string | null>(null)
-  const [metaOverride, setMetaOverride] = useState<import('@/types').MetaData | null>(null)
+  // undefined = no date range fetch yet (show analysis cache); null = fetch returned no data for range
+  const [metaOverride, setMetaOverride] = useState<import('@/types').MetaData | null | undefined>(undefined)
 
   // Date range state
   const [preset,      setPreset]      = useState<Preset>('last30')
@@ -583,7 +584,7 @@ export default function MetaPage() {
       if (res.ok) {
         if (data.data) {
           setAnalysis(prev => prev ? { ...prev, meta: data.data } : { meta: data.data } as any)
-          setMetaOverride(null) // clear override so cached data shows fresh sync
+          setMetaOverride(undefined) // clear override so cached data shows fresh sync
         }
         setMetaLastSync(new Date().toISOString())
         window.dispatchEvent(new Event('meta:synced'))
@@ -696,7 +697,7 @@ export default function MetaPage() {
     }
   }
 
-  const meta       = metaOverride ?? analysis?.meta
+  const meta       = metaOverride !== undefined ? metaOverride : analysis?.meta
   const rescueAds  = meta?.ads.filter(ad => ad.clicks === 0 || ad.ctr < 1) ?? []
   const maxCTR     = meta ? Math.max(...meta.ads.map(a => a.ctr), 1) : 1
   const activeColDefs = ALL_COLUMNS.filter(c => activeCols.has(c.key))
