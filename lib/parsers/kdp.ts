@@ -8,35 +8,45 @@ export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
     cellDates: true,
   })
 
-  // ── Wrong format detection: Prior Month Royalties report ─────────────────
-  // This report has A1="Sales Period", B1="February 2026" (or similar).
-  // It is NOT the correct format — AuthorDash needs the All Titles export.
-  const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+  // ── Format detection ─────────────────────────────────────────────────────
+  // Three known formats:
+  //   Dashboard XLSX: sheets include "Combined Sales" (KDP Sales Dashboard download)
+  //   Legacy XLSX:    sheets include "Orders Processed" or "KENP Read" (old month-end report)
+  //   Flat CSV/XLSX:  single sheet with column headers (Royalty Estimator / All Titles)
+
+  const sheetNames = workbook.SheetNames
+
+  // KDP Dashboard XLSX — has "Combined Sales" sheet
+  if (sheetNames.includes('Combined Sales')) {
+    console.log('[KDP parser] Detected: KDP Dashboard XLSX format')
+    return parseDashboardFormat(workbook)
+  }
+
+  // Legacy multi-sheet XLSX
+  if (sheetNames.some(n => n === 'Orders Processed' || n === 'KENP Read')) {
+    console.log('[KDP parser] Detected: Legacy multi-sheet XLSX format')
+    return parseMultiSheetFormat(workbook)
+  }
+
+  // Wrong format: Prior Month Royalties — A1 = "Sales Period"
+  const firstSheet = workbook.Sheets[sheetNames[0]]
   if (firstSheet) {
     const a1 = firstSheet['A1']?.v
     const a1str = typeof a1 === 'string' ? a1.toLowerCase().trim() : ''
     if (a1str === 'sales period') {
       const b1 = firstSheet['B1']?.v ?? ''
       throw new Error(
-        `This looks like a Prior Month Royalties report (${b1}). AuthorDash needs the All Titles export instead. Here's how to get it:\n` +
+        `This looks like a Prior Month Royalties report (${b1}). AuthorDash needs the KDP Sales Dashboard XLSX instead. Here's how to get it:\n` +
         `1. Go to KDP → Reports → Sales Dashboard\n` +
-        `2. Click 'Download' in the top right\n` +
-        `3. Select 'All Titles' from the dropdown\n` +
-        `4. Choose your date range and download`
+        `2. Click 'Download Report' in the top right\n` +
+        `3. Select your date range and download the XLSX`
       )
     }
   }
 
-  // Detect format: Amazon exports two layouts:
-  //   Multi-sheet: "Summary" + "Orders Processed" + "KENP Read" sheets
-  //   Flat:        Single sheet with "Units Sold" / "KENP Read" / "Royalty" columns
-  const hasMultiSheet = workbook.SheetNames.some(
-    n => n === 'Orders Processed' || n === 'KENP Read'
-  )
-
-  return hasMultiSheet
-    ? parseMultiSheetFormat(workbook)
-    : parseFlatFormat(workbook)
+  // Flat single-sheet format
+  console.log('[KDP parser] Detected: Flat single-sheet format')
+  return parseFlatFormat(workbook)
 }
 
 // ── Header-name helpers ───────────────────────────────────────────────────────
@@ -99,6 +109,137 @@ function toISODate(v: unknown): string {
   if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]
   // Fallback: strip time portion if present
   return s.split('T')[0]
+}
+
+// ── KDP Dashboard XLSX format (Combined Sales + KENP Read + Paperback Royalty) ─
+function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
+  // ── Combined Sales sheet (ebooks) ─────────────────────────────────────────
+  const combinedSheet = workbook.Sheets['Combined Sales']
+  const combinedData  = combinedSheet
+    ? (XLSX.utils.sheet_to_json(combinedSheet) as Record<string, unknown>[])
+    : []
+
+  // ── Paperback Royalty sheet ───────────────────────────────────────────────
+  const paperbackSheet = workbook.Sheets['Paperback Royalty']
+  const paperbackData  = paperbackSheet
+    ? (XLSX.utils.sheet_to_json(paperbackSheet) as Record<string, unknown>[])
+    : []
+
+  // ── KENP Read sheet ───────────────────────────────────────────────────────
+  const kenpSheet = workbook.Sheets['KENP Read']
+  const kenpData  = kenpSheet
+    ? (XLSX.utils.sheet_to_json(kenpSheet) as Record<string, unknown>[])
+    : []
+
+  if (combinedData.length) console.log('[KDP parser] Combined Sales headers:', Object.keys(combinedData[0]))
+  if (paperbackData.length) console.log('[KDP parser] Paperback Royalty headers:', Object.keys(paperbackData[0]))
+  if (kenpData.length)     console.log('[KDP parser] KENP Read headers:', Object.keys(kenpData[0]))
+
+  const bookMap = new Map<string, BookData>()
+  const dailyUnitsMap = new Map<string, number>()
+  const dailyKENPMap  = new Map<string, number>()
+  let totalRoyaltiesUSD = 0
+  let paidUnits = 0
+  let paperbackUnits = 0
+
+  // ── Parse Combined Sales (ebooks) ─────────────────────────────────────────
+  for (const row of combinedData) {
+    const asin     = str(pick(row, 'ASIN/ISBN', 'ASIN', 'Asin'))
+    const title    = str(pick(row, 'Title'))
+    const units    = num(pick(row, 'Net Units Sold'))
+    const royalty  = num(pick(row, 'Royalty'))
+    const currency = str(pick(row, 'Currency')).toUpperCase().trim()
+    const date     = toISODate(pick(row, 'Royalty Date'))
+    const isUSD    = currency === 'USD' || currency === ''
+
+    if (!asin && !title) continue
+
+    const key = asin || title
+    if (!bookMap.has(key)) {
+      bookMap.set(key, {
+        title, asin,
+        shortTitle: title.length > 35 ? title.substring(0, 35) + '...' : title,
+        units: 0, kenp: 0, royalties: 0,
+        format: 'ebook',
+      })
+    }
+    bookMap.get(key)!.units     += units
+    bookMap.get(key)!.royalties += isUSD ? royalty : 0
+
+    if (isUSD) totalRoyaltiesUSD += royalty
+    paidUnits += units
+
+    if (date) dailyUnitsMap.set(date, (dailyUnitsMap.get(date) ?? 0) + units)
+  }
+
+  // ── Parse Paperback Royalty ───────────────────────────────────────────────
+  for (const row of paperbackData) {
+    const asin     = str(pick(row, 'ASIN', 'ISBN', 'ASIN/ISBN'))
+    const title    = str(pick(row, 'Title'))
+    const units    = num(pick(row, 'Net Units Sold'))
+    const royalty  = num(pick(row, 'Royalty'))
+    const currency = str(pick(row, 'Currency')).toUpperCase().trim()
+    const date     = toISODate(pick(row, 'Royalty Date'))
+    const isUSD    = currency === 'USD' || currency === ''
+
+    if (!asin && !title) continue
+
+    const key = asin || title
+    if (!bookMap.has(key)) {
+      bookMap.set(key, {
+        title, asin,
+        shortTitle: title.length > 35 ? title.substring(0, 35) + '...' : title,
+        units: 0, kenp: 0, royalties: 0,
+        format: 'paperback',
+      })
+    }
+    bookMap.get(key)!.units     += units
+    bookMap.get(key)!.royalties += isUSD ? royalty : 0
+
+    if (isUSD) totalRoyaltiesUSD += royalty
+    paperbackUnits += units
+
+    if (date) dailyUnitsMap.set(date, (dailyUnitsMap.get(date) ?? 0) + units)
+  }
+
+  // ── Parse KENP Read ───────────────────────────────────────────────────────
+  let totalKENP = 0
+  for (const row of kenpData) {
+    const asin = str(pick(row, 'ASIN', 'Asin'))
+    const kenp = num(pick(row,
+      'Kindle Edition Normalized Page (KENP) Read',
+      'KENP Read', 'KENP Pages Read', 'Pages Read', 'KENP',
+    ))
+    const date = toISODate(pick(row, 'Date'))
+
+    if (asin && bookMap.has(asin)) bookMap.get(asin)!.kenp += kenp
+    totalKENP += kenp
+    if (date) dailyKENPMap.set(date, (dailyKENPMap.get(date) ?? 0) + kenp)
+  }
+
+  // ── Derive month from first date in Combined Sales ────────────────────────
+  const firstRow = combinedData[0]
+  const firstDate = firstRow ? toISODate(pick(firstRow as Record<string, unknown>, 'Royalty Date')) : ''
+  const month = firstDate ? firstDate.substring(0, 7) : new Date().toISOString().substring(0, 7)
+
+  const books      = Array.from(bookMap.values()).sort((a, b) => b.units - a.units)
+  const totalUnits = books.reduce((sum, b) => sum + b.units, 0)
+  const kenpFromBooks = books.reduce((sum, b) => sum + b.kenp, 0)
+  const resolvedKENP  = kenpFromBooks > totalKENP ? kenpFromBooks : totalKENP
+
+  const dailyUnits: DailyData[] = Array.from(dailyUnitsMap.entries())
+    .map(([date, value]) => ({ date, value }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  const dailyKENP: DailyData[] = Array.from(dailyKENPMap.entries())
+    .map(([date, value]) => ({ date, value }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  return {
+    month, totalRoyaltiesUSD, totalUnits, totalKENP: resolvedKENP,
+    books, dailyUnits, dailyKENP,
+    summary: { paidUnits, freeUnits: 0, paperbackUnits },
+  }
 }
 
 // ── Multi-sheet format (standard KDP month-end report) ───────────────────────

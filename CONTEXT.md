@@ -165,6 +165,7 @@ GitHub Issues:    3351503444438125aabae7ec7deba251
 ---
 
 ## Known Bugs / Watch Out For
+- KDP export format: KDP Dashboard XLSX is the correct export (multi-sheet: Combined Sales, KENP Read, Paperback Royalty). The old All Titles CSV is no longer the primary format. Parser handles both — detects Dashboard XLSX by presence of "Combined Sales" sheet, legacy by "Orders Processed"/"KENP Read", flat CSV as fallback.
 - Postmark per-user inbound format: `{POSTMARK_INBOUND_TOKEN}+swaps-{userId}@inbound.postmarkapp.com` — the `+` is the mailbox hash separator. The token goes BEFORE the `+`, NOT as a second `@`. `MailboxHash` in the webhook payload contains `swaps-{userId}` and is how the webhook identifies which user the email belongs to. `POSTMARK_INBOUND_TOKEN` env var must be set in Vercel (just the token, not the full address).
 - File upload `<input type="file">` must NEVER be conditionally mounted â always in DOM, hidden with CSS
 - MailerLite API v3 ONLY: use `connect.mailerlite.com/api` with `Authorization: Bearer {key}` header. Active count: `/subscribers?filter[status]=active&limit=1` → `meta.total`. Unsubscribed: `/subscribers?filter[status]=unsubscribed&limit=1` → `meta.total`. NEVER use `api.mailerlite.com/api/v2`, `/api/v2/stats`, or `X-MailerLite-ApiKey` header.
