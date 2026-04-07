@@ -89,6 +89,36 @@ function num(v: unknown): number { return Number(v || 0) }
 function str(v: unknown): string { return String(v || '') }
 
 /**
+ * Deduplicate a books array by ASIN (or normalized title if no ASIN).
+ * Merges units, kenp, and royalties across ebook/paperback/marketplace rows
+ * into a single record per unique title. Preserves insertion order so color
+ * assignment (B1=coral, B2=peach…) stays stable across uploads.
+ */
+function deduplicateBooks(books: BookData[]): BookData[] {
+  const seen = new Map<string, BookData>()
+  for (const book of books) {
+    const key = book.asin?.trim()
+      || book.title.toLowerCase().trim()
+    if (!key) continue
+    if (seen.has(key)) {
+      const existing = seen.get(key)!
+      existing.units     += book.units
+      existing.kenp      += book.kenp
+      existing.royalties += book.royalties
+      // Keep the richer title/asin (prefer whichever has both)
+      if (!existing.asin && book.asin) {
+        existing.asin      = book.asin
+        existing.title     = book.title
+        existing.shortTitle = book.shortTitle
+      }
+    } else {
+      seen.set(key, { ...book })
+    }
+  }
+  return Array.from(seen.values()).sort((a, b) => b.units - a.units)
+}
+
+/**
  * Safely convert any date-like value from XLSX to a YYYY-MM-DD string.
  * XLSX with cellDates:true returns JS Date objects; String(date) gives a
  * locale string that does NOT contain 'T', so the old .split('T')[0] trick
@@ -222,7 +252,7 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   const firstDate = firstRow ? toISODate(pick(firstRow as Record<string, unknown>, 'Royalty Date')) : ''
   const month = firstDate ? firstDate.substring(0, 7) : new Date().toISOString().substring(0, 7)
 
-  const books      = Array.from(bookMap.values()).sort((a, b) => b.units - a.units)
+  const books      = deduplicateBooks(Array.from(bookMap.values()))
   const totalUnits = books.reduce((sum, b) => sum + b.units, 0)
   const kenpFromBooks = books.reduce((sum, b) => sum + b.kenp, 0)
   const resolvedKENP  = kenpFromBooks > totalKENP ? kenpFromBooks : totalKENP
@@ -391,7 +421,7 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
     .map(([date, value]) => ({ date, value }))
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const books      = Array.from(bookMap.values()).sort((a, b) => b.units - a.units)
+  const books      = deduplicateBooks(Array.from(bookMap.values()))
   const totalUnits = books.reduce((sum, b) => sum + b.units, 0)
 
   // Prefer per-book KENP sum (from named columns in KENP sheet) over the Summary
@@ -471,7 +501,7 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
     rowCount++
   }
 
-  const books      = Array.from(bookMap.values()).sort((a, b) => b.units - a.units)
+  const books      = deduplicateBooks(Array.from(bookMap.values()))
   const totalUnits = books.reduce((sum, b) => sum + b.units, 0)
 
   // Flat exports don't include a date column — use current month as best guess

@@ -389,7 +389,7 @@ export async function GET(req: NextRequest) {
   let kdpLastUploadedAt: string | null = null
   const kdpRecord = recentRecords.find(r => (r.data as any)?.kdp)
   if (kdpRecord) {
-    kdpLastUploadedAt = kdpRecord.createdAt.toISOString()
+    kdpLastUploadedAt = (kdpRecord.data as any)?.kdpUploadedAt ?? kdpRecord.createdAt.toISOString()
     if (!analysis?.kdp) {
       analysis = analysis
         ? { ...analysis, kdp: (kdpRecord.data as any).kdp }
