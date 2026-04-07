@@ -389,11 +389,30 @@ export async function GET(req: NextRequest) {
   let kdpLastUploadedAt: string | null = null
   const kdpRecord = recentRecords.find(r => (r.data as any)?.kdp)
   if (kdpRecord) {
-    kdpLastUploadedAt = (kdpRecord.data as any)?.kdpUploadedAt ?? kdpRecord.createdAt.toISOString()
     if (!analysis?.kdp) {
       analysis = analysis
         ? { ...analysis, kdp: (kdpRecord.data as any).kdp }
         : (kdpRecord.data as any)
+    }
+  }
+
+  // Prefer UploadLog for last upload timestamp — it's set at parse time, not analysis time
+  try {
+    const kdpLog = await db.uploadLog.findFirst({
+      where: { userId: userRow!.id, dataType: 'kdp' },
+      orderBy: { uploadedAt: 'desc' },
+      select: { uploadedAt: true },
+    })
+    if (kdpLog) {
+      kdpLastUploadedAt = kdpLog.uploadedAt.toISOString()
+    } else if (kdpRecord) {
+      // Fallback for uploads before UploadLog existed
+      kdpLastUploadedAt = (kdpRecord.data as any)?.kdpUploadedAt ?? kdpRecord.createdAt.toISOString()
+    }
+  } catch {
+    // UploadLog table may not exist yet in older environments
+    if (kdpRecord) {
+      kdpLastUploadedAt = (kdpRecord.data as any)?.kdpUploadedAt ?? kdpRecord.createdAt.toISOString()
     }
   }
 

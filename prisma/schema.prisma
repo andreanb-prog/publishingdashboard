@@ -81,6 +81,7 @@ model User {
   swapEntries   SwapEntry[]
   swapPolicies  SwapPolicy[]
   authorLists   AuthorList[]
+  uploadLogs    UploadLog[]
   createdAt     DateTime       @default(now())
 }
 
@@ -521,4 +522,16 @@ model Ad {
   createdAt     DateTime @default(now())
 
   @@index([adSetId])
+}
+
+model UploadLog {
+  id         String   @id @default(cuid())
+  userId     String
+  dataType   String   // "kdp" | "meta" | "kenp"
+  uploadedAt DateTime @default(now())
+  fileName   String?
+  rowsParsed Int      @default(0)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dataType])
 }

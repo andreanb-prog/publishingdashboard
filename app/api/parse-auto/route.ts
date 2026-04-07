@@ -2,9 +2,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { db } from '@/lib/db'
 import { parseKDPFile } from '@/lib/parsers/kdp'
 import { parseMetaFile } from '@/lib/parsers/meta'
 import { parsePinterestFile } from '@/lib/parsers/pinterest'
+
+async function logUpload(userId: string, dataType: string, fileName: string, rowsParsed: number) {
+  try {
+    await db.uploadLog.create({
+      data: { userId, dataType, fileName, rowsParsed, uploadedAt: new Date() },
+    })
+  } catch (err) {
+    console.error('[parse-auto] Failed to write UploadLog:', err)
+  }
+}
 
 function detectCSVType(text: string): 'meta' | 'pinterest' | 'unknown' {
   // Pinterest exports start with "Analytics overview" and contain "Impressions"
@@ -63,6 +74,7 @@ export async function POST(req: NextRequest) {
 
       if (excelType === 'kdp') {
         const data = parseKDPFile(buffer)
+        await logUpload(session.user.id, 'kdp', file.name, data.books.length)
         return NextResponse.json({
           success: true, type: 'kdp', data,
           summary: `${data.totalUnits} units · ${data.totalKENP?.toLocaleString()} KENP · $${data.totalRoyaltiesUSD} royalties`,
@@ -75,6 +87,7 @@ export async function POST(req: NextRequest) {
         const wb = XLSX.read(buffer, { type: 'buffer' })
         const csvText: string = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]], { blankrows: false })
         const data = parseMetaFile(csvText)
+        await logUpload(session.user.id, 'meta', file.name, data.ads.length)
         return NextResponse.json({
           success: true, type: 'meta', data,
           summary: `${data.ads.length} ads · $${data.totalSpend} spend · ${data.totalClicks} clicks`,
@@ -90,6 +103,7 @@ export async function POST(req: NextRequest) {
 
     if (csvType === 'meta') {
       const data = parseMetaFile(text)
+      await logUpload(session.user.id, 'meta', file.name, data.ads.length)
       return NextResponse.json({
         success: true, type: 'meta', data,
         summary: `${data.ads.length} ads · $${data.totalSpend} spend · ${data.totalClicks} clicks`,

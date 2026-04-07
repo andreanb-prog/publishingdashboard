@@ -864,7 +864,14 @@ export default function KDPPage() {
             onCustomStart={setCustomStart} onCustomEnd={setCustomEnd} />
           <p className="text-[11px] mt-1.5" style={{ color: '#9CA3AF' }}>
             {kdpLastUploadedAt
-              ? <>Showing data from your last upload — {new Date(kdpLastUploadedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload a new report</a> to see the latest numbers.</>
+              ? (() => {
+                  const uploadDate = new Date(kdpLastUploadedAt)
+                  const today = new Date()
+                  const isToday = uploadDate.toDateString() === today.toDateString()
+                  return isToday
+                    ? <>Showing data from today&apos;s upload ✅</>
+                    : <>Showing data from your last upload — {uploadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload a new report</a> to see the latest numbers.</>
+                })()
               : <>No data uploaded yet. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload your KDP report</a> to get started.</>
             }
           </p>
