@@ -61,6 +61,10 @@ export function useWorkbook(bookId: string | null) {
     return data[key] ?? ''
   }, [data])
 
+  // Keep bookId in a ref so debounced callbacks always use the current value
+  const bookIdRef = useRef(bookId)
+  bookIdRef.current = bookId
+
   const setValue = useCallback((phase: string, section: string, content: string, chapterIndex?: number) => {
     const key = chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
     setData(prev => ({ ...prev, [key]: content }))
@@ -71,12 +75,17 @@ export function useWorkbook(bookId: string | null) {
     setSaved(prev => ({ ...prev, [key]: false }))
 
     debounceTimers.current[key] = setTimeout(async () => {
+      const currentBookId = bookIdRef.current
+      if (!currentBookId) {
+        setSaving(prev => ({ ...prev, [key]: false }))
+        return
+      }
       try {
         await fetch('/api/writing-notebook', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            bookId,
+            bookId: currentBookId,
             phase,
             section,
             chapterIndex: chapterIndex ?? null,
@@ -88,7 +97,7 @@ export function useWorkbook(bookId: string | null) {
       } catch { /* noop */ }
       setSaving(prev => ({ ...prev, [key]: false }))
     }, 1000)
-  }, [bookId])
+  }, [])
 
   const isSaving = useCallback((phase: string, section: string, chapterIndex?: number): boolean => {
     const key = chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`

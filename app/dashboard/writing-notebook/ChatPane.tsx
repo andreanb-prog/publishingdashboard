@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { Lock, Trash2, ArrowRight, Square, BookOpen, Sparkles } from 'lucide-react'
 import type { Phase, StyleGuide, WorkbookData } from './useWorkbook'
 
@@ -272,8 +273,10 @@ export function ChatPane(props: Props) {
         ))}
         {streaming && streamContent && (
           <div className="flex justify-start">
-            <div className="max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap" style={{ background: '#FFFFFF', borderLeft: '4px solid #E9A020', color: '#1E2D3D' }}>
-              {streamContent}
+            <div className="max-w-[85%] px-4 py-3 rounded-2xl text-sm" style={{ background: '#FFFFFF', borderLeft: '4px solid #E9A020', color: '#1E2D3D' }}>
+              <div className="wn-prose">
+                <ReactMarkdown>{streamContent}</ReactMarkdown>
+              </div>
               <span className="inline-block w-2 h-4 ml-1 animate-pulse rounded-sm" style={{ background: '#E9A020' }} />
             </div>
           </div>
@@ -385,14 +388,20 @@ function MessageBubble({ message, onSaveToChapter, getChapterCount }: {
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className="relative max-w-[85%]">
         <div
-          className="px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap"
+          className="px-4 py-3 rounded-2xl text-sm"
           style={{
             background: isUser ? '#E9A020' : '#FFFFFF',
             color: isUser ? '#FFFFFF' : '#1E2D3D',
             borderLeft: isUser ? 'none' : '4px solid #E9A020',
           }}
         >
-          {message.content}
+          {isUser ? (
+            <span className="whitespace-pre-wrap">{message.content}</span>
+          ) : (
+            <div className="wn-prose">
+              <ReactMarkdown>{message.content}</ReactMarkdown>
+            </div>
+          )}
         </div>
         {showSaveButton && onSaveToChapter && (
           <div className="mt-1 relative">

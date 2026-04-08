@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { WritingOnboarding } from './WritingOnboarding'
 import { WorkbookPane } from './WorkbookPane'
 import { ChatPane } from './ChatPane'
+import { BookSelector } from './BookSelector'
 import { useWorkbook, type Phase } from './useWorkbook'
 
 interface BookOption {
@@ -94,6 +95,14 @@ export default function WritingNotebookPage() {
     }
   }, [])
 
+  const handleBookCreated = useCallback((book: { id: string; title: string }) => {
+    setBooks(prev => [...prev, book])
+  }, [])
+
+  const handleBookRenamed = useCallback((id: string, newTitle: string) => {
+    setBooks(prev => prev.map(b => b.id === id ? { ...b, title: newTitle } : b))
+  }, [])
+
   const onSendToChat = useCallback((text: string) => {
     setPrefillMessage(text)
     setMobileView('chat')
@@ -149,17 +158,13 @@ export default function WritingNotebookPage() {
 
       {/* Book selector */}
       <div className="flex items-center gap-3 px-4 py-2.5 flex-shrink-0" style={{ borderBottom: '1px solid #EEEBE6', background: '#FFFFFF' }}>
-        <select
-          value={selectedBookId ?? ''}
-          onChange={e => setSelectedBookId(e.target.value || null)}
-          className="px-3 py-1.5 rounded-lg text-sm border outline-none"
-          style={{ borderColor: '#E5E7EB', minWidth: 200 }}
-        >
-          <option value="">Select a book...</option>
-          {books.map(b => (
-            <option key={b.id} value={b.id}>{b.title}</option>
-          ))}
-        </select>
+        <BookSelector
+          books={books}
+          selectedBookId={selectedBookId}
+          onSelectBook={setSelectedBookId}
+          onBookCreated={handleBookCreated}
+          onBookRenamed={handleBookRenamed}
+        />
 
         {/* Mobile toggle */}
         <div className="md:hidden ml-auto">
@@ -191,6 +196,9 @@ export default function WritingNotebookPage() {
             onSendToChat={onSendToChat}
             globalKillList={globalKillList}
             onUpdateGlobalKillList={updateGlobalKillList}
+            bookId={selectedBookId}
+            bookTitle={selectedBook?.title ?? ''}
+            data={workbook.data}
           />
         </div>
 
@@ -236,6 +244,9 @@ export default function WritingNotebookPage() {
             onSendToChat={onSendToChat}
             globalKillList={globalKillList}
             onUpdateGlobalKillList={updateGlobalKillList}
+            bookId={selectedBookId}
+            bookTitle={selectedBook?.title ?? ''}
+            data={workbook.data}
           />
         ) : (
           <ChatPane

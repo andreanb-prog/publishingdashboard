@@ -197,3 +197,35 @@
 .animate-fade-up-delay-3 { animation-delay: 0.15s; }
 .animate-fade-up-delay-4 { animation-delay: 0.2s; }
 .animate-fade-up-delay-5 { animation-delay: 0.25s; }
+
+/* Writing Notebook — chat prose */
+.wn-prose { line-height: 1.6; }
+.wn-prose > *:first-child { margin-top: 0; }
+.wn-prose > *:last-child { margin-bottom: 0; }
+.wn-prose p { margin: 0.5em 0; }
+.wn-prose h1, .wn-prose h2, .wn-prose h3 {
+  font-weight: 700; color: #1E2D3D; margin: 0.75em 0 0.25em;
+}
+.wn-prose h1 { font-size: 1.15em; }
+.wn-prose h2 { font-size: 1.05em; }
+.wn-prose h3 { font-size: 1em; }
+.wn-prose strong { font-weight: 700; }
+.wn-prose em { font-style: italic; }
+.wn-prose ul, .wn-prose ol { margin: 0.5em 0; padding-left: 1.25em; }
+.wn-prose li { margin: 0.2em 0; }
+.wn-prose ul li { list-style-type: disc; }
+.wn-prose ol li { list-style-type: decimal; }
+.wn-prose code {
+  background: #FFF8F0; padding: 0.15em 0.35em; border-radius: 4px;
+  font-size: 0.9em; font-family: monospace;
+}
+.wn-prose pre {
+  background: #FFF8F0; padding: 0.75em 1em; border-radius: 8px;
+  overflow-x: auto; margin: 0.5em 0;
+}
+.wn-prose pre code { background: none; padding: 0; }
+.wn-prose blockquote {
+  border-left: 3px solid #E9A020; padding-left: 0.75em;
+  margin: 0.5em 0; color: #6B7280; font-style: italic;
+}
+.wn-prose hr { border: none; border-top: 1px solid #EEEBE6; margin: 0.75em 0; }

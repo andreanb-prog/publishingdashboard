@@ -1,7 +1,8 @@
 'use client'
-import { useState, useMemo } from 'react'
-import { Plus, Copy, Sparkles, BookOpen } from 'lucide-react'
-import type { Phase, StyleGuide, ChapterMeta } from './useWorkbook'
+import { useState, useMemo, useCallback } from 'react'
+import { Plus, Copy, Sparkles, BookOpen, Upload, Download, FileText, ChevronDown, ChevronUp, ScrollText } from 'lucide-react'
+import type { Phase, StyleGuide, ChapterMeta, WorkbookData } from './useWorkbook'
+import { FileUploadDialog, type ImportTarget } from './FileUploadDialog'
 
 // ─── WRITING FORMULA REFERENCE CARD ──────────────────────────
 const WRITING_FORMULA_TEXT = `WRITING FORMULA:
@@ -30,6 +31,9 @@ interface Props {
   onSendToChat?: (text: string) => void
   globalKillList: { word: string; scope: 'global' | 'book' }[]
   onUpdateGlobalKillList: (list: { word: string; scope: 'global' | 'book' }[]) => void
+  bookId?: string | null
+  bookTitle?: string
+  data?: WorkbookData
 }
 
 const PHASES: { key: Phase; label: string; icon: string }[] = [
@@ -40,12 +44,45 @@ const PHASES: { key: Phase; label: string; icon: string }[] = [
 ]
 
 export function WorkbookPane(props: Props) {
-  const { phase, setPhase } = props
+  const { phase, setPhase, getValue, setValue, getChapterMeta, setChapterMeta } = props
+  const [showUpload, setShowUpload] = useState(false)
+
+  const handleImport = useCallback((target: ImportTarget, content: string) => {
+    const CHAPTER_RE = /^(?:chapter\s+\d+|ch\.?\s*\d+|part\s+\d+)/gim
+
+    if (target.type === 'storyOutline') {
+      const existing = getValue('setup', 'storyOutline')
+      setValue('setup', 'storyOutline', existing ? existing + '\n\n' + content : content)
+      setPhase('setup')
+    } else if (target.type === 'characterBible') {
+      const existing = getValue('setup', 'characterBible')
+      setValue('setup', 'characterBible', existing ? existing + '\n\n' + content : content)
+      setPhase('setup')
+    } else if (target.type === 'singleChapter') {
+      const meta = getChapterMeta('writing')
+      const idx = meta.count
+      setChapterMeta('writing', { count: meta.count + 1, titles: [...meta.titles, ''] })
+      setValue('writing', 'chapter', content, idx)
+      setPhase('writing')
+    } else if (target.type === 'splitChapters') {
+      const parts = content.split(CHAPTER_RE).filter(s => s.trim())
+      const headings = content.match(CHAPTER_RE) || []
+      const meta = getChapterMeta('writing')
+      let startIdx = meta.count
+      const newTitles = [...meta.titles]
+      parts.forEach((text, i) => {
+        newTitles.push(headings[i]?.trim() || '')
+        setValue('writing', 'chapter', text.trim(), startIdx + i)
+      })
+      setChapterMeta('writing', { count: startIdx + parts.length, titles: newTitles })
+      setPhase('writing')
+    }
+  }, [getValue, setValue, getChapterMeta, setChapterMeta, setPhase])
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden relative">
       {/* Phase tabs */}
-      <div className="flex gap-2 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #EEEBE6' }}>
+      <div className="flex items-center gap-2 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #EEEBE6' }}>
         {PHASES.map(p => (
           <button
             key={p.key}
@@ -60,6 +97,16 @@ export function WorkbookPane(props: Props) {
             {p.icon} {p.label}
           </button>
         ))}
+        <button
+          onClick={() => setShowUpload(true)}
+          className="ml-auto w-8 h-8 rounded-lg flex items-center justify-center border-none cursor-pointer transition-colors"
+          style={{ background: 'transparent', color: '#9CA3AF' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#E9A020'; e.currentTarget.style.background = '#FFF8F0' }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#9CA3AF'; e.currentTarget.style.background = 'transparent' }}
+          title="Import .docx or .txt file"
+        >
+          <Upload size={16} />
+        </button>
       </div>
 
       {/* Phase content */}
@@ -69,6 +116,13 @@ export function WorkbookPane(props: Props) {
         {phase === 'edit' && <EditPhase {...props} />}
         {phase === 'polish' && <PolishPhase {...props} />}
       </div>
+
+      {/* File upload dialog */}
+      <FileUploadDialog
+        isOpen={showUpload}
+        onClose={() => setShowUpload(false)}
+        onImport={handleImport}
+      />
     </div>
   )
 }
@@ -419,8 +473,192 @@ function WritingPhase(props: Props) {
   )
 }
 
+// ─── CHAPTER STATUS TAG ─────────────────────────────────────
+function ChapterStatusTag({ draftContent, finalContent }: { draftContent: string; finalContent: string }) {
+  if (finalContent.trim()) {
+    return (
+      <span className="text-xs rounded-full px-2 py-0.5 font-medium" style={{ background: '#6EBF8B', color: '#FFFFFF' }}>
+        Final
+      </span>
+    )
+  }
+  if (draftContent.trim()) {
+    return (
+      <span className="text-xs rounded-full px-2 py-0.5 font-medium" style={{ background: '#E9A020', color: '#FFFFFF' }}>
+        Draft
+      </span>
+    )
+  }
+  return (
+    <span className="text-xs rounded-full px-2 py-0.5 font-medium" style={{ color: '#9CA3AF', border: '1px solid #D1D5DB' }}>
+      Empty
+    </span>
+  )
+}
+
+// ─── EXPORT DROPDOWN ────────────────────────────────────────
+function ExportDropdown({ bookId, bookTitle, phaseKey }: { bookId?: string | null; bookTitle?: string; phaseKey: 'writing' | 'polish' }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [toast, setToast] = useState('')
+
+  const showToast = (msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3000)
+  }
+
+  const downloadDocx = async (type: 'manuscript' | 'notes') => {
+    if (!bookId) return
+    setIsOpen(false)
+    const source = phaseKey === 'polish' ? 'final' : 'drafts'
+    const res = await fetch('/api/writing-notebook/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookId, type, format: 'docx', source }),
+    })
+    if (!res.ok) return
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const suffix = type === 'notes' ? 'Notes' : (phaseKey === 'polish' ? 'Final' : 'Draft')
+    a.download = `${bookTitle || 'Book'} — ${suffix}.docx`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const copyForGoogleDocs = async () => {
+    if (!bookId) return
+    setIsOpen(false)
+    const source = phaseKey === 'polish' ? 'final' : 'drafts'
+    const res = await fetch('/api/writing-notebook/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookId, type: 'manuscript', format: 'text', source }),
+    })
+    if (!res.ok) return
+    const { text } = await res.json()
+    await navigator.clipboard.writeText(text)
+    showToast('Copied — paste into a new Google Doc')
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs bg-transparent border-none cursor-pointer"
+        style={{ color: '#9CA3AF' }}
+        onMouseEnter={e => (e.currentTarget.style.color = '#E9A020')}
+        onMouseLeave={e => (e.currentTarget.style.color = '#9CA3AF')}
+      >
+        <Download size={14} /> Export
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-20 p-2 rounded-lg min-w-[240px]"
+            style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+            <button
+              onClick={() => downloadDocx('manuscript')}
+              className="w-full text-left flex items-center gap-2 px-2 py-2 rounded text-xs border-none cursor-pointer"
+              style={{ background: 'transparent', color: '#1E2D3D' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#FFF8F0')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <FileText size={14} style={{ color: '#E9A020' }} />
+              Download as Word (.docx)
+            </button>
+            <button
+              onClick={copyForGoogleDocs}
+              className="w-full text-left flex flex-col items-start px-2 py-2 rounded text-xs border-none cursor-pointer"
+              style={{ background: 'transparent', color: '#1E2D3D' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#FFF8F0')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <div className="flex items-center gap-2">
+                <Copy size={14} style={{ color: '#E9A020' }} />
+                Copy text for Google Docs
+              </div>
+              <span className="text-[11px] italic ml-[22px] mt-0.5" style={{ color: '#9CA3AF' }}>
+                Open docs.google.com, create a new doc, and paste.
+              </span>
+            </button>
+            <div style={{ height: 1, background: '#EEEBE6', margin: '4px 0' }} />
+            <button
+              onClick={() => downloadDocx('notes')}
+              className="w-full text-left flex items-center gap-2 px-2 py-2 rounded text-xs border-none cursor-pointer"
+              style={{ background: 'transparent', color: '#1E2D3D' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#FFF8F0')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <BookOpen size={14} style={{ color: '#E9A020' }} />
+              Export outline & notes (.docx)
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg text-sm font-medium shadow-lg"
+          style={{ background: '#6EBF8B', color: '#FFFFFF' }}>
+          {toast}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── STORY SO FAR CARD (drawer) ─────────────────────────────
+function StorySoFarCard({ content, onEdit }: { content: string; onEdit: () => void }) {
+  const [expanded, setExpanded] = useState(false)
+  const isEmpty = !content.trim()
+
+  return (
+    <div className="rounded-lg p-3 mb-3" style={{ background: '#EFF6FF', borderLeft: '3px solid #E9A020' }}>
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-1.5">
+          <ScrollText size={14} style={{ color: '#60A5FA' }} />
+          <span className="text-[13px] font-medium" style={{ color: '#1E2D3D' }}>Story So Far</span>
+        </div>
+        <button
+          onClick={onEdit}
+          className="text-xs bg-transparent border-none cursor-pointer"
+          style={{ color: '#E9A020', opacity: 0.8 }}
+        >
+          Edit
+        </button>
+      </div>
+      {isEmpty ? (
+        <p className="text-[13px] italic" style={{ color: '#9CA3AF' }}>
+          No story summary yet — add one after your first chapter
+        </p>
+      ) : (
+        <>
+          <div
+            className={`text-[13px] leading-[1.7] ${expanded ? 'max-h-72 overflow-y-auto' : ''}`}
+            style={{ color: '#1E2D3D' }}
+          >
+            {expanded ? content : (content.length > 120 ? content.slice(0, 120) + '...' : content)}
+          </div>
+          {content.length > 120 && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="flex items-center gap-0.5 mt-1 text-[11px] bg-transparent border-none cursor-pointer"
+              style={{ color: '#9CA3AF' }}
+            >
+              {expanded ? <><ChevronUp size={12} /> Collapse</> : <><ChevronDown size={12} /> Read more</>}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── CHAPTER DRAFTS ──────────────────────────────────────────
-function ChapterDrafts({ getValue, setValue, isSaving, isSaved, getChapterMeta, setChapterMeta, onSendToChat, phaseKey }: Props & { phaseKey: 'writing' | 'polish' }) {
+function ChapterDrafts(props: Props & { phaseKey: 'writing' | 'polish' }) {
+  const { getValue, setValue, isSaving, isSaved, getChapterMeta, setChapterMeta, onSendToChat, phaseKey, bookId, bookTitle, setPhase } = props
   const meta = getChapterMeta(phaseKey)
   const [activeChapter, setActiveChapter] = useState(0)
   const [showManuscript, setShowManuscript] = useState(false)
@@ -456,6 +694,10 @@ function ChapterDrafts({ getValue, setValue, isSaving, isSaved, getChapterMeta, 
     return { text: parts.join('\n\n'), total }
   }, [meta, getValue, phaseKey])
 
+  // Story outline and story so far for drawer cards
+  const storyOutline = getValue('setup', 'storyOutline')
+  const storySoFar = getValue('writing', 'storySoFar')
+
   if (showManuscript) {
     return (
       <div>
@@ -473,77 +715,144 @@ function ChapterDrafts({ getValue, setValue, isSaving, isSaved, getChapterMeta, 
   }
 
   return (
-    <div>
-      {/* Chapter pills */}
-      <div className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1">
-        {Array.from({ length: meta.count }, (_, i) => (
+    <div className="flex gap-4">
+      {/* ── Chapter Drawer (left sidebar) ── */}
+      <div className="w-64 flex-shrink-0 overflow-y-auto pr-1" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+        {/* Drawer header */}
+        <div className="flex items-center justify-between mb-3">
+          <ExportDropdown bookId={bookId} bookTitle={bookTitle} phaseKey={phaseKey} />
           <button
-            key={i}
-            onClick={() => setActiveChapter(i)}
-            className="px-3 py-1 rounded-full text-xs font-semibold border-none cursor-pointer whitespace-nowrap flex-shrink-0"
-            style={{
-              background: activeChapter === i ? '#E9A020' : 'transparent',
-              color: activeChapter === i ? '#FFFFFF' : '#1E2D3D',
-              border: activeChapter === i ? 'none' : '1.5px solid #E5E7EB',
-            }}
+            onClick={addChapter}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold border-none cursor-pointer"
+            style={{ background: '#E9A020', color: '#FFFFFF' }}
           >
-            Ch {i + 1}
+            <Plus size={12} /> New Chapter
           </button>
-        ))}
-        <button onClick={addChapter} className="w-7 h-7 rounded-full flex items-center justify-center border-none cursor-pointer flex-shrink-0" style={{ background: '#F3F4F6' }}>
-          <Plus size={14} style={{ color: '#6B7280' }} />
+        </div>
+
+        {/* 1. Story Outline card */}
+        <div className="rounded-lg p-3 mb-3" style={{ background: '#FFF8F0', borderLeft: '3px solid #E9A020' }}>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-1.5">
+              <BookOpen size={14} style={{ color: '#E9A020' }} />
+              <span className="text-[13px] font-medium" style={{ color: '#1E2D3D' }}>Story Outline</span>
+            </div>
+            <button
+              onClick={() => setPhase('setup')}
+              className="text-xs bg-transparent border-none cursor-pointer"
+              style={{ color: '#E9A020', opacity: 0.8 }}
+            >
+              Edit
+            </button>
+          </div>
+          <p className="text-[13px]" style={{ color: '#6B7280' }}>
+            {storyOutline ? (storyOutline.length > 80 ? storyOutline.slice(0, 80) + '...' : storyOutline) : (
+              <span className="italic" style={{ color: '#9CA3AF' }}>No outline yet</span>
+            )}
+          </p>
+        </div>
+
+        {/* 2. Story So Far card */}
+        <StorySoFarCard
+          content={storySoFar}
+          onEdit={() => {
+            setPhase('writing')
+            // The WritingPhase will default to "Story So Far" tab
+          }}
+        />
+
+        {/* 3. Chapter cards */}
+        <div className="space-y-1.5">
+          {Array.from({ length: meta.count }, (_, i) => {
+            const draftContent = getValue('writing', 'chapter', i)
+            const finalContent = getValue('polish', 'chapter', i)
+            const title = meta.titles[i] || `Chapter ${i + 1}`
+            const isActive = activeChapter === i
+            return (
+              <button
+                key={i}
+                onClick={() => setActiveChapter(i)}
+                className="w-full text-left p-2.5 rounded-lg border-none cursor-pointer transition-colors"
+                style={{
+                  background: isActive ? '#FFF8F0' : '#FFFFFF',
+                  border: isActive ? '1.5px solid #E9A020' : '1px solid #E5E7EB',
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold px-1.5 py-0.5 rounded" style={{ background: '#F3F4F6', color: '#6B7280' }}>
+                    {i + 1}
+                  </span>
+                  <ChapterStatusTag draftContent={draftContent} finalContent={finalContent} />
+                  <span className="text-xs truncate flex-1" style={{ color: '#1E2D3D' }}>{title}</span>
+                </div>
+                {draftContent.trim() && (
+                  <p className="text-[11px] mt-1 truncate ml-7" style={{ color: '#9CA3AF' }}>
+                    {draftContent.trim().split(/\s+/).filter(Boolean).length.toLocaleString()} words
+                  </p>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {meta.count === 0 && (
+          <p className="text-xs text-center mt-4 italic" style={{ color: '#9CA3AF' }}>
+            No chapters yet. Click "+ New Chapter" to start writing.
+          </p>
+        )}
+
+        {/* View Full Manuscript */}
+        <button
+          onClick={() => setShowManuscript(true)}
+          className="flex items-center gap-1.5 mt-4 text-xs font-medium bg-transparent border-none cursor-pointer w-full justify-center"
+          style={{ color: '#E9A020' }}
+        >
+          <BookOpen size={14} /> View Full Manuscript
         </button>
       </div>
 
-      {/* Active chapter */}
-      <input
-        value={chapterTitle}
-        onChange={e => setTitle(e.target.value)}
-        placeholder="Chapter title (optional)"
-        className="w-full px-3 py-2 rounded-lg text-sm border outline-none mb-2"
-        style={{ borderColor: '#E5E7EB' }}
-      />
-      <WBTextarea
-        value={chapterContent}
-        onChange={v => setValue(phaseKey, 'chapter', v, activeChapter)}
-        placeholder={phaseKey === 'polish' ? 'Final draft for this chapter...' : 'Write your chapter here...'}
-        minH={600}
-        showWordCount
-        phase={phaseKey} section="chapter" chapterIndex={activeChapter}
-        isSaving={isSaving} isSaved={isSaved}
-      />
+      {/* ── Chapter Editor (main area) ── */}
+      <div className="flex-1 min-w-0">
+        <input
+          value={chapterTitle}
+          onChange={e => setTitle(e.target.value)}
+          placeholder="Chapter title (optional)"
+          className="w-full px-3 py-2 rounded-lg text-sm border outline-none mb-2"
+          style={{ borderColor: '#E5E7EB' }}
+        />
+        <WBTextarea
+          value={chapterContent}
+          onChange={v => setValue(phaseKey, 'chapter', v, activeChapter)}
+          placeholder={phaseKey === 'polish' ? 'Final draft for this chapter...' : 'Write your chapter here...'}
+          minH={600}
+          showWordCount
+          phase={phaseKey} section="chapter" chapterIndex={activeChapter}
+          isSaving={isSaving} isSaved={isSaved}
+        />
 
-      {/* Actions */}
-      <div className="flex items-center justify-between mt-2">
-        <div className="flex gap-2">
-          <button
-            onClick={() => navigator.clipboard.writeText(chapterContent)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-transparent border-none cursor-pointer"
-            style={{ color: '#6B7280', border: '1px solid #E5E7EB' }}
-          >
-            <Copy size={12} /> Copy
-          </button>
-          {onSendToChat && (
+        {/* Actions */}
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex gap-2">
             <button
-              onClick={() => onSendToChat(`Here is Chapter ${activeChapter + 1}: ${chapterContent}. Please review and suggest improvements.`)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-transparent cursor-pointer"
-              style={{ color: '#E9A020', border: '1.5px solid #E9A020' }}
+              onClick={() => navigator.clipboard.writeText(chapterContent)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-transparent border-none cursor-pointer"
+              style={{ color: '#6B7280', border: '1px solid #E5E7EB' }}
             >
-              <Sparkles size={12} /> Send to AI
+              <Copy size={12} /> Copy
             </button>
-          )}
+            {onSendToChat && (
+              <button
+                onClick={() => onSendToChat(`Here is Chapter ${activeChapter + 1}: ${chapterContent}. Please review and suggest improvements.`)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-transparent cursor-pointer"
+                style={{ color: '#E9A020', border: '1.5px solid #E9A020' }}
+              >
+                <Sparkles size={12} /> Send to AI
+              </button>
+            )}
+          </div>
+          <span className="text-[11px]" style={{ color: '#9CA3AF' }}>{wordCount.toLocaleString()} words</span>
         </div>
-        <span className="text-[11px]" style={{ color: '#9CA3AF' }}>{wordCount.toLocaleString()} words</span>
       </div>
-
-      {/* View Full Manuscript toggle */}
-      <button
-        onClick={() => setShowManuscript(true)}
-        className="flex items-center gap-1.5 mt-4 text-xs font-medium bg-transparent border-none cursor-pointer"
-        style={{ color: '#E9A020' }}
-      >
-        <BookOpen size={14} /> View Full Manuscript
-      </button>
     </div>
   )
 }
