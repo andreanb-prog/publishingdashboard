@@ -1,7 +1,7 @@
 'use client'
 // components/writing-notebook/NotebookPane.tsx
 import { useState, useCallback } from 'react'
-import { Pencil, CheckCircle, AlertCircle } from 'lucide-react'
+import { Pencil, CheckCircle, AlertCircle, ScrollText, Loader2 } from 'lucide-react'
 import type { ChapterMeta, ChapterStatus } from '@/app/writing-notebook/page'
 import { WorkbookImporter } from './WorkbookImporter'
 
@@ -71,6 +71,7 @@ export function NotebookPane({
   onSectionChange, getValue, setValue, getChapterMeta, saving, saved, onReloadWorkbook,
 }: Props) {
   const [toast, setToast] = useState('')
+  const [summarizingChapter, setSummarizingChapter] = useState<number | null>(null)
 
   const getKey = useCallback((phase: string, section: string, chapterIndex?: number) => {
     return chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
@@ -78,6 +79,32 @@ export function NotebookPane({
 
   const writingMeta = getChapterMeta('writing')
   const polishMeta = getChapterMeta('polish')
+
+  const summarizeChapter = useCallback(async (chapterIdx: number) => {
+    const content = getValue('writing', 'chapter', chapterIdx)
+    if (!content?.trim()) return
+
+    const meta = getChapterMeta('writing')
+    const title = meta.titles[chapterIdx] ?? ''
+
+    setSummarizingChapter(chapterIdx)
+    try {
+      const res = await fetch('/api/writing-notebook/summarize-chapter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId, chapterIndex: chapterIdx, chapterTitle: title, chapterContent: content }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        // Update Story So Far in local state + reload workbook to refresh drawer
+        await setValue('writing', 'storySoFar', data.storySoFar)
+        onReloadWorkbook()
+        setToast('Story So Far updated \u2713')
+        setTimeout(() => setToast(''), 3000)
+      }
+    } catch { /* don't block — completion is the primary action */ }
+    setSummarizingChapter(null)
+  }, [bookId, getValue, getChapterMeta, setValue, onReloadWorkbook])
 
   const cycleChapterStatus = useCallback((chapterIdx: number) => {
     const meta = getChapterMeta('writing')
@@ -91,8 +118,10 @@ export function NotebookPane({
     if (next === 'complete') {
       setToast(`Chapter ${chapterIdx + 1} marked complete \u2713`)
       setTimeout(() => setToast(''), 3000)
+      // Auto-generate Story So Far summary
+      summarizeChapter(chapterIdx)
     }
-  }, [getChapterMeta, setValue])
+  }, [getChapterMeta, setValue, summarizeChapter])
 
   return (
     <div className="flex flex-col h-full overflow-hidden relative">
@@ -223,6 +252,12 @@ export function NotebookPane({
                       onClick={() => cycleChapterStatus(i)}
                     />
                   </div>
+                  {summarizingChapter === i && (
+                    <div className="flex items-center gap-1.5 mb-1 ml-1">
+                      <Loader2 size={12} className="animate-spin" style={{ color: '#E9A020' }} />
+                      <span className="text-xs" style={{ color: '#9CA3AF' }}>Updating story summary...</span>
+                    </div>
+                  )}
                   <textarea
                     key={`ch-${i}-${bookId}-${content ? 'loaded' : 'empty'}`}
                     defaultValue={content}
@@ -233,6 +268,20 @@ export function NotebookPane({
                     style={{ border: 'none', minHeight: isActive ? 300 : 100, color: '#1E2D3D', lineHeight: '1.8' }}
                     rows={isActive ? 15 : 4}
                   />
+                  {content?.trim() && (
+                    <button
+                      onClick={() => summarizeChapter(i)}
+                      disabled={summarizingChapter === i}
+                      className="flex items-center gap-1 mt-1 ml-1 text-xs hover:underline disabled:opacity-50 transition-opacity"
+                      style={{ color: '#E9A020' }}
+                    >
+                      {summarizingChapter === i ? (
+                        <><Loader2 size={11} className="animate-spin" /> Updating...</>
+                      ) : (
+                        <><ScrollText size={11} /> Update story summary</>
+                      )}
+                    </button>
+                  )}
                 </div>
               )
             })}
