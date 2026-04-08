@@ -17,7 +17,7 @@ export async function GET() {
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { apiKey: true, mailerLiteKey: true, books: true, subscriptionStatus: true, penName: true, preferredGreetingName: true },
+    select: { apiKey: true, mailerLiteKey: true, books: true, subscriptionStatus: true, penName: true, preferredGreetingName: true, anthropicApiKey: true, anthropicKeyAddedAt: true, writingOnboardingComplete: true },
   })
 
   // Check Meta connection via raw SQL (columns may not exist)
@@ -56,6 +56,13 @@ export async function GET() {
     }
   } catch { /* table may be empty */ }
 
+  // Book catalog for Writing Notebook
+  const bookCatalog = await db.book.findMany({
+    where: { userId: session.user.id },
+    select: { id: true, title: true, genre: true, subgenre: true },
+    orderBy: { sortOrder: 'asc' },
+  })
+
   const subStatus = user?.subscriptionStatus
   const stripeActive = subStatus === 'active' || subStatus === 'trialing'
 
@@ -70,6 +77,10 @@ export async function GET() {
     mlSubscribers,
     kdpLastUpload,
     stripeActive,
+    anthropicApiKey:          user?.anthropicApiKey ? mask(user.anthropicApiKey) : null,
+    anthropicKeyAddedAt:      user?.anthropicKeyAddedAt?.toISOString() ?? null,
+    writingOnboardingComplete: user?.writingOnboardingComplete ?? false,
+    bookCatalog,
   })
 }
 

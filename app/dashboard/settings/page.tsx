@@ -179,6 +179,130 @@ function KeyInput({
   )
 }
 
+// ── Writing Assistant Key Section ─────────────────────────────────────────────
+function WritingAssistantKeySection() {
+  const [hasKey, setHasKey] = useState(false)
+  const [maskedKey, setMaskedKey] = useState<string | null>(null)
+  const [showUpdate, setShowUpdate] = useState(false)
+  const [newKey, setNewKey] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(d => {
+        if (d.anthropicApiKey) {
+          setHasKey(true)
+          setMaskedKey(d.anthropicApiKey)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const handleSave = async () => {
+    if (!newKey.trim()) return
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/writing-notebook/setup-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: newKey.trim() }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setHasKey(true)
+        setMaskedKey(newKey.slice(0, 4) + '...' + newKey.slice(-4))
+        setShowUpdate(false)
+        setNewKey('')
+      } else {
+        setError('Invalid key — make sure it starts with sk-ant-')
+      }
+    } catch {
+      setError('Could not verify key')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleRemove = async () => {
+    await fetch('/api/writing-notebook/setup-key', { method: 'DELETE' })
+    setHasKey(false)
+    setMaskedKey(null)
+  }
+
+  return (
+    <div className="rounded-[10px] p-4 mb-6" style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+      <div className="flex items-center gap-2 mb-3">
+        <BookOpen size={16} style={{ color: '#E9A020' }} />
+        <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Writing Notebook API Key</span>
+      </div>
+
+      {hasKey && !showUpdate ? (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(110,191,139,0.12)', color: '#6EBF8B' }}>
+              Connected
+            </span>
+            <span className="text-[11px] font-mono" style={{ color: '#9CA3AF' }}>{maskedKey}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowUpdate(true)}
+              className="text-[11px] font-semibold bg-transparent border-none cursor-pointer"
+              style={{ color: '#E9A020' }}
+            >
+              Update key
+            </button>
+            <button
+              onClick={handleRemove}
+              className="text-[11px] bg-transparent border-none cursor-pointer"
+              style={{ color: '#F97B6B' }}
+            >
+              Remove key
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <p className="text-[12px] mb-3" style={{ color: '#6B7280' }}>
+            Your own Anthropic API key powers the Writing Notebook AI assistant. About $0.01–0.02 per chapter.
+          </p>
+          <input
+            type="password"
+            value={newKey}
+            onChange={e => { setNewKey(e.target.value); setError(null) }}
+            placeholder="sk-ant-..."
+            className="w-full text-[11px] font-mono px-2.5 py-2 rounded-md outline-none mb-2"
+            style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
+          />
+          {error && <p className="text-[11px] mb-2" style={{ color: '#F97B6B' }}>{error}</p>}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSave}
+              disabled={!newKey.trim() || saving}
+              className="text-[10px] font-semibold px-3 py-1.5 rounded-[5px] border-none cursor-pointer disabled:opacity-40"
+              style={{ background: '#E9A020', color: '#1E2D3D' }}
+            >
+              {saving ? 'Verifying...' : 'Save key'}
+            </button>
+            {showUpdate && (
+              <button
+                onClick={() => { setShowUpdate(false); setNewKey(''); setError(null) }}
+                className="text-[10px] bg-transparent border-none cursor-pointer"
+                style={{ color: '#9CA3AF' }}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { data: session } = useSession()
@@ -1038,6 +1162,12 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION: AI WRITING ASSISTANT                                         */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      <SectionLabel>AI WRITING ASSISTANT</SectionLabel>
+      <WritingAssistantKeySection />
 
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* SECTION 3: PREFERENCES                                               */}

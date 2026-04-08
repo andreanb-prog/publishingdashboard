@@ -43,6 +43,10 @@ model User {
   image         String?
   apiKey        String?        // Claude API key (encrypted)
   mailerLiteKey String?        // MailerLite API key
+  // Writing Notebook
+  anthropicApiKey           String?    // User's own Anthropic API key (encrypted)
+  anthropicKeyAddedAt       DateTime?
+  writingOnboardingComplete Boolean    @default(false)
   books         Json?          // My Books: [{title, asin, category, series, bookNumber}]
   columnPrefs   Json?          // Per-page column visibility: { meta: ['spend', 'clicks', ...] }
   goals         Json?          // Channel goals: { kdp_royalties: 500, meta_ctr: 15, ... }
@@ -83,6 +87,7 @@ model User {
   swapPolicies  SwapPolicy[]
   authorLists   AuthorList[]
   uploadLogs    UploadLog[]
+  writingNotebooks WritingNotebook[]
   createdAt     DateTime       @default(now())
 }
 
@@ -535,4 +540,31 @@ model UploadLog {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, dataType])
+}
+
+model WritingNotebookChat {
+  id        String   @id @default(cuid())
+  userId    String
+  bookId    String?
+  role      String   // 'user' | 'assistant'
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, bookId, createdAt])
+}
+
+model WritingNotebook {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId       String?
+  phase        String   // "setup" | "writing" | "edit" | "polish"
+  section      String   // e.g. "outline", "characterBible", "styleGuide", "storySoFar", "drafts", "diagnose", "plan", "verify", "finalDrafts", "chapterMeta"
+  chapterIndex Int?
+  content      String   @db.Text
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, bookId, phase, section, chapterIndex])
+  @@index([userId, bookId])
 }
