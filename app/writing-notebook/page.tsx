@@ -209,6 +209,7 @@ export default function WritingNotebookPage() {
             getChapterMeta={getChapterMeta}
             saving={saving}
             saved={saved}
+            onReloadWorkbook={loadWorkbook}
           />
         </div>
 

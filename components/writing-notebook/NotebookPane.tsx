@@ -2,6 +2,7 @@
 // components/writing-notebook/NotebookPane.tsx
 import { useCallback } from 'react'
 import type { ChapterMeta } from '@/app/writing-notebook/page'
+import { WorkbookImporter } from './WorkbookImporter'
 
 type Phase = 'setup' | 'writing' | 'polish'
 
@@ -17,6 +18,7 @@ interface Props {
   getChapterMeta: (phase: 'writing' | 'polish') => ChapterMeta
   saving: Record<string, boolean>
   saved: Record<string, boolean>
+  onReloadWorkbook: () => void
 }
 
 const PHASES: { id: Phase; label: string }[] = [
@@ -43,7 +45,7 @@ function wordCount(text: string): number {
 
 export function NotebookPane({
   bookId, activePhase, onPhaseChange, activeSection, activeChapterIndex,
-  onSectionChange, getValue, setValue, getChapterMeta, saving, saved,
+  onSectionChange, getValue, setValue, getChapterMeta, saving, saved, onReloadWorkbook,
 }: Props) {
   const getKey = useCallback((phase: string, section: string, chapterIndex?: number) => {
     return chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
@@ -75,6 +77,13 @@ export function NotebookPane({
       {/* Content area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* SETUP phase */}
+        {activePhase === 'setup' && (
+          <WorkbookImporter
+            bookId={bookId}
+            onImportComplete={onReloadWorkbook}
+            onSwitchToOutline={() => onSectionChange('storyOutline')}
+          />
+        )}
         {activePhase === 'setup' && SETUP_SECTIONS.map(sec => {
           const key = getKey('setup', sec.id)
           const content = getValue('setup', sec.id)
