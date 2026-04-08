@@ -13,7 +13,8 @@ type MobileTab = 'notebook' | 'chapters' | 'chat'
 type Book = { id: string; title: string }
 
 export interface WorkbookData { [key: string]: string }
-export interface ChapterMeta { count: number; titles: string[] }
+export type ChapterStatus = 'draft' | 'complete' | 'needs_edit' | 'empty'
+export interface ChapterMeta { count: number; titles: string[]; statuses: ChapterStatus[] }
 export interface StyleGuide {
   niche?: string; pov?: string; tense?: string
   totalWordCount?: string; chapterWordCount?: string
@@ -121,8 +122,12 @@ export default function WritingNotebookPage() {
 
   const getChapterMeta = useCallback((phase: 'writing' | 'polish'): ChapterMeta => {
     const raw = workbookData[`${phase}:chapterMeta`]
-    if (!raw) return { count: 1, titles: [] }
-    try { return JSON.parse(raw) } catch { return { count: 1, titles: [] } }
+    const fallback: ChapterMeta = { count: 1, titles: [], statuses: [] }
+    if (!raw) return fallback
+    try {
+      const parsed = JSON.parse(raw)
+      return { count: parsed.count ?? 1, titles: parsed.titles ?? [], statuses: parsed.statuses ?? [] }
+    } catch { return fallback }
   }, [workbookData])
 
   const setChapterMeta = useCallback((phase: 'writing' | 'polish', meta: ChapterMeta) => {
@@ -155,7 +160,7 @@ export default function WritingNotebookPage() {
 
   const handleAddChapter = useCallback(() => {
     const meta = getChapterMeta('writing')
-    const newMeta = { count: meta.count + 1, titles: [...meta.titles, ''] }
+    const newMeta: ChapterMeta = { count: meta.count + 1, titles: [...meta.titles, ''], statuses: [...meta.statuses, 'draft'] }
     setChapterMeta('writing', newMeta)
     setActivePhase('writing')
     setActiveSection('chapter')
@@ -167,7 +172,7 @@ export default function WritingNotebookPage() {
     // Ensure chapter meta includes this index
     const meta = getChapterMeta('writing')
     if (chapterIndex >= meta.count) {
-      setChapterMeta('writing', { count: chapterIndex + 1, titles: [...meta.titles] })
+      setChapterMeta('writing', { count: chapterIndex + 1, titles: [...meta.titles], statuses: [...(meta.statuses ?? [])] })
     }
     setIsChatOpen(false)
     setActivePhase('writing')
