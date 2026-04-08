@@ -21,7 +21,23 @@ function formatUploadDate(iso: string): string {
   }).format(new Date(iso))
 }
 
-export function LastUploadBadge({ channel }: { channel: 'kdp' | 'meta' }) {
+function formatRangeDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function formatDateRange(start: string, end: string): string {
+  if (start === end) return formatRangeDate(start)
+  return `${formatRangeDate(start)} \u2013 ${formatRangeDate(end)}`
+}
+
+export function LastUploadBadge({
+  channel,
+  dateRange,
+}: {
+  channel: 'kdp' | 'meta'
+  dateRange?: { start: string; end: string }
+}) {
   const [uploadedAt, setUploadedAt] = useState<string | null | undefined>(undefined)
 
   useEffect(() => {
@@ -56,6 +72,11 @@ export function LastUploadBadge({ channel }: { channel: 'kdp' | 'meta' }) {
       {uploadedAt
         ? <>Last upload: {formatUploadDate(uploadedAt)}</>
         : 'No data uploaded yet'}
+      {dateRange?.start && dateRange?.end && (
+        <span style={{ marginLeft: 6, paddingLeft: 6, borderLeft: '1px solid rgba(30,45,61,0.15)' }}>
+          {formatDateRange(dateRange.start, dateRange.end)}
+        </span>
+      )}
     </p>
   )
 }

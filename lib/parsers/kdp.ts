@@ -246,16 +246,35 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   }
 
   // ── Parse KENP Read ───────────────────────────────────────────────────────
+  // Build a normalized ASIN lookup map (trimmed, uppercase) to handle
+  // whitespace or case mismatches between KENP sheet and Combined Sales sheet.
+  const normalizedBookMap = new Map<string, BookData>()
+  for (const [key, book] of bookMap.entries()) {
+    normalizedBookMap.set(key.trim().toUpperCase(), book)
+  }
+  // Also build a title-based fallback map for when ASINs don't match at all
+  const titleBookMap = new Map<string, BookData>()
+  for (const book of bookMap.values()) {
+    if (book.title) titleBookMap.set(book.title.toLowerCase().trim(), book)
+  }
+
   let totalKENP = 0
   for (const row of kenpData) {
-    const asin = str(pick(row, 'ASIN', 'Asin'))
+    const rawAsin = str(pick(row, 'ASIN', 'Asin'))
+    const asin = rawAsin.trim().toUpperCase()
+    const title = str(pick(row, 'Title', 'title')).toLowerCase().trim()
     const kenp = num(pick(row,
       'Kindle Edition Normalized Page (KENP) Read',
       'KENP Read', 'KENP Pages Read', 'Pages Read', 'KENP',
     ))
     const date = toISODate(pick(row, 'Date'))
 
-    if (asin && bookMap.has(asin)) bookMap.get(asin)!.kenp += kenp
+    // Try normalized ASIN first, then title fallback
+    const book = (asin && normalizedBookMap.get(asin))
+      || (title && titleBookMap.get(title))
+      || null
+    if (book) book.kenp += kenp
+
     totalKENP += kenp
     if (date) dailyKENPMap.set(date, (dailyKENPMap.get(date) ?? 0) + kenp)
   }

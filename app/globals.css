@@ -56,6 +56,20 @@
   --card-padding:  16px;
 }
 
+/* react-day-picker: apply AuthorDash amber palette */
+.rdp-root {
+  --rdp-accent-color: #E9A020;
+  --rdp-accent-background-color: rgba(233, 160, 32, 0.12);
+  --rdp-range_start-date-background-color: #E9A020;
+  --rdp-range_end-date-background-color: #E9A020;
+  --rdp-range_middle-background-color: rgba(233, 160, 32, 0.12);
+  --rdp-today-color: #E9A020;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+/* hide scrollbar on pill rows */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 @layer base {
   * {
     box-sizing: border-box;

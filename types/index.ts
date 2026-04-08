@@ -78,6 +78,7 @@ export interface MailerLiteData {
   automations?: MailerLiteAutomation[]
   sentCount?: number
   bouncedCount?: number
+  groups?: { id: string; name: string; listSize: number; openRate: number; clickRate: number }[]
 }
 
 export interface MailerLiteCampaign {

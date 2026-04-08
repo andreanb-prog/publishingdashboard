@@ -1,6 +1,9 @@
 'use client'
 // app/dashboard/meta/page.tsx
 import { Suspense, useEffect, useRef, useState, useCallback } from 'react'
+import { DayPicker } from 'react-day-picker'
+import type { DateRange } from 'react-day-picker'
+import 'react-day-picker/style.css'
 import ChartJS from 'chart.js/auto'
 import { ChartLegend } from '@/components/ChartLegend'
 import { CHART_COLORS, BASE_CHART_OPTIONS, barDataset } from '@/lib/chartConfig'
@@ -25,86 +28,145 @@ function formatShortDate(dateStr: string): string {
 
 function formatDisplayRange(start: string, end: string): string {
   if (!start || !end) return ''
+  if (start === end) return formatShortDate(start)
   return `${formatShortDate(start)} \u2013 ${formatShortDate(end)}`
 }
 
-type Preset = 'last7' | 'last30' | 'last90' | 'thisMonth' | 'lastMonth' | 'custom'
+type Preset = 'today' | 'yesterday' | 'last7' | 'last30' | 'thisMonth' | 'custom'
 
 function getPresetRange(preset: Preset): { start: string; end: string } {
   const today = new Date()
   switch (preset) {
+    case 'today':
+      return { start: fmt(today), end: fmt(today) }
+    case 'yesterday': {
+      const y = new Date(today.getTime() - 86400000)
+      return { start: fmt(y), end: fmt(y) }
+    }
     case 'last7':
       return { start: fmt(new Date(today.getTime() - 6 * 86400000)), end: fmt(today) }
     case 'last30':
       return { start: fmt(new Date(today.getTime() - 29 * 86400000)), end: fmt(today) }
-    case 'last90':
-      return { start: fmt(new Date(today.getTime() - 89 * 86400000)), end: fmt(today) }
     case 'thisMonth':
       return { start: fmt(new Date(today.getFullYear(), today.getMonth(), 1)), end: fmt(today) }
-    case 'lastMonth': {
-      const first = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-      const last  = new Date(today.getFullYear(), today.getMonth(), 0)
-      return { start: fmt(first), end: fmt(last) }
-    }
     default:
       return { start: '', end: '' }
   }
 }
 
 const PRESETS: { key: Preset; label: string }[] = [
-  { key: 'last7',     label: 'Last 7 days' },
-  { key: 'last30',    label: 'Last 30 days' },
-  { key: 'last90',    label: 'Last 90 days' },
-  { key: 'thisMonth', label: 'This month' },
-  { key: 'lastMonth', label: 'Last month' },
-  { key: 'custom',    label: 'Custom' },
+  { key: 'today',     label: 'Today' },
+  { key: 'yesterday', label: 'Yesterday' },
+  { key: 'last7',     label: 'Last 7 Days' },
+  { key: 'last30',    label: 'Last 30 Days' },
+  { key: 'thisMonth', label: 'This Month' },
+  { key: 'custom',    label: 'Custom Range…' },
 ]
 
+// ── Date range picker ─────────────────────────────────────────────────────────
 function DateRangePicker({
-  preset, onPreset, customStart, customEnd, onCustomStart, onCustomEnd,
+  preset, onPreset, onCustomApply,
 }: {
   preset: Preset
   onPreset: (p: Preset) => void
-  customStart: string
-  customEnd: string
-  onCustomStart: (v: string) => void
-  onCustomEnd: (v: string) => void
+  onCustomApply: (start: string, end: string) => void
 }) {
+  const [calOpen,      setCalOpen]      = useState(false)
+  const [pendingRange, setPendingRange] = useState<DateRange | undefined>()
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!calOpen) return
+    function handleClick(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setCalOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [calOpen])
+
+  function handlePill(p: Preset) {
+    if (p === 'custom') {
+      setCalOpen(c => !c)
+    } else {
+      setCalOpen(false)
+      onPreset(p)
+    }
+  }
+
+  function handleApply() {
+    if (pendingRange?.from) {
+      const start = fmt(pendingRange.from)
+      const end   = fmt(pendingRange.to ?? pendingRange.from)
+      onCustomApply(start, end)
+      onPreset('custom')
+      setCalOpen(false)
+    }
+  }
+
   return (
-    <div>
-      <div className="flex flex-wrap items-center gap-1.5">
+    <div className="relative">
+      {/* Horizontally scrollable pill row */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 hide-scrollbar">
         {PRESETS.map(p => (
           <button
             key={p.key}
-            onClick={() => onPreset(p.key)}
-            className="px-2.5 py-1 rounded-full text-[12px] font-medium transition-all duration-150"
+            onClick={() => handlePill(p.key)}
+            className="flex-shrink-0 px-3 py-1.5 rounded-full text-[12px] transition-all duration-150 whitespace-nowrap"
             style={{
-              background: preset === p.key ? '#E9A020' : '#FFF8F0',
-              color:      preset === p.key ? 'white' : '#1E2D3D',
-              border:     `0.5px solid ${preset === p.key ? '#E9A020' : '#EEEBE6'}`,
+              background:  preset === p.key ? '#E9A020' : 'white',
+              color:       '#1E2D3D',
+              border:      `0.5px solid ${preset === p.key ? '#E9A020' : 'rgba(30,45,61,0.2)'}`,
+              fontWeight:  preset === p.key ? 600 : 500,
             }}
           >
             {p.label}
           </button>
         ))}
-        {preset === 'custom' && (
-          <div className="flex items-center gap-2 mt-1 w-full ml-[62px]">
-            <input
-              type="date"
-              value={customStart}
-              onChange={e => onCustomStart(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-navy font-[Plus_Jakarta_Sans]"
-            />
-            <span style={{ color: '#6B7280' }}>→</span>
-            <input
-              type="date"
-              value={customEnd}
-              onChange={e => onCustomEnd(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-navy font-[Plus_Jakarta_Sans]"
-            />
-          </div>
-        )}
       </div>
+
+      {/* Calendar popover */}
+      {calOpen && (
+        <div
+          ref={popoverRef}
+          className="absolute left-0 z-30 mt-2 rounded-xl shadow-2xl p-4"
+          style={{ background: 'white', border: '1px solid #EEEBE6', maxWidth: '100vw' }}
+        >
+          <DayPicker
+            mode="range"
+            selected={pendingRange}
+            onSelect={setPendingRange}
+            numberOfMonths={2}
+            className="not-prose"
+            style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 13 }}
+          />
+          <div className="flex items-center justify-end gap-4 pt-3 mt-1"
+            style={{ borderTop: '1px solid #EEEBE6' }}>
+            <button
+              onClick={() => setCalOpen(false)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer',
+                       color: '#6B7280', fontSize: 12.5, fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleApply}
+              disabled={!pendingRange?.from}
+              className="px-4 py-1.5 rounded-lg text-[12.5px] font-semibold"
+              style={{
+                background: pendingRange?.from ? '#E9A020' : 'rgba(233,160,32,0.3)',
+                color:      pendingRange?.from ? '#1E2D3D' : 'rgba(30,45,61,0.4)',
+                border:     'none',
+                cursor:     pendingRange?.from ? 'pointer' : 'not-allowed',
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
+              }}
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -547,8 +609,6 @@ export default function MetaPage() {
 
   // Date range state
   const [preset,      setPreset]      = useState<Preset>('last30')
-  const [customStart, setCustomStart] = useState('')
-  const [customEnd,   setCustomEnd]   = useState('')
   const [activeRange, setActiveRange] = useState<{ start: string; end: string }>(() => getPresetRange('last30'))
 
   const pickerRef  = useRef<HTMLDivElement>(null)
@@ -635,20 +695,9 @@ export default function MetaPage() {
     }
   }
 
-  function handleCustomStart(v: string) {
-    setCustomStart(v)
-    if (v && customEnd) {
-      setActiveRange({ start: v, end: customEnd })
-      fetchDateRange(v, customEnd)
-    }
-  }
-
-  function handleCustomEnd(v: string) {
-    setCustomEnd(v)
-    if (customStart && v) {
-      setActiveRange({ start: customStart, end: v })
-      fetchDateRange(customStart, v)
-    }
+  function handleCustomApply(start: string, end: string) {
+    setActiveRange({ start, end })
+    fetchDateRange(start, end)
   }
 
   // Close picker when clicking outside
@@ -774,35 +823,44 @@ export default function MetaPage() {
   return (
     <DarkPage title="Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
       <Suspense fallback={null}><FreshBanner /></Suspense>
-      <LastUploadBadge channel="meta" />
+      <LastUploadBadge channel="meta" dateRange={activeRange.start ? activeRange : undefined} />
 
       {/* Date range picker — always shown */}
-      <div className="mb-4">
+      <div className="mb-5">
         <DateRangePicker
           preset={preset}
           onPreset={handlePreset}
-          customStart={customStart}
-          customEnd={customEnd}
-          onCustomStart={handleCustomStart}
-          onCustomEnd={handleCustomEnd}
+          onCustomApply={handleCustomApply}
         />
-        {activeRange.start && activeRange.end && (
-          <p className="mt-2 text-[11.5px]" style={{ color: '#6B7280' }}>
-            {dateLoading
-              ? 'Loading…'
-              : `Showing data: ${formatDisplayRange(activeRange.start, activeRange.end)}`}
-          </p>
+        {dateLoading && (
+          <p className="mt-2 text-[11.5px]" style={{ color: '#6B7280' }}>Loading…</p>
         )}
       </div>
 
       {!meta ? (
-        <div className="text-center py-16" style={{ color: '#6B7280' }}>
-          <div className="text-4xl mb-4">📣</div>
-          <div className="font-sans text-xl mb-2" style={{ color: '#1E2D3D' }}>No Meta data yet</div>
-          <p className="text-sm mb-4">Connect your Meta Ads account and click Sync now to see your ad data</p>
-          <a href="/dashboard?upload=1" className="inline-block px-6 py-2.5 rounded-lg font-semibold text-sm no-underline"
-            style={{ background: '#e9a020', color: '#0d1f35' }}>Upload Files →</a>
-        </div>
+        metaOverride === null ? (
+          /* Fetched a range but got no data back */
+          <div className="text-center py-16" style={{ color: '#6B7280' }}>
+            <div className="text-3xl mb-4">📭</div>
+            <div className="font-sans text-lg mb-2" style={{ color: '#1E2D3D' }}>
+              {preset === 'today' ? 'No data for today yet' : 'No data for this date range'}
+            </div>
+            <p className="text-sm mb-4" style={{ maxWidth: 340, margin: '0 auto 16px' }}>
+              {preset === 'today'
+                ? 'Meta exports update daily — try Yesterday or Last 7 Days.'
+                : 'Try a different date range, or sync fresh data from Meta.'}
+            </p>
+          </div>
+        ) : (
+          /* No Meta data at all */
+          <div className="text-center py-16" style={{ color: '#6B7280' }}>
+            <div className="text-4xl mb-4">📣</div>
+            <div className="font-sans text-xl mb-2" style={{ color: '#1E2D3D' }}>No Meta data yet</div>
+            <p className="text-sm mb-4">Connect your Meta Ads account and click Sync now to see your ad data</p>
+            <a href="/dashboard?upload=1" className="inline-block px-6 py-2.5 rounded-lg font-semibold text-sm no-underline"
+              style={{ background: '#e9a020', color: '#0d1f35' }}>Upload Files →</a>
+          </div>
+        )
       ) : (
         <>
           <GoalSection
