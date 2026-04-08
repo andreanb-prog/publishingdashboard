@@ -78,11 +78,18 @@ model User {
   bookFunnelDownloads   BookFunnelDownload[]
   bookfunnelWebhookSecret String?
   inboundEmailAddress     String?   // Postmark inbound address for swap auto-detection
+  // Writing Notebook
+  anthropicApiKey            String?
+  anthropicKeyAddedAt        DateTime?
+  writingOnboardingComplete  Boolean  @default(false)
+  writingKillList            String?  // JSON: { word: string, scope: 'global'|'book' }[]
   launches      Launch[]
   swapEntries   SwapEntry[]
   swapPolicies  SwapPolicy[]
   authorLists   AuthorList[]
-  uploadLogs    UploadLog[]
+  uploadLogs              UploadLog[]
+  writingNotebooks        WritingNotebook[]
+  writingNotebookChats    WritingNotebookChat[]
   createdAt     DateTime       @default(now())
 }
 
@@ -535,4 +542,32 @@ model UploadLog {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, dataType])
+}
+
+model WritingNotebook {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId       String?
+  phase        String
+  section      String
+  chapterIndex Int?
+  content      String   @db.Text
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, bookId, phase, section, chapterIndex])
+  @@index([userId, bookId])
+}
+
+model WritingNotebookChat {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId    String?
+  role      String   // 'user' | 'assistant'
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, bookId, createdAt])
 }
