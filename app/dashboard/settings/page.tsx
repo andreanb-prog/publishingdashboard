@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { BookCatalog } from '@/components/BookCatalog'
-import { Bot, Mail, Megaphone, BookOpen } from '@/components/icons'
+import { Bot, Mail, Megaphone, BookOpen, PenLine, Lock } from '@/components/icons'
 
 const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
 
@@ -242,6 +242,13 @@ export default function SettingsPage() {
   const [bfRegenerating,  setBfRegenerating]  = useState(false)
   const [bfCopied,        setBfCopied]        = useState<'url' | 'secret' | null>(null)
 
+  // ── Writing Assistant (BYOK) ─────────────────────────────────────────────────
+  const [hasWritingKey,     setHasWritingKey]     = useState(false)
+  const [writingKeyMasked,  setWritingKeyMasked]  = useState<string | null>(null)
+  const [showWritingKeyForm, setShowWritingKeyForm] = useState(false)
+  const [writingKeyInput,   setWritingKeyInput]   = useState('')
+  const [writingKeySave,    setWritingKeySave]    = useState<SaveState>('idle')
+
   // ── Help accordion ──────────────────────────────────────────────────────────
   const [helpOpen, setHelpOpen] = useState(false)
 
@@ -267,6 +274,8 @@ export default function SettingsPage() {
       setMlSubscribers(d.mlSubscribers ?? null)
       setPenName(d.penName ?? '')
       setPreferredGreetingName(d.preferredGreetingName ?? '')
+      setHasWritingKey(!!d.anthropicApiKey)
+      setWritingKeyMasked(d.anthropicApiKey ?? null)
     } catch {}
     try {
       const bf = await fetch('/api/bookfunnel').then(r => r.json())
@@ -998,6 +1007,97 @@ export default function SettingsPage() {
             <div className="text-[10px]" style={{ color: '#6B7280' }}>
               {bfDownloadCount} downloads tracked · {bfConfirmRate}% confirmed
             </div>
+          )}
+        </IntegCard>
+
+        {/* ── AI Writing Assistant card ────────────────────────────────────── */}
+        <IntegCard
+          iconBg="#FFF4E0"
+          icon={<PenLine size={16} strokeWidth={1.75} color="#E9A020" />}
+          name="AI Writing Assistant"
+          subtitle="Powers your Writing Notebook"
+          statusPill={
+            <StatusPill active={hasWritingKey} label={hasWritingKey ? 'Connected' : 'Not connected'} />
+          }
+        >
+          {hasWritingKey && !showWritingKeyForm ? (
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Lock size={12} color="#6EBF8B" />
+                <span className="text-[11px] font-medium" style={{ color: '#6EBF8B' }}>Connected</span>
+                <span className="text-[10px] font-mono" style={{ color: '#9CA3AF' }}>{writingKeyMasked}</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowWritingKeyForm(true)}
+                  className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
+                  style={{ color: '#9CA3AF' }}
+                >
+                  Update key
+                </button>
+                <button
+                  onClick={async () => {
+                    await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'remove-anthropic-key' }) })
+                    setHasWritingKey(false)
+                    setWritingKeyMasked(null)
+                    showToast('Writing assistant key removed')
+                  }}
+                  className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
+                  style={{ color: '#F97B6B' }}
+                >
+                  Remove key
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <KeyInput
+                value={writingKeyInput}
+                onChange={setWritingKeyInput}
+                placeholder="sk-ant-••••••••••••••"
+              />
+              <div className="flex items-center gap-2 flex-wrap">
+                <AmberBtn
+                  onClick={async () => {
+                    setWritingKeySave('saving')
+                    try {
+                      const res = await fetch('/api/writing-notebook/setup-key', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ key: writingKeyInput }),
+                      })
+                      if (res.ok) {
+                        setWritingKeySave('saved')
+                        setHasWritingKey(true)
+                        setShowWritingKeyForm(false)
+                        setWritingKeyInput('')
+                        showToast('Writing assistant key saved')
+                        loadSettings()
+                      } else {
+                        setWritingKeySave('error')
+                        showToast('Invalid key — make sure it starts with sk-ant-')
+                      }
+                    } catch {
+                      setWritingKeySave('error')
+                    }
+                    setTimeout(() => setWritingKeySave('idle'), 2000)
+                  }}
+                  disabled={!writingKeyInput.trim() || writingKeySave === 'saving'}
+                >
+                  {writingKeySave === 'saving' ? <Spinner /> : 'Save key'}
+                </AmberBtn>
+                <span className="text-[10px]" style={{ color: '#9CA3AF' }}>~$0.01–0.02 per chapter</span>
+                {showWritingKeyForm && (
+                  <button
+                    onClick={() => { setShowWritingKeyForm(false); setWritingKeyInput('') }}
+                    className="text-[10px] border-none bg-transparent cursor-pointer ml-auto"
+                    style={{ color: '#9CA3AF' }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </IntegCard>
       </div>

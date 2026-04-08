@@ -17,7 +17,11 @@ export async function GET() {
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { apiKey: true, mailerLiteKey: true, books: true, subscriptionStatus: true, penName: true, preferredGreetingName: true },
+    select: {
+      apiKey: true, mailerLiteKey: true, books: true, subscriptionStatus: true,
+      penName: true, preferredGreetingName: true,
+      anthropicApiKey: true, writingOnboardingComplete: true, writingKillList: true,
+    },
   })
 
   // Check Meta connection via raw SQL (columns may not exist)
@@ -70,6 +74,9 @@ export async function GET() {
     mlSubscribers,
     kdpLastUpload,
     stripeActive,
+    anthropicApiKey:           user?.anthropicApiKey ? mask(user.anthropicApiKey) : null,
+    writingOnboardingComplete: user?.writingOnboardingComplete ?? false,
+    writingKillList:           user?.writingKillList ?? null,
   })
 }
 
@@ -118,6 +125,18 @@ export async function POST(req: NextRequest) {
   if (body.action === 'save-books') {
     const books = Array.isArray(body.books) ? body.books : []
     await db.user.update({ where: { id: session.user.id }, data: { books } })
+    return NextResponse.json({ success: true })
+  }
+
+  // Save writing kill list
+  if (typeof body.writingKillList === 'string') {
+    await db.user.update({ where: { id: session.user.id }, data: { writingKillList: body.writingKillList } })
+    return NextResponse.json({ success: true })
+  }
+
+  // Remove Anthropic writing key
+  if (body.action === 'remove-anthropic-key') {
+    await db.user.update({ where: { id: session.user.id }, data: { anthropicApiKey: null, anthropicKeyAddedAt: null } })
     return NextResponse.json({ success: true })
   }
 

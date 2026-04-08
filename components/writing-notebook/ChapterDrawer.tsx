@@ -3,15 +3,12 @@
 import { useState, useCallback } from 'react'
 import { BookOpen, ScrollText, ChevronDown, ChevronUp, Plus, Pencil, FileText } from 'lucide-react'
 import { ExportDropdown } from './ExportDropdown'
-
-type NRecord = {
-  id: string; phase: string; section: string; chapterIndex: number | null
-  chapterTitle: string | null; content: string; wordCount: number
-}
+import type { WorkbookData, ChapterMeta } from '@/app/writing-notebook/page'
 
 interface Props {
   bookId: string
-  records: NRecord[]
+  workbookData: WorkbookData
+  getChapterMeta: (phase: 'writing' | 'polish') => ChapterMeta
   drawerToggle: 'drafts' | 'final'
   onDrawerToggle: (v: 'drafts' | 'final') => void
   activeChapterIndex: number | null
@@ -21,18 +18,15 @@ interface Props {
   onOpenChat: () => void
 }
 
-function getChapterStatus(
-  chapterIndex: number,
-  records: NRecord[]
-): 'final' | 'draft' | 'empty' {
-  const final = records.find(
-    r => r.phase === 'polish' && r.section === 'finalDraft' && r.chapterIndex === chapterIndex && r.content
-  )
-  if (final) return 'final'
-  const draft = records.find(
-    r => r.phase === 'writing' && r.section === 'chapter' && r.chapterIndex === chapterIndex && r.content
-  )
-  if (draft) return 'draft'
+function wordCount(text: string): number {
+  return text.trim() ? text.trim().split(/\s+/).length : 0
+}
+
+function getChapterStatus(idx: number, workbookData: WorkbookData): 'final' | 'draft' | 'empty' {
+  const finalContent = workbookData[`polish:finalDraft:${idx}`]
+  if (finalContent?.trim()) return 'final'
+  const draftContent = workbookData[`writing:chapter:${idx}`]
+  if (draftContent?.trim()) return 'draft'
   return 'empty'
 }
 
@@ -43,31 +37,35 @@ const STATUS_STYLES = {
 }
 
 export function ChapterDrawer({
-  bookId, records, drawerToggle, onDrawerToggle, activeChapterIndex,
-  onChapterClick, onSectionClick, onAddChapter, onOpenChat,
+  bookId, workbookData, getChapterMeta, drawerToggle, onDrawerToggle,
+  activeChapterIndex, onChapterClick, onSectionClick, onAddChapter, onOpenChat,
 }: Props) {
   const [storySoFarExpanded, setStorySoFarExpanded] = useState(false)
 
-  const outline = records.find(r => r.section === 'storyOutline')
-  const storySoFar = records.find(r => r.section === 'storySoFar')
+  const outline = workbookData['setup:storyOutline'] ?? ''
+  const storySoFar = workbookData['writing:storySoFar'] ?? ''
 
-  // Get all chapter indices
-  const chapterIndices = Array.from(
-    new Set(
-      records
-        .filter(r => (r.section === 'chapter' || r.section === 'finalDraft') && r.chapterIndex !== null)
-        .map(r => r.chapterIndex as number)
-    )
-  ).sort((a, b) => a - b)
+  const writingMeta = getChapterMeta('writing')
+  const polishMeta = getChapterMeta('polish')
 
-  const getChapterRecord = useCallback((idx: number) => {
-    if (drawerToggle === 'final') {
-      return records.find(r => r.phase === 'polish' && r.section === 'finalDraft' && r.chapterIndex === idx)
-    }
-    return records.find(r => r.phase === 'writing' && r.section === 'chapter' && r.chapterIndex === idx)
-  }, [records, drawerToggle])
+  // Combine chapter indices from both phases
+  const maxCount = Math.max(writingMeta.count, polishMeta.count)
+  const chapterIndices = Array.from({ length: maxCount }, (_, i) => i)
 
-  const totalWords = records.reduce((sum, r) => sum + r.wordCount, 0)
+  const getChapterContent = useCallback((idx: number) => {
+    if (drawerToggle === 'final') return workbookData[`polish:finalDraft:${idx}`] ?? ''
+    return workbookData[`writing:chapter:${idx}`] ?? ''
+  }, [workbookData, drawerToggle])
+
+  const getChapterTitle = useCallback((idx: number) => {
+    const meta = drawerToggle === 'final' ? polishMeta : writingMeta
+    return meta.titles[idx] ?? ''
+  }, [drawerToggle, writingMeta, polishMeta])
+
+  // Total words across all records
+  const totalWords = Object.entries(workbookData)
+    .filter(([k]) => k.startsWith('writing:chapter:') || k.startsWith('polish:finalDraft:'))
+    .reduce((sum, [, v]) => sum + wordCount(v), 0)
 
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ background: '#FFF8F0', borderLeft: '1px solid #E5E7EB' }}>
@@ -77,7 +75,7 @@ export function ChapterDrawer({
           <div>
             <h2 className="text-base font-medium" style={{ color: '#1E2D3D' }}>Your Story</h2>
             <p className="text-xs" style={{ color: '#9CA3AF' }}>
-              {chapterIndices.length} chapter{chapterIndices.length !== 1 ? 's' : ''} &middot; {totalWords.toLocaleString()} words
+              {maxCount} chapter{maxCount !== 1 ? 's' : ''} &middot; {totalWords.toLocaleString()} words
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -115,76 +113,51 @@ export function ChapterDrawer({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 pt-2">
         {/* CARD 1 — Story Outline (pinned) */}
-        <div
-          className="rounded-lg p-3"
-          style={{ background: '#FFF8F0', borderLeft: '3px solid #E9A020' }}
-        >
+        <div className="rounded-lg p-3" style={{ background: '#FFF8F0', borderLeft: '3px solid #E9A020' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <BookOpen size={14} style={{ color: '#E9A020' }} />
               <span className="text-[13px] font-medium" style={{ color: '#1E2D3D' }}>Story Outline</span>
             </div>
-            <button
-              onClick={() => onSectionClick('storyOutline')}
-              className="text-xs hover:underline"
-              style={{ color: '#E9A020' }}
-            >
+            <button onClick={() => onSectionClick('storyOutline')} className="text-xs hover:underline" style={{ color: '#E9A020' }}>
               Edit &rarr;
             </button>
           </div>
           <p className="text-[13px] italic mt-1 line-clamp-3" style={{ color: '#9CA3AF' }}>
-            {outline?.content
-              ? outline.content.slice(0, 120) + (outline.content.length > 120 ? '\u2026' : '')
-              : 'No outline yet \u2014 add one in Setup \u2192'}
+            {outline ? outline.slice(0, 120) + (outline.length > 120 ? '\u2026' : '') : 'No outline yet \u2014 add one in Setup \u2192'}
           </p>
         </div>
 
         {/* CARD 2 — Story So Far (expandable) */}
-        <div
-          className="rounded-lg p-3"
-          style={{ background: '#EFF6FF', borderLeft: '3px solid #E9A020' }}
-        >
+        <div className="rounded-lg p-3" style={{ background: '#EFF6FF', borderLeft: '3px solid #E9A020' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <ScrollText size={14} style={{ color: '#60A5FA' }} />
               <span className="text-[13px] font-medium" style={{ color: '#1E2D3D' }}>Story So Far</span>
             </div>
-            <button
-              onClick={() => onSectionClick('storySoFar')}
-              className="text-xs hover:underline"
-              style={{ color: '#E9A020' }}
-            >
+            <button onClick={() => onSectionClick('storySoFar')} className="text-xs hover:underline" style={{ color: '#E9A020' }}>
               Edit &rarr;
             </button>
           </div>
-          {storySoFar?.content ? (
+          {storySoFar ? (
             <>
               {!storySoFarExpanded && (
                 <p className="text-[13px] italic mt-1 line-clamp-3" style={{ color: '#9CA3AF' }}>
-                  {storySoFar.content.slice(0, 120)}{storySoFar.content.length > 120 ? '\u2026' : ''}
+                  {storySoFar.slice(0, 120)}{storySoFar.length > 120 ? '\u2026' : ''}
                 </p>
               )}
               {storySoFarExpanded && (
-                <div
-                  className="text-[13px] mt-1 p-2 overflow-y-auto whitespace-pre-wrap"
-                  style={{ color: '#4B5563', maxHeight: '18rem', lineHeight: '1.7' }}
-                >
-                  {storySoFar.content}
+                <div className="text-[13px] mt-1 p-2 overflow-y-auto whitespace-pre-wrap" style={{ color: '#4B5563', maxHeight: '18rem', lineHeight: '1.7' }}>
+                  {storySoFar}
                 </div>
               )}
-              <button
-                onClick={() => setStorySoFarExpanded(!storySoFarExpanded)}
-                className="flex items-center gap-1 mt-1 text-xs"
-                style={{ color: '#9CA3AF' }}
-              >
+              <button onClick={() => setStorySoFarExpanded(!storySoFarExpanded)} className="flex items-center gap-1 mt-1 text-xs" style={{ color: '#9CA3AF' }}>
                 {storySoFarExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 {storySoFarExpanded ? 'Collapse' : 'Show more'}
               </button>
             </>
           ) : (
-            <p className="text-[13px] italic mt-1" style={{ color: '#9CA3AF' }}>
-              No summary yet &mdash; add one after your first chapter
-            </p>
+            <p className="text-[13px] italic mt-1" style={{ color: '#9CA3AF' }}>No summary yet &mdash; add one after your first chapter</p>
           )}
         </div>
 
@@ -193,21 +166,19 @@ export function ChapterDrawer({
           <div className="text-center py-8">
             <FileText size={32} style={{ color: '#D1D5DB' }} className="mx-auto mb-2" />
             <p className="text-[15px] font-medium" style={{ color: '#1E2D3D' }}>No chapters yet</p>
-            <button
-              onClick={onOpenChat}
-              className="text-[13px] mt-1 hover:underline"
-              style={{ color: '#E9A020' }}
-            >
+            <button onClick={onOpenChat} className="text-[13px] mt-1 hover:underline" style={{ color: '#E9A020' }}>
               Ask the AI to write your first one &rarr;
             </button>
           </div>
         )}
 
         {chapterIndices.map(idx => {
-          const rec = getChapterRecord(idx)
-          const status = getChapterStatus(idx, records)
+          const content = getChapterContent(idx)
+          const title = getChapterTitle(idx)
+          const status = getChapterStatus(idx, workbookData)
           const st = STATUS_STYLES[status]
           const isSelected = activeChapterIndex === idx
+          const wc = wordCount(content)
 
           return (
             <button
@@ -222,28 +193,20 @@ export function ChapterDrawer({
               }}
             >
               <div className="flex items-center gap-2">
-                <span
-                  className="text-xs font-medium px-2 py-0.5 rounded-full"
-                  style={{ background: st.bg, color: st.color, border: (st as { border?: string }).border }}
-                >
-                  Ch {idx}
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#E9A020', color: '#FFFFFF' }}>
+                  Ch {idx + 1}
                 </span>
-                <span
-                  className="text-xs px-2 py-0.5 rounded-full"
-                  style={{ background: st.bg, color: st.color, border: (st as { border?: string }).border }}
-                >
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: st.bg, color: st.color, border: (st as { border?: string }).border }}>
                   {st.label}
                 </span>
                 <span className="text-sm font-medium truncate flex-1" style={{ color: '#1E2D3D' }}>
-                  {rec?.chapterTitle || 'Untitled'}
+                  {title || 'Untitled'}
                 </span>
-                <span className="text-xs" style={{ color: '#9CA3AF' }}>
-                  {(rec?.wordCount ?? 0).toLocaleString()}
-                </span>
+                <span className="text-xs" style={{ color: '#9CA3AF' }}>{wc.toLocaleString()}</span>
                 <Pencil size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: '#9CA3AF' }} />
               </div>
               <p className="text-[13px] italic mt-1 truncate" style={{ color: '#9CA3AF' }}>
-                {rec?.content ? rec.content.slice(0, 80) + (rec.content.length > 80 ? '\u2026' : '') : 'No content yet'}
+                {content ? content.slice(0, 80) + (content.length > 80 ? '\u2026' : '') : 'No content yet'}
               </p>
             </button>
           )

@@ -1,7 +1,8 @@
 'use client'
 // components/writing-notebook/AIChatPanel.tsx
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Save, Loader2 } from 'lucide-react'
+import { X, Send, Save, Loader2, AlertTriangle } from 'lucide-react'
+import type { WorkbookData, StyleGuide } from '@/app/writing-notebook/page'
 
 type Message = { role: 'user' | 'assistant'; content: string }
 
@@ -11,8 +12,9 @@ interface Props {
   bookId: string
   bookTitle: string
   activePhase: string
-  activeSection: string
-  activeChapterIndex: number | null
+  workbookData: WorkbookData
+  styleGuide: StyleGuide
+  hasApiKey: boolean
   onSaveToWorkbook: (content: string, chapterIndex: number, chapterTitle?: string) => Promise<void>
 }
 
@@ -25,37 +27,66 @@ const QUICK_CHIPS = [
 ]
 
 export function AIChatPanel({
-  isOpen, onClose, bookId, bookTitle, activePhase, activeSection,
-  activeChapterIndex, onSaveToWorkbook,
+  isOpen, onClose, bookId, bookTitle, activePhase,
+  workbookData, styleGuide, hasApiKey, onSaveToWorkbook,
 }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [savingIndex, setSavingIndex] = useState<number | null>(null)
+  const [error, setError] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-scroll to bottom
+  // Load chat history on open
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    if (isOpen && bookId) {
+      fetch(`/api/writing-notebook/chat?bookId=${bookId}`)
+        .then(r => r.json())
+        .then(d => {
+          const msgs = (d.data ?? []).map((m: { role: string; content: string }) => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          }))
+          setMessages(msgs)
+        })
+        .catch(() => {})
     }
+  }, [isOpen, bookId])
+
+  // Auto-scroll
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
   }, [messages])
 
-  // Focus input when panel opens
+  // Focus input
   useEffect(() => {
     if (isOpen) setTimeout(() => inputRef.current?.focus(), 300)
   }, [isOpen])
 
+  // Persist a message
+  const persistMessage = useCallback(async (role: string, content: string) => {
+    await fetch('/api/writing-notebook/chat/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role, content, bookId }),
+    }).catch(() => {})
+  }, [bookId])
+
   const sendMessage = useCallback(async (text?: string) => {
     const msg = text ?? input.trim()
     if (!msg || isStreaming) return
+    if (!hasApiKey) { setError('Add your Anthropic API key in Settings to use the writing assistant.'); return }
     setInput('')
+    setError('')
 
     const userMsg: Message = { role: 'user', content: msg }
     const newMessages = [...messages, userMsg]
     setMessages(newMessages)
     setIsStreaming(true)
+
+    // Persist user message
+    await persistMessage('user', msg)
 
     try {
       const res = await fetch('/api/writing-notebook/chat', {
@@ -63,68 +94,72 @@ export function AIChatPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookId,
-          messages: newMessages,
-          phase: activePhase,
-          section: activeSection,
+          bookTitle,
+          message: msg,
+          activePhase,
+          workbookData,
+          styleGuide,
         }),
       })
 
       if (!res.ok) {
-        setMessages([...newMessages, { role: 'assistant', content: 'Something went wrong. Please try again.' }])
+        const data = await res.json().catch(() => ({}))
+        if (data.error === 'no_api_key') setError('Add your Anthropic API key in Settings.')
+        else if (data.error === 'invalid_key') setError('Your API key is invalid. Update it in Settings.')
+        else setError('Something went wrong. Please try again.')
         setIsStreaming(false)
         return
       }
 
-      // Read SSE stream
+      // Read plain text stream
       const reader = res.body?.getReader()
       const decoder = new TextDecoder()
       let assistantContent = ''
-
       setMessages([...newMessages, { role: 'assistant', content: '' }])
 
       if (reader) {
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
-
           const chunk = decoder.decode(value, { stream: true })
-          // Parse SSE events
-          const lines = chunk.split('\n')
-          for (const line of lines) {
-            if (line.startsWith('event: content_block_delta')) continue
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6))
-                if (data.type === 'content_block_delta' && data.delta?.text) {
-                  assistantContent += data.delta.text
-                  setMessages(prev => {
-                    const updated = [...prev]
-                    updated[updated.length - 1] = { role: 'assistant', content: assistantContent }
-                    return updated
-                  })
-                }
-              } catch {
-                // Skip non-JSON lines
-              }
-            }
-          }
+
+          // Check for error markers
+          if (chunk.includes('[ERROR:invalid_key]')) { setError('Your API key is invalid.'); break }
+          if (chunk.includes('[ERROR:rate_limited]')) { setError('Rate limited. Wait a moment and try again.'); break }
+          if (chunk.includes('[ERROR:unknown]')) { setError('Something went wrong.'); break }
+
+          assistantContent += chunk
+          setMessages(prev => {
+            const updated = [...prev]
+            updated[updated.length - 1] = { role: 'assistant', content: assistantContent }
+            return updated
+          })
         }
       }
+
+      // Persist assistant message
+      if (assistantContent) await persistMessage('assistant', assistantContent)
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Network error. Please try again.' }])
+      setError('Network error. Please try again.')
     } finally {
       setIsStreaming(false)
     }
-  }, [input, messages, isStreaming, bookId, activePhase, activeSection])
+  }, [input, messages, isStreaming, bookId, bookTitle, activePhase, workbookData, styleGuide, hasApiKey, persistMessage])
 
   const handleSaveToWorkbook = useCallback(async (msgIndex: number) => {
     const msg = messages[msgIndex]
     if (!msg || msg.role !== 'assistant') return
     setSavingIndex(msgIndex)
-    const nextChapter = activeChapterIndex ?? 1
-    await onSaveToWorkbook(msg.content, nextChapter)
+    // Find next available chapter index from workbook data
+    const existingChapters = Object.keys(workbookData).filter(k => k.startsWith('writing:chapter:')).length
+    await onSaveToWorkbook(msg.content, existingChapters)
     setSavingIndex(null)
-  }, [messages, activeChapterIndex, onSaveToWorkbook])
+  }, [messages, workbookData, onSaveToWorkbook])
+
+  const handleClearChat = useCallback(async () => {
+    await fetch(`/api/writing-notebook/chat?bookId=${bookId}`, { method: 'DELETE' }).catch(() => {})
+    setMessages([])
+  }, [bookId])
 
   return (
     <div
@@ -137,28 +172,40 @@ export function AIChatPanel({
       }}
     >
       {/* Header */}
-      <div
-        className="h-12 flex items-center px-4 shrink-0"
-        style={{ borderBottom: '1px solid #E5E7EB' }}
-      >
-        <div className="flex-1">
+      <div className="h-12 flex items-center px-4 shrink-0" style={{ borderBottom: '1px solid #E5E7EB' }}>
+        <div className="flex-1 min-w-0">
           <p className="text-base font-semibold" style={{ color: '#1E2D3D' }}>Writing Assistant</p>
-          <p className="text-xs" style={{ color: '#9CA3AF' }}>
-            {bookTitle} &middot; {activePhase} phase
-          </p>
+          <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>{bookTitle} &middot; {activePhase} phase</p>
         </div>
-        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded" style={{ color: '#9CA3AF' }}>
-          <X size={18} />
-        </button>
+        <div className="flex items-center gap-1">
+          {messages.length > 0 && (
+            <button onClick={handleClearChat} className="text-xs px-2 py-1 rounded hover:bg-gray-100" style={{ color: '#9CA3AF' }}>
+              Clear
+            </button>
+          )}
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded" style={{ color: '#9CA3AF' }}>
+            <X size={18} />
+          </button>
+        </div>
       </div>
+
+      {/* Error banner */}
+      {error && (
+        <div className="px-4 py-2 flex items-center gap-2 text-sm" style={{ background: '#FEF2F2', color: '#DC2626' }}>
+          <AlertTriangle size={14} /> {error}
+        </div>
+      )}
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-sm font-medium mb-3" style={{ color: '#1E2D3D' }}>
-              How can I help with your story?
-            </p>
+            <p className="text-sm font-medium mb-3" style={{ color: '#1E2D3D' }}>How can I help with your story?</p>
+            {!hasApiKey && (
+              <p className="text-xs mb-3 px-4" style={{ color: '#F97B6B' }}>
+                Add your Anthropic API key in Settings to start writing with AI.
+              </p>
+            )}
             <div className="flex flex-wrap gap-2 justify-center">
               {QUICK_CHIPS.map(chip => (
                 <button
@@ -191,7 +238,6 @@ export function AIChatPanel({
                 </span>
               ) : null)}
 
-              {/* Save to workbook button for assistant messages */}
               {msg.role === 'assistant' && msg.content && !isStreaming && (
                 <button
                   onClick={() => handleSaveToWorkbook(i)}
@@ -218,14 +264,9 @@ export function AIChatPanel({
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                sendMessage()
-              }
-            }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
             placeholder="Ask anything about your story..."
-            className="flex-1 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2"
+            className="flex-1 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-400"
             style={{ border: '0.5px solid #E5E7EB', maxHeight: 120, color: '#1E2D3D' }}
             rows={2}
           />

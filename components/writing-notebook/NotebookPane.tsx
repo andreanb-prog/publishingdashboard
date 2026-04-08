@@ -1,12 +1,9 @@
 'use client'
 // components/writing-notebook/NotebookPane.tsx
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
+import type { ChapterMeta } from '@/app/writing-notebook/page'
 
 type Phase = 'setup' | 'writing' | 'polish'
-type NRecord = {
-  id: string; phase: string; section: string; chapterIndex: number | null
-  chapterTitle: string | null; content: string; wordCount: number
-}
 
 interface Props {
   bookId: string
@@ -15,8 +12,11 @@ interface Props {
   activeSection: string
   activeChapterIndex: number | null
   onSectionChange: (section: string, chapterIndex?: number | null) => void
-  records: NRecord[]
-  onRecordSaved: () => void
+  getValue: (phase: string, section: string, chapterIndex?: number) => string
+  setValue: (phase: string, section: string, content: string, chapterIndex?: number) => Promise<void>
+  getChapterMeta: (phase: 'writing' | 'polish') => ChapterMeta
+  saving: Record<string, boolean>
+  saved: Record<string, boolean>
 }
 
 const PHASES: { id: Phase; label: string }[] = [
@@ -31,52 +31,26 @@ const SETUP_SECTIONS = [
   { id: 'styleGuide', label: 'Style Guide', placeholder: 'Define your writing style\u2026 POV, tense, tone, pacing notes, things to avoid.' },
 ]
 
-function SavedToast({ visible }: { visible: boolean }) {
-  return (
-    <span
-      className="text-[11px] font-medium transition-opacity duration-300"
-      style={{ color: '#6EBF8B', opacity: visible ? 1 : 0 }}
-    >
-      Saved \u2713
-    </span>
-  )
+function SavedIndicator({ saving, saved }: { saving: boolean; saved: boolean }) {
+  if (saving) return <span className="text-[11px] font-medium" style={{ color: '#9CA3AF' }}>Saving...</span>
+  if (saved) return <span className="text-[11px] font-medium transition-opacity duration-300" style={{ color: '#6EBF8B' }}>Saved &#10003;</span>
+  return null
+}
+
+function wordCount(text: string): number {
+  return text.trim() ? text.trim().split(/\s+/).length : 0
 }
 
 export function NotebookPane({
   bookId, activePhase, onPhaseChange, activeSection, activeChapterIndex,
-  onSectionChange, records, onRecordSaved,
+  onSectionChange, getValue, setValue, getChapterMeta, saving, saved,
 }: Props) {
-  const [savedFields, setSavedFields] = useState<Record<string, boolean>>({})
+  const getKey = useCallback((phase: string, section: string, chapterIndex?: number) => {
+    return chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
+  }, [])
 
-  const getRecord = useCallback((phase: string, section: string, chapterIndex?: number | null) => {
-    return records.find(r =>
-      r.phase === phase && r.section === section &&
-      (chapterIndex !== undefined ? r.chapterIndex === chapterIndex : true)
-    )
-  }, [records])
-
-  const save = useCallback(async (
-    phase: string, section: string, content: string,
-    chapterIndex?: number | null, chapterTitle?: string | null
-  ) => {
-    const key = `${phase}-${section}-${chapterIndex ?? ''}`
-    await fetch('/api/writing-notebook', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookId, phase, section, chapterIndex: chapterIndex ?? null, chapterTitle, content }),
-    })
-    setSavedFields(s => ({ ...s, [key]: true }))
-    setTimeout(() => setSavedFields(s => ({ ...s, [key]: false })), 2000)
-    onRecordSaved()
-  }, [bookId, onRecordSaved])
-
-  const chapters = records
-    .filter(r => r.phase === 'writing' && r.section === 'chapter')
-    .sort((a, b) => (a.chapterIndex ?? 0) - (b.chapterIndex ?? 0))
-
-  const finalDrafts = records
-    .filter(r => r.phase === 'polish' && r.section === 'finalDraft')
-    .sort((a, b) => (a.chapterIndex ?? 0) - (b.chapterIndex ?? 0))
+  const writingMeta = getChapterMeta('writing')
+  const polishMeta = getChapterMeta('polish')
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -102,8 +76,8 @@ export function NotebookPane({
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* SETUP phase */}
         {activePhase === 'setup' && SETUP_SECTIONS.map(sec => {
-          const rec = getRecord('setup', sec.id)
-          const key = `setup-${sec.id}-`
+          const key = getKey('setup', sec.id)
+          const content = getValue('setup', sec.id)
           return (
             <div key={sec.id}>
               <div className="flex items-center justify-between mb-1.5">
@@ -114,19 +88,15 @@ export function NotebookPane({
                 >
                   {sec.label}
                 </button>
-                <SavedToast visible={!!savedFields[key]} />
+                <SavedIndicator saving={saving[key]} saved={saved[key]} />
               </div>
               <textarea
-                defaultValue={rec?.content ?? ''}
+                defaultValue={content}
                 placeholder={sec.placeholder}
                 onFocus={() => onSectionChange(sec.id)}
-                onBlur={(e) => save('setup', sec.id, e.target.value)}
+                onBlur={(e) => setValue('setup', sec.id, e.target.value)}
                 className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-400 transition-shadow"
-                style={{
-                  border: '0.5px solid #E5E7EB',
-                  minHeight: activeSection === sec.id ? 200 : 80,
-                  color: '#1E2D3D',
-                }}
+                style={{ border: '0.5px solid #E5E7EB', minHeight: activeSection === sec.id ? 200 : 80, color: '#1E2D3D' }}
                 rows={activeSection === sec.id ? 10 : 3}
               />
             </div>
@@ -139,38 +109,36 @@ export function NotebookPane({
             {/* Story So Far */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <button
-                  onClick={() => onSectionChange('storySoFar')}
-                  className="text-sm font-medium"
-                  style={{ color: activeSection === 'storySoFar' ? '#E9A020' : '#1E2D3D' }}
-                >
+                <button onClick={() => onSectionChange('storySoFar')} className="text-sm font-medium" style={{ color: activeSection === 'storySoFar' ? '#E9A020' : '#1E2D3D' }}>
                   Story So Far
                 </button>
-                <SavedToast visible={!!savedFields['writing-storySoFar-']} />
+                <SavedIndicator saving={saving[getKey('writing', 'storySoFar')]} saved={saved[getKey('writing', 'storySoFar')]} />
               </div>
               <textarea
-                defaultValue={getRecord('writing', 'storySoFar')?.content ?? ''}
+                defaultValue={getValue('writing', 'storySoFar')}
                 placeholder="Summarize what has happened so far in the story. The AI uses this for continuity."
                 onFocus={() => onSectionChange('storySoFar')}
-                onBlur={(e) => save('writing', 'storySoFar', e.target.value)}
-                className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 transition-shadow"
+                onBlur={(e) => setValue('writing', 'storySoFar', e.target.value)}
+                className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-400 transition-shadow"
                 style={{ border: '0.5px solid #E5E7EB', minHeight: 80, color: '#1E2D3D' }}
                 rows={3}
               />
             </div>
 
             {/* Chapter drafts */}
-            {chapters.length === 0 && (
+            {writingMeta.count === 0 && (
               <div className="text-center py-8" style={{ color: '#9CA3AF' }}>
                 <p className="text-sm">No chapters yet. Use the chapter drawer to add one, or ask the AI.</p>
               </div>
             )}
-            {chapters.map(ch => {
-              const key = `writing-chapter-${ch.chapterIndex}`
-              const isActive = activeSection === 'chapter' && activeChapterIndex === ch.chapterIndex
+            {Array.from({ length: writingMeta.count }, (_, i) => {
+              const key = getKey('writing', 'chapter', i)
+              const content = getValue('writing', 'chapter', i)
+              const title = writingMeta.titles[i] ?? ''
+              const isActive = activeSection === 'chapter' && activeChapterIndex === i
               return (
                 <div
-                  key={ch.id}
+                  key={i}
                   className="rounded-lg p-3 transition-colors"
                   style={{
                     border: isActive ? '1.5px solid #E9A020' : '0.5px solid #E5E7EB',
@@ -178,37 +146,34 @@ export function NotebookPane({
                   }}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <span
-                      className="text-xs font-medium px-2 py-0.5 rounded-full"
-                      style={{ background: '#E9A020', color: '#FFFFFF' }}
-                    >
-                      Ch {ch.chapterIndex}
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#E9A020', color: '#FFFFFF' }}>
+                      Ch {i + 1}
                     </span>
                     <input
-                      defaultValue={ch.chapterTitle ?? ''}
+                      defaultValue={title}
                       placeholder="Chapter title"
-                      onBlur={(e) => save('writing', 'chapter', ch.content, ch.chapterIndex, e.target.value)}
-                      onClick={() => onSectionChange('chapter', ch.chapterIndex)}
+                      onBlur={(e) => {
+                        const meta = getChapterMeta('writing')
+                        const titles = [...meta.titles]
+                        titles[i] = e.target.value
+                        setValue('writing', 'chapterMeta', JSON.stringify({ ...meta, titles }))
+                      }}
+                      onClick={() => onSectionChange('chapter', i)}
                       className="flex-1 text-sm font-medium bg-transparent focus:outline-none"
                       style={{ color: '#1E2D3D' }}
                     />
-                    <SavedToast visible={!!savedFields[key]} />
+                    <SavedIndicator saving={saving[key]} saved={saved[key]} />
                     <span className="text-xs" style={{ color: '#9CA3AF' }}>
-                      {ch.wordCount.toLocaleString()} words
+                      {wordCount(content).toLocaleString()} words
                     </span>
                   </div>
                   <textarea
-                    defaultValue={ch.content ?? ''}
+                    defaultValue={content}
                     placeholder="Start writing your chapter\u2026"
-                    onFocus={() => onSectionChange('chapter', ch.chapterIndex)}
-                    onBlur={(e) => save('writing', 'chapter', e.target.value, ch.chapterIndex, ch.chapterTitle)}
+                    onFocus={() => onSectionChange('chapter', i)}
+                    onBlur={(e) => setValue('writing', 'chapter', e.target.value, i)}
                     className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none transition-shadow"
-                    style={{
-                      border: 'none',
-                      minHeight: isActive ? 300 : 100,
-                      color: '#1E2D3D',
-                      lineHeight: '1.8',
-                    }}
+                    style={{ border: 'none', minHeight: isActive ? 300 : 100, color: '#1E2D3D', lineHeight: '1.8' }}
                     rows={isActive ? 15 : 4}
                   />
                 </div>
@@ -220,17 +185,19 @@ export function NotebookPane({
         {/* POLISH phase */}
         {activePhase === 'polish' && (
           <>
-            {finalDrafts.length === 0 && (
+            {polishMeta.count === 0 && (
               <div className="text-center py-8" style={{ color: '#9CA3AF' }}>
                 <p className="text-sm">No final drafts yet. Finish your chapters in the Writing phase first.</p>
               </div>
             )}
-            {finalDrafts.map(ch => {
-              const key = `polish-finalDraft-${ch.chapterIndex}`
-              const isActive = activeSection === 'finalDraft' && activeChapterIndex === ch.chapterIndex
+            {Array.from({ length: polishMeta.count }, (_, i) => {
+              const key = getKey('polish', 'finalDraft', i)
+              const content = getValue('polish', 'finalDraft', i)
+              const title = polishMeta.titles[i] ?? ''
+              const isActive = activeSection === 'finalDraft' && activeChapterIndex === i
               return (
                 <div
-                  key={ch.id}
+                  key={i}
                   className="rounded-lg p-3"
                   style={{
                     border: isActive ? '1.5px solid #6EBF8B' : '0.5px solid #E5E7EB',
@@ -238,30 +205,30 @@ export function NotebookPane({
                   }}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <span
-                      className="text-xs font-medium px-2 py-0.5 rounded-full"
-                      style={{ background: '#6EBF8B', color: '#FFFFFF' }}
-                    >
-                      Ch {ch.chapterIndex}
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#6EBF8B', color: '#FFFFFF' }}>
+                      Ch {i + 1}
                     </span>
                     <input
-                      defaultValue={ch.chapterTitle ?? ''}
+                      defaultValue={title}
                       placeholder="Chapter title"
-                      onBlur={(e) => save('polish', 'finalDraft', ch.content, ch.chapterIndex, e.target.value)}
-                      onClick={() => onSectionChange('finalDraft', ch.chapterIndex)}
+                      onBlur={(e) => {
+                        const meta = getChapterMeta('polish')
+                        const titles = [...meta.titles]
+                        titles[i] = e.target.value
+                        setValue('polish', 'chapterMeta', JSON.stringify({ ...meta, titles }))
+                      }}
+                      onClick={() => onSectionChange('finalDraft', i)}
                       className="flex-1 text-sm font-medium bg-transparent focus:outline-none"
                       style={{ color: '#1E2D3D' }}
                     />
-                    <SavedToast visible={!!savedFields[key]} />
-                    <span className="text-xs" style={{ color: '#9CA3AF' }}>
-                      {ch.wordCount.toLocaleString()} words
-                    </span>
+                    <SavedIndicator saving={saving[key]} saved={saved[key]} />
+                    <span className="text-xs" style={{ color: '#9CA3AF' }}>{wordCount(content).toLocaleString()} words</span>
                   </div>
                   <textarea
-                    defaultValue={ch.content ?? ''}
+                    defaultValue={content}
                     placeholder="Paste or write your final draft here\u2026"
-                    onFocus={() => onSectionChange('finalDraft', ch.chapterIndex)}
-                    onBlur={(e) => save('polish', 'finalDraft', e.target.value, ch.chapterIndex, ch.chapterTitle)}
+                    onFocus={() => onSectionChange('finalDraft', i)}
+                    onBlur={(e) => setValue('polish', 'finalDraft', e.target.value, i)}
                     className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none transition-shadow"
                     style={{ border: 'none', minHeight: isActive ? 300 : 100, color: '#1E2D3D', lineHeight: '1.8' }}
                     rows={isActive ? 15 : 4}
