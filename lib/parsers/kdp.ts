@@ -248,15 +248,15 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   // ── Parse KENP Read ───────────────────────────────────────────────────────
   // Build a normalized ASIN lookup map (trimmed, uppercase) to handle
   // whitespace or case mismatches between KENP sheet and Combined Sales sheet.
-  const normalizedBookMap = new Map<string, BookData>()
-  for (const [key, book] of bookMap.entries()) {
-    normalizedBookMap.set(key.trim().toUpperCase(), book)
-  }
+  const normalizedBookMap = new Map<string, BookData>(
+    Array.from(bookMap.entries()).map(([key, book]) => [key.trim().toUpperCase(), book])
+  )
   // Also build a title-based fallback map for when ASINs don't match at all
-  const titleBookMap = new Map<string, BookData>()
-  for (const book of bookMap.values()) {
-    if (book.title) titleBookMap.set(book.title.toLowerCase().trim(), book)
-  }
+  const titleBookMap = new Map<string, BookData>(
+    Array.from(bookMap.values())
+      .filter(book => !!book.title)
+      .map(book => [book.title.toLowerCase().trim(), book])
+  )
 
   let totalKENP = 0
   for (const row of kenpData) {
