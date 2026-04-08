@@ -1,6 +1,6 @@
 'use client'
 // app/writing-notebook/page.tsx — immersive writing notebook (no sidebar)
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { WritingNotebookTopBar } from '@/components/writing-notebook/WritingNotebookTopBar'
 import { NotebookPane } from '@/components/writing-notebook/NotebookPane'
@@ -39,6 +39,10 @@ export default function WritingNotebookPage() {
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [saved, setSaved] = useState<Record<string, boolean>>({})
   const [hasApiKey, setHasApiKey] = useState(false)
+
+  // Keep bookId in a ref so callbacks always see the current value
+  const bookIdRef = useRef(selectedBookId)
+  bookIdRef.current = selectedBookId
 
   // Load books
   useEffect(() => {
@@ -96,6 +100,9 @@ export default function WritingNotebookPage() {
   }, [workbookData])
 
   const setValue = useCallback(async (phase: string, section: string, content: string, chapterIndex?: number) => {
+    const currentBookId = bookIdRef.current
+    if (!currentBookId) return // Don't save if no book selected
+
     const key = chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
     setWorkbookData(prev => ({ ...prev, [key]: content }))
     setSaving(prev => ({ ...prev, [key]: true }))
@@ -104,13 +111,13 @@ export default function WritingNotebookPage() {
       await fetch('/api/writing-notebook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookId: selectedBookId, phase, section, chapterIndex: chapterIndex ?? null, content }),
+        body: JSON.stringify({ bookId: currentBookId, phase, section, chapterIndex: chapterIndex ?? null, content }),
       })
       setSaved(prev => ({ ...prev, [key]: true }))
       setTimeout(() => setSaved(prev => ({ ...prev, [key]: false })), 2000)
     } catch { /* noop */ }
     setSaving(prev => ({ ...prev, [key]: false }))
-  }, [selectedBookId])
+  }, []) // No deps — uses ref for bookId
 
   const getChapterMeta = useCallback((phase: 'writing' | 'polish'): ChapterMeta => {
     const raw = workbookData[`${phase}:chapterMeta`]

@@ -100,6 +100,7 @@ export function NotebookPane({
                 <SavedIndicator saving={saving[key]} saved={saved[key]} />
               </div>
               <textarea
+                key={`${sec.id}-${bookId}-${content ? 'loaded' : 'empty'}`}
                 defaultValue={content}
                 placeholder={sec.placeholder}
                 onFocus={() => onSectionChange(sec.id)}
@@ -124,6 +125,7 @@ export function NotebookPane({
                 <SavedIndicator saving={saving[getKey('writing', 'storySoFar')]} saved={saved[getKey('writing', 'storySoFar')]} />
               </div>
               <textarea
+                key={`storySoFar-${bookId}-${getValue('writing', 'storySoFar') ? 'loaded' : 'empty'}`}
                 defaultValue={getValue('writing', 'storySoFar')}
                 placeholder="Summarize what has happened so far in the story. The AI uses this for continuity."
                 onFocus={() => onSectionChange('storySoFar')}
@@ -159,6 +161,7 @@ export function NotebookPane({
                       Ch {i + 1}
                     </span>
                     <input
+                      key={`ch-title-${i}-${bookId}-${title}`}
                       defaultValue={title}
                       placeholder="Chapter title"
                       onBlur={(e) => {
@@ -177,6 +180,7 @@ export function NotebookPane({
                     </span>
                   </div>
                   <textarea
+                    key={`ch-${i}-${bookId}-${content ? 'loaded' : 'empty'}`}
                     defaultValue={content}
                     placeholder="Start writing your chapter\u2026"
                     onFocus={() => onSectionChange('chapter', i)}
@@ -218,6 +222,7 @@ export function NotebookPane({
                       Ch {i + 1}
                     </span>
                     <input
+                      key={`fd-title-${i}-${bookId}-${title}`}
                       defaultValue={title}
                       placeholder="Chapter title"
                       onBlur={(e) => {
@@ -234,6 +239,7 @@ export function NotebookPane({
                     <span className="text-xs" style={{ color: '#9CA3AF' }}>{wordCount(content).toLocaleString()} words</span>
                   </div>
                   <textarea
+                    key={`fd-${i}-${bookId}-${content ? 'loaded' : 'empty'}`}
                     defaultValue={content}
                     placeholder="Paste or write your final draft here\u2026"
                     onFocus={() => onSectionChange('finalDraft', i)}
