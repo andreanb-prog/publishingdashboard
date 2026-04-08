@@ -52,7 +52,7 @@ function buildSystemPrompt(
   const globalKills: { word: string }[] = user.writingKillList
     ? JSON.parse(user.writingKillList) : []
   const bookKills: { word: string }[] = styleGuide?.killList ?? []
-  const allKillWords = [...new Set([...globalKills, ...bookKills].map(k => k.word))]
+  const allKillWords = Array.from(new Set([...globalKills, ...bookKills].map(k => k.word)))
 
   const killListBlock = allKillWords.length > 0 ? `
 AUTHOR'S PERSONAL KILL LIST — never use these, ever:
