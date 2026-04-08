@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { SHOW_PRICING } from '@/lib/flags'
 
 export default function BillingPage() {
   const { data: session } = useSession()
@@ -20,6 +21,8 @@ export default function BillingPage() {
   const daysLeft = trialEndsAt
     ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : null
+
+  if (!SHOW_PRICING) return null
 
   async function openPortal() {
     setLoading(true)

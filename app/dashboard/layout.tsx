@@ -8,6 +8,7 @@ import { MobileNav } from '@/components/MobileNav'
 import { FeedbackButton } from '@/components/FeedbackButton'
 import { HelpDrawer } from '@/components/HelpDrawer'
 import { TrialBanner } from '@/components/TrialBanner'
+import { SHOW_PRICING } from '@/lib/flags'
 
 export default async function DashboardLayout({
   children,
@@ -25,7 +26,7 @@ export default async function DashboardLayout({
   const trialExpired = trialEndsAt && new Date(trialEndsAt) < new Date()
   const needsSubscription = trialExpired && status !== 'active'
 
-  if (needsSubscription) {
+  if (SHOW_PRICING && needsSubscription) {
     redirect('/pricing?expired=true')
   }
 
@@ -37,7 +38,7 @@ export default async function DashboardLayout({
         <div className="hidden md:block">
           <TopBar user={session.user} />
         </div>
-        {status === 'trialing' && trialEndsAt && (
+        {SHOW_PRICING && status === 'trialing' && trialEndsAt && (
           <TrialBanner trialEndsAt={trialEndsAt} />
         )}
         <main className="flex-1 overflow-y-auto pb-24" style={{ background: '#FFFFFF' }}>

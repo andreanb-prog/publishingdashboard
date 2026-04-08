@@ -1,8 +1,11 @@
 'use client'
 // components/TrialBanner.tsx — Shows remaining trial days
 import Link from 'next/link'
+import { SHOW_PRICING } from '@/lib/flags'
 
 export function TrialBanner({ trialEndsAt }: { trialEndsAt: string }) {
+  if (!SHOW_PRICING) return null
+
   const daysLeft = Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
 
   if (daysLeft > 7) return null // Only show when 7 days or fewer remain

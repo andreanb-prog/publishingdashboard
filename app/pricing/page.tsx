@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { SHOW_PRICING } from '@/lib/flags'
 
 const PLANS = [
   {
@@ -42,6 +43,7 @@ const PLANS = [
 ]
 
 export default function PricingPage() {
+  if (!SHOW_PRICING) return null
   return (
     <Suspense fallback={null}>
       <PricingContent />
