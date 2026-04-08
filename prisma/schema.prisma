@@ -83,6 +83,7 @@ model User {
   swapPolicies  SwapPolicy[]
   authorLists   AuthorList[]
   uploadLogs    UploadLog[]
+  writingNotebooks WritingNotebook[]
   createdAt     DateTime       @default(now())
 }
 
@@ -523,6 +524,25 @@ model Ad {
   createdAt     DateTime @default(now())
 
   @@index([adSetId])
+}
+
+model WritingNotebook {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId       String
+  phase        String   // "setup" | "writing" | "polish"
+  section      String   // "storyOutline" | "characterBible" | "storySoFar" | "styleGuide" | "chapter" | "finalDraft"
+  chapterIndex Int?
+  chapterTitle String?
+  content      String   @default("") @db.Text
+  wordCount    Int      @default(0)
+  isDraft      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, bookId, phase, section, chapterIndex])
+  @@index([userId, bookId])
 }
 
 model UploadLog {

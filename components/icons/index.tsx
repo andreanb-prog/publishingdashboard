@@ -23,6 +23,7 @@ export {
   Palette,
   LayoutGrid,
   Columns,
+  PenTool,
 } from 'lucide-react'
 
 // Custom SVG icons (kept for legacy use)
