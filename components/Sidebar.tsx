@@ -16,7 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'My Dashboard', href: '/dashboard', Icon: LayoutDashboard },
   { label: 'Launch Planner', href: '/dashboard/launch', Icon: Rocket },
   { label: 'Creative Hub', href: '/dashboard/creative', Icon: Palette },
-  { label: 'Writing Notebook', href: '/dashboard/writing-notebook', Icon: PenLine },
+  { label: 'Writing Notebook', href: '/writing-notebook', Icon: PenLine },
 ]
 
 const CHANNEL_ITEMS: NavItem[] = [
