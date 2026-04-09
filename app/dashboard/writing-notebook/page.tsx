@@ -4,12 +4,14 @@ import { useSession } from 'next-auth/react'
 import { WritingOnboarding } from './WritingOnboarding'
 import { useWorkbook } from './useWorkbook'
 import { useBooks } from '@/hooks/useBooks'
+import { parseManuscriptIntoChapters, type ParsedChapter } from '@/lib/parseManuscript'
 
 // ── Desktop components (new layout) ──────────────────────────────────
 import { WritingNotebookTopBar } from '@/components/writing-notebook/WritingNotebookTopBar'
 import { SidebarNav } from '@/components/writing-notebook/SidebarNav'
 import { InlineAIPanel } from '@/components/writing-notebook/InlineAIPanel'
 import { EditorArea } from '@/components/writing-notebook/EditorArea'
+import { ImportPreviewModal } from '@/components/writing-notebook/ImportPreviewModal'
 
 // ── Mobile components (kept from previous layout) ─────────────────────
 import { NotebookPane } from '@/components/writing-notebook/NotebookPane'
@@ -41,6 +43,9 @@ export default function WritingNotebookPage() {
   const [storySoFarStatus, setStorySoFarStatus] = useState<'upToDate' | 'updating'>('upToDate')
   const [toast, setToast] = useState<string | null>(null)
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+
+  // ── Import state ───────────────────────────────────────────────────
+  const [importChapters, setImportChapters] = useState<ParsedChapter[] | null>(null)
 
   // ── Mobile state ───────────────────────────────────────────────────
   const [phase, setPhase] = useState<NotebookPhase>('setup')
@@ -86,7 +91,7 @@ export default function WritingNotebookPage() {
     const meta = workbook.getChapterMeta('writing')
     const chapters = Array.from({ length: meta.count }, (_, i) => ({
       title: meta.titles[i] ?? '',
-      content: workbook.getValue('writing', 'chapter', i),
+      content: workbook.getActiveDraftContent(i),
       order: i,
     })).filter(c => c.content.trim())
 
@@ -117,7 +122,7 @@ export default function WritingNotebookPage() {
     if (currentSummary.trim()) return // already populated
     const meta = workbook.getChapterMeta('writing')
     const hasContent = Array.from({ length: meta.count }, (_, i) =>
-      workbook.getValue('writing', 'chapter', i)
+      workbook.getActiveDraftContent(i)
     ).some(c => c.trim())
     if (hasContent) {
       didLoadTriggerRef.current = true
@@ -189,6 +194,66 @@ export default function WritingNotebookPage() {
     workbook.setValue('writing', 'chapter', content, chapterIndex)
   }, [workbook])
 
+  // ── Manuscript import flow ─────────────────────────────────────────
+  const handleFileImport = useCallback((file: File) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const text = reader.result as string
+      const parsed = parseManuscriptIntoChapters(text)
+      if (parsed.length === 0) {
+        setToast('Could not detect chapters — make sure your file uses # Chapter headers')
+        setTimeout(() => setToast(null), 4000)
+        return
+      }
+      setImportChapters(parsed)
+    }
+    reader.readAsText(file)
+  }, [])
+
+  const handleImportConfirm = useCallback(() => {
+    if (!importChapters) return
+    const meta = workbook.getChapterMeta('writing')
+
+    for (const ch of importChapters) {
+      const idx = ch.chapterNumber - 1
+      const existing = workbook.getChapterDraftMeta(idx)
+      const newDraftIdx = existing.draftCount
+      // Save imported content as a new draft
+      workbook.setChapterDraft(idx, newDraftIdx, ch.content)
+      // Update draft meta — switch to the new draft
+      workbook.setChapterDraftMeta(idx, {
+        draftCount: newDraftIdx + 1,
+        activeDraft: newDraftIdx,
+      })
+      // Update chapter title if import has one and existing is empty
+      if (ch.title && !(meta.titles[idx]?.trim())) {
+        const titles = [...meta.titles]
+        while (titles.length <= idx) titles.push('')
+        titles[idx] = ch.title
+        workbook.setChapterMeta('writing', { ...workbook.getChapterMeta('writing'), titles })
+      }
+    }
+
+    // Extend chapter count if import added new chapters
+    const maxImportIdx = Math.max(...importChapters.map(c => c.chapterNumber - 1))
+    if (maxImportIdx >= meta.count) {
+      const titles = [...workbook.getChapterMeta('writing').titles]
+      while (titles.length <= maxImportIdx) titles.push('')
+      for (const ch of importChapters) {
+        if (ch.chapterNumber - 1 >= meta.count && ch.title) {
+          titles[ch.chapterNumber - 1] = ch.title
+        }
+      }
+      workbook.setChapterMeta('writing', { count: maxImportIdx + 1, titles })
+    }
+
+    setImportChapters(null)
+    setActiveNavItem('chapter:0')
+    triggerStorySoFarUpdate()
+    setToast(`${importChapters.length} chapters imported`)
+    setTimeout(() => setToast(null), 3000)
+  }, [importChapters, workbook, triggerStorySoFarUpdate])
+
   const setValueAsync = useCallback(
     async (p: string, s: string, content: string, chapterIndex?: number) => {
       workbook.setValue(p, s, content, chapterIndex)
@@ -211,7 +276,7 @@ export default function WritingNotebookPage() {
   const hasChapterContent = (() => {
     const meta = workbook.getChapterMeta('writing')
     return Array.from({ length: meta.count }, (_, i) =>
-      workbook.getValue('writing', 'chapter', i)
+      workbook.getActiveDraftContent(i)
     ).some(c => c.trim())
   })()
 
@@ -242,6 +307,7 @@ export default function WritingNotebookPage() {
         lastSavedAt={lastSavedAt}
         bookId={bookId}
         onAddChapter={handleAddChapter}
+        onFileImport={handleFileImport}
       />
 
       {/* ═══ DESKTOP LAYOUT ════════════════════════════════════════ */}
@@ -250,6 +316,7 @@ export default function WritingNotebookPage() {
         <SidebarNav
           workbookData={workbook.data}
           getChapterMeta={workbook.getChapterMeta}
+          getChapterDraftMeta={workbook.getChapterDraftMeta}
           activeNavItem={activeNavItem}
           onNavChange={handleNavChange}
           onAddChapter={handleAddChapter}
@@ -283,6 +350,11 @@ export default function WritingNotebookPage() {
               setChapterMeta={workbook.setChapterMeta}
               getStyleGuide={workbook.getStyleGuide}
               setStyleGuide={workbook.setStyleGuide}
+              getChapterDraftMeta={workbook.getChapterDraftMeta}
+              setChapterDraftMeta={workbook.setChapterDraftMeta}
+              getChapterDraft={workbook.getChapterDraft}
+              setChapterDraft={workbook.setChapterDraft}
+              getActiveDraftContent={workbook.getActiveDraftContent}
               onWordCountChange={setWordCount}
               onKeystroke={resetIdleTimer}
               onStorySoFarUpdate={triggerStorySoFarUpdate}
@@ -344,6 +416,17 @@ export default function WritingNotebookPage() {
       </div>
 
       <MobileBottomBar activeTab={mobileTab} onTabChange={setMobileTab} />
+
+      {/* ── Import preview modal ────────────────────────────────────── */}
+      {importChapters && (
+        <ImportPreviewModal
+          chapters={importChapters}
+          getChapterDraftMeta={workbook.getChapterDraftMeta}
+          existingChapterCount={workbook.getChapterMeta('writing').count}
+          onConfirm={handleImportConfirm}
+          onCancel={() => setImportChapters(null)}
+        />
+      )}
 
       {/* ── Story So Far toast ─────────────────────────────────────── */}
       {toast && (

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Bold, Italic, Underline, Heading1, Heading2, Quote, List, Undo2, Redo2, Plus, X } from 'lucide-react'
-import type { ChapterMeta, StyleGuide, WorkbookData } from '@/app/dashboard/writing-notebook/useWorkbook'
+import type { ChapterMeta, ChapterDraftMeta, StyleGuide, WorkbookData } from '@/app/dashboard/writing-notebook/useWorkbook'
 import { ExportDropdown } from './ExportDropdown'
 
 interface Props {
@@ -14,6 +14,11 @@ interface Props {
   setChapterMeta: (phase: 'writing' | 'polish', meta: ChapterMeta) => void
   getStyleGuide: () => StyleGuide
   setStyleGuide: (guide: StyleGuide) => void
+  getChapterDraftMeta: (chapterIndex: number) => ChapterDraftMeta
+  setChapterDraftMeta: (chapterIndex: number, meta: ChapterDraftMeta) => void
+  getChapterDraft: (chapterIndex: number, draftIndex: number) => string
+  setChapterDraft: (chapterIndex: number, draftIndex: number, content: string) => void
+  getActiveDraftContent: (chapterIndex: number) => string
   onWordCountChange: (count: number) => void
   onKeystroke: () => void
   onStorySoFarUpdate?: () => void
@@ -273,6 +278,8 @@ export function EditorArea({
   activeNavItem, bookId, workbookData,
   getValue, setValue, getChapterMeta, setChapterMeta,
   getStyleGuide, setStyleGuide,
+  getChapterDraftMeta, setChapterDraftMeta,
+  getChapterDraft, setChapterDraft, getActiveDraftContent,
   onWordCountChange, onKeystroke,
   onStorySoFarUpdate, storySoFarStatus, hasChapterContent,
 }: Props) {
@@ -282,8 +289,16 @@ export function EditorArea({
   const isChapter = activeNavItem.startsWith('chapter:')
   const chapterIdx = isChapter ? parseInt(activeNavItem.split(':')[1]) : null
 
+  // Draft state for chapters
+  const draftMeta = isChapter && chapterIdx != null ? getChapterDraftMeta(chapterIdx) : null
+  const activeDraftIdx = draftMeta?.activeDraft ?? 0
+  const draftCount = draftMeta?.draftCount ?? 1
+
+  // New-draft inline choice state
+  const [showNewDraftChoice, setShowNewDraftChoice] = useState(false)
+
   const getInitialContent = useCallback((): string => {
-    if (isChapter && chapterIdx != null) return getValue('writing', 'chapter', chapterIdx)
+    if (isChapter && chapterIdx != null) return getActiveDraftContent(chapterIdx)
     switch (activeNavItem) {
       case 'storyOutline': return getValue('setup', 'storyOutline')
       case 'styleGuide':   return getValue('setup', 'styleGuide')
@@ -291,13 +306,14 @@ export function EditorArea({
       case 'storySoFar':   return getValue('writing', 'storySoFar')
       default: return ''
     }
-  }, [activeNavItem, isChapter, chapterIdx, getValue])
+  }, [activeNavItem, isChapter, chapterIdx, getValue, getActiveDraftContent])
 
   const [content, setContent] = useState(getInitialContent)
 
   // Reset content when nav item changes
   useEffect(() => {
     setContent(getInitialContent())
+    setShowNewDraftChoice(false)
   }, [activeNavItem, getInitialContent]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update live word count
@@ -309,7 +325,8 @@ export function EditorArea({
     setContent(v)
     onKeystroke()
     if (isChapter && chapterIdx != null) {
-      setValue('writing', 'chapter', v, chapterIdx)
+      // Always save to active draft
+      setChapterDraft(chapterIdx, activeDraftIdx, v)
     } else {
       switch (activeNavItem) {
         case 'storyOutline': setValue('setup', 'storyOutline', v); break
@@ -318,6 +335,31 @@ export function EditorArea({
         case 'storySoFar':   setValue('writing', 'storySoFar', v); break
       }
     }
+  }
+
+  // Switch to a different draft
+  function handleDraftSwitch(draftIdx: number) {
+    if (chapterIdx == null || draftIdx === activeDraftIdx) return
+    // Save current content first
+    setChapterDraft(chapterIdx, activeDraftIdx, content)
+    // Switch active draft
+    setChapterDraftMeta(chapterIdx, { draftCount, activeDraft: draftIdx })
+    // Load new draft content
+    setContent(getChapterDraft(chapterIdx, draftIdx))
+    setShowNewDraftChoice(false)
+  }
+
+  // Create a new draft
+  function handleNewDraft(copyContent: boolean) {
+    if (chapterIdx == null) return
+    // Save current content first
+    setChapterDraft(chapterIdx, activeDraftIdx, content)
+    const newIdx = draftCount
+    const newContent = copyContent ? content : ''
+    setChapterDraft(chapterIdx, newIdx, newContent)
+    setChapterDraftMeta(chapterIdx, { draftCount: draftCount + 1, activeDraft: newIdx })
+    setContent(newContent)
+    setShowNewDraftChoice(false)
   }
 
   // Update chapter title in chapterMeta
@@ -425,6 +467,61 @@ export function EditorArea({
         <FormattingToolbar textareaRef={textareaRef} onUpdate={handleContentChange} />
         <div className="flex-1 overflow-y-auto">
           <div className="px-8 py-6 max-w-3xl mx-auto">
+            {/* Draft switcher row — show if draftCount > 1 */}
+            {draftCount > 1 && (
+              <div className="flex items-center gap-1.5 mb-3 relative">
+                {Array.from({ length: draftCount }, (_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleDraftSwitch(i)}
+                    className="px-3 py-1 rounded-full transition-colors"
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 500,
+                      background: i === activeDraftIdx ? '#E9A020' : 'transparent',
+                      color: i === activeDraftIdx ? '#FFFFFF' : '#888888',
+                    }}
+                    onMouseEnter={e => {
+                      if (i !== activeDraftIdx) (e.target as HTMLElement).style.background = '#FFF8F0'
+                    }}
+                    onMouseLeave={e => {
+                      if (i !== activeDraftIdx) (e.target as HTMLElement).style.background = 'transparent'
+                    }}
+                  >
+                    Draft {i + 1}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setShowNewDraftChoice(v => !v)}
+                  className="px-2 py-1 text-[12px] font-medium transition-opacity hover:opacity-70"
+                  style={{ color: '#E9A020', background: 'none', border: 'none' }}
+                >
+                  + New draft
+                </button>
+                {showNewDraftChoice && (
+                  <div
+                    className="absolute top-full left-0 mt-1 flex gap-1.5 px-2 py-1.5 rounded-lg z-10"
+                    style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+                  >
+                    <button
+                      onClick={() => handleNewDraft(false)}
+                      className="px-3 py-1 rounded-md text-[12px] font-medium transition-colors hover:bg-gray-50"
+                      style={{ color: '#1E2D3D', border: '0.5px solid #E5E7EB' }}
+                    >
+                      Start blank
+                    </button>
+                    <button
+                      onClick={() => handleNewDraft(true)}
+                      className="px-3 py-1 rounded-md text-[12px] font-medium transition-colors hover:bg-gray-50"
+                      style={{ color: '#1E2D3D', border: '0.5px solid #E5E7EB' }}
+                    >
+                      Copy current draft
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Chapter label pills */}
             <div className="flex items-center gap-2 mb-4">
               <span
@@ -439,6 +536,39 @@ export function EditorArea({
               >
                 {status}
               </span>
+              {/* "+ New draft" button when only 1 draft exists */}
+              {draftCount <= 1 && (
+                <div className="relative ml-auto">
+                  <button
+                    onClick={() => setShowNewDraftChoice(v => !v)}
+                    className="px-2 py-1 text-[12px] font-medium transition-opacity hover:opacity-70"
+                    style={{ color: '#E9A020', background: 'none', border: 'none' }}
+                  >
+                    + New draft
+                  </button>
+                  {showNewDraftChoice && (
+                    <div
+                      className="absolute top-full right-0 mt-1 flex gap-1.5 px-2 py-1.5 rounded-lg z-10"
+                      style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+                    >
+                      <button
+                        onClick={() => handleNewDraft(false)}
+                        className="px-3 py-1 rounded-md text-[12px] font-medium transition-colors hover:bg-gray-50"
+                        style={{ color: '#1E2D3D', border: '0.5px solid #E5E7EB' }}
+                      >
+                        Start blank
+                      </button>
+                      <button
+                        onClick={() => handleNewDraft(true)}
+                        className="px-3 py-1 rounded-md text-[12px] font-medium transition-colors hover:bg-gray-50"
+                        style={{ color: '#1E2D3D', border: '0.5px solid #E5E7EB' }}
+                      >
+                        Copy current draft
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Editable chapter title */}

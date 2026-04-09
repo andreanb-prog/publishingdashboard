@@ -1,12 +1,13 @@
 'use client'
 import { Plus } from 'lucide-react'
-import type { WorkbookData, ChapterMeta } from '@/app/dashboard/writing-notebook/useWorkbook'
+import type { WorkbookData, ChapterMeta, ChapterDraftMeta } from '@/app/dashboard/writing-notebook/useWorkbook'
 
 export type StorySoFarStatus = 'upToDate' | 'updating'
 
 interface Props {
   workbookData: WorkbookData
   getChapterMeta: (phase: 'writing' | 'polish') => ChapterMeta
+  getChapterDraftMeta: (chapterIndex: number) => ChapterDraftMeta
   activeNavItem: string
   onNavChange: (item: string) => void
   onAddChapter: () => void
@@ -76,7 +77,7 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 export function SidebarNav({
-  workbookData, getChapterMeta, activeNavItem, onNavChange, onAddChapter, storySoFarStatus,
+  workbookData, getChapterMeta, getChapterDraftMeta, activeNavItem, onNavChange, onAddChapter, storySoFarStatus,
   onStorySoFarUpdate, hasChapterContent,
 }: Props) {
   const writingMeta = getChapterMeta('writing')
@@ -148,6 +149,7 @@ export function SidebarNav({
           const title = writingMeta.titles[idx] ?? ''
           const status = getChapterStatus(idx, workbookData)
           const dotColor = BOOK_COLORS[idx % BOOK_COLORS.length]
+          const chDraftMeta = getChapterDraftMeta(idx)
 
           return (
             <button
@@ -167,6 +169,11 @@ export function SidebarNav({
               <span className="text-[13px] flex-1 truncate min-w-0">
                 Ch {idx + 1}{title ? ` · ${title}` : ''}
               </span>
+              {chDraftMeta.draftCount > 1 && (
+                <span className="text-[10px] shrink-0" style={{ color: '#9CA3AF' }}>
+                  {chDraftMeta.draftCount} drafts
+                </span>
+              )}
               <span
                 className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
                 style={STATUS_PILL[status]}

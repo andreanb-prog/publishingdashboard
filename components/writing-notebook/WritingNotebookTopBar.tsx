@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { ChevronLeft, Plus } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ChevronLeft, Plus, Upload } from 'lucide-react'
 import { BookDropdown } from './BookDropdown'
 import { ExportDropdown } from './ExportDropdown'
 import type { BookRecord } from '@/hooks/useBooks'
@@ -16,6 +16,7 @@ interface Props {
   lastSavedAt: Date | null
   bookId: string
   onAddChapter: () => void
+  onFileImport?: (file: File) => void
 }
 
 // ── Save status indicator ──────────────────────────────────────────────────
@@ -82,13 +83,31 @@ function SaveStatusIndicator({
 export function WritingNotebookTopBar({
   books, selectedBookId, onBookChange, onNewBook,
   wordCount, saving, lastSavedAt,
-  bookId, onAddChapter,
+  bookId, onAddChapter, onFileImport,
 }: Props) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file && onFileImport) onFileImport(file)
+    // Reset so same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   return (
     <div
       className="h-12 flex items-center px-4 shrink-0 gap-4"
       style={{ background: '#FFFFFF', borderBottom: '0.5px solid #E5E7EB' }}
     >
+      {/* Hidden file input — always in DOM */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".txt,.md"
+        onChange={handleFileSelect}
+        style={{ display: 'none' }}
+      />
+
       {/* ── Left ─────────────────────────────── */}
       <div className="flex items-center gap-3 min-w-0" style={{ flex: '0 0 auto' }}>
         <Link
@@ -122,6 +141,16 @@ export function WritingNotebookTopBar({
             {wordCount.toLocaleString()} words
           </span>
         )}
+
+        {/* Import button */}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors hover:opacity-80"
+          style={{ color: '#6B7280', border: '0.5px solid #E5E7EB' }}
+        >
+          <Upload size={13} />
+          Import
+        </button>
 
         <ExportDropdown bookId={bookId} drawerToggle="drafts" />
 
