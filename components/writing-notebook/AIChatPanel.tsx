@@ -104,6 +104,7 @@ export function AIChatPanel({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
+        console.error('[AIChatPanel] POST failed', { status: res.status, error: data.error, data })
         if (data.error === 'no_api_key') setError('Add your Anthropic API key in Settings.')
         else if (data.error === 'invalid_key') setError('Your API key is invalid. Update it in Settings.')
         else if (data.error === 'rate_limited') setError('Rate limited — wait a moment and try again.')

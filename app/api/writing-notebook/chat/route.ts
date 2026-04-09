@@ -175,6 +175,7 @@ Always end with a hook or cliffhanger.`
 }
 
 export async function POST(req: NextRequest) {
+  console.log('[writing-notebook/chat] POST hit')
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -185,15 +186,18 @@ export async function POST(req: NextRequest) {
     select: { anthropicApiKey: true, writingKillList: true },
   })
 
-  if (!user?.anthropicApiKey) {
-    return NextResponse.json({ error: 'no_api_key' }, { status: 403 })
-  }
-
   let apiKey: string
-  try {
-    apiKey = decrypt(user.anthropicApiKey)
-  } catch {
-    return NextResponse.json({ error: 'invalid_key' }, { status: 403 })
+  if (user?.anthropicApiKey) {
+    try {
+      apiKey = decrypt(user.anthropicApiKey)
+    } catch {
+      return NextResponse.json({ error: 'invalid_key' }, { status: 403 })
+    }
+  } else if (process.env.ANTHROPIC_API_KEY) {
+    console.log('[writing-notebook/chat] No user key — falling back to ANTHROPIC_API_KEY env var')
+    apiKey = process.env.ANTHROPIC_API_KEY
+  } else {
+    return NextResponse.json({ error: 'no_api_key' }, { status: 403 })
   }
 
   // Get last 20 messages for context
