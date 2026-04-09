@@ -34,7 +34,7 @@ const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
 
 const ALL_NAV: NavEntry[] = [
   { section: 'Overview', label: 'My Dashboard',   href: '/dashboard',              render: ph(House) },
-  { label: 'Writing Notebook',                    href: '/writing-notebook',       render: () => <PenLine size={20} color="#E9A020" /> },
+  { label: 'Writing Notebook',                    href: '/dashboard/writing-notebook',       render: () => <PenLine size={20} color="#E9A020" /> },
   { section: 'Channels', label: 'KDP',            href: '/dashboard/kdp',          render: ic(IconKDP, '#E9A020') },
   { label: 'Meta / Facebook',                     href: '/dashboard/meta',         render: ic(IconMeta, '#60A5FA') },
   { label: 'MailerLite',                           href: '/dashboard/mailerlite',   render: ic(IconMailerLite, '#34d399') },
