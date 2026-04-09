@@ -48,7 +48,30 @@ export function WorkbookPane(props: Props) {
   const [showUpload, setShowUpload] = useState(false)
 
   const handleImport = useCallback((target: ImportTarget, content: string) => {
-    const CHAPTER_RE = /^(?:chapter\s+\d+|ch\.?\s*\d+|part\s+\d+)/gim
+    // Matches chapter headings with optional markdown # prefixes, numeric or written-out numbers
+    const CHAPTER_RE = /^#{1,3}\s+Chapter\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty(?:[- ]?\w+)?)\b/gim
+    // Metadata lines to discard when splitting (book title, series line, edit/draft timestamps)
+    const META_LINE_RE = /^#{1,4}\s+(?:Stillwater|Edited:|Draft:|My Grumpy|Elle Wilder)/i
+
+    const wordToNum: Record<string, number> = {
+      one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,
+      eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,
+      seventeen:17,eighteen:18,nineteen:19,twenty:20
+    }
+
+    function extractChapterTitle(heading: string): string {
+      // Strip markdown #s and "Chapter N/Word" prefix, return text after em dash
+      const afterDash = heading.match(/[—–-]\s*(.+)/)
+      if (afterDash) return afterDash[1].trim()
+      return heading.replace(/^#+\s*/, '').trim()
+    }
+
+    function extractChapterNum(heading: string): number {
+      const m = heading.match(/Chapter\s+(\w+)/i)
+      if (!m) return 0
+      const raw = m[1].toLowerCase()
+      return wordToNum[raw] ?? (parseInt(raw, 10) || 0)
+    }
 
     if (target.type === 'storyOutline') {
       const existing = getValue('setup', 'storyOutline')
@@ -65,16 +88,35 @@ export function WorkbookPane(props: Props) {
       setValue('writing', 'chapter', content, idx)
       setPhase('writing')
     } else if (target.type === 'splitChapters') {
-      const parts = content.split(CHAPTER_RE).filter(s => s.trim())
-      const headings = content.match(CHAPTER_RE) || []
+      // Split content by chapter heading lines, discarding metadata lines
+      const lines = content.split('\n')
+      const chapters: { heading: string; body: string[] }[] = []
+      let current: { heading: string; body: string[] } | null = null
+
+      for (const line of lines) {
+        if (CHAPTER_RE.test(line)) {
+          // Reset regex lastIndex since it has the global flag
+          CHAPTER_RE.lastIndex = 0
+          if (current) chapters.push(current)
+          current = { heading: line, body: [] }
+        } else if (current) {
+          // Skip metadata lines (book title, series, edit timestamps)
+          if (META_LINE_RE.test(line)) continue
+          current.body.push(line)
+        }
+        // Lines before the first chapter heading are discarded (metadata)
+      }
+      if (current) chapters.push(current)
+
       const meta = getChapterMeta('writing')
-      let startIdx = meta.count
+      const startIdx = meta.count
       const newTitles = [...meta.titles]
-      parts.forEach((text, i) => {
-        newTitles.push(headings[i]?.trim() || '')
-        setValue('writing', 'chapter', text.trim(), startIdx + i)
+      chapters.forEach((ch, i) => {
+        const title = extractChapterTitle(ch.heading)
+        newTitles.push(title)
+        setValue('writing', 'chapter', ch.body.join('\n').trim(), startIdx + i)
       })
-      setChapterMeta('writing', { count: startIdx + parts.length, titles: newTitles })
+      setChapterMeta('writing', { count: startIdx + chapters.length, titles: newTitles })
       setPhase('writing')
     }
   }, [getValue, setValue, getChapterMeta, setChapterMeta, setPhase])

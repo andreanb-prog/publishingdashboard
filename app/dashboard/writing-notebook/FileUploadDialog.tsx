@@ -14,7 +14,8 @@ interface Props {
   onImport: (target: ImportTarget, content: string) => void
 }
 
-const CHAPTER_RE = /^(?:chapter\s+\d+|ch\.?\s*\d+|part\s+\d+)/gim
+// Matches chapter headings with optional markdown # prefixes, numeric or written-out numbers
+const CHAPTER_RE = /^#{1,3}\s+Chapter\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty(?:[- ]?\w+)?)\b/gim
 
 export function FileUploadDialog({ isOpen, onClose, onImport }: Props) {
   const [file, setFile] = useState<File | null>(null)
