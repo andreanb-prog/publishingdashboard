@@ -177,15 +177,17 @@ Always end with a hook or cliffhanger.`
 export async function POST(req: NextRequest) {
   try {
     console.log('[chat] POST hit, env key exists:', !!process.env.ANTHROPIC_API_KEY)
+    console.log('[chat] step 1: getting session')
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+    console.log('[chat] step 2: parsing body')
     const { bookId, bookTitle, message, activePhase, workbookData, styleGuide } = await req.json()
-
+    console.log('[chat] step 3: fetching user, bookId:', bookId)
     const user = await db.user.findUnique({
       where: { id: session.user.id },
       select: { anthropicApiKey: true, writingKillList: true },
     })
+    console.log('[chat] step 4: got user, has key:', !!user?.anthropicApiKey)
 
     let apiKey: string
     if (user?.anthropicApiKey) {
