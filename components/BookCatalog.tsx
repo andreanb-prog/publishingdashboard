@@ -314,11 +314,12 @@ function BookModal({
 }: {
   editing: Book | null
   onClose: () => void
-  onSave: (form: BookForm) => void
+  onSave: (form: BookForm) => Promise<string | null>
   isSaving: boolean
   colorIndex: number
 }) {
   const [form, setForm] = useState<BookForm>(editing ? bookToForm(editing) : blankForm())
+  const [saveError, setSaveError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [coverPreviewError, setCoverPreviewError] = useState(false)
   const manuscriptFileRef = useRef<HTMLInputElement>(null)
@@ -461,7 +462,7 @@ function BookModal({
             </div>
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1.5">
-                Publication Date
+                Publication Date <span className="normal-case font-normal text-stone-400">(optional)</span>
               </label>
               <input
                 type="date"
@@ -469,6 +470,9 @@ function BookModal({
                 onChange={e => set('pubDate', e.target.value)}
                 className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
               />
+              <span className="block mt-1 text-[11px] text-stone-400">
+                Add a publish date and AuthorDash will build your launch timeline automatically.
+              </span>
             </div>
           </div>
 
@@ -706,23 +710,32 @@ function BookModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-stone-100">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-[12.5px] font-semibold border border-stone-200 text-stone-500 hover:bg-stone-50 transition-all cursor-pointer bg-white"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => onSave(form)}
-            disabled={!titleValid || isSaving}
-            className="px-5 py-2 rounded-lg text-[12.5px] font-semibold border-none cursor-pointer transition-all disabled:opacity-40"
-            style={{ background: '#E9A020', color: '#1E2D3D' }}
-          >
-            {isSaving ? 'Saving…' : editing ? 'Save Changes' : 'Add Book'}
-          </button>
+        <div className="px-6 py-4 border-t border-stone-100">
+          {saveError && (
+            <p className="text-[12px] text-red-500 mb-2">{saveError}</p>
+          )}
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg text-[12.5px] font-semibold border border-stone-200 text-stone-500 hover:bg-stone-50 transition-all cursor-pointer bg-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                setSaveError(null)
+                const err = await onSave(form)
+                if (err) setSaveError(err)
+              }}
+              disabled={!titleValid || isSaving}
+              className="px-5 py-2 rounded-lg text-[12.5px] font-semibold border-none cursor-pointer transition-all disabled:opacity-40"
+              style={{ background: '#E9A020', color: '#1E2D3D' }}
+            >
+              {isSaving ? 'Saving…' : editing ? 'Save Changes' : 'Add Book'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -802,8 +815,8 @@ export function BookCatalog() {
     setEditingBook(null)
   }
 
-  // Save (create or update)
-  async function handleSave(form: BookForm) {
+  // Save (create or update) — returns error string or null on success
+  async function handleSave(form: BookForm): Promise<string | null> {
     setIsSaving(true)
     try {
       let coverUrl = form.coverUrl || null
@@ -822,12 +835,15 @@ export function BookCatalog() {
       }
 
       if (editingBook) {
+        console.log('[BookCatalog] PUT /api/books/', editingBook.id, payload)
         const res = await fetch(`/api/books/${editingBook.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
         const data = await res.json()
+        console.log('[BookCatalog] PUT response', res.status, data)
+        if (!res.ok) return data.error ?? `Save failed (${res.status})`
         if (data.book) {
           setBooks(prev => prev.map(b => b.id === editingBook.id ? {
             ...data.book,
@@ -836,12 +852,15 @@ export function BookCatalog() {
           } : b))
         }
       } else {
+        console.log('[BookCatalog] POST /api/books', payload)
         const res = await fetch('/api/books', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
         const data = await res.json()
+        console.log('[BookCatalog] POST response', res.status, data)
+        if (!res.ok) return data.error ?? `Save failed (${res.status})`
         if (data.book) {
           setBooks(prev => [...prev, {
             ...data.book,
@@ -851,9 +870,11 @@ export function BookCatalog() {
         }
       }
 
-      // Also re-fetch to ensure full consistency
-      await loadBooks()
       closeModal()
+      return null
+    } catch (err) {
+      console.error('[BookCatalog] save error', err)
+      return err instanceof Error ? err.message : 'Something went wrong'
     } finally {
       setIsSaving(false)
     }
