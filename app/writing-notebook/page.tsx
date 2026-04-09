@@ -1,53 +1,60 @@
 'use client'
-// app/writing-notebook/page.tsx — immersive writing notebook (no sidebar)
+// app/writing-notebook/page.tsx — immersive writing notebook (Google Docs layout, no dashboard shell)
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { ChevronLeft, Sparkles, X } from 'lucide-react'
 import { useBooks } from '@/hooks/useBooks'
-import BookSelector from '@/components/BookSelector'
+import { useWorkbook } from '@/app/dashboard/writing-notebook/useWorkbook'
+
+// ── Desktop components (new layout) ──────────────────────────────────
+import { WritingNotebookTopBar } from '@/components/writing-notebook/WritingNotebookTopBar'
+import { SidebarNav } from '@/components/writing-notebook/SidebarNav'
+import { InlineAIPanel } from '@/components/writing-notebook/InlineAIPanel'
+import { EditorArea } from '@/components/writing-notebook/EditorArea'
+
+// ── Mobile components ─────────────────────────────────────────────────
 import { NotebookPane } from '@/components/writing-notebook/NotebookPane'
 import { ChapterDrawer } from '@/components/writing-notebook/ChapterDrawer'
 import { AIChatPanel } from '@/components/writing-notebook/AIChatPanel'
 import { MobileBottomBar } from '@/components/writing-notebook/MobileBottomBar'
 
-type Phase = 'setup' | 'writing' | 'polish'
+type NotebookPhase = 'setup' | 'writing' | 'polish'
 type MobileTab = 'notebook' | 'chapters' | 'chat'
-
-export interface WorkbookData { [key: string]: string }
-export interface ChapterMeta { count: number; titles: string[] }
-export interface StyleGuide {
-  niche?: string; pov?: string; tense?: string
-  totalWordCount?: string; chapterWordCount?: string
-  tropes?: string; personalStylePreferences?: string
-  killList?: { word: string; scope: 'global' | 'book' }[]
-  aiRules?: { antiSlopEnabled: boolean; writingFormulaEnabled: boolean }
-}
 
 export default function WritingNotebookPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
-
   const { books } = useBooks()
+
+  // ── Shared ─────────────────────────────────────────────────────────
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
-  const [workbookData, setWorkbookData] = useState<WorkbookData>({})
-  const [activePhase, setActivePhase] = useState<Phase>('writing')
-  const [activeSection, setActiveSection] = useState('chapter')
+  const [hasApiKey, setHasApiKey] = useState(false)
+
+  const workbook = useWorkbook(selectedBookId)
+  const selectedBook = books.find(b => b.id === selectedBookId)
+
+  // ── Desktop state ──────────────────────────────────────────────────
+  const [activeNavItem, setActiveNavItem] = useState('storyOutline')
+  const [wordCount, setWordCount] = useState(0)
+  const [storySoFarStatus, setStorySoFarStatus] = useState<'upToDate' | 'updating'>('upToDate')
+  const [toast, setToast] = useState<string | null>(null)
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+
+  // ── Mobile state ───────────────────────────────────────────────────
+  const [phase, setPhase] = useState<NotebookPhase>('setup')
+  const [activeSection, setActiveSection] = useState('storyOutline')
   const [activeChapterIndex, setActiveChapterIndex] = useState<number | null>(null)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [drawerToggle, setDrawerToggle] = useState<'drafts' | 'final'>('drafts')
   const [mobileTab, setMobileTab] = useState<MobileTab>('notebook')
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState<Record<string, boolean>>({})
-  const [saved, setSaved] = useState<Record<string, boolean>>({})
-  const [hasApiKey, setHasApiKey] = useState(false)
 
+  // ── Init ───────────────────────────────────────────────────────────
   // Select book from URL param or first book
   useEffect(() => {
     if (books.length === 0) return
     const paramBookId = searchParams.get('bookId')
     const initial = paramBookId && books.find(b => b.id === paramBookId)
-      ? paramBookId : books[0]?.id ?? null
+      ? paramBookId
+      : books[0]?.id ?? null
     setSelectedBookId(prev => prev ?? initial)
   }, [books, searchParams])
 
@@ -59,121 +66,30 @@ export default function WritingNotebookPage() {
       .catch(() => {})
   }, [])
 
-  // Load workbook data
-  const loadWorkbook = useCallback(async () => {
-    if (!selectedBookId) { setLoading(false); return }
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/writing-notebook?bookId=${selectedBookId}`)
-      const { data: records } = await res.json()
-      const map: WorkbookData = {}
-      for (const r of records ?? []) {
-        const key = r.chapterIndex != null
-          ? `${r.phase}:${r.section}:${r.chapterIndex}`
-          : `${r.phase}:${r.section}`
-        map[key] = r.content
-      }
-      setWorkbookData(map)
-    } catch { /* noop */ }
-    setLoading(false)
-  }, [selectedBookId])
-
-  useEffect(() => { loadWorkbook() }, [loadWorkbook])
-
-  // Update URL
+  // Sync book to URL
   useEffect(() => {
     if (selectedBookId) router.replace(`/writing-notebook?bookId=${selectedBookId}`, { scroll: false })
   }, [selectedBookId, router])
 
-  // Get/set helpers
-  const getValue = useCallback((phase: string, section: string, chapterIndex?: number): string => {
-    const key = chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
-    return workbookData[key] ?? ''
-  }, [workbookData])
+  // ── Save tracking ──────────────────────────────────────────────────
+  const isSavingAny = Object.values(workbook.saving).some(Boolean)
+  const prevSavingRef = useRef(false)
+  useEffect(() => {
+    if (prevSavingRef.current && !isSavingAny) setLastSavedAt(new Date())
+    prevSavingRef.current = isSavingAny
+  }, [isSavingAny])
 
-  const setValue = useCallback(async (phase: string, section: string, content: string, chapterIndex?: number) => {
-    const key = chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
-    setWorkbookData(prev => ({ ...prev, [key]: content }))
-    setSaving(prev => ({ ...prev, [key]: true }))
-    setSaved(prev => ({ ...prev, [key]: false }))
-    try {
-      await fetch('/api/writing-notebook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookId: selectedBookId, phase, section, chapterIndex: chapterIndex ?? null, content }),
-      })
-      setSaved(prev => ({ ...prev, [key]: true }))
-      setTimeout(() => setSaved(prev => ({ ...prev, [key]: false })), 2000)
-    } catch { /* noop */ }
-    setSaving(prev => ({ ...prev, [key]: false }))
-  }, [selectedBookId])
-
-  const getChapterMeta = useCallback((phase: 'writing' | 'polish'): ChapterMeta => {
-    const raw = workbookData[`${phase}:chapterMeta`]
-    if (!raw) return { count: 1, titles: [] }
-    try { return JSON.parse(raw) } catch { return { count: 1, titles: [] } }
-  }, [workbookData])
-
-  const setChapterMeta = useCallback((phase: 'writing' | 'polish', meta: ChapterMeta) => {
-    setValue(phase, 'chapterMeta', JSON.stringify(meta))
-  }, [setValue])
-
-  const getStyleGuide = useCallback((): StyleGuide => {
-    const raw = workbookData['setup:styleGuide']
-    if (!raw) return {}
-    try { return JSON.parse(raw) } catch { return {} }
-  }, [workbookData])
-
-  const handleSectionChange = useCallback((section: string, chapterIndex?: number | null) => {
-    setActiveSection(section)
-    if (chapterIndex !== undefined) setActiveChapterIndex(chapterIndex)
-  }, [])
-
-  const handleChapterClick = useCallback((idx: number) => {
-    setActivePhase('writing')
-    setActiveSection('chapter')
-    setActiveChapterIndex(idx)
-    setMobileTab('notebook')
-  }, [])
-
-  const handleSectionClick = useCallback((section: string) => {
-    if (section === 'storyOutline') { setActivePhase('setup'); setActiveSection('storyOutline') }
-    else if (section === 'storySoFar') { setActivePhase('writing'); setActiveSection('storySoFar') }
-    setMobileTab('notebook')
-  }, [])
-
-  const handleAddChapter = useCallback(() => {
-    const meta = getChapterMeta('writing')
-    const newMeta = { count: meta.count + 1, titles: [...meta.titles, ''] }
-    setChapterMeta('writing', newMeta)
-    setActivePhase('writing')
-    setActiveSection('chapter')
-    setActiveChapterIndex(meta.count) // 0-indexed, so meta.count is the new index
-  }, [getChapterMeta, setChapterMeta])
-
-  const handleSaveToWorkbook = useCallback(async (content: string, chapterIndex: number) => {
-    await setValue('writing', 'chapter', content, chapterIndex)
-    // Ensure chapter meta includes this index
-    const meta = getChapterMeta('writing')
-    if (chapterIndex >= meta.count) {
-      setChapterMeta('writing', { count: chapterIndex + 1, titles: [...meta.titles] })
-    }
-    setIsChatOpen(false)
-    setActivePhase('writing')
-    setActiveSection('chapter')
-    setActiveChapterIndex(chapterIndex)
-  }, [setValue, getChapterMeta, setChapterMeta])
-
-  // Story So Far auto-update
-  const triggerStorySoFar = useCallback(async () => {
+  // ── Story So Far auto-update ───────────────────────────────────────
+  const triggerStorySoFarUpdate = useCallback(async () => {
     if (!selectedBookId) return
-    const meta = getChapterMeta('writing')
+    const meta = workbook.getChapterMeta('writing')
     const chapters = Array.from({ length: meta.count }, (_, i) => ({
       title: meta.titles[i] ?? '',
-      content: getValue('writing', 'chapter', i),
+      content: workbook.getValue('writing', 'chapter', i),
       order: i,
     })).filter(c => c.content.trim())
     if (!chapters.length) return
+    setStorySoFarStatus('updating')
     try {
       const res = await fetch('/api/writing-notebook/story-so-far', {
         method: 'POST',
@@ -182,117 +98,213 @@ export default function WritingNotebookPage() {
       })
       const data = await res.json()
       if (data.success && data.summary) {
-        await setValue('writing', 'storySoFar', data.summary)
+        workbook.setValue('writing', 'storySoFar', data.summary)
+        setToast('Story So Far updated')
+        setTimeout(() => setToast(null), 3000)
       }
     } catch { /* fail silently */ }
-  }, [selectedBookId, getChapterMeta, getValue, setValue])
+    finally { setStorySoFarStatus('upToDate') }
+  }, [selectedBookId, workbook])
 
-  // On load: fire once if chapters have content but storySoFar is empty
+  // On load: auto-generate once if chapters exist but storySoFar is empty
   const didLoadTriggerRef = useRef(false)
   useEffect(() => {
-    if (loading || didLoadTriggerRef.current) return
-    const currentSummary = workbookData['writing:storySoFar'] ?? ''
-    if (currentSummary.trim()) return
-    const meta = getChapterMeta('writing')
+    if (!workbook.loaded || didLoadTriggerRef.current) return
+    if (workbook.getValue('writing', 'storySoFar').trim()) return
+    const meta = workbook.getChapterMeta('writing')
     const hasContent = Array.from({ length: meta.count }, (_, i) =>
-      workbookData[`writing:chapter:${i}`] ?? ''
+      workbook.getValue('writing', 'chapter', i)
     ).some(c => c.trim())
     if (hasContent) {
       didLoadTriggerRef.current = true
-      triggerStorySoFar()
+      triggerStorySoFarUpdate()
     }
-  }, [loading]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [workbook.loaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const selectedBook = books.find(b => b.id === selectedBookId)
+  // Trigger on chapter nav-away
+  const prevNavRef = useRef(activeNavItem)
+  const handleNavChange = useCallback((item: string) => {
+    if (prevNavRef.current.startsWith('chapter:') && !item.startsWith('chapter:')) {
+      triggerStorySoFarUpdate()
+    }
+    prevNavRef.current = item
+    setActiveNavItem(item)
+  }, [triggerStorySoFarUpdate])
 
-  if (loading && books.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-screen" style={{ background: '#FFF8F0' }}>
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 rounded-full animate-spin mx-auto mb-3" style={{ borderColor: '#E5E7EB', borderTopColor: '#E9A020' }} />
-          <p className="text-sm" style={{ color: '#9CA3AF' }}>Loading your notebook...</p>
-        </div>
-      </div>
-    )
-  }
+  // 60-second idle timer
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const resetIdleTimer = useCallback(() => {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+    if (activeNavItem.startsWith('chapter:')) {
+      idleTimerRef.current = setTimeout(() => triggerStorySoFarUpdate(), 60_000)
+    }
+  }, [activeNavItem, triggerStorySoFarUpdate])
+
+  useEffect(() => {
+    if (!activeNavItem.startsWith('chapter:') && idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current)
+    }
+  }, [activeNavItem])
+
+  // ── Chapter handlers ───────────────────────────────────────────────
+  const handleAddChapter = useCallback(() => {
+    const meta = workbook.getChapterMeta('writing')
+    workbook.setChapterMeta('writing', { count: meta.count + 1, titles: [...meta.titles, ''] })
+    setActiveNavItem(`chapter:${meta.count}`)
+  }, [workbook])
+
+  const handleMobileAddChapter = useCallback(() => {
+    const meta = workbook.getChapterMeta('writing')
+    workbook.setChapterMeta('writing', { count: meta.count + 1, titles: [...meta.titles, ''] })
+    setPhase('writing')
+    setActiveSection('chapter')
+    setActiveChapterIndex(meta.count)
+  }, [workbook])
+
+  const handleSaveToWorkbook = useCallback(async (content: string, chapterIndex: number, chapterTitle?: string) => {
+    const meta = workbook.getChapterMeta('writing')
+    if (chapterIndex >= meta.count) {
+      workbook.setChapterMeta('writing', { count: chapterIndex + 1, titles: [...meta.titles, chapterTitle ?? ''] })
+    }
+    workbook.setValue('writing', 'chapter', content, chapterIndex)
+  }, [workbook])
+
+  const setValueAsync = useCallback(
+    async (p: string, s: string, content: string, chapterIndex?: number) => {
+      workbook.setValue(p, s, content, chapterIndex)
+    },
+    [workbook]
+  )
+
+  const bookId = selectedBookId ?? ''
+  const bookTitle = selectedBook?.title ?? ''
 
   return (
-    <div className="flex flex-col h-screen" style={{ background: '#FFF8F0' }}>
-      {/* Immersive top bar */}
-      <div className="h-12 flex items-center px-6 shrink-0" style={{ background: '#FFFFFF', borderBottom: '1px solid #E5E7EB' }}>
-        <Link href="/dashboard" className="flex items-center gap-1 text-sm hover:opacity-70 transition-opacity" style={{ color: '#6B7280' }}>
-          <ChevronLeft size={16} />
-          <span className="hidden sm:inline">Back to Dashboard</span>
-        </Link>
-        <div className="flex-1 flex justify-center">
-          <BookSelector value={selectedBookId || null} onChange={setSelectedBookId} placeholder="Select a book" />
+    <div className="flex flex-col h-screen" style={{ background: '#FFFFFF' }}>
+      {/* ── Top bar ─────────────────────────────────────────────────── */}
+      <WritingNotebookTopBar
+        books={books}
+        selectedBookId={bookId}
+        onBookChange={id => setSelectedBookId(id)}
+        wordCount={wordCount}
+        saving={workbook.saving}
+        lastSavedAt={lastSavedAt}
+        bookId={bookId}
+        onAddChapter={handleAddChapter}
+      />
+
+      {/* ═══ DESKTOP LAYOUT ════════════════════════════════════════ */}
+      <div className="flex-1 hidden md:flex overflow-hidden">
+        {/* Left — SidebarNav (196px) */}
+        <SidebarNav
+          workbookData={workbook.data}
+          getChapterMeta={workbook.getChapterMeta}
+          activeNavItem={activeNavItem}
+          onNavChange={handleNavChange}
+          onAddChapter={handleAddChapter}
+          storySoFarStatus={storySoFarStatus}
+        />
+
+        {/* Center — AI panel + editor */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <InlineAIPanel
+            bookId={bookId}
+            bookTitle={bookTitle}
+            workbookData={workbook.data}
+            styleGuide={workbook.getStyleGuide()}
+            hasApiKey={hasApiKey}
+            activeNavItem={activeNavItem}
+          />
+
+          <div className="flex-1 overflow-hidden">
+            <EditorArea
+              key={activeNavItem}
+              activeNavItem={activeNavItem}
+              bookId={bookId}
+              workbookData={workbook.data}
+              getValue={workbook.getValue}
+              setValue={workbook.setValue}
+              getChapterMeta={workbook.getChapterMeta}
+              setChapterMeta={workbook.setChapterMeta}
+              getStyleGuide={workbook.getStyleGuide}
+              setStyleGuide={workbook.setStyleGuide}
+              onWordCountChange={setWordCount}
+              onKeystroke={resetIdleTimer}
+            />
+          </div>
         </div>
-        <button
-          onClick={() => { setIsChatOpen(!isChatOpen); setMobileTab(isChatOpen ? 'notebook' : 'chat') }}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
-          style={{ border: isChatOpen ? 'none' : '1.5px solid #E9A020', color: isChatOpen ? '#6B7280' : '#E9A020', background: isChatOpen ? '#F3F4F6' : 'transparent' }}
-        >
-          {isChatOpen ? <X size={14} /> : <Sparkles size={14} />}
-          {isChatOpen ? 'Close Chat' : 'AI Chat'}
-        </button>
       </div>
 
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* Left pane — Notebook */}
-        <div
-          className={`flex-1 overflow-hidden ${mobileTab !== 'notebook' ? 'hidden md:flex' : 'flex'} flex-col`}
-          style={{ maxWidth: '55%' }}
-        >
+      {/* ═══ MOBILE LAYOUT ════════════════════════════════════════ */}
+      <div className="flex-1 md:hidden overflow-hidden pb-14">
+        {mobileTab === 'notebook' && (
           <NotebookPane
-            bookId={selectedBookId ?? ''}
-            activePhase={activePhase}
-            onPhaseChange={setActivePhase}
+            bookId={bookId}
+            activePhase={phase}
+            onPhaseChange={setPhase}
             activeSection={activeSection}
             activeChapterIndex={activeChapterIndex}
-            onSectionChange={handleSectionChange}
-            getValue={getValue}
-            setValue={setValue}
-            getChapterMeta={getChapterMeta}
-            saving={saving}
-            saved={saved}
-            onChapterBlur={triggerStorySoFar}
+            onSectionChange={(section, chapterIndex) => {
+              setActiveSection(section)
+              setActiveChapterIndex(chapterIndex ?? null)
+            }}
+            getValue={workbook.getValue}
+            setValue={setValueAsync}
+            getChapterMeta={workbook.getChapterMeta}
+            saving={workbook.saving}
+            saved={workbook.saved}
           />
-        </div>
-
-        {/* Right pane — Chapter Drawer */}
-        <div
-          className={`overflow-hidden ${mobileTab !== 'chapters' ? 'hidden md:flex' : 'flex'} flex-col transition-opacity duration-200`}
-          style={{ width: '45%', opacity: isChatOpen ? 0.4 : 1, pointerEvents: isChatOpen ? 'none' : 'auto' }}
-        >
+        )}
+        {mobileTab === 'chapters' && (
           <ChapterDrawer
-            bookId={selectedBookId ?? ''}
-            workbookData={workbookData}
-            getChapterMeta={getChapterMeta}
+            bookId={bookId}
+            workbookData={workbook.data}
+            getChapterMeta={workbook.getChapterMeta}
             drawerToggle={drawerToggle}
             onDrawerToggle={setDrawerToggle}
             activeChapterIndex={activeChapterIndex}
-            onChapterClick={handleChapterClick}
-            onSectionClick={handleSectionClick}
-            onAddChapter={handleAddChapter}
+            onChapterClick={idx => {
+              setPhase('writing')
+              setActiveSection('chapter')
+              setActiveChapterIndex(idx)
+              setMobileTab('notebook')
+            }}
+            onSectionClick={section => {
+              setActiveSection(section)
+              setPhase(section === 'storySoFar' ? 'writing' : 'setup')
+              setMobileTab('notebook')
+            }}
+            onAddChapter={() => { handleMobileAddChapter(); setMobileTab('notebook') }}
             onOpenChat={() => { setIsChatOpen(true); setMobileTab('chat') }}
           />
-        </div>
-
-        {/* Floating AI Chat Panel */}
-        <AIChatPanel
-          isOpen={isChatOpen || mobileTab === 'chat'}
-          onClose={() => { setIsChatOpen(false); setMobileTab('notebook') }}
-          bookId={selectedBookId ?? ''}
-          bookTitle={selectedBook?.title ?? 'Untitled'}
-          activePhase={activePhase}
-          workbookData={workbookData}
-          styleGuide={getStyleGuide()}
-          hasApiKey={hasApiKey}
-          onSaveToWorkbook={handleSaveToWorkbook}
-        />
+        )}
+        {mobileTab === 'chat' && (
+          <AIChatPanel
+            isOpen
+            onClose={() => setMobileTab('notebook')}
+            bookId={bookId}
+            bookTitle={bookTitle}
+            activePhase={phase}
+            workbookData={workbook.data}
+            styleGuide={workbook.getStyleGuide()}
+            hasApiKey={hasApiKey}
+            onSaveToWorkbook={handleSaveToWorkbook}
+          />
+        )}
       </div>
 
       <MobileBottomBar activeTab={mobileTab} onTabChange={setMobileTab} />
+
+      {/* Story So Far toast */}
+      {toast && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-medium z-50"
+          style={{ background: '#1E2D3D', color: '#FFFFFF', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}
+        >
+          <span className="w-2 h-2 rounded-full" style={{ background: '#8B5CF6' }} />
+          {toast}
+        </div>
+      )}
     </div>
   )
 }

@@ -49,8 +49,12 @@ function buildSystemPrompt(
   const tropes = styleGuide?.tropes || 'not specified'
   const personalStylePreferences = styleGuide?.personalStylePreferences || ''
 
-  const globalKills: { word: string }[] = user.writingKillList
-    ? JSON.parse(user.writingKillList) : []
+  let globalKills: { word: string }[] = []
+  try {
+    globalKills = user.writingKillList ? JSON.parse(user.writingKillList) : []
+  } catch {
+    console.error('[chat] Failed to parse writingKillList:', user.writingKillList)
+  }
   const bookKills: { word: string }[] = styleGuide?.killList ?? []
   const allKillWords = Array.from(new Set([...globalKills, ...bookKills].map(k => k.word)))
 
@@ -178,12 +182,37 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { bookId, bookTitle, message, activePhase, workbookData, styleGuide } = await req.json()
+  let body: Record<string, unknown>
+  try {
+    body = await req.json()
+  } catch (err) {
+    console.error('[chat/POST] Failed to parse request body:', err)
+    return NextResponse.json({ error: 'invalid_request' }, { status: 400 })
+  }
 
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { anthropicApiKey: true, writingKillList: true },
-  })
+  const { bookId, bookTitle, message, activePhase, workbookData, styleGuide } = body as {
+    bookId?: string
+    bookTitle?: string
+    message?: string
+    activePhase?: string
+    workbookData?: Record<string, string>
+    styleGuide?: any
+  }
+
+  if (!message) {
+    return NextResponse.json({ error: 'message_required' }, { status: 400 })
+  }
+
+  let user: { anthropicApiKey: string | null; writingKillList: string | null } | null
+  try {
+    user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { anthropicApiKey: true, writingKillList: true },
+    })
+  } catch (err) {
+    console.error('[chat/POST] DB error fetching user:', err)
+    return NextResponse.json({ error: 'server_error' }, { status: 500 })
+  }
 
   if (!user?.anthropicApiKey) {
     return NextResponse.json({ error: 'no_api_key' }, { status: 403 })
@@ -192,30 +221,43 @@ export async function POST(req: NextRequest) {
   let apiKey: string
   try {
     apiKey = decrypt(user.anthropicApiKey)
-  } catch {
+  } catch (err) {
+    console.error('[chat/POST] Failed to decrypt API key:', err)
     return NextResponse.json({ error: 'invalid_key' }, { status: 403 })
   }
 
   // Get last 20 messages for context
-  const history = await db.writingNotebookChat.findMany({
-    where: { userId: session.user.id, bookId: bookId ?? null },
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-  })
+  let history: { role: string; content: string }[] = []
+  try {
+    history = await db.writingNotebookChat.findMany({
+      where: { userId: session.user.id, bookId: bookId ?? null },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    })
+    history = history.reverse()
+  } catch (err) {
+    console.error('[chat/POST] DB error fetching history (continuing without):', err)
+  }
+
   const messages: { role: 'user' | 'assistant'; content: string }[] = history
-    .reverse()
     .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
 
   // Append the new user message
-  messages.push({ role: 'user', content: message })
+  messages.push({ role: 'user', content: message as string })
 
-  const systemPrompt = buildSystemPrompt(
-    bookTitle || 'their book',
-    workbookData || {},
-    styleGuide || {},
-    { writingKillList: user.writingKillList ?? null },
-    activePhase || 'Writing',
-  )
+  let systemPrompt: string
+  try {
+    systemPrompt = buildSystemPrompt(
+      (bookTitle as string) || 'their book',
+      (workbookData as Record<string, string>) || {},
+      styleGuide || {},
+      { writingKillList: user.writingKillList ?? null },
+      (activePhase as string) || 'Writing',
+    )
+  } catch (err) {
+    console.error('[chat/POST] Failed to build system prompt:', err)
+    systemPrompt = 'You are a helpful fiction writing assistant.'
+  }
 
   try {
     const anthropic = new Anthropic({ apiKey })
@@ -237,6 +279,7 @@ export async function POST(req: NextRequest) {
           }
           controller.close()
         } catch (err: any) {
+          console.error('[chat/POST] Anthropic stream error:', err?.status, err?.message ?? err)
           if (err?.status === 401) {
             controller.enqueue(encoder.encode('\n\n[ERROR:invalid_key]'))
           } else if (err?.status === 429) {
@@ -253,6 +296,7 @@ export async function POST(req: NextRequest) {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     })
   } catch (err: any) {
+    console.error('[chat/POST] Anthropic setup error:', err?.status, err?.message ?? err)
     if (err?.status === 401) {
       return NextResponse.json({ error: 'invalid_key' }, { status: 403 })
     }

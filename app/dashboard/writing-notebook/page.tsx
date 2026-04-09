@@ -296,7 +296,6 @@ export default function WritingNotebookPage() {
             getChapterMeta={workbook.getChapterMeta}
             saving={workbook.saving}
             saved={workbook.saved}
-            onChapterBlur={triggerStorySoFarUpdate}
           />
         )}
         {mobileTab === 'chapters' && (
