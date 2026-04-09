@@ -546,22 +546,7 @@ export default function SettingsPage() {
   function TabMyBooks() {
     return (
       <div>
-        <PanelHeader
-          title="Your catalog"
-          subtitle="Drag to reorder — position sets B1–B6 color assignment"
-          action={
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('book-catalog:open-add'))}
-              className="text-[11px] font-semibold px-3 py-1.5 rounded-[6px] border-none cursor-pointer"
-              style={{ background: '#E9A020', color: '#1E2D3D' }}
-            >
-              + Add book
-            </button>
-          }
-        />
-        <div className="px-8 py-6">
-          <BookCatalog />
-        </div>
+        <BookCatalog />
       </div>
     )
   }
