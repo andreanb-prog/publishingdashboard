@@ -571,3 +571,15 @@ model WritingNotebookChat {
 
   @@index([userId, bookId, createdAt])
 }
+
+model CategoryCache {
+  id        String   @id @default(cuid())
+  userId    String
+  asin      String
+  category  String
+  rank      Int?
+  fetchedAt DateTime @default(now())
+
+  @@map("CategoryCache")
+  @@unique([userId, asin])
+}

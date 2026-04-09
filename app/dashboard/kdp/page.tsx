@@ -1,8 +1,29 @@
 'use client'
 // app/dashboard/kdp/page.tsx
-import { Suspense, useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState, useMemo, Component, ReactNode } from 'react'
+import dynamic from 'next/dynamic'
 import ChartJS from 'chart.js/auto'
 import Link from 'next/link'
+
+const CategoryIntelligence = dynamic(
+  () => import('@/components/CategoryIntelligence'),
+  { ssr: false, loading: () => null }
+)
+
+class CategoryIntelligenceErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() { return { hasError: true } }
+  render() {
+    if (this.state.hasError) return null
+    return this.props.children
+  }
+}
 import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
 import { CollapsibleSection } from '@/components/CollapsibleSection'
 import { FreshBanner } from '@/components/FreshBanner'
@@ -1278,6 +1299,11 @@ export default function KDPPage() {
               />
             </div>
           </CollapsibleSection>
+
+          {/* ── Category Intelligence ── */}
+          <CategoryIntelligenceErrorBoundary>
+            <CategoryIntelligence />
+          </CategoryIntelligenceErrorBoundary>
         </>
       )}
     </DarkPage>

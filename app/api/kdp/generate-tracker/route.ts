@@ -117,17 +117,24 @@ export async function POST(req: NextRequest) {
   const { dateRange } = body
 
   // ── Fetch data ───────────────────────────────────────────────────────────
-  const [analyses, launches] = await Promise.all([
-    db.analysis.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: 'desc' },
-      take: 3,
-    }),
-    db.launch.findMany({
-      where: { userId: session.user.id },
-      orderBy: { startDate: 'asc' },
-    }),
-  ])
+  let analyses: Awaited<ReturnType<typeof db.analysis.findMany>> = []
+  let launches: Awaited<ReturnType<typeof db.launch.findMany>> = []
+  try {
+    ;[analyses, launches] = await Promise.all([
+      db.analysis.findMany({
+        where: { userId: session.user.id },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+      }),
+      db.launch.findMany({
+        where: { userId: session.user.id },
+        orderBy: { startDate: 'asc' },
+      }),
+    ])
+  } catch (err) {
+    console.error('[generate-tracker] Prisma error:', err)
+    return NextResponse.json({ error: 'Database unavailable' }, { status: 200 })
+  }
 
   // Find most recent analysis that has KDP data
   let analysisData: Record<string, unknown> | null = null
