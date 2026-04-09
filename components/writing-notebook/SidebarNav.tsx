@@ -11,6 +11,8 @@ interface Props {
   onNavChange: (item: string) => void
   onAddChapter: () => void
   storySoFarStatus: StorySoFarStatus
+  onStorySoFarUpdate?: () => void
+  hasChapterContent?: boolean
 }
 
 const BOOK_COLORS = [
@@ -75,11 +77,14 @@ function SectionLabel({ children }: { children: string }) {
 
 export function SidebarNav({
   workbookData, getChapterMeta, activeNavItem, onNavChange, onAddChapter, storySoFarStatus,
+  onStorySoFarUpdate, hasChapterContent,
 }: Props) {
   const writingMeta = getChapterMeta('writing')
   const polishMeta = getChapterMeta('polish')
   const maxCount = Math.max(writingMeta.count, polishMeta.count, 0)
   const chapterIndices = Array.from({ length: maxCount }, (_, i) => i)
+
+  const canTriggerUpdate = hasChapterContent && onStorySoFarUpdate && storySoFarStatus !== 'updating'
 
   const storySoFarBadge = storySoFarStatus === 'updating' ? (
     <span
@@ -92,14 +97,16 @@ export function SidebarNav({
       />
       Updating
     </span>
-  ) : (
-    <span
-      className="px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0"
+  ) : canTriggerUpdate ? (
+    <button
+      onClick={e => { e.stopPropagation(); onStorySoFarUpdate!() }}
+      className="px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0 transition-opacity hover:opacity-70"
       style={{ background: '#D6F0E0', color: '#1A6B3A' }}
+      title="Regenerate Story So Far"
     >
       Up to date
-    </span>
-  )
+    </button>
+  ) : null
 
   return (
     <div

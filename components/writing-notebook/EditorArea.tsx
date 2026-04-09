@@ -16,6 +16,9 @@ interface Props {
   setStyleGuide: (guide: StyleGuide) => void
   onWordCountChange: (count: number) => void
   onKeystroke: () => void
+  onStorySoFarUpdate?: () => void
+  storySoFarStatus?: 'upToDate' | 'updating'
+  hasChapterContent?: boolean
 }
 
 function wordCount(text: string): number {
@@ -271,6 +274,7 @@ export function EditorArea({
   getValue, setValue, getChapterMeta, setChapterMeta,
   getStyleGuide, setStyleGuide,
   onWordCountChange, onKeystroke,
+  onStorySoFarUpdate, storySoFarStatus, hasChapterContent,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -467,17 +471,52 @@ export function EditorArea({
 
   // ── Generic text section (outline, style guide, series bible, story so far) ──
   if (meta) {
+    const isStorySoFar = activeNavItem === 'storySoFar'
+    const showFillButton = isStorySoFar && hasChapterContent && onStorySoFarUpdate
+    const isUpdating = storySoFarStatus === 'updating'
+
     return (
       <div className="flex flex-col h-full overflow-hidden">
         <FormattingToolbar textareaRef={textareaRef} onUpdate={handleContentChange} />
         <div className="flex-1 overflow-y-auto">
           <div className="px-8 py-6 max-w-3xl mx-auto">
-            <h2
-              className="mb-4"
-              style={{ fontSize: 24, fontWeight: 500, color: '#1E2D3D', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-            >
-              {meta.title}
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2
+                style={{ fontSize: 24, fontWeight: 500, color: '#1E2D3D', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+              >
+                {meta.title}
+              </h2>
+              {showFillButton && !isUpdating && !content.trim() && (
+                <button
+                  onClick={onStorySoFarUpdate}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors"
+                  style={{ background: '#E9A020', color: '#FFFFFF' }}
+                >
+                  ✨ Fill in the story so far
+                </button>
+              )}
+              {showFillButton && isUpdating && (
+                <span
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium"
+                  style={{ background: '#EDE8FF', color: '#5B3DB5' }}
+                >
+                  <span
+                    className="inline-block w-3 h-3 rounded-full border-2 border-[#5B3DB5] border-t-transparent"
+                    style={{ animation: 'spin 0.8s linear infinite' }}
+                  />
+                  Generating…
+                </span>
+              )}
+              {showFillButton && !isUpdating && content.trim() && (
+                <button
+                  onClick={onStorySoFarUpdate}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors hover:opacity-80"
+                  style={{ background: '#F3F4F6', color: '#6B7280', border: '0.5px solid #E5E7EB' }}
+                >
+                  ↻ Regenerate
+                </button>
+              )}
+            </div>
             <ProseTextarea
               value={content}
               placeholder={meta.placeholder}
@@ -486,6 +525,9 @@ export function EditorArea({
             />
           </div>
         </div>
+        {isStorySoFar && (
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        )}
       </div>
     )
   }

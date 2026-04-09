@@ -208,6 +208,13 @@ export default function WritingNotebookPage() {
   const bookId = selectedBookId ?? ''
   const bookTitle = selectedBook?.title ?? ''
 
+  const hasChapterContent = (() => {
+    const meta = workbook.getChapterMeta('writing')
+    return Array.from({ length: meta.count }, (_, i) =>
+      workbook.getValue('writing', 'chapter', i)
+    ).some(c => c.trim())
+  })()
+
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
       {/* Onboarding overlay */}
@@ -247,6 +254,8 @@ export default function WritingNotebookPage() {
           onNavChange={handleNavChange}
           onAddChapter={handleAddChapter}
           storySoFarStatus={storySoFarStatus}
+          onStorySoFarUpdate={triggerStorySoFarUpdate}
+          hasChapterContent={hasChapterContent}
         />
 
         {/* Center — AI panel + editor */}
@@ -276,6 +285,9 @@ export default function WritingNotebookPage() {
               setStyleGuide={workbook.setStyleGuide}
               onWordCountChange={setWordCount}
               onKeystroke={resetIdleTimer}
+              onStorySoFarUpdate={triggerStorySoFarUpdate}
+              storySoFarStatus={storySoFarStatus}
+              hasChapterContent={hasChapterContent}
             />
           </div>
         </div>
