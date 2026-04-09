@@ -2,8 +2,10 @@
 // app/writing-notebook/page.tsx — immersive writing notebook (no sidebar)
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { ChevronLeft, Sparkles, X } from 'lucide-react'
 import { useBooks } from '@/hooks/useBooks'
-import { WritingNotebookTopBar } from '@/components/writing-notebook/WritingNotebookTopBar'
+import BookSelector from '@/components/BookSelector'
 import { NotebookPane } from '@/components/writing-notebook/NotebookPane'
 import { ChapterDrawer } from '@/components/writing-notebook/ChapterDrawer'
 import { AIChatPanel } from '@/components/writing-notebook/AIChatPanel'
@@ -177,12 +179,24 @@ export default function WritingNotebookPage() {
 
   return (
     <div className="flex flex-col h-screen" style={{ background: '#FFF8F0' }}>
-      <WritingNotebookTopBar
-        selectedBookId={selectedBookId ?? ''}
-        onBookChange={setSelectedBookId}
-        isChatOpen={isChatOpen}
-        onToggleChat={() => { setIsChatOpen(!isChatOpen); setMobileTab(isChatOpen ? 'notebook' : 'chat') }}
-      />
+      {/* Immersive top bar */}
+      <div className="h-12 flex items-center px-6 shrink-0" style={{ background: '#FFFFFF', borderBottom: '1px solid #E5E7EB' }}>
+        <Link href="/dashboard" className="flex items-center gap-1 text-sm hover:opacity-70 transition-opacity" style={{ color: '#6B7280' }}>
+          <ChevronLeft size={16} />
+          <span className="hidden sm:inline">Back to Dashboard</span>
+        </Link>
+        <div className="flex-1 flex justify-center">
+          <BookSelector value={selectedBookId || null} onChange={setSelectedBookId} placeholder="Select a book" />
+        </div>
+        <button
+          onClick={() => { setIsChatOpen(!isChatOpen); setMobileTab(isChatOpen ? 'notebook' : 'chat') }}
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
+          style={{ border: isChatOpen ? 'none' : '1.5px solid #E9A020', color: isChatOpen ? '#6B7280' : '#E9A020', background: isChatOpen ? '#F3F4F6' : 'transparent' }}
+        >
+          {isChatOpen ? <X size={14} /> : <Sparkles size={14} />}
+          {isChatOpen ? 'Close Chat' : 'AI Chat'}
+        </button>
+      </div>
 
       <div className="flex-1 flex overflow-hidden relative">
         {/* Left pane — Notebook */}
