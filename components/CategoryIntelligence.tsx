@@ -61,12 +61,12 @@ export default function CategoryIntelligence() {
       })
       const d = await r.json()
       if (!r.ok) {
-        setError(d.error || 'Couldn\u2019t fetch categories \u2014 check that your ASIN is correct in Settings')
+        setError(d.message || d.error || 'Category data temporarily unavailable \u2014 try again later')
         return
       }
       if (Array.isArray(d.data)) setEntries(d.data)
     } catch {
-      setError('Couldn\u2019t fetch categories \u2014 check that your ASIN is correct in Settings')
+      setError('Category data temporarily unavailable \u2014 try again later')
     } finally {
       setLookupLoading(false)
     }
