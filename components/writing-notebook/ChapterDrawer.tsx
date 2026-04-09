@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { BookOpen, ScrollText, ChevronDown, ChevronUp, Plus, Pencil, FileText, CheckCircle, AlertCircle, PartyPopper } from 'lucide-react'
 import { ExportDropdown } from './ExportDropdown'
-import type { WorkbookData, ChapterMeta, ChapterStatus } from '@/app/writing-notebook/page'
+import type { WorkbookData, ChapterMeta, ChapterStatus } from '@/lib/writing-notebook-types'
 
 interface Props {
   bookId: string

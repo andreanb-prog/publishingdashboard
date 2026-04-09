@@ -2,7 +2,7 @@
 // components/writing-notebook/NotebookPane.tsx
 import { useState, useCallback } from 'react'
 import { Pencil, CheckCircle, AlertCircle, ScrollText, Loader2 } from 'lucide-react'
-import type { ChapterMeta, ChapterStatus } from '@/app/writing-notebook/page'
+import type { ChapterMeta, ChapterStatus } from '@/lib/writing-notebook-types'
 import { WorkbookImporter } from './WorkbookImporter'
 import { AuditPanel } from './AuditPanel'
 
