@@ -8,6 +8,11 @@ export interface ChapterMeta {
   titles: string[]
 }
 
+export interface ChapterDraftMeta {
+  draftCount: number
+  activeDraft: number
+}
+
 export interface StyleGuide {
   niche?: string
   pov?: string

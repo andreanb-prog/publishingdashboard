@@ -1086,91 +1086,94 @@ export default function SettingsPage() {
     )
   }
 
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION: AI WRITING ASSISTANT                                         */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      <SectionLabel>AI WRITING ASSISTANT</SectionLabel>
-      <WritingAssistantKeySection />
+  function TabPreferences() {
+    return (
+      <div>
+        <PanelHeader title="Preferences" subtitle="Benchmarks, digests, and AI settings" />
+        <div className="px-8 py-6 max-w-lg">
 
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION 3: PREFERENCES                                               */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      <SectionLabel>PREFERENCES</SectionLabel>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+          {/* SECTION: AI WRITING ASSISTANT */}
+          <div className="text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: '#9CA3AF' }}>AI WRITING ASSISTANT</div>
+          <WritingAssistantKeySection />
 
-          {/* Benchmarks */}
-          <div className="rounded-[10px] p-4 flex flex-col gap-3"
-            style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
-            <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>My benchmarks</div>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { label: 'Email open rate', key: 'email_open_rate', unit: '%', hint: 'Author avg: 20–25%' },
-                { label: 'Email click rate', key: 'email_click_rate', unit: '%', hint: 'Author avg: 1.5–2.5%' },
-                { label: 'Meta CPC', key: 'meta_cpc', unit: '$', hint: 'Under $0.15 is great' },
-                { label: 'Meta CTR', key: 'meta_ctr', unit: '%', hint: '15%+ is strong' },
-              ].map(f => (
-                <div key={f.key}>
-                  <div className="text-[10px] font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>{f.label}</div>
-                  <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>{f.hint}</div>
-                  <div className="flex items-center gap-1">
-                    {f.unit === '$' && <span className="text-[11px]" style={{ color: '#9CA3AF' }}>$</span>}
-                    <input
-                      type="number"
-                      min="0"
-                      step={f.unit === '$' ? '0.01' : '0.1'}
-                      value={benchmarks[f.key as keyof typeof benchmarks]}
-                      onChange={e => setBenchmarks(b => ({ ...b, [f.key]: e.target.value }))}
-                      className="flex-1 text-[12px] font-medium px-2 py-1.5 rounded-md outline-none"
-                      style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
-                    />
-                    {f.unit === '%' && <span className="text-[11px]" style={{ color: '#9CA3AF' }}>%</span>}
+          {/* SECTION: PREFERENCES */}
+          <div className="text-[10px] font-semibold uppercase tracking-wider mb-3 mt-6" style={{ color: '#9CA3AF' }}>PREFERENCES</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+
+            {/* Benchmarks */}
+            <div className="rounded-[10px] p-4 flex flex-col gap-3"
+              style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+              <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>My benchmarks</div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'Email open rate', key: 'email_open_rate', unit: '%', hint: 'Author avg: 20–25%' },
+                  { label: 'Email click rate', key: 'email_click_rate', unit: '%', hint: 'Author avg: 1.5–2.5%' },
+                  { label: 'Meta CPC', key: 'meta_cpc', unit: '$', hint: 'Under $0.15 is great' },
+                  { label: 'Meta CTR', key: 'meta_ctr', unit: '%', hint: '15%+ is strong' },
+                ].map(f => (
+                  <div key={f.key}>
+                    <div className="text-[10px] font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>{f.label}</div>
+                    <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>{f.hint}</div>
+                    <div className="flex items-center gap-1">
+                      {f.unit === '$' && <span className="text-[11px]" style={{ color: '#9CA3AF' }}>$</span>}
+                      <input
+                        type="number"
+                        min="0"
+                        step={f.unit === '$' ? '0.01' : '0.1'}
+                        value={benchmarks[f.key as keyof typeof benchmarks]}
+                        onChange={e => setBenchmarks(b => ({ ...b, [f.key]: e.target.value }))}
+                        className="flex-1 text-[12px] font-medium px-2 py-1.5 rounded-md outline-none"
+                        style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
+                      />
+                      {f.unit === '%' && <span className="text-[11px]" style={{ color: '#9CA3AF' }}>%</span>}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-            <AmberBtn onClick={saveBenchmarks} disabled={benchmarksSave === 'saving'} fullWidth>
-              {benchmarksSave === 'saving' ? 'Saving…' : benchmarksSave === 'saved' ? '✓ Saved!' : 'Save benchmarks'}
-            </AmberBtn>
-          </div>
-
-          {/* Weekly digest */}
-          <div className="rounded-[10px] p-4 flex flex-col gap-3"
-            style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
-            <div>
-              <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Weekly digest email</div>
-              <div className="text-[10px]" style={{ color: '#9CA3AF' }}>What changed + what needs action</div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] font-medium" style={{ color: '#1E2D3D' }}>
-                {digestEnabled ? 'On' : 'Off'}
-              </span>
-              <Toggle checked={digestEnabled} onChange={v => setDigestEnabled(v)} />
-            </div>
-            <div style={{ borderTop: '0.5px solid rgba(30,45,61,0.06)', paddingTop: 12 }}>
-              <div className="text-[10px] mb-2" style={{ color: '#9CA3AF' }}>Send on</div>
-              <div className="flex flex-wrap gap-1">
-                {ALL_DAYS.map((label, idx) => {
-                  const val = DAY_VALUES[idx]
-                  const selected = digestDays.includes(val)
-                  return (
-                    <button key={val}
-                      onClick={() => setDigestDays(prev =>
-                        prev.includes(val) ? prev.filter(d => d !== val) : [...prev, val]
-                      )}
-                      className="text-[10px] font-semibold px-2 py-1 rounded-md border-none cursor-pointer transition-all"
-                      style={{
-                        background: selected ? '#E9A020' : 'rgba(30,45,61,0.06)',
-                        color: selected ? '#1E2D3D' : '#9CA3AF',
-                      }}>
-                      {label}
-                    </button>
-                  )
-                })}
+                ))}
               </div>
+              <AmberBtn onClick={saveBenchmarks} disabled={benchmarksSave === 'saving'} fullWidth>
+                {benchmarksSave === 'saving' ? 'Saving…' : benchmarksSave === 'saved' ? '✓ Saved!' : 'Save benchmarks'}
+              </AmberBtn>
             </div>
-            <AmberBtn onClick={saveNotifications} disabled={notifSave === 'saving'} fullWidth>
-              {notifSave === 'saving' ? 'Saving…' : notifSave === 'saved' ? '✓ Saved!' : 'Save'}
-            </AmberBtn>
+
+            {/* Weekly digest */}
+            <div className="rounded-[10px] p-4 flex flex-col gap-3"
+              style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+              <div>
+                <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Weekly digest email</div>
+                <div className="text-[10px]" style={{ color: '#9CA3AF' }}>What changed + what needs action</div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] font-medium" style={{ color: '#1E2D3D' }}>
+                  {digestEnabled ? 'On' : 'Off'}
+                </span>
+                <Toggle checked={digestEnabled} onChange={v => setDigestEnabled(v)} />
+              </div>
+              <div style={{ borderTop: '0.5px solid rgba(30,45,61,0.06)', paddingTop: 12 }}>
+                <div className="text-[10px] mb-2" style={{ color: '#9CA3AF' }}>Send on</div>
+                <div className="flex flex-wrap gap-1">
+                  {ALL_DAYS.map((label, idx) => {
+                    const val = DAY_VALUES[idx]
+                    const selected = digestDays.includes(val)
+                    return (
+                      <button key={val}
+                        onClick={() => setDigestDays(prev =>
+                          prev.includes(val) ? prev.filter(d => d !== val) : [...prev, val]
+                        )}
+                        className="text-[10px] font-semibold px-2 py-1 rounded-md border-none cursor-pointer transition-all"
+                        style={{
+                          background: selected ? '#E9A020' : 'rgba(30,45,61,0.06)',
+                          color: selected ? '#1E2D3D' : '#9CA3AF',
+                        }}>
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <AmberBtn onClick={saveNotifications} disabled={notifSave === 'saving'} fullWidth>
+                {notifSave === 'saving' ? 'Saving…' : notifSave === 'saved' ? '✓ Saved!' : 'Save'}
+              </AmberBtn>
+            </div>
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { WritingNotebookTopBar } from '@/components/writing-notebook/WritingNotebookTopBar'
+import type { BookRecord } from '@/hooks/useBooks'
 import { NotebookPane } from '@/components/writing-notebook/NotebookPane'
 import { ChapterDrawer } from '@/components/writing-notebook/ChapterDrawer'
 import { AIChatPanel } from '@/components/writing-notebook/AIChatPanel'
@@ -10,7 +11,7 @@ import { MobileBottomBar } from '@/components/writing-notebook/MobileBottomBar'
 
 type Phase = 'setup' | 'writing' | 'polish'
 type MobileTab = 'notebook' | 'chapters' | 'chat'
-type Book = { id: string; title: string }
+type Book = BookRecord
 
 export interface WorkbookData { [key: string]: string }
 export type ChapterStatus = 'draft' | 'complete' | 'needs_edit' | 'empty'
@@ -19,7 +20,7 @@ export interface StyleGuide {
   niche?: string; pov?: string; tense?: string
   totalWordCount?: string; chapterWordCount?: string
   tropes?: string; personalStylePreferences?: string
-  killList?: { word: string }[]
+  killList?: { word: string; scope: 'global' | 'book' }[]
   aiRules?: { antiSlopEnabled: boolean; writingFormulaEnabled: boolean }
 }
 
@@ -50,7 +51,14 @@ export default function WritingNotebookPage() {
     fetch('/api/books')
       .then(r => r.json())
       .then(data => {
-        const bks = (data.books ?? data.data ?? []).map((b: { id: string; title: string }) => ({ id: b.id, title: b.title }))
+        const bks: Book[] = (data.books ?? data.data ?? []).map((b: { id: string; title: string; asin?: string | null; position?: number; color?: string; coverUrl?: string | null }, i: number) => ({
+          id: b.id,
+          title: b.title,
+          asin: b.asin ?? null,
+          position: b.position ?? i,
+          color: b.color ?? '#F97B6B',
+          coverUrl: b.coverUrl ?? null,
+        }))
         setBooks(bks)
         const paramBookId = searchParams.get('bookId')
         const initial = paramBookId && bks.find((b: Book) => b.id === paramBookId)
@@ -198,9 +206,12 @@ export default function WritingNotebookPage() {
       <WritingNotebookTopBar
         books={books}
         selectedBookId={selectedBookId ?? ''}
-        onBookChange={setSelectedBookId}
-        isChatOpen={isChatOpen}
-        onToggleChat={() => { setIsChatOpen(!isChatOpen); setMobileTab(isChatOpen ? 'notebook' : 'chat') }}
+        onBookChange={(id) => setSelectedBookId(id)}
+        bookId={selectedBookId ?? ''}
+        wordCount={0}
+        saving={saving}
+        lastSavedAt={null}
+        onAddChapter={handleAddChapter}
       />
 
       <div className="flex-1 flex overflow-hidden relative">

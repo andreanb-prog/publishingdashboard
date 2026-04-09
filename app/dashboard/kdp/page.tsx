@@ -23,7 +23,7 @@ import {
   peakPoints,
 } from '@/lib/chartConfig'
 import { LastUploadBadge } from '@/components/LastUploadBadge'
-import { CategoryIntelligence } from '@/components/CategoryIntelligence'
+import CategoryIntelligence from '@/components/CategoryIntelligence'
 import type { Analysis, DailyData, RoasLog, MailerLiteCampaign } from '@/types'
 
 
@@ -1287,7 +1287,7 @@ export default function KDPPage() {
             className="mb-5"
             subtitle="See every Amazon category your book is in and how you rank"
           >
-            <CategoryIntelligence books={myBooksList} />
+            <CategoryIntelligence />
           </CollapsibleSection>
         </>
       )}

@@ -9,14 +9,16 @@ import type { BookRecord } from '@/hooks/useBooks'
 interface Props {
   books: BookRecord[]
   selectedBookId: string
-  onBookChange: (id: string) => void
+  onBookChange: (id: string | null) => void
   onNewBook?: () => void
-  wordCount: number
-  saving: Record<string, boolean>
-  lastSavedAt: Date | null
-  bookId: string
-  onAddChapter: () => void
+  wordCount?: number
+  saving?: Record<string, boolean>
+  lastSavedAt?: Date | null
+  bookId?: string
+  onAddChapter?: () => void
   onFileImport?: (file: File) => void
+  isChatOpen?: boolean
+  onToggleChat?: () => void
 }
 
 // ── Save status indicator ──────────────────────────────────────────────────
@@ -82,8 +84,8 @@ function SaveStatusIndicator({
 
 export function WritingNotebookTopBar({
   books, selectedBookId, onBookChange, onNewBook,
-  wordCount, saving, lastSavedAt,
-  bookId, onAddChapter, onFileImport,
+  wordCount = 0, saving = {}, lastSavedAt = null,
+  bookId = '', onAddChapter, onFileImport,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 

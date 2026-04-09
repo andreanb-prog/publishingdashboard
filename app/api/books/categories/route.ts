@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import * as cheerio from 'cheerio'
+import { load } from 'cheerio'
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -15,15 +15,18 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: 'ASIN required' }, { status: 400 })
 
   // Check cache (24hr TTL)
-  const cached = await db.categoryCache.findUnique({
-    where: { userId_asin: { userId: session.user.id, asin } },
+  const cached = await db.categoryCache.findMany({
+    where: { userId: session.user.id, asin },
   })
-  if (cached) {
-    const ageMs = Date.now() - new Date(cached.fetchedAt).getTime()
+  if (cached.length > 0) {
+    const ageMs = Date.now() - new Date(cached[0].fetchedAt).getTime()
     if (ageMs < 24 * 60 * 60 * 1000) {
       return Response.json({
         success: true,
-        data: JSON.parse(cached.data),
+        data: cached.map(c => ({
+          category: c.category,
+          rank: c.rank,
+        })),
         cached: true,
       })
     }
@@ -49,54 +52,32 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: 'rate_limited' }, { status: 429 })
   }
 
-  const $ = cheerio.load(html)
-  const categories: {
-    rank: number
-    path: string[]
-    rawPath: string
-    bestSellersUrl: string
-    newReleasesUrl: string
-    rankStrength: 'top100' | 'strong' | 'competitive' | 'low'
-  }[] = []
+  const $ = load(html)
+  const categories: { rank: number; path: string }[] = []
 
   const addCategory = (rankNum: number, pathStr: string) => {
-    const pathParts = pathStr
-      .split('>')
-      .map(p => p.trim())
-      .filter(Boolean)
-    if (pathParts.length === 0 || rankNum <= 0) return
-    if (categories.find(c => c.rank === rankNum && c.rawPath === pathStr))
-      return
-    let rankStrength: 'top100' | 'strong' | 'competitive' | 'low' = 'low'
-    if (rankNum <= 100) rankStrength = 'top100'
-    else if (rankNum <= 1000) rankStrength = 'strong'
-    else if (rankNum <= 5000) rankStrength = 'competitive'
-    categories.push({
-      rank: rankNum,
-      path: pathParts,
-      rawPath: pathStr,
-      bestSellersUrl: 'https://www.amazon.com/Best-Sellers/zgbs/',
-      newReleasesUrl: 'https://www.amazon.com/gp/new-releases/',
-      rankStrength,
-    })
+    const trimmed = pathStr.trim()
+    if (!trimmed || rankNum <= 0) return
+    if (categories.find(c => c.rank === rankNum && c.path === trimmed)) return
+    categories.push({ rank: rankNum, path: trimmed })
   }
 
   // Pattern 1: table row
-  $('tr').each((_, row) => {
+  $('tr').each((_: number, row) => {
     const label = $(row).find('th, .a-color-secondary').text()
     if (label.includes('Best Sellers Rank')) {
       const text = $(row).find('td').text()
-      for (const m of Array.from(text.matchAll(/#([\d,]+)\s+in\s+([^(#\n]+)/g))) {
+      for (const m of Array.from<RegExpMatchArray>(text.matchAll(/#([\d,]+)\s+in\s+([^(#\n]+)/g))) {
         addCategory(parseInt(m[1].replace(/,/g, '')), m[2].trim())
       }
     }
   })
 
   // Pattern 2: detail bullets span
-  $('#detailBulletsWrapper_feature_div span.a-list-item').each((_, el) => {
+  $('#detailBulletsWrapper_feature_div span.a-list-item').each((_: number, el) => {
     const text = $(el).text()
     if (text.includes('Best Sellers Rank')) {
-      for (const m of Array.from(text.matchAll(/#([\d,]+)\s+in\s+([^#\n(]+)/g))) {
+      for (const m of Array.from<RegExpMatchArray>(text.matchAll(/#([\d,]+)\s+in\s+([^#\n(]+)/g))) {
         addCategory(
           parseInt(m[1].replace(/,/g, '')),
           m[2].trim().replace(/\s+/g, ' ')
@@ -107,23 +88,29 @@ export async function GET(req: NextRequest) {
 
   categories.sort((a, b) => a.rank - b.rank)
 
-  const result = {
-    categories,
-    bestRank: categories[0]?.rank ?? null,
-    bestCategory: categories[0]?.rawPath ?? null,
-    asin,
-    fetchedAt: new Date().toISOString(),
+  // Upsert each category into the cache
+  for (const cat of categories) {
+    await db.categoryCache.upsert({
+      where: {
+        userId_asin_category: {
+          userId: session.user.id,
+          asin,
+          category: cat.path,
+        },
+      },
+      create: {
+        userId: session.user.id,
+        asin,
+        category: cat.path,
+        rank: cat.rank,
+      },
+      update: { rank: cat.rank, fetchedAt: new Date() },
+    })
   }
 
-  await db.categoryCache.upsert({
-    where: { userId_asin: { userId: session.user.id, asin } },
-    create: {
-      userId: session.user.id,
-      asin,
-      data: JSON.stringify(result),
-    },
-    update: { data: JSON.stringify(result), fetchedAt: new Date() },
+  return Response.json({
+    success: true,
+    data: categories.map(c => ({ category: c.path, rank: c.rank })),
+    cached: false,
   })
-
-  return Response.json({ success: true, data: result, cached: false })
 }
