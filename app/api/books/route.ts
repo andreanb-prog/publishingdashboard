@@ -94,26 +94,37 @@ export async function POST(req: NextRequest) {
     const count = await db.book.count({ where: { userId: session.user.id } })
     const body = await req.json()
 
-    console.log('[POST /api/books] userId:', session.user.id, '| body:', JSON.stringify(body))
+    console.log('[POST /api/books] userId:', session.user.id)
+    console.log('[POST /api/books] attempting create with data:', JSON.stringify(body, null, 2))
 
-    const book = await db.book.create({
-      data: {
-        userId: session.user.id,
-        title: String(body.title ?? '').trim(),
-        asin: body.asin ? String(body.asin).trim() : null,
-        seriesName: body.seriesName ? String(body.seriesName).trim() : null,
-        seriesOrder: body.seriesOrder != null ? Number(body.seriesOrder) : null,
-        isLeadMagnet: Boolean(body.isLeadMagnet),
-        coverUrl: body.coverUrl ? String(body.coverUrl) : null,
-        pubDate: body.pubDate ? new Date(body.pubDate) : null,
-        sortOrder: count,
-      },
-    })
+    const createData = {
+      userId: session.user.id,
+      title: String(body.title ?? '').trim(),
+      asin: body.asin ? String(body.asin).trim() : null,
+      seriesName: body.seriesName ? String(body.seriesName).trim() : null,
+      seriesOrder: body.seriesOrder != null ? Number(body.seriesOrder) : null,
+      isLeadMagnet: Boolean(body.isLeadMagnet),
+      coverUrl: body.coverUrl ? String(body.coverUrl) : null,
+      pubDate: body.pubDate ? new Date(body.pubDate) : null,
+      sortOrder: count,
+    }
+
+    const book = await db.book.create({ data: createData })
 
     console.log('[POST /api/books] created book id:', book.id, '| title:', book.title)
     return NextResponse.json({ book })
   } catch (err) {
-    console.error('[POST /api/books] error:', err)
-    return NextResponse.json({ error: 'Failed to create book', detail: String(err) }, { status: 500 })
+    console.error('[POST /api/books] Prisma error:', err)
+    // Surface the Prisma error code so we can diagnose constraint violations
+    const code = (err as { code?: string })?.code
+    console.error('[POST /api/books] Prisma error code:', code)
+    if (code === 'P2002') {
+      return NextResponse.json(
+        { error: 'A book with this ASIN already exists in your catalog.' },
+        { status: 409 }
+      )
+    }
+    // Return the real error string so it surfaces in the modal
+    return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

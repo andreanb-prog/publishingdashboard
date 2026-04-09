@@ -33,8 +33,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     console.log('[PUT /api/books/[id]] updated book id:', book.id)
     return NextResponse.json({ book })
   } catch (err) {
-    console.error('[PUT /api/books/[id]] error:', err)
-    return NextResponse.json({ error: 'Failed to update book', detail: String(err) }, { status: 500 })
+    console.error('[PUT /api/books/[id]] Prisma error:', err)
+    const code = (err as { code?: string })?.code
+    console.error('[PUT /api/books/[id]] Prisma error code:', code)
+    if (code === 'P2002') {
+      return NextResponse.json({ error: 'A book with this ASIN already exists in your catalog.' }, { status: 409 })
+    }
+    return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
 
