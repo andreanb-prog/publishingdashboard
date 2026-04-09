@@ -175,7 +175,7 @@ Always end with a hook or cliffhanger.`
 }
 
 export async function POST(req: NextRequest) {
-  console.log('[writing-notebook/chat] POST hit')
+  console.log('[chat] POST hit, env key exists:', !!process.env.ANTHROPIC_API_KEY)
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

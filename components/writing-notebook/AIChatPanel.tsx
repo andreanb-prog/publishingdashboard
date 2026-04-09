@@ -119,7 +119,7 @@ export function AIChatPanel({
       const reader = res.body?.getReader()
       const decoder = new TextDecoder()
       let assistantContent = ''
-      setMessages([...newMessages, { role: 'assistant', content: '' }])
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }])
 
       if (reader) {
         while (true) {
