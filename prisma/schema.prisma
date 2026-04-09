@@ -127,6 +127,8 @@ model Book {
   manuscriptText       String?   @db.Text
   manuscriptSummary    String?   @db.Text
   manuscriptUploadedAt DateTime?
+  storyContent          String?   @db.Text
+  storyContentUpdatedAt DateTime?
   bibleUpdatedAt       DateTime? @updatedAt
   createdAt             DateTime  @default(now())
 

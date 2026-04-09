@@ -209,9 +209,21 @@ export async function POST(req: NextRequest) {
   // Append the new user message
   messages.push({ role: 'user', content: message })
 
+  // Load Book.storyContent as fallback for storySoFar
+  let enrichedWorkbookData = { ...(workbookData || {}) }
+  if (bookId && !enrichedWorkbookData['writing:storySoFar']) {
+    const book = await db.book.findUnique({
+      where: { id: bookId },
+      select: { storyContent: true },
+    })
+    if (book?.storyContent) {
+      enrichedWorkbookData['writing:storySoFar'] = book.storyContent
+    }
+  }
+
   const systemPrompt = buildSystemPrompt(
     bookTitle || 'their book',
-    workbookData || {},
+    enrichedWorkbookData,
     styleGuide || {},
     { writingKillList: user.writingKillList ?? null },
     activePhase || 'Writing',

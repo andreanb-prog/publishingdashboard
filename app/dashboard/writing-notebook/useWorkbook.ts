@@ -96,7 +96,7 @@ export function useWorkbook(bookId: string | null) {
         setTimeout(() => setSaved(prev => ({ ...prev, [key]: false })), 2000)
       } catch { /* noop */ }
       setSaving(prev => ({ ...prev, [key]: false }))
-    }, 1000)
+    }, 1200)
   }, [])
 
   const isSaving = useCallback((phase: string, section: string, chapterIndex?: number): boolean => {
