@@ -52,6 +52,16 @@ function getChapterStatus(idx: number, workbookData: WorkbookData): 'Draft' | 'D
   return 'Empty'
 }
 
+const getDraftLabel = (draftNumber: number): string => {
+  const labels: Record<number, string> = {
+    1: 'First Draft',
+    2: 'Second Draft',
+    3: 'Third Draft',
+    4: 'Final Draft',
+  }
+  return labels[draftNumber] ?? `Draft ${draftNumber}`
+}
+
 // ── Formatting toolbar ──────────────────────────────────────────────────────
 
 function applyInlineFormat(
@@ -756,7 +766,7 @@ export function EditorArea({
                       if (i !== activeDraftIdx) (e.target as HTMLElement).style.background = 'transparent'
                     }}
                   >
-                    Draft {i + 1}
+                    {getDraftLabel(i + 1)}
                   </button>
                 ))}
                 <NewDraftButton onNewDraft={handleNewDraft} />

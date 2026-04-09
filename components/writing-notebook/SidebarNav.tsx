@@ -32,6 +32,16 @@ function getChapterStatus(idx: number, workbookData: WorkbookData, getActiveDraf
   return 'Empty'
 }
 
+const getDraftLabel = (draftNumber: number): string => {
+  const labels: Record<number, string> = {
+    1: 'First Draft',
+    2: 'Second Draft',
+    3: 'Third Draft',
+    4: 'Final Draft',
+  }
+  return labels[draftNumber] ?? `Draft ${draftNumber}`
+}
+
 const STATUS_PILL: Record<'Draft' | 'Done' | 'Empty', React.CSSProperties> = {
   Draft: { background: '#FFF3E0', color: '#E9A020', border: '1px solid #F5CFA0' },
   Done: { background: '#D6F0E0', color: '#1A6B3A' },
@@ -179,7 +189,7 @@ export function SidebarNav({
                 className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
                 style={STATUS_PILL[status]}
               >
-                {status}
+                {status === 'Draft' ? getDraftLabel(chDraftMeta.activeDraft + 1) : status}
               </span>
             </button>
           )
