@@ -239,12 +239,21 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
 
         let detectedType: 'kdp' | 'meta' | null = hasKdpSheets ? 'kdp' : null
         if (!detectedType) {
-          for (const sheetName of wb.SheetNames) {
-            const csv = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName], { blankrows: false })
-            if (csv.includes('KENP') || csv.includes('Royalty Date') || csv.includes('Est. KU Royalty')) { detectedType = 'kdp'; break }
-            const hits = ['Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'Campaign name', 'Ad set name']
-              .filter(s => csv.includes(s)).length
-            if (hits >= 2) { detectedType = 'meta'; break }
+          // "Worksheet" is the sheet name in Meta's new XLSX export — check it first
+          if (wb.SheetNames.includes('Worksheet')) {
+            const csv = XLSX.utils.sheet_to_csv(wb.Sheets['Worksheet'], { blankrows: false })
+            if (csv.includes('Campaign name') || csv.includes('Amount spent') || csv.includes('Impressions')) {
+              detectedType = 'meta'
+            }
+          }
+          if (!detectedType) {
+            for (const sheetName of wb.SheetNames) {
+              const csv = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName], { blankrows: false })
+              if (csv.includes('KENP') || csv.includes('Royalty Date') || csv.includes('Est. KU Royalty')) { detectedType = 'kdp'; break }
+              const hits = ['Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'Campaign name', 'Ad set name']
+                .filter(s => csv.includes(s)).length
+              if (hits >= 2) { detectedType = 'meta'; break }
+            }
           }
         }
 
@@ -266,8 +275,15 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           update({ type: 'kdp', status: 'done', data: kdpResult, summary: kdpSummary })
         } else if (detectedType === 'meta') {
           const { parseMetaFile } = await import('@/lib/parsers/meta')
-          const csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]], { blankrows: false })
-          update({ type: 'meta', status: 'done', data: parseMetaFile(csv) })
+          // Prefer "Worksheet" sheet (new Meta XLSX format), fall back to first sheet
+          const metaSheet = wb.SheetNames.includes('Worksheet') ? 'Worksheet' : wb.SheetNames[0]
+          const csv = XLSX.utils.sheet_to_csv(wb.Sheets[metaSheet], { blankrows: false })
+          const parsedData = parseMetaFile(csv)
+          update({ type: 'meta', status: 'done', data: parsedData })
+          // Save rows to DB server-side for date-range filtering
+          const form = new FormData()
+          form.append('file', file)
+          fetch('/api/parse-auto', { method: 'POST', body: form }).catch(() => {})
         } else {
           update({
             type: 'unknown', status: 'error', data: null,

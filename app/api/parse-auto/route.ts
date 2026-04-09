@@ -7,6 +7,66 @@ import { parseKDPFile } from '@/lib/parsers/kdp'
 import { parseMetaFile } from '@/lib/parsers/meta'
 import { parsePinterestFile } from '@/lib/parsers/pinterest'
 
+// Save raw per-row Meta data to MetaAdData table for date-range filtering
+async function saveMetaRowsToDB(userId: string, csvText: string): Promise<number> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Papa = require('papaparse')
+    const result = Papa.parse(csvText, { header: true, skipEmptyLines: true, dynamicTyping: true })
+    const rows = result.data as any[]
+
+    if (rows.length === 0) return 0
+
+    console.log('[Meta upload] CSV headers:', Object.keys(rows[0]))
+
+    const col = (row: any, ...keys: string[]): string | number => {
+      for (const k of keys) {
+        if (row[k] != null && row[k] !== '') return row[k]
+      }
+      return 0
+    }
+
+    const validRows = rows.filter((r: any) => {
+      const name = r['Campaign name'] ?? r['Ad name'] ?? r['Ad Name'] ?? r['Ad set name'] ?? ''
+      return String(name).trim() !== ''
+    })
+
+    if (validRows.length === 0) return 0
+
+    // Delete existing rows for this user before upserting (replace on re-upload)
+    await db.metaAdData.deleteMany({ where: { userId } })
+
+    const toInsert = validRows.map((r: any) => {
+      const rawDate = r['Reporting starts'] ?? r['Date'] ?? r['Report start'] ?? ''
+      let date: Date
+      try {
+        date = rawDate ? new Date(String(rawDate)) : new Date()
+        if (isNaN(date.getTime())) date = new Date()
+      } catch { date = new Date() }
+
+      return {
+        userId,
+        date,
+        campaignName: String(col(r, 'Campaign name', 'Ad name', 'Ad Name', 'Ad set name')).trim(),
+        spend:        Number(col(r, 'Amount spent (USD)', 'Amount spent', 'Spend', 'Cost')) || 0,
+        impressions:  Math.round(Number(col(r, 'Impressions')) || 0),
+        clicks:       Math.round(Number(col(r, 'Link clicks', 'Clicks (all)', 'Clicks', 'Results')) || 0),
+        ctr:          Number(col(r, 'CTR (link click-through rate)', 'CTR (all)', 'CTR')) || 0,
+        cpc:          Number(col(r, 'CPC (cost per link click) (USD)', 'CPC (all) (USD)', 'CPC (all)', 'CPC')) || 0,
+        results:      r['Results'] != null ? Number(r['Results']) : null,
+        costPerResult: r['Cost per results'] != null ? Number(r['Cost per results']) : null,
+      }
+    })
+
+    await db.metaAdData.createMany({ data: toInsert })
+    console.log(`[Meta upload] Parsed ${rows.length} rows, saved ${toInsert.length} to MetaAdData`)
+    return toInsert.length
+  } catch (err) {
+    console.error('[Meta upload] Failed to save MetaAdData rows:', err)
+    return 0
+  }
+}
+
 async function logUpload(userId: string, dataType: string, fileName: string, rowsParsed: number) {
   try {
     await db.uploadLog.create({
@@ -42,6 +102,15 @@ function detectExcelType(buffer: Buffer): 'kdp' | 'meta' | 'unknown' {
     // Sheet names are the most reliable KDP signal — check first
     if (wb.SheetNames.some((n: string) => n === 'Orders Processed' || n === 'KENP Read' || n === 'Summary')) {
       return 'kdp'
+    }
+
+    // "Worksheet" is the sheet name in Meta's new XLSX export format
+    if (wb.SheetNames.includes('Worksheet')) {
+      const csv: string = XLSX.utils.sheet_to_csv(wb.Sheets['Worksheet'], { blankrows: false })
+      // Confirm it's Meta by checking for at least one Meta column
+      if (csv.includes('Campaign name') || csv.includes('Amount spent') || csv.includes('Impressions')) {
+        return 'meta'
+      }
     }
 
     for (const sheetName of wb.SheetNames) {
@@ -85,12 +154,18 @@ export async function POST(req: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const XLSX = require('xlsx')
         const wb = XLSX.read(buffer, { type: 'buffer' })
-        const csvText: string = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]], { blankrows: false })
+        // Prefer "Worksheet" sheet (new Meta XLSX format), fall back to first sheet
+        const sheetName = wb.SheetNames.includes('Worksheet') ? 'Worksheet' : wb.SheetNames[0]
+        const csvText: string = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName], { blankrows: false })
         const data = parseMetaFile(csvText)
-        await logUpload(session.user.id, 'meta', file.name, data.ads.length)
+        // Save each row to MetaAdData for date-range filtering
+        const savedRows = await saveMetaRowsToDB(session.user.id, csvText)
+        const rowCount = savedRows > 0 ? savedRows : data.ads.length
+        await logUpload(session.user.id, 'meta', file.name, rowCount)
         return NextResponse.json({
           success: true, type: 'meta', data,
-          summary: `${data.ads.length} ads · $${data.totalSpend} spend · ${data.totalClicks} clicks`,
+          rowCount,
+          summary: `${rowCount} rows saved · ${data.ads.length} campaigns · $${data.totalSpend} spend · ${data.totalClicks} clicks`,
         })
       }
 
@@ -103,10 +178,13 @@ export async function POST(req: NextRequest) {
 
     if (csvType === 'meta') {
       const data = parseMetaFile(text)
-      await logUpload(session.user.id, 'meta', file.name, data.ads.length)
+      const savedRows = await saveMetaRowsToDB(session.user.id, text)
+      const rowCount = savedRows > 0 ? savedRows : data.ads.length
+      await logUpload(session.user.id, 'meta', file.name, rowCount)
       return NextResponse.json({
         success: true, type: 'meta', data,
-        summary: `${data.ads.length} ads · $${data.totalSpend} spend · ${data.totalClicks} clicks`,
+        rowCount,
+        summary: `${rowCount} rows saved · ${data.ads.length} campaigns · $${data.totalSpend} spend · ${data.totalClicks} clicks`,
       })
     }
 

@@ -88,6 +88,7 @@ model User {
   swapPolicies  SwapPolicy[]
   authorLists   AuthorList[]
   uploadLogs              UploadLog[]
+  metaAdData              MetaAdData[]
   writingNotebooks        WritingNotebook[]
   writingNotebookChats    WritingNotebookChat[]
   chapterAudits           ChapterAudit[]
@@ -599,4 +600,22 @@ model CategoryCache {
 
   @@map("CategoryCache")
   @@unique([userId, asin, category])
+}
+
+model MetaAdData {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date          DateTime
+  campaignName  String
+  spend         Float    @default(0)
+  impressions   Int      @default(0)
+  clicks        Int      @default(0)
+  ctr           Float    @default(0)
+  cpc           Float    @default(0)
+  results       Float?
+  costPerResult Float?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, date])
 }

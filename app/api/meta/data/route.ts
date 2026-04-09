@@ -7,6 +7,85 @@ import type { MetaAd, MetaData } from '@/types'
 
 const GRAPH = 'https://graph.facebook.com/v21.0'
 
+// Query uploaded MetaAdData rows from DB, aggregate into MetaData, and return
+async function respondFromDB(userId: string, startDate: string, endDate: string) {
+  const start = new Date(startDate + 'T00:00:00.000Z')
+  const end   = new Date(endDate   + 'T23:59:59.999Z')
+
+  const dbRows = await db.metaAdData.findMany({
+    where: { userId, date: { gte: start, lte: end } },
+    orderBy: { date: 'asc' },
+  })
+
+  if (dbRows.length === 0) {
+    return NextResponse.json({ data: null, message: 'No data for this date range.' })
+  }
+
+  // Group by campaignName, summing spend/clicks/impressions across days
+  const campaignMap = new Map<string, { spend: number; clicks: number; impressions: number; ctrs: number[]; cpcs: number[]; results: number; costPerResult: number | null }>()
+  for (const row of dbRows) {
+    if (!campaignMap.has(row.campaignName)) {
+      campaignMap.set(row.campaignName, { spend: 0, clicks: 0, impressions: 0, ctrs: [], cpcs: [], results: 0, costPerResult: null })
+    }
+    const c = campaignMap.get(row.campaignName)!
+    c.spend       += row.spend
+    c.clicks      += row.clicks
+    c.impressions += row.impressions
+    if (row.ctr > 0) c.ctrs.push(row.ctr)
+    if (row.cpc > 0) c.cpcs.push(row.cpc)
+    if (row.results != null) c.results += row.results
+    if (row.costPerResult != null) c.costPerResult = row.costPerResult
+  }
+
+  const ads: MetaAd[] = Array.from(campaignMap.entries()).map(([name, d]) => {
+    const ctr = d.impressions > 0 ? (d.clicks / d.impressions) * 100 : 0
+    const cpc = d.clicks > 0 ? d.spend / d.clicks : 0
+
+    let status: MetaAd['status'] = 'LOW_DATA'
+    if (d.spend > 5 && d.clicks > 10) {
+      if (ctr >= 2)      status = 'SCALE'
+      else if (ctr >= 1) status = 'WATCH'
+      else               status = 'CUT'
+    }
+
+    return {
+      name,
+      spend:        Math.round(d.spend * 100) / 100,
+      clicks:       d.clicks,
+      impressions:  d.impressions,
+      ctr:          Math.round(ctr * 10) / 10,
+      cpc:          Math.round(cpc * 100) / 100,
+      reach:        0,
+      status,
+      results:      d.results > 0 ? d.results : undefined,
+      costPerResult: d.costPerResult ?? undefined,
+    }
+  }).sort((a, b) => b.ctr - a.ctr)
+
+  const totalSpend       = ads.reduce((s, a) => s + a.spend, 0)
+  const totalClicks      = ads.reduce((s, a) => s + a.clicks, 0)
+  const totalImpressions = ads.reduce((s, a) => s + a.impressions, 0)
+  const avgCTR = totalImpressions > 0 ? Math.round((totalClicks / totalImpressions) * 10000) / 100 : 0
+  const avgCPC = totalClicks > 0 ? Math.round((totalSpend / totalClicks) * 100) / 100 : 0
+
+  const sorted   = [...ads].sort((a, b) => b.ctr - a.ctr)
+  const bestAd   = sorted[0] || null
+  const worstAds = [...ads].sort((a, b) => a.ctr - b.ctr).filter(a => a.spend > 5).slice(0, 3)
+
+  const data: MetaData = {
+    totalSpend:       Math.round(totalSpend * 100) / 100,
+    totalClicks,
+    totalImpressions,
+    avgCTR,
+    avgCPC,
+    ads,
+    bestAd,
+    worstAds,
+  }
+
+  return NextResponse.json({ data })
+}
+
 const INSIGHTS_FIELDS = [
   'ad_name',
   'adset_name',
@@ -41,12 +120,12 @@ export async function GET(req: NextRequest) {
     )
     const user = rows[0]
 
-    if (!user?.metaAccessToken) {
-      return NextResponse.json({ error: 'Meta not connected' }, { status: 400 })
-    }
+    // If no Meta token or token expired, fall back to uploaded data in MetaAdData DB
+    const hasLiveToken = user?.metaAccessToken &&
+      (!user.metaTokenExpires || new Date(user.metaTokenExpires) >= new Date())
 
-    if (user.metaTokenExpires && new Date(user.metaTokenExpires) < new Date()) {
-      return NextResponse.json({ error: 'Meta token expired — reconnect in Settings' }, { status: 401 })
+    if (!hasLiveToken) {
+      return respondFromDB(session.user.id, startDate, endDate)
     }
 
     const token = user.metaAccessToken
@@ -61,11 +140,9 @@ export async function GET(req: NextRequest) {
       console.error(`[Meta Data] Error fetching ${HARDCODED_ACCOUNT_ID}:`, err)
     }
 
+    // If live API returned nothing, fall back to uploaded DB data
     if (allAds.length === 0) {
-      return NextResponse.json({
-        data: null,
-        message: 'No ad data found for this date range.',
-      })
+      return respondFromDB(session.user.id, startDate, endDate)
     }
 
     const totalSpend      = allAds.reduce((s, a) => s + a.spend, 0)
