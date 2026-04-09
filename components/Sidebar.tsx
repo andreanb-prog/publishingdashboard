@@ -6,7 +6,7 @@ import { signOut, useSession } from 'next-auth/react'
 import {
   LayoutDashboard, BookOpen, TrendingUp, Mail, ArrowLeftRight, Pin,
   BarChart2, ArrowUpRight, DollarSign, Users, GraduationCap,
-  Settings2, Database, LogOut, Rocket, Palette, PenLine,
+  Settings2, Database, LogOut, Rocket, Palette, PenLine, Search,
 } from '@/components/icons'
 import type { LucideIcon } from 'lucide-react'
 
@@ -28,6 +28,7 @@ const CHANNEL_ITEMS: NavItem[] = [
 ]
 
 const TOOL_ITEMS: NavItem[] = [
+  { label: 'Category Research',  href: '/dashboard/kdp#category-intelligence', Icon: Search },
   { label: 'Advanced Metrics',   href: '/dashboard/metrics',       Icon: BarChart2      },
   { label: 'Rank Tracker',       href: '/dashboard/rank',          Icon: ArrowUpRight   },
   { label: 'Learn the Terms',    href: '/dashboard/learn',         Icon: GraduationCap  },
