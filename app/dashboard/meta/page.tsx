@@ -632,7 +632,7 @@ export default function MetaPage() {
       .then(d => {
         setMetaOverride(d.data ?? null)
       })
-      .catch(() => {})
+      .catch(() => { setMetaOverride(null) })
       .finally(() => setDateLoading(false))
   }, [])
 
@@ -666,6 +666,10 @@ export default function MetaPage() {
   }
 
   useEffect(() => {
+    // Fetch date-filtered data immediately for the default preset
+    const initRange = getPresetRange('last30')
+    fetchDateRange(initRange.start, initRange.end)
+
     Promise.all([
       loadMetaData(),
       fetch('/api/prefs')
