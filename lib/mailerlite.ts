@@ -3,8 +3,8 @@
 // Header: Authorization: Bearer {key}
 // DO NOT use: api.mailerlite.com/api/v2, X-MailerLite-ApiKey header, or any v2 endpoint.
 //
-// SUBSCRIBER COUNTS: GET /subscribers?filter[status]=active&limit=1 → meta.total
-// This returns the true account-wide active count. Never use group active_count.
+// SUBSCRIBER COUNTS: GET /subscribers/stats → { total, active, unsubscribed, ... }
+// The cursor-paginated /subscribers endpoint does NOT include meta.total.
 import type { MailerLiteData, MailerLiteAutomation } from '@/types'
 
 const ML = 'https://connect.mailerlite.com/api'
@@ -37,23 +37,22 @@ async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; dat
 }
 
 // ── Account-level stats ─────────────────────────────────────────────────────
-// List size: GET /subscribers?filter[status]=active&limit=1 → meta.total
-// Unsubscribed: GET /subscribers?filter[status]=unsubscribed&limit=1 → meta.total
+// Subscriber counts: GET /subscribers/stats → { total, active, unsubscribed, ... }
+// The cursor-paginated /subscribers endpoint does NOT include meta.total.
 // Open/click rates: from the largest group (if any groups exist).
 export async function getMailerLiteStats(apiKey: string): Promise<{
   listSize: number; unsubscribed: number
   openRate: number; clickRate: number
   sentCount: number; bouncedCount: number
 }> {
-  // Always use the subscribers endpoint for accurate total counts
-  const [activeRes, unsubRes, groupsResult] = await Promise.all([
-    mlFetch('/subscribers?filter[status]=active&limit=1', apiKey),
-    mlFetch('/subscribers?filter[status]=unsubscribed&limit=1', apiKey),
+  // Use the stats endpoint for accurate counts (single call for both active + unsubscribed)
+  const [statsRes, groupsResult] = await Promise.all([
+    mlFetch('/subscribers/stats', apiKey),
     mlFetch('/groups?limit=100', apiKey),
   ])
 
-  const listSize     = activeRes.data?.meta?.total ?? 0
-  const unsubscribed = unsubRes.data?.meta?.total  ?? 0
+  const listSize     = statsRes.data?.active ?? statsRes.data?.total ?? 0
+  const unsubscribed = statsRes.data?.unsubscribed ?? 0
 
   // Pull open/click rates from the largest group if available
   let openRate = 0, clickRate = 0, sentCount = 0, bouncedCount = 0
