@@ -137,7 +137,7 @@ export function useWorkbook(bookId: string | null) {
   }, [setValue])
 
   return {
-    data, loaded, getValue, setValue, isSaving, isSaved,
+    data, loaded, getValue, setValue, isSaving, isSaved, saving, saved,
     getStyleGuide, setStyleGuide, getChapterMeta, setChapterMeta, load,
   }
 }
