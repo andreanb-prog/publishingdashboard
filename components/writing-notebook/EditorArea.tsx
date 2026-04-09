@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Bold, Italic, Underline, Heading1, Heading2, Quote, List, Undo2, Redo2, Plus, X } from 'lucide-react'
+import { Bold, Italic, Underline, Heading1, Heading2, Quote, List, Undo2, Redo2, Plus, X, BookOpen, Copy, Download } from 'lucide-react'
 import type { ChapterMeta, ChapterDraftMeta, StyleGuide, WorkbookData } from '@/app/dashboard/writing-notebook/useWorkbook'
 import { ExportDropdown } from './ExportDropdown'
 
@@ -15,6 +15,7 @@ export interface DraftOps {
 interface Props {
   activeNavItem: string
   bookId: string
+  bookTitle?: string
   workbookData: WorkbookData
   getValue: (phase: string, section: string, chapterIndex?: number) => string
   setValue: (phase: string, section: string, content: string, chapterIndex?: number) => void
@@ -29,6 +30,7 @@ interface Props {
   storySoFarStatus?: 'upToDate' | 'updating'
   hasChapterContent?: boolean
   getLastEdited?: (phase: string, section: string, chapterIndex?: number) => string | null
+  onNavChange?: (item: string) => void
 }
 
 function formatLastEdited(date: string): string {
@@ -338,16 +340,206 @@ function ProseTextarea({
   )
 }
 
+// ── Manuscript view ─────────────────────────────────────────────────────────
+
+function ManuscriptView({
+  bookTitle, bookId, workbookData, getChapterMeta, getActiveDraftContent, onNavChange,
+}: {
+  bookTitle?: string
+  bookId: string
+  workbookData: WorkbookData
+  getChapterMeta: (phase: 'writing' | 'polish') => ChapterMeta
+  getActiveDraftContent: (idx: number) => string
+  onNavChange?: (item: string) => void
+}) {
+  const [toggle, setToggle] = useState<'Drafts' | 'Final'>('Drafts')
+  const [toast, setToast] = useState<string | null>(null)
+
+  const writingMeta = getChapterMeta('writing')
+  const polishMeta = getChapterMeta('polish')
+  const chapterCount = Math.max(writingMeta.count, polishMeta.count, 0)
+
+  function getChapterContent(idx: number): string {
+    if (toggle === 'Final') return workbookData[`polish:finalDraft:${idx}`] ?? ''
+    return getActiveDraftContent(idx)
+  }
+
+  const totalWords = Array.from({ length: chapterCount }, (_, i) =>
+    wordCount(getChapterContent(i))
+  ).reduce((a, b) => a + b, 0)
+
+  function handleCopyAll() {
+    const parts: string[] = []
+    for (let i = 0; i < chapterCount; i++) {
+      const title = writingMeta.titles[i] ?? ''
+      const content = getChapterContent(i)
+      parts.push(`Chapter ${i + 1}${title ? ` — ${title}` : ''}`)
+      if (content.trim()) parts.push(content)
+    }
+    navigator.clipboard.writeText(parts.join('\n\n')).then(() => {
+      setToast('Copied to clipboard ✓')
+      setTimeout(() => setToast(null), 2000)
+    })
+  }
+
+  async function handleExport() {
+    const res = await fetch('/api/writing-notebook/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bookId,
+        type: 'manuscript',
+        format: 'docx',
+        source: toggle === 'Final' ? 'final' : 'drafts',
+      }),
+    })
+    if (!res.ok) return
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${bookTitle || 'manuscript'}.docx`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  if (chapterCount === 0) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <div style={{ marginTop: 80, textAlign: 'center' }}>
+          <BookOpen size={48} style={{ color: '#9CA3AF', margin: '0 auto' }} />
+          <p className="text-[15px] font-medium mt-4" style={{ color: '#1E2D3D' }}>
+            Your manuscript will appear here as you write
+          </p>
+          <button
+            onClick={() => onNavChange?.('chapter:0')}
+            className="text-[13px] mt-2 hover:underline"
+            style={{ color: '#E9A020', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            Start with Chapter 1 →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden relative">
+      {/* Header bar */}
+      <div
+        className="flex items-center gap-3 px-4 shrink-0"
+        style={{ height: 40, borderBottom: '1px solid #E5E7EB' }}
+      >
+        <span className="text-[14px] font-medium truncate" style={{ color: '#1E2D3D' }}>
+          {bookTitle || 'Untitled'}
+        </span>
+        <span className="text-[12px] shrink-0" style={{ color: '#9CA3AF' }}>
+          {chapterCount} chapter{chapterCount !== 1 ? 's' : ''} · {totalWords.toLocaleString()} words
+        </span>
+        <div className="flex items-center gap-2 ml-auto shrink-0">
+          {/* Drafts/Final toggle */}
+          <div className="flex rounded-full overflow-hidden" style={{ border: '0.5px solid #E5E7EB' }}>
+            {(['Drafts', 'Final'] as const).map(opt => (
+              <button
+                key={opt}
+                onClick={() => setToggle(opt)}
+                className="px-3 py-1 text-[11px] font-medium transition-colors"
+                style={{
+                  background: toggle === opt ? '#1E2D3D' : '#FFFFFF',
+                  color: toggle === opt ? '#FFFFFF' : '#6B7280',
+                }}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+          {/* Copy All */}
+          <button
+            onClick={handleCopyAll}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[12px] font-medium transition-colors hover:bg-gray-50"
+            style={{ border: '0.5px solid #E5E7EB', color: '#4B5563' }}
+          >
+            <Copy size={12} />
+            Copy All
+          </button>
+          {/* Export */}
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[12px] font-medium"
+            style={{ background: '#E9A020', color: '#FFFFFF' }}
+          >
+            <Download size={12} />
+            Export
+          </button>
+        </div>
+      </div>
+
+      {/* Manuscript body */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-8 py-10 mx-auto" style={{ maxWidth: 680 }}>
+          {Array.from({ length: chapterCount }, (_, i) => {
+            const title = writingMeta.titles[i] ?? ''
+            const content = getChapterContent(i)
+            const isLast = i === chapterCount - 1
+            return (
+              <div key={i}>
+                <button
+                  onClick={() => onNavChange?.(`chapter:${i}`)}
+                  className="text-left hover:underline mb-4 block"
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 600,
+                    color: '#1E2D3D',
+                    fontFamily: 'Plus Jakarta Sans, sans-serif',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  Chapter {i + 1}{title ? ` — ${title}` : ' — Untitled'}
+                </button>
+                {content.trim() ? (
+                  <p style={{ fontSize: 15, lineHeight: '1.8', color: '#1E2D3D', whiteSpace: 'pre-wrap', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                    {content}
+                  </p>
+                ) : (
+                  <p style={{ fontSize: 15, lineHeight: '1.8', color: '#9CA3AF', fontStyle: 'italic' }}>
+                    Chapter {i + 1} — not written yet
+                  </p>
+                )}
+                {!isLast && (
+                  <hr style={{ border: 'none', borderTop: '1px solid #E5E7EB', margin: '32px 0' }} />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg text-sm font-medium shadow-lg z-50"
+          style={{ background: '#6EBF8B', color: '#FFFFFF' }}
+        >
+          {toast}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ──────────────────────────────────────────────────────────
 
 export function EditorArea({
-  activeNavItem, bookId, workbookData,
+  activeNavItem, bookId, bookTitle, workbookData,
   getValue, setValue, getChapterMeta, setChapterMeta,
   getStyleGuide, setStyleGuide,
   draftOps,
   onWordCountChange, onKeystroke,
   onStorySoFarUpdate, storySoFarStatus, hasChapterContent,
-  getLastEdited,
+  getLastEdited, onNavChange,
 }: Props) {
   const { getChapterDraftMeta, setChapterDraftMeta, getChapterDraft, setChapterDraft, getActiveDraftContent } = draftOps
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -430,6 +622,20 @@ export function EditorArea({
     const titles = [...meta.titles]
     titles[chapterIdx] = title
     setChapterMeta('writing', { ...meta, titles })
+  }
+
+  // ── Full Manuscript ──
+  if (activeNavItem === 'manuscript') {
+    return (
+      <ManuscriptView
+        bookTitle={bookTitle}
+        bookId={bookId}
+        workbookData={workbookData}
+        getChapterMeta={getChapterMeta}
+        getActiveDraftContent={getActiveDraftContent}
+        onNavChange={onNavChange}
+      />
+    )
   }
 
   // ── Kill list ──

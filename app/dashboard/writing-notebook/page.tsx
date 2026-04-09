@@ -367,6 +367,7 @@ export default function WritingNotebookPage() {
                   key={activeNavItem}
                   activeNavItem={activeNavItem}
                   bookId={bookId}
+                  bookTitle={bookTitle}
                   workbookData={workbook.data}
                   getValue={workbook.getValue}
                   setValue={workbook.setValue}
@@ -387,6 +388,7 @@ export default function WritingNotebookPage() {
                   storySoFarStatus={storySoFarStatus}
                   hasChapterContent={hasChapterContent}
                   getLastEdited={workbook.getLastEdited}
+                  onNavChange={handleNavChange}
                 />
               )}
             </div>

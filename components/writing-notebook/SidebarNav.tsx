@@ -1,5 +1,5 @@
 'use client'
-import { Plus } from 'lucide-react'
+import { Plus, FileText } from 'lucide-react'
 import type { WorkbookData, ChapterMeta, ChapterDraftMeta } from '@/app/dashboard/writing-notebook/useWorkbook'
 
 export type StorySoFarStatus = 'upToDate' | 'updating'
@@ -192,6 +192,20 @@ export function SidebarNav({
         >
           <Plus size={12} style={{ color: '#E9A020' }} />
           <span className="text-[13px]" style={{ color: '#E9A020' }}>New chapter</span>
+        </button>
+
+        {/* Full Manuscript */}
+        <button
+          onClick={() => onNavChange('manuscript')}
+          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-colors"
+          style={{
+            background: activeNavItem === 'manuscript' ? '#FFF3E0' : 'transparent',
+            color: activeNavItem === 'manuscript' ? '#1E2D3D' : '#4B5563',
+            fontWeight: activeNavItem === 'manuscript' ? 500 : 400,
+          }}
+        >
+          <FileText size={13} />
+          <span className="text-[13px]">Full Manuscript</span>
         </button>
 
         <div className="mx-1 my-2" style={{ borderTop: '0.5px solid #E5E7EB' }} />
