@@ -8,6 +8,7 @@ interface Props {
   workbookData: WorkbookData
   getChapterMeta: (phase: 'writing' | 'polish') => ChapterMeta
   getChapterDraftMeta: (chapterIndex: number) => ChapterDraftMeta
+  getActiveDraftContent: (chapterIndex: number) => string
   activeNavItem: string
   onNavChange: (item: string) => void
   onAddChapter: () => void
@@ -25,9 +26,9 @@ const BOOK_COLORS = [
   '#F472B6', // B6 rose
 ]
 
-function getChapterStatus(idx: number, workbookData: WorkbookData): 'Draft' | 'Done' | 'Empty' {
+function getChapterStatus(idx: number, workbookData: WorkbookData, getActiveDraftContent: (i: number) => string): 'Draft' | 'Done' | 'Empty' {
   if (workbookData[`polish:finalDraft:${idx}`]?.trim()) return 'Done'
-  if (workbookData[`writing:chapter:${idx}`]?.trim()) return 'Draft'
+  if (getActiveDraftContent(idx).trim()) return 'Draft'
   return 'Empty'
 }
 
@@ -77,7 +78,7 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 export function SidebarNav({
-  workbookData, getChapterMeta, getChapterDraftMeta, activeNavItem, onNavChange, onAddChapter, storySoFarStatus,
+  workbookData, getChapterMeta, getChapterDraftMeta, getActiveDraftContent, activeNavItem, onNavChange, onAddChapter, storySoFarStatus,
   onStorySoFarUpdate, hasChapterContent,
 }: Props) {
   const writingMeta = getChapterMeta('writing')
@@ -147,7 +148,7 @@ export function SidebarNav({
           const id = `chapter:${idx}`
           const isActive = activeNavItem === id
           const title = writingMeta.titles[idx] ?? ''
-          const status = getChapterStatus(idx, workbookData)
+          const status = getChapterStatus(idx, workbookData, getActiveDraftContent)
           const dotColor = BOOK_COLORS[idx % BOOK_COLORS.length]
           const chDraftMeta = getChapterDraftMeta(idx)
 

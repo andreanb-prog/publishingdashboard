@@ -322,6 +322,7 @@ export default function WritingNotebookPage() {
             workbookData={workbook.data}
             getChapterMeta={workbook.getChapterMeta}
             getChapterDraftMeta={workbook.getChapterDraftMeta}
+            getActiveDraftContent={workbook.getActiveDraftContent}
             activeNavItem={activeNavItem}
             onNavChange={handleNavChange}
             onAddChapter={handleAddChapter}

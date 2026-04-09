@@ -22,6 +22,10 @@ function wordCount(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0
 }
 
+function stripMarkdown(text: string): string {
+  return text.replace(/[#*_~`]/g, '').replace(/\n+/g, ' ').trim()
+}
+
 function getChapterStatus(idx: number, meta: ChapterMeta, workbookData: WorkbookData): ChapterStatus {
   // Use explicit status from meta if available
   const explicit = meta.statuses?.[idx]
@@ -158,7 +162,7 @@ export function ChapterDrawer({
             <>
               {!storySoFarExpanded && (
                 <p className="text-[13px] italic mt-1 line-clamp-3" style={{ color: '#9CA3AF' }}>
-                  {storySoFar.slice(0, 120)}{storySoFar.length > 120 ? '\u2026' : ''}
+                  {(() => { const t = stripMarkdown(storySoFar); return t.slice(0, 120) + (t.length > 120 ? '\u2026' : '') })()}
                 </p>
               )}
               {storySoFarExpanded && (
