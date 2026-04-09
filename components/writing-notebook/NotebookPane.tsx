@@ -1,6 +1,6 @@
 'use client'
 // components/writing-notebook/NotebookPane.tsx
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { Pencil, CheckCircle, AlertCircle, ScrollText, Loader2 } from 'lucide-react'
 import type { ChapterMeta, ChapterStatus } from '@/lib/writing-notebook-types'
 import { WorkbookImporter } from './WorkbookImporter'
@@ -42,6 +42,26 @@ function SavedIndicator({ saving, saved }: { saving: boolean; saved: boolean }) 
   return null
 }
 
+function detectChapterTitle(text: string): string | null {
+  // Work with the first 3 raw lines only
+  const lines = text.split('\n').slice(0, 3).map(l => l.trim())
+  const line0 = lines[0] ?? ''
+
+  // Pattern 1: "Chapter N — Title" or "Chapter N: Title" (em-dash, en-dash, hyphen, colon)
+  const inlineMatch = line0.match(/^chapter\s+\S+\s*[—–-]\s*(.+)$/i)
+    ?? line0.match(/^chapter\s+\S+\s*:\s*(.+)$/i)
+  if (inlineMatch) return inlineMatch[1].trim()
+
+  // Pattern 2: "Chapter N" alone on first line → next non-empty line is the title
+  if (/^chapter\s+\S+$/i.test(line0)) {
+    const nextNonEmpty = lines.slice(1).find(l => l.length > 0)
+    if (nextNonEmpty && !/\bpov\b/i.test(nextNonEmpty)) return nextNonEmpty
+  }
+
+  // Pattern 3: POV labels or anything else → no title
+  return null
+}
+
 function wordCount(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0
 }
@@ -76,6 +96,7 @@ export function NotebookPane({
   const [summarizingChapter, setSummarizingChapter] = useState<number | null>(null)
   const [polishTab, setPolishTab] = useState<'finalDrafts' | 'chapterAudit'>('finalDrafts')
   const [auditChapterIndex, setAuditChapterIndex] = useState(0)
+  const titleInputRefs = useRef<Map<number, HTMLInputElement>>(new Map())
 
   const getKey = useCallback((phase: string, section: string, chapterIndex?: number) => {
     return chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
@@ -235,6 +256,7 @@ export function NotebookPane({
                     </span>
                     <input
                       key={`ch-title-${i}-${bookId}-${title}`}
+                      ref={(el) => { if (el) titleInputRefs.current.set(i, el); else titleInputRefs.current.delete(i) }}
                       defaultValue={title}
                       placeholder="Chapter title"
                       onBlur={(e) => {
@@ -268,6 +290,21 @@ export function NotebookPane({
                     placeholder="Start writing your chapter\u2026"
                     onFocus={() => onSectionChange('chapter', i)}
                     onBlur={(e) => setValue('writing', 'chapter', e.target.value, i)}
+                    onPaste={(e) => {
+                      const currentTitle = (getChapterMeta('writing').titles[i] ?? '').trim()
+                      if (currentTitle) return
+                      const pasted = e.clipboardData.getData('text')
+                      const detected = detectChapterTitle(pasted)
+                      if (!detected) return
+                      const titleInput = titleInputRefs.current.get(i)
+                      if (titleInput) titleInput.value = detected
+                      const meta = getChapterMeta('writing')
+                      const titles = [...meta.titles]
+                      titles[i] = detected
+                      setValue('writing', 'chapterMeta', JSON.stringify({ ...meta, titles }))
+                      setToast('Chapter title detected \u2713')
+                      setTimeout(() => setToast(''), 2000)
+                    }}
                     className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none transition-shadow"
                     style={{ border: 'none', minHeight: isActive ? 300 : 100, color: '#1E2D3D', lineHeight: '1.8' }}
                     rows={isActive ? 15 : 4}
