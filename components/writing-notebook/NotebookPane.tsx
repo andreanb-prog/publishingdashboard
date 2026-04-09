@@ -1,7 +1,9 @@
 'use client'
 // components/writing-notebook/NotebookPane.tsx
-import { useCallback } from 'react'
-import type { ChapterMeta } from '@/app/dashboard/writing-notebook/useWorkbook'
+import { useState, useCallback } from 'react'
+import { Pencil, CheckCircle, AlertCircle, ScrollText, Loader2 } from 'lucide-react'
+import type { ChapterMeta, ChapterStatus } from '@/app/writing-notebook/page'
+import { WorkbookImporter } from './WorkbookImporter'
 
 type Phase = 'setup' | 'writing' | 'polish'
 
@@ -17,8 +19,7 @@ interface Props {
   getChapterMeta: (phase: 'writing' | 'polish') => ChapterMeta
   saving: Record<string, boolean>
   saved: Record<string, boolean>
-  /** Called after a chapter textarea blurs with content — use to trigger Story So Far auto-update */
-  onChapterBlur?: () => void
+  onReloadWorkbook: () => void
 }
 
 const PHASES: { id: Phase; label: string }[] = [
@@ -43,10 +44,35 @@ function wordCount(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0
 }
 
+const STATUS_CYCLE: ChapterStatus[] = ['draft', 'complete', 'needs_edit']
+const STATUS_CONFIG: Record<ChapterStatus, { label: string; bg: string; color: string; border?: string; Icon: typeof Pencil }> = {
+  draft:      { label: 'Draft',      bg: 'transparent', color: '#E9A020', border: '1px solid #E9A020', Icon: Pencil },
+  complete:   { label: 'Complete',   bg: '#6EBF8B',     color: '#FFFFFF', Icon: CheckCircle },
+  needs_edit: { label: 'Needs Edit', bg: 'transparent', color: '#F97B6B', border: '1px solid #F97B6B', Icon: AlertCircle },
+  empty:      { label: 'Empty',      bg: 'transparent', color: '#9CA3AF', border: '1px solid #D1D5DB', Icon: Pencil },
+}
+
+function ChapterStatusButton({ status, onClick }: { status: ChapterStatus; onClick: () => void }) {
+  const cfg = STATUS_CONFIG[status]
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick() }}
+      className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full transition-colors hover:opacity-80"
+      style={{ background: cfg.bg, color: cfg.color, border: cfg.border }}
+    >
+      <cfg.Icon size={11} />
+      {cfg.label}
+    </button>
+  )
+}
+
 export function NotebookPane({
   bookId, activePhase, onPhaseChange, activeSection, activeChapterIndex,
-  onSectionChange, getValue, setValue, getChapterMeta, saving, saved, onChapterBlur,
+  onSectionChange, getValue, setValue, getChapterMeta, saving, saved, onReloadWorkbook,
 }: Props) {
+  const [toast, setToast] = useState('')
+  const [summarizingChapter, setSummarizingChapter] = useState<number | null>(null)
+
   const getKey = useCallback((phase: string, section: string, chapterIndex?: number) => {
     return chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
   }, [])
@@ -54,8 +80,51 @@ export function NotebookPane({
   const writingMeta = getChapterMeta('writing')
   const polishMeta = getChapterMeta('polish')
 
+  const summarizeChapter = useCallback(async (chapterIdx: number) => {
+    const content = getValue('writing', 'chapter', chapterIdx)
+    if (!content?.trim()) return
+
+    const meta = getChapterMeta('writing')
+    const title = meta.titles[chapterIdx] ?? ''
+
+    setSummarizingChapter(chapterIdx)
+    try {
+      const res = await fetch('/api/writing-notebook/summarize-chapter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId, chapterIndex: chapterIdx, chapterTitle: title, chapterContent: content }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        // Update Story So Far in local state + reload workbook to refresh drawer
+        await setValue('writing', 'storySoFar', data.storySoFar)
+        onReloadWorkbook()
+        setToast('Story So Far updated \u2713')
+        setTimeout(() => setToast(''), 3000)
+      }
+    } catch { /* don't block — completion is the primary action */ }
+    setSummarizingChapter(null)
+  }, [bookId, getValue, getChapterMeta, setValue, onReloadWorkbook])
+
+  const cycleChapterStatus = useCallback((chapterIdx: number) => {
+    const meta = getChapterMeta('writing')
+    const statuses = [...(meta.statuses ?? [])]
+    const current = statuses[chapterIdx] ?? 'draft'
+    const currentCycleIdx = STATUS_CYCLE.indexOf(current)
+    const next = STATUS_CYCLE[(currentCycleIdx + 1) % STATUS_CYCLE.length]
+    statuses[chapterIdx] = next
+    // Immediate save (not debounced)
+    setValue('writing', 'chapterMeta', JSON.stringify({ ...meta, statuses }))
+    if (next === 'complete') {
+      setToast(`Chapter ${chapterIdx + 1} marked complete \u2713`)
+      setTimeout(() => setToast(''), 3000)
+      // Auto-generate Story So Far summary
+      summarizeChapter(chapterIdx)
+    }
+  }, [getChapterMeta, setValue, summarizeChapter])
+
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden relative">
       {/* Phase tabs */}
       <div className="flex gap-1 px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: '1px solid #E5E7EB' }}>
         {PHASES.map(p => (
@@ -77,6 +146,13 @@ export function NotebookPane({
       {/* Content area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* SETUP phase */}
+        {activePhase === 'setup' && (
+          <WorkbookImporter
+            bookId={bookId}
+            onImportComplete={onReloadWorkbook}
+            onSwitchToOutline={() => onSectionChange('storyOutline')}
+          />
+        )}
         {activePhase === 'setup' && SETUP_SECTIONS.map(sec => {
           const key = getKey('setup', sec.id)
           const content = getValue('setup', sec.id)
@@ -93,6 +169,7 @@ export function NotebookPane({
                 <SavedIndicator saving={saving[key]} saved={saved[key]} />
               </div>
               <textarea
+                key={`${sec.id}-${bookId}-${content ? 'loaded' : 'empty'}`}
                 defaultValue={content}
                 placeholder={sec.placeholder}
                 onFocus={() => onSectionChange(sec.id)}
@@ -117,6 +194,7 @@ export function NotebookPane({
                 <SavedIndicator saving={saving[getKey('writing', 'storySoFar')]} saved={saved[getKey('writing', 'storySoFar')]} />
               </div>
               <textarea
+                key={`storySoFar-${bookId}-${getValue('writing', 'storySoFar') ? 'loaded' : 'empty'}`}
                 defaultValue={getValue('writing', 'storySoFar')}
                 placeholder="Summarize what has happened so far in the story. The AI uses this for continuity."
                 onFocus={() => onSectionChange('storySoFar')}
@@ -152,6 +230,7 @@ export function NotebookPane({
                       Ch {i + 1}
                     </span>
                     <input
+                      key={`ch-title-${i}-${bookId}-${title}`}
                       defaultValue={title}
                       placeholder="Chapter title"
                       onBlur={(e) => {
@@ -168,19 +247,41 @@ export function NotebookPane({
                     <span className="text-xs" style={{ color: '#9CA3AF' }}>
                       {wordCount(content).toLocaleString()} words
                     </span>
+                    <ChapterStatusButton
+                      status={(writingMeta.statuses?.[i] as ChapterStatus) ?? 'draft'}
+                      onClick={() => cycleChapterStatus(i)}
+                    />
                   </div>
+                  {summarizingChapter === i && (
+                    <div className="flex items-center gap-1.5 mb-1 ml-1">
+                      <Loader2 size={12} className="animate-spin" style={{ color: '#E9A020' }} />
+                      <span className="text-xs" style={{ color: '#9CA3AF' }}>Updating story summary...</span>
+                    </div>
+                  )}
                   <textarea
+                    key={`ch-${i}-${bookId}-${content ? 'loaded' : 'empty'}`}
                     defaultValue={content}
                     placeholder="Start writing your chapter\u2026"
                     onFocus={() => onSectionChange('chapter', i)}
-                    onBlur={(e) => {
-                      setValue('writing', 'chapter', e.target.value, i)
-                      if (e.target.value.trim()) onChapterBlur?.()
-                    }}
+                    onBlur={(e) => setValue('writing', 'chapter', e.target.value, i)}
                     className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none transition-shadow"
                     style={{ border: 'none', minHeight: isActive ? 300 : 100, color: '#1E2D3D', lineHeight: '1.8' }}
                     rows={isActive ? 15 : 4}
                   />
+                  {content?.trim() && (
+                    <button
+                      onClick={() => summarizeChapter(i)}
+                      disabled={summarizingChapter === i}
+                      className="flex items-center gap-1 mt-1 ml-1 text-xs hover:underline disabled:opacity-50 transition-opacity"
+                      style={{ color: '#E9A020' }}
+                    >
+                      {summarizingChapter === i ? (
+                        <><Loader2 size={11} className="animate-spin" /> Updating...</>
+                      ) : (
+                        <><ScrollText size={11} /> Update story summary</>
+                      )}
+                    </button>
+                  )}
                 </div>
               )
             })}
@@ -214,6 +315,7 @@ export function NotebookPane({
                       Ch {i + 1}
                     </span>
                     <input
+                      key={`fd-title-${i}-${bookId}-${title}`}
                       defaultValue={title}
                       placeholder="Chapter title"
                       onBlur={(e) => {
@@ -230,6 +332,7 @@ export function NotebookPane({
                     <span className="text-xs" style={{ color: '#9CA3AF' }}>{wordCount(content).toLocaleString()} words</span>
                   </div>
                   <textarea
+                    key={`fd-${i}-${bookId}-${content ? 'loaded' : 'empty'}`}
                     defaultValue={content}
                     placeholder="Paste or write your final draft here\u2026"
                     onFocus={() => onSectionChange('finalDraft', i)}
@@ -244,6 +347,16 @@ export function NotebookPane({
           </>
         )}
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg text-sm font-medium shadow-lg z-50"
+          style={{ background: '#6EBF8B', color: '#FFFFFF' }}
+        >
+          {toast}
+        </div>
+      )}
     </div>
   )
 }

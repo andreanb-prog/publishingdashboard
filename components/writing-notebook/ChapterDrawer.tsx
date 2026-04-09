@@ -1,9 +1,9 @@
 'use client'
 // components/writing-notebook/ChapterDrawer.tsx
 import { useState, useCallback } from 'react'
-import { BookOpen, ScrollText, ChevronDown, ChevronUp, Plus, Pencil, FileText } from 'lucide-react'
+import { BookOpen, ScrollText, ChevronDown, ChevronUp, Plus, Pencil, FileText, CheckCircle, AlertCircle, PartyPopper } from 'lucide-react'
 import { ExportDropdown } from './ExportDropdown'
-import type { WorkbookData, ChapterMeta } from '@/app/dashboard/writing-notebook/useWorkbook'
+import type { WorkbookData, ChapterMeta, ChapterStatus } from '@/app/writing-notebook/page'
 
 interface Props {
   bookId: string
@@ -22,18 +22,20 @@ function wordCount(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0
 }
 
-function getChapterStatus(idx: number, workbookData: WorkbookData): 'final' | 'draft' | 'empty' {
-  const finalContent = workbookData[`polish:finalDraft:${idx}`]
-  if (finalContent?.trim()) return 'final'
-  const draftContent = workbookData[`writing:chapter:${idx}`]
-  if (draftContent?.trim()) return 'draft'
-  return 'empty'
+function getChapterStatus(idx: number, meta: ChapterMeta, workbookData: WorkbookData): ChapterStatus {
+  // Use explicit status from meta if available
+  const explicit = meta.statuses?.[idx]
+  if (explicit) return explicit
+  // Fallback: if content exists → draft, else empty
+  const content = workbookData[`writing:chapter:${idx}`]
+  return content?.trim() ? 'draft' : 'empty'
 }
 
-const STATUS_STYLES = {
-  final: { bg: '#6EBF8B', color: '#FFFFFF', label: 'Final' },
-  draft: { bg: '#E9A020', color: '#FFFFFF', label: 'Draft' },
-  empty: { bg: 'transparent', color: '#9CA3AF', label: 'Empty', border: '1px solid #D1D5DB' },
+const STATUS_STYLES: Record<ChapterStatus, { bg: string; color: string; label: string; border?: string; Icon: typeof Pencil }> = {
+  complete:   { bg: '#6EBF8B', color: '#FFFFFF', label: 'Complete',   Icon: CheckCircle },
+  draft:      { bg: '#E9A020', color: '#FFFFFF', label: 'Draft',      Icon: Pencil },
+  needs_edit: { bg: '#F97B6B', color: '#FFFFFF', label: 'Needs Edit', Icon: AlertCircle },
+  empty:      { bg: 'transparent', color: '#9CA3AF', label: 'Empty', border: '1px solid #D1D5DB', Icon: Pencil },
 }
 
 export function ChapterDrawer({
@@ -110,6 +112,19 @@ export function ChapterDrawer({
         </div>
       </div>
 
+      {/* Celebration banner — all chapters complete */}
+      {maxCount > 0 && writingMeta.statuses?.length >= maxCount &&
+        Array.from({ length: maxCount }, (_, i) => writingMeta.statuses[i]).every(s => s === 'complete') && (
+        <div className="mx-4 mt-2 rounded-lg p-3 flex items-center gap-2" style={{ background: '#F0FDF4', border: '1px solid #6EBF8B' }}>
+          <PartyPopper size={18} style={{ color: '#6EBF8B' }} />
+          <div className="flex-1">
+            <p className="text-sm font-medium" style={{ color: '#1E2D3D' }}>All chapters complete!</p>
+            <p className="text-xs" style={{ color: '#6B7280' }}>Ready to export?</p>
+          </div>
+          <ExportDropdown bookId={bookId} drawerToggle={drawerToggle} />
+        </div>
+      )}
+
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 pt-2">
         {/* CARD 1 — Story Outline (pinned) */}
@@ -175,7 +190,7 @@ export function ChapterDrawer({
         {chapterIndices.map(idx => {
           const content = getChapterContent(idx)
           const title = getChapterTitle(idx)
-          const status = getChapterStatus(idx, workbookData)
+          const status = getChapterStatus(idx, writingMeta, workbookData)
           const st = STATUS_STYLES[status]
           const isSelected = activeChapterIndex === idx
           const wc = wordCount(content)
@@ -196,7 +211,8 @@ export function ChapterDrawer({
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#E9A020', color: '#FFFFFF' }}>
                   Ch {idx + 1}
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: st.bg, color: st.color, border: (st as { border?: string }).border }}>
+                <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: st.bg, color: st.color, border: st.border }}>
+                  <st.Icon size={10} />
                   {st.label}
                 </span>
                 <span className="text-sm font-medium truncate flex-1" style={{ color: '#1E2D3D' }}>
