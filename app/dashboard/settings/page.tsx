@@ -1,14 +1,37 @@
 'use client'
 // app/dashboard/settings/page.tsx
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { BookCatalog } from '@/components/BookCatalog'
 import { Bot, Mail, Megaphone, BookOpen, PenLine, Lock } from '@/components/icons'
+import {
+  BookOpen as TabBookOpen,
+  Plug,
+  User,
+  SlidersHorizontal,
+  Shield,
+} from 'lucide-react'
+
+// ── Types ────────────────────────────────────────────────────────────────────
+type TabId = 'my-books' | 'connections' | 'profile' | 'preferences' | 'privacy'
+type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
 const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
 
-type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+// ── Tab definitions ──────────────────────────────────────────────────────────
+const TABS: {
+  id: TabId
+  label: string
+  description: string
+  icon: React.ElementType
+}[] = [
+  { id: 'my-books',     label: 'My Books',     description: 'Your titles and ASINs',       icon: TabBookOpen },
+  { id: 'connections',  label: 'Connections',  description: 'MailerLite, Meta, KDP',        icon: Plug },
+  { id: 'profile',      label: 'Profile',      description: 'Your name and display settings', icon: User },
+  { id: 'preferences',  label: 'Preferences',  description: 'Benchmarks and digest email',  icon: SlidersHorizontal },
+  { id: 'privacy',      label: 'Privacy',      description: 'Data and account',             icon: Shield },
+]
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ message, onDone }: { message: string; onDone: () => void }) {
@@ -22,18 +45,6 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
       style={{ background: '#1E2D3D', color: 'white' }}
     >
       {message}
-    </div>
-  )
-}
-
-// ── Eyebrow section label ─────────────────────────────────────────────────────
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="text-[9px] font-bold uppercase tracking-[2px] mb-2"
-      style={{ color: '#E9A020' }}
-    >
-      {children}
     </div>
   )
 }
@@ -76,16 +87,14 @@ function IntegCard({
   return (
     <div
       className="flex flex-col rounded-[10px] overflow-hidden"
-      style={{
-        background: 'white',
-        border: '0.5px solid rgba(30,45,61,0.1)',
-      }}
+      style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}
     >
-      {/* Card header */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3"
-        style={{ borderBottom: '0.5px solid rgba(30,45,61,0.06)' }}>
+      <div
+        className="flex items-center gap-3 px-4 pt-4 pb-3"
+        style={{ borderBottom: '0.5px solid rgba(30,45,61,0.06)' }}
+      >
         <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-base shrink-0"
+          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
           style={{ background: iconBg }}
         >
           {icon}
@@ -96,7 +105,6 @@ function IntegCard({
         </div>
         <div className="shrink-0">{statusPill}</div>
       </div>
-      {/* Card body */}
       {children && <div className="px-4 py-3 flex flex-col gap-3">{children}</div>}
     </div>
   )
@@ -128,7 +136,7 @@ function AmberBtn({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`text-[10px] font-semibold px-3 py-1.5 rounded-[5px] border-none cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed${fullWidth ? ' w-full' : ''}`}
+      className={`text-[11px] font-semibold px-3 py-1.5 rounded-[6px] border-none cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed${fullWidth ? ' w-full' : ''}`}
       style={{ background: '#E9A020', color: '#1E2D3D' }}
     >
       {children}
@@ -179,12 +187,48 @@ function KeyInput({
   )
 }
 
+// ── Panel header ─────────────────────────────────────────────────────────────
+function PanelHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: React.ReactNode }) {
+  return (
+    <div
+      className="flex items-center justify-between px-8 pt-7 pb-5"
+      style={{ borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}
+    >
+      <div>
+        <h2 className="text-[16px] font-medium" style={{ color: '#1E2D3D' }}>{title}</h2>
+        {subtitle && (
+          <p className="text-[12px] mt-0.5" style={{ color: '#888' }}>{subtitle}</p>
+        )}
+      </div>
+      {action}
+    </div>
+  )
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { data: session } = useSession()
   const isAdmin = ADMIN_EMAILS.includes(session?.user?.email ?? '')
 
-  // ── Connection state ────────────────────────────────────────────────────────
+  // Active tab
+  const [activeTab, setActiveTab] = useState<TabId>('my-books')
+
+  // Hash-based deep linking
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const hash = window.location.hash.replace('#', '') as TabId
+    const validHashes: TabId[] = ['my-books', 'connections', 'profile', 'preferences', 'privacy']
+    if (validHashes.includes(hash)) setActiveTab(hash)
+  }, [])
+
+  function navigateTab(id: TabId) {
+    setActiveTab(id)
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `#${id}`)
+    }
+  }
+
+  // ── Connection state ──────────────────────────────────────────────────────
   const [hasSavedML,     setHasSavedML]     = useState(false)
   const [hasSavedClaude, setHasSavedClaude] = useState(false)
   const [stripeActive,   setStripeActive]   = useState(false)
@@ -193,48 +237,39 @@ export default function SettingsPage() {
   const [kdpLastUpload,  setKdpLastUpload]  = useState<string | null>(null)
   const [mlSubscribers,  setMlSubscribers]  = useState<number | null>(null)
 
-  // ── Profile ─────────────────────────────────────────────────────────────────
+  // ── Profile ───────────────────────────────────────────────────────────────
   const [penName,               setPenName]               = useState('')
   const [preferredGreetingName, setPreferredGreetingName] = useState('')
   const [profileSaveState,      setProfileSaveState]      = useState<SaveState>('idle')
 
-  // ── API key inputs ──────────────────────────────────────────────────────────
+  // ── API key inputs ────────────────────────────────────────────────────────
   const [mailerLiteKey,  setMailerLiteKey]  = useState('')
   const [claudeKey,      setClaudeKey]      = useState('')
+  const [showMLKey,      setShowMLKey]      = useState(false)
+  const [showClaudeKey,  setShowClaudeKey]  = useState(false)
+  const [mlSaveState,    setMLSaveState]    = useState<SaveState>('idle')
+  const [claudeSaveState,setClaudeSaveState]= useState<SaveState>('idle')
 
-  // ── Show key update forms ───────────────────────────────────────────────────
-  const [showMLKey,     setShowMLKey]     = useState(false)
-  const [showClaudeKey, setShowClaudeKey] = useState(false)
-
-  // ── Save states ─────────────────────────────────────────────────────────────
-  const [mlSaveState,     setMLSaveState]     = useState<SaveState>('idle')
-  const [claudeSaveState, setClaudeSaveState] = useState<SaveState>('idle')
-
-  // ── Meta Ads ────────────────────────────────────────────────────────────────
+  // ── Meta Ads ──────────────────────────────────────────────────────────────
   const [metaSyncing, setMetaSyncing] = useState(false)
   const [metaSuccess, setMetaSuccess] = useState(false)
   const [metaError,   setMetaError]   = useState(false)
 
-  // ── Benchmarks ──────────────────────────────────────────────────────────────
+  // ── Benchmarks ────────────────────────────────────────────────────────────
   const [benchmarks, setBenchmarks] = useState({
-    email_open_rate: '25',
+    email_open_rate:  '25',
     email_click_rate: '2',
-    meta_cpc: '0.15',
-    meta_ctr: '15',
+    meta_cpc:         '0.15',
+    meta_ctr:         '15',
   })
   const [benchmarksSave, setBenchmarksSave] = useState<SaveState>('idle')
 
-  // ── Notifications ───────────────────────────────────────────────────────────
+  // ── Notifications ─────────────────────────────────────────────────────────
   const [digestEnabled, setDigestEnabled] = useState(true)
   const [digestDays,    setDigestDays]    = useState<string[]>(['monday'])
   const [notifSave,     setNotifSave]     = useState<SaveState>('idle')
 
-  // ── Stray KDP titles ────────────────────────────────────────────────────────
-  const [strayTitles,       setStrayTitles]       = useState<{ asin: string; title: string }[]>([])
-  const [excludedKdpAsins,  setExcludedKdpAsins]  = useState<Set<string>>(new Set())
-  const [strayTitlesSaving, setStrayTitlesSaving] = useState(false)
-
-  // ── BookFunnel ──────────────────────────────────────────────────────────────
+  // ── BookFunnel ────────────────────────────────────────────────────────────
   const [bfSecret,        setBfSecret]        = useState<string | null>(null)
   const [bfWebhookUrl,    setBfWebhookUrl]    = useState<string>('')
   const [bfDownloadCount, setBfDownloadCount] = useState<number>(0)
@@ -242,26 +277,26 @@ export default function SettingsPage() {
   const [bfRegenerating,  setBfRegenerating]  = useState(false)
   const [bfCopied,        setBfCopied]        = useState<'url' | 'secret' | null>(null)
 
-  // ── Writing Assistant (BYOK) ─────────────────────────────────────────────────
-  const [hasWritingKey,     setHasWritingKey]     = useState(false)
-  const [writingKeyMasked,  setWritingKeyMasked]  = useState<string | null>(null)
+  // ── Writing Assistant (BYOK) ──────────────────────────────────────────────
+  const [hasWritingKey,      setHasWritingKey]      = useState(false)
+  const [writingKeyMasked,   setWritingKeyMasked]   = useState<string | null>(null)
   const [showWritingKeyForm, setShowWritingKeyForm] = useState(false)
-  const [writingKeyInput,   setWritingKeyInput]   = useState('')
-  const [writingKeySave,    setWritingKeySave]    = useState<SaveState>('idle')
+  const [writingKeyInput,    setWritingKeyInput]    = useState('')
+  const [writingKeySave,     setWritingKeySave]     = useState<SaveState>('idle')
 
-  // ── Help accordion ──────────────────────────────────────────────────────────
+  // ── Help accordion ────────────────────────────────────────────────────────
   const [helpOpen, setHelpOpen] = useState(false)
 
-  // ── Toast ───────────────────────────────────────────────────────────────────
+  // ── Toast ─────────────────────────────────────────────────────────────────
   const [toast, setToast] = useState<string | null>(null)
   function showToast(msg: string) { setToast(msg) }
 
-  // ── KDP file upload ─────────────────────────────────────────────────────────
+  // ── KDP file upload ───────────────────────────────────────────────────────
   function openUploadModal() {
     window.dispatchEvent(new CustomEvent('open-upload-modal'))
   }
 
-  // ── Load settings ────────────────────────────────────────────────────────────
+  // ── Load settings ─────────────────────────────────────────────────────────
   const loadSettings = useCallback(async () => {
     try {
       const d = await fetch('/api/settings').then(r => r.json())
@@ -295,26 +330,10 @@ export default function SettingsPage() {
       })
       if (g.weeklyDigest === false) setDigestEnabled(false)
       if (Array.isArray(g.digestDays)) setDigestDays(g.digestDays)
-      const excluded = new Set<string>(Array.isArray(p.columnPrefs?.excludedKdpTitles) ? p.columnPrefs.excludedKdpTitles as string[] : [])
-      setExcludedKdpAsins(excluded)
-    } catch {}
-    try {
-      const [analyzeData, booksData] = await Promise.all([
-        fetch('/api/analyze').then(r => r.json()).catch(() => ({})),
-        fetch('/api/books').then(r => r.json()).catch(() => ({ books: [] })),
-      ])
-      const kdpBooks: { asin: string; shortTitle: string }[] = analyzeData?.analysis?.kdp?.books ?? []
-      const catalogAsins = new Set<string>(
-        (booksData.books ?? []).map((b: any) => String(b.asin ?? '').trim().toUpperCase()).filter(Boolean)
-      )
-      const strays = kdpBooks
-        .filter(b => b.asin && !catalogAsins.has(String(b.asin).trim().toUpperCase()))
-        .map(b => ({ asin: b.asin, title: b.shortTitle }))
-      setStrayTitles(strays)
     } catch {}
   }, [])
 
-  useEffect(() => { loadSettings() }, [loadSettings]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadSettings() }, [loadSettings])
 
   // Strip Facebook fragment + handle meta=connected / meta=error
   useEffect(() => {
@@ -330,7 +349,6 @@ export default function SettingsPage() {
       setTimeout(() => setMetaSuccess(false), 4000)
       const cleanUrl = window.location.pathname + window.location.search.replace(/[?&]?meta=connected/, '')
       window.history.replaceState(null, '', cleanUrl || window.location.pathname)
-      // Notify ConnectionStatus to refresh health and auto-sync
       window.dispatchEvent(new CustomEvent('meta:connected'))
     }
     if (window.location.search.includes('meta=error')) {
@@ -340,13 +358,11 @@ export default function SettingsPage() {
     }
   }, [])
 
-  // ── Meta handlers ─────────────────────────────────────────────────────────
+  // ── Meta handlers ────────────────────────────────────────────────────────
   function connectMeta() {
-    console.log('[Meta] Connect button clicked — redirecting to OAuth')
     try {
       window.location.replace('/api/meta/connect')
-    } catch (err) {
-      console.error('[Meta] Failed to initiate OAuth redirect:', err)
+    } catch {
       showToast('Could not connect to Meta. Please try again.')
     }
   }
@@ -372,23 +388,6 @@ export default function SettingsPage() {
     setMetaSuccess(false)
     setMetaError(false)
     window.dispatchEvent(new CustomEvent('meta:disconnected'))
-  }
-
-  // ── Stray title toggle ────────────────────────────────────────────────────
-  async function toggleStrayTitle(asin: string) {
-    const next = new Set(excludedKdpAsins)
-    if (next.has(asin)) next.delete(asin); else next.add(asin)
-    setExcludedKdpAsins(next)
-    setStrayTitlesSaving(true)
-    try {
-      await fetch('/api/prefs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ page: 'excludedKdpTitles', columns: Array.from(next) }),
-      })
-    } finally {
-      setStrayTitlesSaving(false)
-    }
   }
 
   // ── BookFunnel handlers ──────────────────────────────────────────────────
@@ -437,7 +436,7 @@ export default function SettingsPage() {
     }
   }
 
-  // ── API key save handlers ────────────────────────────────────────────────
+  // ── API key save handlers ─────────────────────────────────────────────────
   async function saveMLKey() {
     const key = mailerLiteKey.trim()
     if (!key) return
@@ -455,7 +454,6 @@ export default function SettingsPage() {
       setMLSaveState('saved')
       showToast('Saved ✓')
       setTimeout(() => setMLSaveState('idle'), 3000)
-      // Refresh subscriber count
       loadSettings()
     } catch {
       setMLSaveState('error')
@@ -486,7 +484,7 @@ export default function SettingsPage() {
     }
   }
 
-  // ── Benchmarks save ──────────────────────────────────────────────────────
+  // ── Benchmarks save ───────────────────────────────────────────────────────
   async function saveBenchmarks() {
     setBenchmarksSave('saving')
     try {
@@ -511,7 +509,7 @@ export default function SettingsPage() {
     }
   }
 
-  // ── Notifications save ───────────────────────────────────────────────────
+  // ── Notifications save ────────────────────────────────────────────────────
   async function saveNotifications() {
     setNotifSave('saving')
     try {
@@ -531,7 +529,6 @@ export default function SettingsPage() {
   }
 
   // ── Derived ───────────────────────────────────────────────────────────────
-  const connectedCount = [hasSavedML, metaConnected, !!kdpLastUpload, stripeActive].filter(Boolean).length
   const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
   const DAY_VALUES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
@@ -544,733 +541,667 @@ export default function SettingsPage() {
     return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
-  return (
-    <div className="w-full" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", padding: '28px 32px' }}>
-      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
+  // ── Tab content ───────────────────────────────────────────────────────────
 
-      {/* ── Page header ───────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-[24px] font-bold" style={{ color: '#1E2D3D' }}>Settings</h1>
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-          style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.12)' }}
-        >
-          <div className="flex items-center gap-1">
-            {[hasSavedML, metaConnected, !!kdpLastUpload, stripeActive].map((c, i) => (
-              <div
-                key={i}
-                className="w-2 h-2 rounded-full"
-                style={{ background: c ? '#6EBF8B' : '#D1D5DB' }}
-              />
-            ))}
-          </div>
-          <span className="text-[11px] font-semibold" style={{ color: '#1E2D3D' }}>
-            {connectedCount} of 4 connected
-          </span>
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION 0: MY PROFILE                                                */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      <SectionLabel>MY PROFILE</SectionLabel>
-      <div
-        className="rounded-[10px] mb-8 px-5 py-4 flex flex-col gap-4"
-        style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}
-      >
-        {/* Pen name */}
-        <div>
-          <label className="block text-[11px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
-            Your author name
-          </label>
-          <input
-            type="text"
-            value={penName}
-            onChange={e => setPenName(e.target.value)}
-            placeholder="e.g. Elle Wilder"
-            className="w-full text-[12px] px-3 py-2 rounded-md outline-none"
-            style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
-          />
-          <div className="text-[10px] mt-1" style={{ color: '#9CA3AF' }}>Used on your books and public profile</div>
-        </div>
-
-        {/* Display name */}
-        <div>
-          <label className="block text-[11px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
-            What should we call you?
-          </label>
-          <input
-            type="text"
-            value={preferredGreetingName}
-            onChange={e => setPreferredGreetingName(e.target.value)}
-            placeholder="e.g. Elle, Elle Wilder, Andrea"
-            className="w-full text-[12px] px-3 py-2 rounded-md outline-none"
-            style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
-          />
-          <div className="text-[10px] mt-1" style={{ color: '#9CA3AF' }}>This is how we greet you in the dashboard</div>
-        </div>
-
-        <div>
-          <AmberBtn onClick={saveProfile} disabled={profileSaveState === 'saving'}>
-            {profileSaveState === 'saving' ? <Spinner /> : profileSaveState === 'saved' ? 'Saved ✓' : 'Save profile'}
-          </AmberBtn>
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION 1: MY BOOKS                                                  */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      <SectionLabel>MY BOOKS</SectionLabel>
-      <div
-        className="rounded-[10px] overflow-hidden mb-8"
-        style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}
-      >
-        <BookCatalog />
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* PEN NAMES (Coming Soon)                                               */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      <SectionLabel>PEN NAMES</SectionLabel>
-      <div
-        className="rounded-[10px] mb-8 px-5 py-4 flex items-center justify-between"
-        style={{
-          background: '#FFF8F0',
-          border: '1.5px dashed rgba(30,45,61,0.2)',
-        }}
-      >
-        <p className="text-[13px]" style={{ color: '#1E2D3D' }}>
-          Manage multiple pen names and brands from one dashboard.
-        </p>
-        <span
-          className="text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ml-4"
-          style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}
-        >
-          Coming Soon
-        </span>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* STRAY KDP TITLES                                                      */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {strayTitles.length > 0 && (
-        <div className="mb-8">
-          <SectionLabel>KDP TITLES TO HIDE</SectionLabel>
-          <div
-            className="rounded-[10px] overflow-hidden"
-            style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}
-          >
-            <div className="px-4 py-3 border-b" style={{ borderColor: 'rgba(30,45,61,0.06)' }}>
-              <p className="text-[11px] leading-relaxed" style={{ color: '#6B7280' }}>
-                These titles appear in your KDP data but aren&apos;t in your book catalog. Hide them to remove them from charts and filters.
-              </p>
-            </div>
-            <div className="divide-y" style={{ borderColor: 'rgba(30,45,61,0.06)' }}>
-              {strayTitles.map(t => {
-                const isExcluded = excludedKdpAsins.has(t.asin)
-                return (
-                  <div key={t.asin} className="flex items-center justify-between px-4 py-2.5 gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[12px] font-medium truncate" style={{ color: '#1E2D3D' }}>{t.title}</div>
-                      <div className="text-[10px] font-mono" style={{ color: '#9CA3AF' }}>{t.asin}</div>
-                    </div>
-                    <button
-                      onClick={() => toggleStrayTitle(t.asin)}
-                      disabled={strayTitlesSaving}
-                      className="text-[11px] font-semibold px-2.5 py-1 rounded-full border-none cursor-pointer transition-all disabled:opacity-40 flex-shrink-0"
-                      style={{
-                        background: isExcluded ? 'rgba(233,160,32,0.1)' : 'rgba(30,45,61,0.06)',
-                        color: isExcluded ? '#E9A020' : '#6B7280',
-                      }}
-                    >
-                      {isExcluded ? '👁 Show' : '🚫 Hide'}
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION 2: INTEGRATIONS                                               */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      <SectionLabel>INTEGRATIONS</SectionLabel>
-      <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-
-        {/* ── Claude AI card (admin only) ───────────────────────────────── */}
-        {isAdmin && (
-          <IntegCard
-            iconBg="#EDE7F6"
-            icon={<Bot size={16} strokeWidth={1.75} color="#8B5CF6" />}
-            name="Claude AI"
-            subtitle={hasSavedClaude ? 'Powers your coaching session' : 'Powers your coaching session'}
-            statusPill={
-              <StatusPill active={hasSavedClaude} label={hasSavedClaude ? '● Active' : 'Not connected'} />
-            }
-          >
-            {hasSavedClaude && !showClaudeKey ? (
-              <div className="flex items-center justify-between">
-                <span className="text-[11px]" style={{ color: '#9CA3AF' }}>Key saved</span>
-                <button
-                  onClick={() => setShowClaudeKey(true)}
-                  className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
-                  style={{ color: '#9CA3AF' }}
-                >
-                  Update
-                </button>
-              </div>
-            ) : (
-              <>
-                <KeyInput
-                  value={claudeKey}
-                  onChange={setClaudeKey}
-                  placeholder="sk-ant-••••••••••••••"
-                />
-                <div className="flex items-center gap-2 flex-wrap">
-                  <AmberBtn
-                    onClick={saveClaudeKey}
-                    disabled={!claudeKey.trim() || claudeSaveState === 'saving'}
-                  >
-                    {claudeSaveState === 'saving' ? <Spinner /> : 'Save key'}
-                  </AmberBtn>
-                  <span className="text-[10px]" style={{ color: '#9CA3AF' }}>~$0.05–0.15 per analysis</span>
-                  {showClaudeKey && (
-                    <button
-                      onClick={() => { setShowClaudeKey(false); setClaudeKey('') }}
-                      className="text-[10px] border-none bg-transparent cursor-pointer ml-auto"
-                      style={{ color: '#9CA3AF' }}
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-          </IntegCard>
-        )}
-
-        {/* ── MailerLite card ───────────────────────────────────────────── */}
-        <IntegCard
-          iconBg="#E8F5E9"
-          icon={<Mail size={16} strokeWidth={1.75} color="#34d399" />}
-          name="MailerLite"
-          subtitle={
-            hasSavedML && mlSubscribers != null
-              ? `${Number(mlSubscribers).toLocaleString('en-US')} active subscribers`
-              : hasSavedML
-              ? 'Connected'
-              : 'Connect to sync email stats'
+  function TabMyBooks() {
+    return (
+      <div>
+        <PanelHeader
+          title="Your catalog"
+          subtitle="Drag to reorder — position sets B1–B6 color assignment"
+          action={
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('book-catalog:open-add'))}
+              className="text-[11px] font-semibold px-3 py-1.5 rounded-[6px] border-none cursor-pointer"
+              style={{ background: '#E9A020', color: '#1E2D3D' }}
+            >
+              + Add book
+            </button>
           }
-          statusPill={
-            <StatusPill active={hasSavedML} label={hasSavedML ? '● Active' : 'Not connected'} />
-          }
-        >
-          {hasSavedML && !showMLKey ? (
-            <div className="flex items-center justify-between">
-              <span className="text-[11px]" style={{ color: '#9CA3AF' }}>Key saved</span>
-              <button
-                onClick={() => setShowMLKey(true)}
-                className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
-                style={{ color: '#9CA3AF' }}
-              >
-                Update
-              </button>
-            </div>
-          ) : (
-            <>
-              <KeyInput
-                value={mailerLiteKey}
-                onChange={setMailerLiteKey}
-                placeholder="ml_••••••••••••••••••"
-              />
-              <div className="flex items-center gap-2 flex-wrap">
-                <AmberBtn
-                  onClick={saveMLKey}
-                  disabled={!mailerLiteKey.trim() || mlSaveState === 'saving'}
-                >
-                  {mlSaveState === 'saving' ? <Spinner /> : 'Save key'}
-                </AmberBtn>
-                {showMLKey && (
+        />
+        <div className="px-8 py-6">
+          <BookCatalog />
+        </div>
+      </div>
+    )
+  }
+
+  function TabConnections() {
+    return (
+      <div>
+        <PanelHeader title="Connections" subtitle="Manage your integrations and data sources" />
+        <div className="px-8 py-6">
+          <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+
+            {/* MailerLite */}
+            <IntegCard
+              iconBg="#E8F5E9"
+              icon={<Mail size={16} strokeWidth={1.75} color="#34d399" />}
+              name="MailerLite"
+              subtitle={
+                hasSavedML && mlSubscribers != null
+                  ? `${Number(mlSubscribers).toLocaleString('en-US')} active subscribers`
+                  : hasSavedML
+                  ? 'Connected'
+                  : 'Connect to sync email stats'
+              }
+              statusPill={
+                <StatusPill active={hasSavedML} label={hasSavedML ? '● Active' : 'Not connected'} />
+              }
+            >
+              {hasSavedML && !showMLKey ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px]" style={{ color: '#9CA3AF' }}>Key saved</span>
                   <button
-                    onClick={() => { setShowMLKey(false); setMailerLiteKey('') }}
-                    className="text-[10px] border-none bg-transparent cursor-pointer ml-auto"
+                    onClick={() => setShowMLKey(true)}
+                    className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
                     style={{ color: '#9CA3AF' }}
                   >
-                    Cancel
+                    Update
                   </button>
-                )}
-              </div>
-              {mlSaveState === 'saved' && (
-                <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
-                  style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
-                  MailerLite connected ✓
-                </div>
-              )}
-              {mlSaveState === 'error' && (
-                <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
-                  style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
-                  API key not saved — please check your key and try again.
-                </div>
-              )}
-            </>
-          )}
-        </IntegCard>
-
-        {/* ── Meta Ads card ─────────────────────────────────────────────── */}
-        <IntegCard
-          iconBg="#E8F0FE"
-          icon={<Megaphone size={16} strokeWidth={1.75} color="#60A5FA" />}
-          name="Meta Ads"
-          subtitle={
-            metaConnected && metaLastSync
-              ? `Synced ${fmtDate(metaLastSync)} · OAuth`
-              : metaConnected
-              ? 'Connected via OAuth'
-              : 'Connect via OAuth'
-          }
-          statusPill={
-            metaConnected ? (
-              <span
-                className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}
-              >
-                Dev mode
-              </span>
-            ) : (
-              <StatusPill active={false} label="Not connected" />
-            )
-          }
-        >
-          {metaConnected ? (
-            <>
-              <div className="flex items-center gap-2">
-                <AmberBtn onClick={handleMetaSync} disabled={metaSyncing}>
-                  {metaSyncing ? <Spinner /> : 'Sync now'}
-                </AmberBtn>
-                <button
-                  onClick={handleMetaDisconnect}
-                  className="text-[10px] font-semibold px-3 py-1.5 rounded-[5px] border-none cursor-pointer transition-all"
-                  style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}
-                >
-                  Disconnect
-                </button>
-              </div>
-              {isAdmin ? (
-                <div
-                  className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
-                  style={{ background: 'rgba(233,160,32,0.06)', border: '0.5px solid rgba(233,160,32,0.25)', color: '#92610a' }}
-                >
-                  Only your account can connect in development mode.{' '}
-                  <a
-                    href="https://developers.facebook.com/docs/app-review"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold hover:underline"
-                    style={{ color: '#E9A020' }}
-                  >
-                    Submit for app review →
-                  </a>
                 </div>
               ) : (
-                <div
-                  className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
-                  style={{ background: 'rgba(30,45,61,0.04)', border: '0.5px solid rgba(30,45,61,0.1)', color: '#6B7280' }}
-                >
-                  Meta Ads connection coming soon — check back shortly.
-                </div>
+                <>
+                  <KeyInput value={mailerLiteKey} onChange={setMailerLiteKey} placeholder="ml_••••••••••••••••••" />
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <AmberBtn onClick={saveMLKey} disabled={!mailerLiteKey.trim() || mlSaveState === 'saving'}>
+                      {mlSaveState === 'saving' ? <Spinner /> : 'Save key'}
+                    </AmberBtn>
+                    {showMLKey && (
+                      <button onClick={() => { setShowMLKey(false); setMailerLiteKey('') }}
+                        className="text-[10px] border-none bg-transparent cursor-pointer ml-auto"
+                        style={{ color: '#9CA3AF' }}>Cancel</button>
+                    )}
+                  </div>
+                  {mlSaveState === 'saved' && (
+                    <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
+                      style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
+                      MailerLite connected ✓
+                    </div>
+                  )}
+                  {mlSaveState === 'error' && (
+                    <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
+                      style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
+                      API key not saved — please check your key and try again.
+                    </div>
+                  )}
+                </>
               )}
-              {metaSuccess && (
-                <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
-                  style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
-                  ✓ Connected! Syncing your ad data now…
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <AmberBtn onClick={connectMeta}>Connect Meta Ads →</AmberBtn>
-              {metaError && (
-                <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
-                  style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
-                  ✕ Couldn&apos;t connect — check permissions and try again.
-                </div>
-              )}
-            </>
-          )}
-        </IntegCard>
+            </IntegCard>
 
-        {/* ── KDP Sales card ────────────────────────────────────────────── */}
-        <IntegCard
-          iconBg="#FFF3E0"
-          icon={<BookOpen size={16} strokeWidth={1.75} color="#E9A020" />}
-          name="Upload Your KDP Report"
-          subtitle={kdpLastUpload ? `Last upload: ${fmtDate(kdpLastUpload)}` : 'File upload — not an API connection'}
-          statusPill={
-            kdpLastUpload ? (
-              <StatusPill active={true} label={`● Uploaded ${fmtDate(kdpLastUpload)}`} />
-            ) : (
-              <StatusPill active={false} label="No uploads yet" />
-            )
-          }
-        >
-          {!kdpLastUpload && (
-            <p className="text-[11px] leading-relaxed" style={{ color: '#6B7280' }}>
-              Download your report from <strong style={{ color: '#1E2D3D' }}>KDP → Reports → Royalty Estimator</strong>.
-              Select <em>All Titles</em>, choose your date range, and download. Then upload that file here.
-            </p>
-          )}
-          <AmberBtn onClick={openUploadModal}>{kdpLastUpload ? 'Upload new file' : 'Upload KDP report'}</AmberBtn>
-          <p className="text-[10px]" style={{ color: '#9CA3AF' }}>
-            KDP doesn&apos;t offer a direct API — you&apos;ll upload your report manually. We recommend uploading monthly.
-          </p>
-        </IntegCard>
-
-        {/* ── BookFunnel card ───────────────────────────────────────────── */}
-        <IntegCard
-          iconBg="#E8F5E9"
-          icon={<BookOpen size={16} strokeWidth={1.75} color="#4CAF50" />}
-          name="BookFunnel"
-          subtitle="Tracks book downloads automatically"
-          statusPill={
-            bfDownloadCount > 0
-              ? <StatusPill active={true} label={`● Active · ${bfDownloadCount} downloads`} />
-              : <StatusPill active={false} label="Not connected" />
-          }
-        >
-          {/* Webhook URL */}
-          <div className="w-full">
-            <div className="text-[9px] font-bold uppercase tracking-[1px] mb-1" style={{ color: '#6B7280' }}>
-              Webhook URL
-            </div>
-            <div className="flex items-center gap-1.5">
-              <input
-                readOnly
-                value={bfWebhookUrl}
-                className="flex-1 text-[9px] font-mono px-2 py-1.5 rounded-md outline-none truncate"
-                style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#F9FAFB', color: '#374151' }}
-              />
-              <button
-                onClick={() => copyToClipboard(bfWebhookUrl, 'url')}
-                className="text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all"
-                style={{
-                  background: bfCopied === 'url' ? 'rgba(110,191,139,0.15)' : 'rgba(30,45,61,0.06)',
-                  color: bfCopied === 'url' ? '#16a34a' : '#6B7280',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                {bfCopied === 'url' ? '✓ Copied' : 'Copy'}
-              </button>
-            </div>
-          </div>
-
-          {/* Secret token */}
-          <div className="w-full">
-            <div className="text-[9px] font-bold uppercase tracking-[1px] mb-1" style={{ color: '#6B7280' }}>
-              Secret Token <span className="normal-case font-normal">(paste into BookFunnel)</span>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <input
-                readOnly
-                value={bfSecret ? '•'.repeat(32) : '—'}
-                className="w-full text-[9px] font-mono px-2 py-1.5 rounded-md outline-none"
-                style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#F9FAFB', color: '#374151' }}
-              />
-              <div className="flex flex-col sm:flex-row gap-1.5">
-                <button
-                  onClick={() => bfSecret && copyToClipboard(bfSecret, 'secret')}
-                  className="w-full text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all"
-                  style={{
-                    background: bfCopied === 'secret' ? 'rgba(110,191,139,0.15)' : 'rgba(30,45,61,0.06)',
-                    color: bfCopied === 'secret' ? '#16a34a' : '#6B7280',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {bfCopied === 'secret' ? '✓ Copied' : 'Copy'}
-                </button>
-                <button
-                  onClick={regenerateBfSecret}
-                  disabled={bfRegenerating}
-                  className="w-full text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap transition-all disabled:opacity-40"
-                  style={{ background: 'rgba(30,45,61,0.06)', color: '#6B7280', border: 'none', cursor: 'pointer' }}
-                >
-                  {bfRegenerating ? '…' : 'Rotate'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {bfDownloadCount > 0 && (
-            <div className="text-[10px]" style={{ color: '#6B7280' }}>
-              {bfDownloadCount} downloads tracked · {bfConfirmRate}% confirmed
-            </div>
-          )}
-        </IntegCard>
-
-        {/* ── AI Writing Assistant card ────────────────────────────────────── */}
-        <IntegCard
-          iconBg="#FFF4E0"
-          icon={<PenLine size={16} strokeWidth={1.75} color="#E9A020" />}
-          name="AI Writing Assistant"
-          subtitle="Powers your Writing Notebook"
-          statusPill={
-            <StatusPill active={hasWritingKey} label={hasWritingKey ? 'Connected' : 'Not connected'} />
-          }
-        >
-          {hasWritingKey && !showWritingKeyForm ? (
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Lock size={12} color="#6EBF8B" />
-                <span className="text-[11px] font-medium" style={{ color: '#6EBF8B' }}>Connected</span>
-                <span className="text-[10px] font-mono" style={{ color: '#9CA3AF' }}>{writingKeyMasked}</span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowWritingKeyForm(true)}
-                  className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
-                  style={{ color: '#9CA3AF' }}
-                >
-                  Update key
-                </button>
-                <button
-                  onClick={async () => {
-                    await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'remove-anthropic-key' }) })
-                    setHasWritingKey(false)
-                    setWritingKeyMasked(null)
-                    showToast('Writing assistant key removed')
-                  }}
-                  className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
-                  style={{ color: '#F97B6B' }}
-                >
-                  Remove key
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <KeyInput
-                value={writingKeyInput}
-                onChange={setWritingKeyInput}
-                placeholder="sk-ant-••••••••••••••"
-              />
-              <div className="flex items-center gap-2 flex-wrap">
-                <AmberBtn
-                  onClick={async () => {
-                    setWritingKeySave('saving')
-                    try {
-                      const res = await fetch('/api/writing-notebook/setup-key', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ key: writingKeyInput }),
-                      })
-                      if (res.ok) {
-                        setWritingKeySave('saved')
-                        setHasWritingKey(true)
-                        setShowWritingKeyForm(false)
-                        setWritingKeyInput('')
-                        showToast('Writing assistant key saved')
-                        loadSettings()
-                      } else {
-                        setWritingKeySave('error')
-                        showToast('Invalid key — make sure it starts with sk-ant-')
-                      }
-                    } catch {
-                      setWritingKeySave('error')
-                    }
-                    setTimeout(() => setWritingKeySave('idle'), 2000)
-                  }}
-                  disabled={!writingKeyInput.trim() || writingKeySave === 'saving'}
-                >
-                  {writingKeySave === 'saving' ? <Spinner /> : 'Save key'}
-                </AmberBtn>
-                <span className="text-[10px]" style={{ color: '#9CA3AF' }}>~$0.01–0.02 per chapter</span>
-                {showWritingKeyForm && (
-                  <button
-                    onClick={() => { setShowWritingKeyForm(false); setWritingKeyInput('') }}
-                    className="text-[10px] border-none bg-transparent cursor-pointer ml-auto"
-                    style={{ color: '#9CA3AF' }}
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-        </IntegCard>
-      </div>
-
-      {/* ── API keys help accordion ────────────────────────────────────────── */}
-      <div
-        className="rounded-[10px] mb-8 overflow-hidden"
-        style={{ border: '0.5px solid rgba(30,45,61,0.1)', background: 'white' }}
-      >
-        <button
-          onClick={() => setHelpOpen(p => !p)}
-          className="w-full flex items-center justify-between px-4 py-3 border-none cursor-pointer text-left"
-          style={{ background: 'transparent' }}
-        >
-          <span className="text-[12px] font-semibold" style={{ color: '#1E2D3D' }}>
-            🔑 Need help finding your API keys?
-          </span>
-          <svg
-            width="14" height="14" viewBox="0 0 14 14" fill="none"
-            style={{ transform: helpOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s' }}
-          >
-            <path d="M5 3L9 7L5 11" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        {helpOpen && (
-          <div
-            className="px-4 pb-4 space-y-2 text-[11px] leading-relaxed"
-            style={{ background: '#FFF8F0', color: '#6B7280', borderTop: '0.5px solid rgba(30,45,61,0.06)' }}
-          >
-            <div className="pt-3">
-              <strong style={{ color: '#1E2D3D' }}>MailerLite:</strong>{' '}
-              Log in → click your name → Integrations → API → Developer API → Create new token
-            </div>
-            <div>
-              <strong style={{ color: '#1E2D3D' }}>Claude:</strong>{' '}
-              Go to console.anthropic.com → API Keys → Create Key
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION 3: PREFERENCES                                               */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      <SectionLabel>PREFERENCES</SectionLabel>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
-
-        {/* ── Benchmarks card ───────────────────────────────────────────── */}
-        <div
-          className="rounded-[10px] p-4 flex flex-col gap-3"
-          style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}
-        >
-          <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>My benchmarks</div>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { label: 'Email open rate', key: 'email_open_rate', unit: '%', hint: 'Author avg: 20–25%' },
-              { label: 'Email click rate', key: 'email_click_rate', unit: '%', hint: 'Author avg: 1.5–2.5%' },
-              { label: 'Meta CPC', key: 'meta_cpc', unit: '$', hint: 'Under $0.15 is great' },
-              { label: 'Meta CTR', key: 'meta_ctr', unit: '%', hint: '15%+ is strong' },
-            ].map(f => (
-              <div key={f.key}>
-                <div className="text-[10px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>{f.label}</div>
-                <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>{f.hint}</div>
-                <div className="flex items-center gap-1">
-                  {f.unit === '$' && <span className="text-[11px]" style={{ color: '#9CA3AF' }}>$</span>}
-                  <input
-                    type="number"
-                    min="0"
-                    step={f.unit === '$' ? '0.01' : '0.1'}
-                    value={benchmarks[f.key as keyof typeof benchmarks]}
-                    onChange={e => setBenchmarks(b => ({ ...b, [f.key]: e.target.value }))}
-                    className="flex-1 text-[12px] font-medium px-2 py-1.5 rounded-md outline-none"
-                    style={{
-                      border: '0.5px solid rgba(30,45,61,0.15)',
-                      background: '#FFF8F0',
-                      color: '#1E2D3D',
-                    }}
-                  />
-                  {f.unit === '%' && <span className="text-[11px]" style={{ color: '#9CA3AF' }}>%</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-          <AmberBtn
-            onClick={saveBenchmarks}
-            disabled={benchmarksSave === 'saving'}
-            fullWidth
-          >
-            {benchmarksSave === 'saving' ? 'Saving…' : benchmarksSave === 'saved' ? '✓ Saved!' : 'Save benchmarks'}
-          </AmberBtn>
-        </div>
-
-        {/* ── Notifications card ────────────────────────────────────────── */}
-        <div
-          className="rounded-[10px] p-4 flex flex-col gap-3"
-          style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}
-        >
-          <div>
-            <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Weekly digest email</div>
-            <div className="text-[10px]" style={{ color: '#9CA3AF' }}>What changed + what needs action</div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium" style={{ color: '#1E2D3D' }}>
-              {digestEnabled ? 'On' : 'Off'}
-            </span>
-            <Toggle checked={digestEnabled} onChange={v => setDigestEnabled(v)} />
-          </div>
-
-          <div style={{ borderTop: '0.5px solid rgba(30,45,61,0.06)', paddingTop: 12 }}>
-            <div className="text-[10px] mb-2" style={{ color: '#9CA3AF' }}>Send on</div>
-            <div className="flex flex-wrap gap-1">
-              {ALL_DAYS.map((label, idx) => {
-                const val = DAY_VALUES[idx]
-                const selected = digestDays.includes(val)
-                return (
-                  <button
-                    key={val}
-                    onClick={() => {
-                      setDigestDays(prev =>
-                        prev.includes(val) ? prev.filter(d => d !== val) : [...prev, val]
-                      )
-                    }}
-                    className="text-[10px] font-semibold px-2 py-1 rounded-md border-none cursor-pointer transition-all"
-                    style={{
-                      background: selected ? '#E9A020' : 'rgba(30,45,61,0.06)',
-                      color: selected ? '#1E2D3D' : '#9CA3AF',
-                    }}
-                  >
-                    {label}
-                  </button>
+            {/* Meta Ads */}
+            <IntegCard
+              iconBg="#E8F0FE"
+              icon={<Megaphone size={16} strokeWidth={1.75} color="#60A5FA" />}
+              name="Meta Ads"
+              subtitle={
+                metaConnected && metaLastSync
+                  ? `Synced ${fmtDate(metaLastSync)} · OAuth`
+                  : metaConnected
+                  ? 'Connected via OAuth'
+                  : 'Connect via OAuth'
+              }
+              statusPill={
+                metaConnected ? (
+                  <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>
+                    Dev mode
+                  </span>
+                ) : (
+                  <StatusPill active={false} label="Not connected" />
                 )
-              })}
+              }
+            >
+              {metaConnected ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <AmberBtn onClick={handleMetaSync} disabled={metaSyncing}>
+                      {metaSyncing ? <Spinner /> : 'Sync now'}
+                    </AmberBtn>
+                    <button onClick={handleMetaDisconnect}
+                      className="text-[10px] font-semibold px-3 py-1.5 rounded-[5px] border-none cursor-pointer"
+                      style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
+                      Disconnect
+                    </button>
+                  </div>
+                  {isAdmin ? (
+                    <div className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
+                      style={{ background: 'rgba(233,160,32,0.06)', border: '0.5px solid rgba(233,160,32,0.25)', color: '#92610a' }}>
+                      Only your account can connect in development mode.{' '}
+                      <a href="https://developers.facebook.com/docs/app-review" target="_blank" rel="noopener noreferrer"
+                        className="font-semibold hover:underline" style={{ color: '#E9A020' }}>
+                        Submit for app review →
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
+                      style={{ background: 'rgba(30,45,61,0.04)', border: '0.5px solid rgba(30,45,61,0.1)', color: '#6B7280' }}>
+                      Meta Ads connection coming soon — check back shortly.
+                    </div>
+                  )}
+                  {metaSuccess && (
+                    <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
+                      style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
+                      ✓ Connected! Syncing your ad data now…
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <AmberBtn onClick={connectMeta}>Connect Meta Ads →</AmberBtn>
+                  {metaError && (
+                    <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
+                      style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
+                      ✕ Couldn&apos;t connect — check permissions and try again.
+                    </div>
+                  )}
+                </>
+              )}
+            </IntegCard>
+
+            {/* KDP Report */}
+            <IntegCard
+              iconBg="#FFF3E0"
+              icon={<BookOpen size={16} strokeWidth={1.75} color="#E9A020" />}
+              name="KDP Report"
+              subtitle={kdpLastUpload ? `Last upload: ${fmtDate(kdpLastUpload)}` : 'File upload — not an API connection'}
+              statusPill={
+                kdpLastUpload
+                  ? <StatusPill active={true} label={`● Uploaded ${fmtDate(kdpLastUpload)}`} />
+                  : <StatusPill active={false} label="No uploads yet" />
+              }
+            >
+              {!kdpLastUpload && (
+                <p className="text-[11px] leading-relaxed" style={{ color: '#6B7280' }}>
+                  Download from <strong style={{ color: '#1E2D3D' }}>KDP → Reports → Royalty Estimator</strong>, then upload here.
+                </p>
+              )}
+              <AmberBtn onClick={openUploadModal}>{kdpLastUpload ? 'Upload new file' : 'Upload KDP report'}</AmberBtn>
+              <p className="text-[10px]" style={{ color: '#9CA3AF' }}>
+                KDP doesn&apos;t offer a direct API — upload monthly.
+              </p>
+            </IntegCard>
+
+            {/* Claude AI (admin only) */}
+            {isAdmin && (
+              <IntegCard
+                iconBg="#EDE7F6"
+                icon={<Bot size={16} strokeWidth={1.75} color="#8B5CF6" />}
+                name="Claude AI"
+                subtitle="Powers your coaching session"
+                statusPill={
+                  <StatusPill active={hasSavedClaude} label={hasSavedClaude ? '● Active' : 'Not connected'} />
+                }
+              >
+                {hasSavedClaude && !showClaudeKey ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px]" style={{ color: '#9CA3AF' }}>Key saved</span>
+                    <button onClick={() => setShowClaudeKey(true)}
+                      className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
+                      style={{ color: '#9CA3AF' }}>Update</button>
+                  </div>
+                ) : (
+                  <>
+                    <KeyInput value={claudeKey} onChange={setClaudeKey} placeholder="sk-ant-••••••••••••••" />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <AmberBtn onClick={saveClaudeKey} disabled={!claudeKey.trim() || claudeSaveState === 'saving'}>
+                        {claudeSaveState === 'saving' ? <Spinner /> : 'Save key'}
+                      </AmberBtn>
+                      <span className="text-[10px]" style={{ color: '#9CA3AF' }}>~$0.05–0.15 per analysis</span>
+                      {showClaudeKey && (
+                        <button onClick={() => { setShowClaudeKey(false); setClaudeKey('') }}
+                          className="text-[10px] border-none bg-transparent cursor-pointer ml-auto"
+                          style={{ color: '#9CA3AF' }}>Cancel</button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </IntegCard>
+            )}
+
+            {/* BookFunnel */}
+            <IntegCard
+              iconBg="#E8F5E9"
+              icon={<BookOpen size={16} strokeWidth={1.75} color="#4CAF50" />}
+              name="BookFunnel"
+              subtitle="Tracks book downloads automatically"
+              statusPill={
+                bfDownloadCount > 0
+                  ? <StatusPill active={true} label={`● Active · ${bfDownloadCount} downloads`} />
+                  : <StatusPill active={false} label="Not connected" />
+              }
+            >
+              <div className="w-full">
+                <div className="text-[9px] font-bold uppercase tracking-[1px] mb-1" style={{ color: '#6B7280' }}>Webhook URL</div>
+                <div className="flex items-center gap-1.5">
+                  <input readOnly value={bfWebhookUrl}
+                    className="flex-1 text-[9px] font-mono px-2 py-1.5 rounded-md outline-none truncate"
+                    style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#F9FAFB', color: '#374151' }} />
+                  <button onClick={() => copyToClipboard(bfWebhookUrl, 'url')}
+                    className="text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap"
+                    style={{
+                      background: bfCopied === 'url' ? 'rgba(110,191,139,0.15)' : 'rgba(30,45,61,0.06)',
+                      color: bfCopied === 'url' ? '#16a34a' : '#6B7280',
+                      border: 'none', cursor: 'pointer',
+                    }}>
+                    {bfCopied === 'url' ? '✓ Copied' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+              <div className="w-full">
+                <div className="text-[9px] font-bold uppercase tracking-[1px] mb-1" style={{ color: '#6B7280' }}>
+                  Secret Token <span className="normal-case font-normal">(paste into BookFunnel)</span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <input readOnly value={bfSecret ? '•'.repeat(32) : '—'}
+                    className="w-full text-[9px] font-mono px-2 py-1.5 rounded-md outline-none"
+                    style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#F9FAFB', color: '#374151' }} />
+                  <div className="flex gap-1.5">
+                    <button onClick={() => bfSecret && copyToClipboard(bfSecret, 'secret')}
+                      className="flex-1 text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap"
+                      style={{
+                        background: bfCopied === 'secret' ? 'rgba(110,191,139,0.15)' : 'rgba(30,45,61,0.06)',
+                        color: bfCopied === 'secret' ? '#16a34a' : '#6B7280',
+                        border: 'none', cursor: 'pointer',
+                      }}>
+                      {bfCopied === 'secret' ? '✓ Copied' : 'Copy'}
+                    </button>
+                    <button onClick={regenerateBfSecret} disabled={bfRegenerating}
+                      className="flex-1 text-[9px] font-semibold px-2 py-1.5 rounded-md whitespace-nowrap disabled:opacity-40"
+                      style={{ background: 'rgba(30,45,61,0.06)', color: '#6B7280', border: 'none', cursor: 'pointer' }}>
+                      {bfRegenerating ? '…' : 'Rotate'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {bfDownloadCount > 0 && (
+                <div className="text-[10px]" style={{ color: '#6B7280' }}>
+                  {bfDownloadCount} downloads tracked · {bfConfirmRate}% confirmed
+                </div>
+              )}
+            </IntegCard>
+
+            {/* AI Writing Assistant */}
+            <IntegCard
+              iconBg="#FFF4E0"
+              icon={<PenLine size={16} strokeWidth={1.75} color="#E9A020" />}
+              name="AI Writing Assistant"
+              subtitle="Powers your Writing Notebook"
+              statusPill={
+                <StatusPill active={hasWritingKey} label={hasWritingKey ? 'Connected' : 'Not connected'} />
+              }
+            >
+              {hasWritingKey && !showWritingKeyForm ? (
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Lock size={12} color="#6EBF8B" />
+                    <span className="text-[11px] font-medium" style={{ color: '#6EBF8B' }}>Connected</span>
+                    <span className="text-[10px] font-mono" style={{ color: '#9CA3AF' }}>{writingKeyMasked}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setShowWritingKeyForm(true)}
+                      className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
+                      style={{ color: '#9CA3AF' }}>Update key</button>
+                    <button
+                      onClick={async () => {
+                        await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'remove-anthropic-key' }) })
+                        setHasWritingKey(false)
+                        setWritingKeyMasked(null)
+                        showToast('Writing assistant key removed')
+                      }}
+                      className="text-[11px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
+                      style={{ color: '#F97B6B' }}>Remove key</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <KeyInput value={writingKeyInput} onChange={setWritingKeyInput} placeholder="sk-ant-••••••••••••••" />
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <AmberBtn
+                      onClick={async () => {
+                        setWritingKeySave('saving')
+                        try {
+                          const res = await fetch('/api/writing-notebook/setup-key', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ key: writingKeyInput }),
+                          })
+                          if (res.ok) {
+                            setWritingKeySave('saved')
+                            setHasWritingKey(true)
+                            setShowWritingKeyForm(false)
+                            setWritingKeyInput('')
+                            showToast('Writing assistant key saved')
+                            loadSettings()
+                          } else {
+                            setWritingKeySave('error')
+                            showToast('Invalid key — make sure it starts with sk-ant-')
+                          }
+                        } catch {
+                          setWritingKeySave('error')
+                        }
+                        setTimeout(() => setWritingKeySave('idle'), 2000)
+                      }}
+                      disabled={!writingKeyInput.trim() || writingKeySave === 'saving'}
+                    >
+                      {writingKeySave === 'saving' ? <Spinner /> : 'Save key'}
+                    </AmberBtn>
+                    <span className="text-[10px]" style={{ color: '#9CA3AF' }}>~$0.01–0.02 per chapter</span>
+                    {showWritingKeyForm && (
+                      <button onClick={() => { setShowWritingKeyForm(false); setWritingKeyInput('') }}
+                        className="text-[10px] border-none bg-transparent cursor-pointer ml-auto"
+                        style={{ color: '#9CA3AF' }}>Cancel</button>
+                    )}
+                  </div>
+                </>
+              )}
+            </IntegCard>
+          </div>
+
+          {/* API keys help accordion */}
+          <div className="rounded-[10px] mt-4 overflow-hidden"
+            style={{ border: '0.5px solid rgba(30,45,61,0.1)', background: 'white' }}>
+            <button onClick={() => setHelpOpen(p => !p)}
+              className="w-full flex items-center justify-between px-4 py-3 border-none cursor-pointer text-left"
+              style={{ background: 'transparent' }}>
+              <span className="text-[12px] font-semibold" style={{ color: '#1E2D3D' }}>
+                🔑 Need help finding your API keys?
+              </span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                style={{ transform: helpOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
+                <path d="M5 3L9 7L5 11" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {helpOpen && (
+              <div className="px-4 pb-4 space-y-2 text-[11px] leading-relaxed"
+                style={{ background: '#FFF8F0', color: '#6B7280', borderTop: '0.5px solid rgba(30,45,61,0.06)' }}>
+                <div className="pt-3">
+                  <strong style={{ color: '#1E2D3D' }}>MailerLite:</strong>{' '}
+                  Log in → click your name → Integrations → API → Developer API → Create new token
+                </div>
+                <div>
+                  <strong style={{ color: '#1E2D3D' }}>Claude:</strong>{' '}
+                  Go to console.anthropic.com → API Keys → Create Key
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  function TabProfile() {
+    return (
+      <div>
+        <PanelHeader title="Profile" subtitle="Your name and how we address you in the dashboard" />
+        <div className="px-8 py-6 max-w-md">
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-[11px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
+                Your author name
+              </label>
+              <input
+                type="text"
+                value={penName}
+                onChange={e => setPenName(e.target.value)}
+                placeholder="e.g. Elle Wilder"
+                className="w-full text-[12px] px-3 py-2 rounded-md outline-none"
+                style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
+              />
+              <div className="text-[10px] mt-1" style={{ color: '#9CA3AF' }}>Used on your books and public profile</div>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
+                What should we call you?
+              </label>
+              <input
+                type="text"
+                value={preferredGreetingName}
+                onChange={e => setPreferredGreetingName(e.target.value)}
+                placeholder="e.g. Elle, Elle Wilder, Andrea"
+                className="w-full text-[12px] px-3 py-2 rounded-md outline-none"
+                style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
+              />
+              <div className="text-[10px] mt-1" style={{ color: '#9CA3AF' }}>This is how we greet you in the dashboard</div>
+            </div>
+            <div>
+              <AmberBtn onClick={saveProfile} disabled={profileSaveState === 'saving'}>
+                {profileSaveState === 'saving' ? <Spinner /> : profileSaveState === 'saved' ? 'Saved ✓' : 'Save profile'}
+              </AmberBtn>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  function TabPreferences() {
+    return (
+      <div>
+        <PanelHeader title="Preferences" subtitle="Set your benchmarks and configure your weekly digest" />
+        <div className="px-8 py-6 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+
+          {/* Benchmarks */}
+          <div className="rounded-[10px] p-4 flex flex-col gap-3"
+            style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+            <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>My benchmarks</div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'Email open rate', key: 'email_open_rate', unit: '%', hint: 'Author avg: 20–25%' },
+                { label: 'Email click rate', key: 'email_click_rate', unit: '%', hint: 'Author avg: 1.5–2.5%' },
+                { label: 'Meta CPC', key: 'meta_cpc', unit: '$', hint: 'Under $0.15 is great' },
+                { label: 'Meta CTR', key: 'meta_ctr', unit: '%', hint: '15%+ is strong' },
+              ].map(f => (
+                <div key={f.key}>
+                  <div className="text-[10px] font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>{f.label}</div>
+                  <div className="text-[10px] mb-1" style={{ color: '#9CA3AF' }}>{f.hint}</div>
+                  <div className="flex items-center gap-1">
+                    {f.unit === '$' && <span className="text-[11px]" style={{ color: '#9CA3AF' }}>$</span>}
+                    <input
+                      type="number"
+                      min="0"
+                      step={f.unit === '$' ? '0.01' : '0.1'}
+                      value={benchmarks[f.key as keyof typeof benchmarks]}
+                      onChange={e => setBenchmarks(b => ({ ...b, [f.key]: e.target.value }))}
+                      className="flex-1 text-[12px] font-medium px-2 py-1.5 rounded-md outline-none"
+                      style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
+                    />
+                    {f.unit === '%' && <span className="text-[11px]" style={{ color: '#9CA3AF' }}>%</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <AmberBtn onClick={saveBenchmarks} disabled={benchmarksSave === 'saving'} fullWidth>
+              {benchmarksSave === 'saving' ? 'Saving…' : benchmarksSave === 'saved' ? '✓ Saved!' : 'Save benchmarks'}
+            </AmberBtn>
+          </div>
+
+          {/* Weekly digest */}
+          <div className="rounded-[10px] p-4 flex flex-col gap-3"
+            style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+            <div>
+              <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Weekly digest email</div>
+              <div className="text-[10px]" style={{ color: '#9CA3AF' }}>What changed + what needs action</div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] font-medium" style={{ color: '#1E2D3D' }}>
+                {digestEnabled ? 'On' : 'Off'}
+              </span>
+              <Toggle checked={digestEnabled} onChange={v => setDigestEnabled(v)} />
+            </div>
+            <div style={{ borderTop: '0.5px solid rgba(30,45,61,0.06)', paddingTop: 12 }}>
+              <div className="text-[10px] mb-2" style={{ color: '#9CA3AF' }}>Send on</div>
+              <div className="flex flex-wrap gap-1">
+                {ALL_DAYS.map((label, idx) => {
+                  const val = DAY_VALUES[idx]
+                  const selected = digestDays.includes(val)
+                  return (
+                    <button key={val}
+                      onClick={() => setDigestDays(prev =>
+                        prev.includes(val) ? prev.filter(d => d !== val) : [...prev, val]
+                      )}
+                      className="text-[10px] font-semibold px-2 py-1 rounded-md border-none cursor-pointer transition-all"
+                      style={{
+                        background: selected ? '#E9A020' : 'rgba(30,45,61,0.06)',
+                        color: selected ? '#1E2D3D' : '#9CA3AF',
+                      }}>
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            <AmberBtn onClick={saveNotifications} disabled={notifSave === 'saving'} fullWidth>
+              {notifSave === 'saving' ? 'Saving…' : notifSave === 'saved' ? '✓ Saved!' : 'Save'}
+            </AmberBtn>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  function TabPrivacy() {
+    return (
+      <div>
+        <PanelHeader title="Privacy & Data" subtitle="Your data, your control" />
+        <div className="px-8 py-6 max-w-md flex flex-col gap-4">
+
+          {/* Links */}
+          <div className="rounded-[10px] p-4 flex flex-col gap-3"
+            style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+            <div className="flex items-center gap-2 text-[11px] mb-1" style={{ color: '#9CA3AF' }}>
+              <span>🔒</span>
+              <span>API keys encrypted at rest, never shared</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Link href="/privacy" className="text-[12px] font-semibold no-underline hover:underline"
+                style={{ color: '#E9A020' }}>Privacy Policy →</Link>
+              <Link href="/terms" className="text-[12px] font-semibold no-underline hover:underline"
+                style={{ color: '#E9A020' }}>Terms of Service →</Link>
+              <Link href="/data" className="text-[12px] font-semibold no-underline hover:underline"
+                style={{ color: '#E9A020' }}>Export Data →</Link>
             </div>
           </div>
 
-          <AmberBtn
-            onClick={saveNotifications}
-            disabled={notifSave === 'saving'}
-            fullWidth
-          >
-            {notifSave === 'saving' ? 'Saving…' : notifSave === 'saved' ? '✓ Saved!' : 'Save'}
-          </AmberBtn>
+          {/* Danger zone */}
+          <div className="rounded-[10px] p-4 flex flex-col gap-3"
+            style={{ background: 'white', border: '1px solid rgba(249,123,107,0.4)' }}>
+            <div>
+              <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Danger Zone</div>
+              <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>
+                Permanently delete your account and all associated data.
+              </div>
+            </div>
+            <Link
+              href="/dashboard/delete-account"
+              className="inline-flex items-center text-[12px] font-semibold px-3 py-2 rounded-[6px] no-underline w-fit"
+              style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}
+            >
+              Delete Account
+            </Link>
+          </div>
         </div>
       </div>
+    )
+  }
 
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION 4: PRIVACY & DATA                                            */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      <SectionLabel>PRIVACY &amp; DATA</SectionLabel>
+  // ── Render ────────────────────────────────────────────────────────────────
+  const tabContent: Record<TabId, React.ReactNode> = {
+    'my-books':    <TabMyBooks />,
+    'connections': <TabConnections />,
+    'profile':     <TabProfile />,
+    'preferences': <TabPreferences />,
+    'privacy':     <TabPrivacy />,
+  }
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        height: '100%',
+        overflow: 'hidden',
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+      }}
+    >
+      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
+
+      {/* ── Left sidebar ─────────────────────────────────────────────────── */}
       <div
-        className="rounded-[10px] flex items-center justify-between gap-4 flex-wrap"
         style={{
-          background: 'white',
-          border: '0.5px solid rgba(30,45,61,0.1)',
-          padding: '12px 16px',
+          width: 200,
+          flexShrink: 0,
+          background: '#FAFAF8',
+          borderRight: '0.5px solid rgba(30,45,61,0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflowY: 'auto',
+          paddingTop: 24,
+          paddingBottom: 24,
         }}
       >
-        <div className="flex items-center gap-2 text-[11px]" style={{ color: '#9CA3AF' }}>
-          <span>🔒</span>
-          <span>Your data, your control — API keys encrypted at rest, never shared</span>
+        {/* Sidebar label */}
+        <div
+          className="px-4 mb-3 text-[9px] font-bold uppercase tracking-[2px]"
+          style={{ color: '#E9A020' }}
+        >
+          Settings
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <Link href="/privacy" className="text-[11px] font-semibold no-underline hover:underline"
-            style={{ color: '#E9A020' }}>Privacy Policy</Link>
-          <Link href="/terms" className="text-[11px] font-semibold no-underline hover:underline"
-            style={{ color: '#E9A020' }}>Terms</Link>
-          <Link href="/data" className="text-[11px] font-semibold no-underline hover:underline"
-            style={{ color: '#E9A020' }}>Export Data</Link>
-          <Link href="/dashboard/delete-account"
-            className="text-[11px] font-semibold no-underline hover:underline"
-            style={{ color: '#F97B6B' }}>Delete Account</Link>
-        </div>
+
+        {/* Tab items */}
+        <nav className="flex flex-col gap-0.5 px-2">
+          {TABS.map(tab => {
+            const Icon = tab.icon
+            const isActive = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                onClick={() => navigateTab(tab.id)}
+                className="w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-[6px] border-none cursor-pointer transition-all"
+                style={{
+                  background: isActive ? '#FFF3E0' : 'transparent',
+                  borderLeft: isActive ? '2px solid #E9A020' : '2px solid transparent',
+                  color: isActive ? '#1E2D3D' : '#888',
+                }}
+                onMouseEnter={e => {
+                  if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#f5efe8'
+                }}
+                onMouseLeave={e => {
+                  if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+                }}
+              >
+                <Icon
+                  size={16}
+                  strokeWidth={1.5}
+                  style={{ color: isActive ? '#E9A020' : '#888', marginTop: 2, flexShrink: 0 }}
+                />
+                <div>
+                  <div
+                    className="text-[13px] leading-tight"
+                    style={{ fontWeight: isActive ? 500 : 400, color: isActive ? '#1E2D3D' : '#888' }}
+                  >
+                    {tab.label}
+                  </div>
+                  <div className="text-[11px] mt-0.5 leading-tight" style={{ color: '#bbb' }}>
+                    {tab.description}
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </nav>
+      </div>
+
+      {/* ── Right panel ──────────────────────────────────────────────────── */}
+      <div
+        style={{
+          flex: 1,
+          background: 'white',
+          overflowY: 'auto',
+          minWidth: 0,
+        }}
+      >
+        {tabContent[activeTab]}
       </div>
     </div>
   )
