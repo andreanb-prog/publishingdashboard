@@ -14,7 +14,8 @@ interface Props {
   onImport: (target: ImportTarget, content: string) => void
 }
 
-const CHAPTER_RE = /^#{1,3}\s+Chapter\s+/gim
+// Matches chapter headings with optional markdown # prefixes, numeric or written-out numbers
+const CHAPTER_RE = /^#{1,3}\s+Chapter\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty(?:[- ]?\w+)?)\b/gim
 
 export function FileUploadDialog({ isOpen, onClose, onImport }: Props) {
   const [file, setFile] = useState<File | null>(null)
@@ -50,7 +51,7 @@ export function FileUploadDialog({ isOpen, onClose, onImport }: Props) {
 
     try {
       const name = f.name.toLowerCase()
-      if (name.endsWith('.txt') || name.endsWith('.md')) {
+      if (name.endsWith('.txt')) {
         const text = await f.text()
         if (!text.trim()) { setParseError('File appears to be empty'); setIsParsing(false); return }
         setParsedContent(text)
@@ -61,7 +62,7 @@ export function FileUploadDialog({ isOpen, onClose, onImport }: Props) {
         if (!result.value.trim()) { setParseError('No text found in this .docx file'); setIsParsing(false); return }
         setParsedContent(result.value)
       } else {
-        setParseError('Unsupported file type. Please use .txt, .md, or .docx')
+        setParseError('Unsupported file type. Please use .txt or .docx')
       }
     } catch {
       setParseError('Could not read this file. Try a different format.')
@@ -114,11 +115,11 @@ export function FileUploadDialog({ isOpen, onClose, onImport }: Props) {
           >
             <Upload size={28} style={{ color: '#9CA3AF' }} className="mb-2" />
             <p className="text-sm font-medium" style={{ color: '#1E2D3D' }}>Drop a file here or click to browse</p>
-            <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>.docx, .txt, or .md files</p>
+            <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>.docx or .txt files</p>
             <input
               ref={inputRef}
               type="file"
-              accept=".docx,.txt,.md"
+              accept=".docx,.txt"
               className="hidden"
               onChange={e => {
                 const f = e.target.files?.[0]
