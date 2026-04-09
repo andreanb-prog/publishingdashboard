@@ -23,7 +23,8 @@ export async function GET() {
   }
 
   try {
-    const url = 'https://connect.mailerlite.com/api/subscribers?filter[status]=active&limit=1'
+    const url = 'https://connect.mailerlite.com/api/subscribers/stats'
+    console.log('[debug/mailerlite] fetching:', url)
     const res = await fetch(url, {
       cache: 'no-store',
       headers: {
@@ -35,12 +36,14 @@ export async function GET() {
     const responseText = await res.text()
     let parsedBody: unknown = null
     try { parsedBody = JSON.parse(responseText) } catch {}
+    console.log('[debug/mailerlite] stats response:', responseText.slice(0, 200))
 
     result.status = res.status
     result.ok = res.ok
     result.rawBody = responseText.slice(0, 500)
     result.parsedBody = parsedBody
-    result.listSize = (parsedBody as any)?.meta?.total ?? null
+    result.listSize = (parsedBody as any)?.active ?? (parsedBody as any)?.total ?? null
+    result.unsubscribed = (parsedBody as any)?.unsubscribed ?? null
 
     return NextResponse.json(result)
   } catch (e: any) {
