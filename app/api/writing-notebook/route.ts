@@ -1,4 +1,3 @@
-// app/api/writing-notebook/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -10,16 +9,11 @@ export async function GET(req: NextRequest) {
 
   const bookId = req.nextUrl.searchParams.get('bookId') || undefined
 
-  try {
-    const records = await db.writingNotebook.findMany({
-      where: { userId: session.user.id, bookId: bookId ?? null },
-      orderBy: { updatedAt: 'desc' },
-    })
-    return NextResponse.json({ data: records })
-  } catch (err) {
-    console.error('[writing-notebook GET] Prisma error:', err)
-    return NextResponse.json({ data: [] }, { status: 200 })
-  }
+  const records = await db.writingNotebook.findMany({
+    where: { userId: session.user.id, bookId: bookId ?? null },
+  })
+
+  return NextResponse.json({ records })
 }
 
 export async function POST(req: NextRequest) {
@@ -28,30 +22,30 @@ export async function POST(req: NextRequest) {
 
   const { bookId, phase, section, chapterIndex, content } = await req.json()
 
-  try {
-    const record = await db.writingNotebook.upsert({
-      where: {
-        userId_bookId_phase_section_chapterIndex: {
-          userId: session.user.id,
-          bookId: bookId ?? null,
-          phase,
-          section,
-          chapterIndex: chapterIndex ?? null,
-        },
-      },
-      update: { content },
-      create: {
+  if (!phase || !section || typeof content !== 'string') {
+    return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+  }
+
+  const record = await db.writingNotebook.upsert({
+    where: {
+      userId_bookId_phase_section_chapterIndex: {
         userId: session.user.id,
         bookId: bookId ?? null,
         phase,
         section,
         chapterIndex: chapterIndex ?? null,
-        content,
       },
-    })
-    return NextResponse.json({ data: record })
-  } catch (err) {
-    console.error('[writing-notebook POST] Prisma error:', err)
-    return NextResponse.json({ data: null }, { status: 200 })
-  }
+    },
+    create: {
+      userId: session.user.id,
+      bookId: bookId ?? null,
+      phase,
+      section,
+      chapterIndex: chapterIndex ?? null,
+      content,
+    },
+    update: { content },
+  })
+
+  return NextResponse.json({ record })
 }

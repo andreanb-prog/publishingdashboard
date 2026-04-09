@@ -1,450 +1,318 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSession } from 'next-auth/react'
-import { WritingOnboarding } from './WritingOnboarding'
+import { OnboardingFlow } from './OnboardingFlow'
+import { Workbook } from './Workbook'
+import { AIChat } from './AIChat'
 import { useWorkbook } from './useWorkbook'
-import { useBooks } from '@/hooks/useBooks'
-import { parseManuscriptIntoChapters, type ParsedChapter } from '@/lib/parseManuscript'
+import { ChevronDown, MessageSquare, BookOpen } from 'lucide-react'
 
-// ── Desktop components (new layout) ──────────────────────────────────
-import { WritingNotebookTopBar } from '@/components/writing-notebook/WritingNotebookTopBar'
-import { SidebarNav } from '@/components/writing-notebook/SidebarNav'
-import { InlineAIPanel } from '@/components/writing-notebook/InlineAIPanel'
-import { EditorArea } from '@/components/writing-notebook/EditorArea'
-import { ImportPreviewModal } from '@/components/writing-notebook/ImportPreviewModal'
+interface Book {
+  id: string
+  title: string
+  genre?: string
+  subgenre?: string
+}
 
-// ── Mobile components (kept from previous layout) ─────────────────────
-import { NotebookPane } from '@/components/writing-notebook/NotebookPane'
-import { ChapterDrawer } from '@/components/writing-notebook/ChapterDrawer'
-import { AIChatPanel } from '@/components/writing-notebook/AIChatPanel'
-import { MobileBottomBar } from '@/components/writing-notebook/MobileBottomBar'
+interface UserData {
+  writingOnboardingComplete: boolean
+  anthropicApiKey: string | null
+  bookCatalog: Book[]
+}
 
-type NotebookPhase = 'setup' | 'writing' | 'polish'
+const LS_BOOK = 'wn_selected_book'
+const LS_SPLIT = 'wn_split_pos'
 
 export default function WritingNotebookPage() {
-  useSession()
-
-  const { books } = useBooks()
-
-  // ── Shared state ───────────────────────────────────────────────────
-  const [selectedBookId, setSelectedBookId] = useState<string | null>(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('wn_selected_book') : null
-  )
-  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null)
+  const { data: session } = useSession()
+  const [userData, setUserData] = useState<UserData | null>(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [hasApiKey, setHasApiKey] = useState(false)
+  const [onboardingStart, setOnboardingStart] = useState<number | undefined>()
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
+  const [splitPos, setSplitPos] = useState(60) // percentage for left pane
+  const [activePhase, setActivePhase] = useState('setup')
+  const [showMobileChat, setShowMobileChat] = useState(false)
+  const [showBookDropdown, setShowBookDropdown] = useState(false)
+  const dividerRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  const workbook = useWorkbook(selectedBookId)
-  const selectedBook = books.find(b => b.id === selectedBookId)
+  const wb = useWorkbook(selectedBookId)
 
-  // ── Desktop state ──────────────────────────────────────────────────
-  const [activeNavItem, setActiveNavItem] = useState('storyOutline')
-  const [wordCount, setWordCount] = useState(0)
-  const [storySoFarStatus, setStorySoFarStatus] = useState<'upToDate' | 'updating'>('upToDate')
-  const [toast, setToast] = useState<string | null>(null)
-  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
-
-  // ── Import state ───────────────────────────────────────────────────
-  const [importChapters, setImportChapters] = useState<ParsedChapter[] | null>(null)
-
-  // ── Mobile state ───────────────────────────────────────────────────
-  const [phase, setPhase] = useState<NotebookPhase>('setup')
-  const [activeSection, setActiveSection] = useState('storyOutline')
-  const [activeChapterIndex, setActiveChapterIndex] = useState<number | null>(null)
-  const [isChatOpen, setIsChatOpen] = useState(false)
-  const [drawerToggle, setDrawerToggle] = useState<'drafts' | 'final'>('drafts')
-  const [mobileTab, setMobileTab] = useState<'notebook' | 'chapters' | 'chat'>('notebook')
-
-  // ── Init: load settings ────────────────────────────────────────────
+  // Load user data
   useEffect(() => {
     fetch('/api/settings')
       .then(r => r.json())
-      .then(d => {
-        setOnboardingComplete(d.writingOnboardingComplete ?? false)
-        setHasApiKey(!!d.anthropicApiKey)
-        if (!d.writingOnboardingComplete) setShowOnboarding(true)
+      .then(data => {
+        setUserData({
+          writingOnboardingComplete: data.writingOnboardingComplete ?? false,
+          anthropicApiKey: data.anthropicApiKey ?? null,
+          bookCatalog: data.bookCatalog ?? [],
+        })
+        if (!data.writingOnboardingComplete) setShowOnboarding(true)
       })
-      .catch(() => setOnboardingComplete(false))
+      .catch(() => {})
   }, [])
 
-  // Auto-select first book
+  // Restore selected book from localStorage
   useEffect(() => {
-    if (books.length > 0 && !selectedBookId) setSelectedBookId(books[0].id)
-  }, [books]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (selectedBookId) localStorage.setItem('wn_selected_book', selectedBookId)
-  }, [selectedBookId])
-
-  // ── Save tracking: update lastSavedAt when saving → idle ──────────
-  const isSavingAny = Object.values(workbook.saving).some(Boolean)
-  const prevSavingRef = useRef(false)
-
-  useEffect(() => {
-    if (prevSavingRef.current && !isSavingAny) setLastSavedAt(new Date())
-    prevSavingRef.current = isSavingAny
-  }, [isSavingAny])
-
-  // ── Story So Far auto-update ───────────────────────────────────────
-  const triggerStorySoFarUpdate = useCallback(async () => {
-    if (!selectedBookId) return
-    const meta = workbook.getChapterMeta('writing')
-    const chapters = Array.from({ length: meta.count }, (_, i) => ({
-      title: meta.titles[i] ?? '',
-      content: workbook.getActiveDraftContent(i),
-      order: i,
-    })).filter(c => c.content.trim())
-
-    if (!chapters.length) return
-
-    setStorySoFarStatus('updating')
-    try {
-      const res = await fetch('/api/writing-notebook/story-so-far', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookId: selectedBookId, chapters }),
-      })
-      const data = await res.json()
-      if (data.success && data.summary) {
-        workbook.setValue('writing', 'storySoFar', data.summary)
-        setToast('Story So Far updated')
-        setTimeout(() => setToast(null), 3000)
-      }
-    } catch { /* fail silently */ }
-    finally { setStorySoFarStatus('upToDate') }
-  }, [selectedBookId, workbook])
-
-  // On page load: auto-generate Story So Far once if chapters have content but summary is empty
-  const didLoadTriggerRef = useRef(false)
-  useEffect(() => {
-    if (!workbook.loaded || didLoadTriggerRef.current) return
-    const currentSummary = workbook.getValue('writing', 'storySoFar')
-    if (currentSummary.trim()) return // already populated
-    const meta = workbook.getChapterMeta('writing')
-    const hasContent = Array.from({ length: meta.count }, (_, i) =>
-      workbook.getActiveDraftContent(i)
-    ).some(c => c.trim())
-    if (hasContent) {
-      didLoadTriggerRef.current = true
-      triggerStorySoFarUpdate()
-    }
-  }, [workbook.loaded]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Trigger when navigating away from a chapter
-  const prevNavRef = useRef(activeNavItem)
-
-  const handleNavChange = useCallback((item: string) => {
-    const prev = prevNavRef.current
-    if (prev.startsWith('chapter:') && !item.startsWith('chapter:')) {
-      triggerStorySoFarUpdate()
-    }
-    prevNavRef.current = item
-    setActiveNavItem(item)
-  }, [triggerStorySoFarUpdate])
-
-  // 60-second idle timer while in a chapter
-  const idleTimerRef = useRef<NodeJS.Timeout | null>(null)
-
-  const resetIdleTimer = useCallback(() => {
-    if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
-    if (activeNavItem.startsWith('chapter:')) {
-      idleTimerRef.current = setTimeout(() => triggerStorySoFarUpdate(), 60_000)
-    }
-  }, [activeNavItem, triggerStorySoFarUpdate])
-
-  // Clear idle timer when nav changes
-  useEffect(() => {
-    if (!activeNavItem.startsWith('chapter:') && idleTimerRef.current) {
-      clearTimeout(idleTimerRef.current)
-    }
-  }, [activeNavItem])
-
-  // ── Chapter handlers ───────────────────────────────────────────────
-  const handleAddChapter = useCallback(() => {
-    const meta = workbook.getChapterMeta('writing')
-    workbook.setChapterMeta('writing', { count: meta.count + 1, titles: [...meta.titles, ''] })
-    setActiveNavItem(`chapter:${meta.count}`)
-  }, [workbook])
-
-  // Mobile equivalent
-  const handleMobileAddChapter = useCallback(() => {
-    const meta = workbook.getChapterMeta('writing')
-    workbook.setChapterMeta('writing', { count: meta.count + 1, titles: [...meta.titles, ''] })
-    setPhase('writing')
-    setActiveSection('chapter')
-    setActiveChapterIndex(meta.count)
-  }, [workbook])
-
-  const handleMobileSectionChange = useCallback((section: string, chapterIndex?: number | null) => {
-    setActiveSection(section)
-    setActiveChapterIndex(chapterIndex ?? null)
+    const saved = localStorage.getItem(LS_BOOK)
+    if (saved) setSelectedBookId(saved)
   }, [])
 
-  const handleMobileChapterClick = useCallback((idx: number) => {
-    setPhase('writing')
-    setActiveSection('chapter')
-    setActiveChapterIndex(idx)
+  // Restore split position
+  useEffect(() => {
+    const saved = localStorage.getItem(LS_SPLIT)
+    if (saved) setSplitPos(parseFloat(saved))
   }, [])
 
-  const handleSaveToWorkbook = useCallback(async (content: string, chapterIndex: number, chapterTitle?: string) => {
-    const meta = workbook.getChapterMeta('writing')
-    if (chapterIndex >= meta.count) {
-      workbook.setChapterMeta('writing', { count: chapterIndex + 1, titles: [...meta.titles, chapterTitle ?? ''] })
-    }
-    workbook.setValue('writing', 'chapter', content, chapterIndex)
-  }, [workbook])
+  const handleBookChange = (id: string) => {
+    setSelectedBookId(id)
+    localStorage.setItem(LS_BOOK, id)
+    setShowBookDropdown(false)
+  }
 
-  // ── Manuscript import flow ─────────────────────────────────────────
-  const handleFileImport = useCallback((file: File) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const text = reader.result as string
-      const parsed = parseManuscriptIntoChapters(text)
-      if (parsed.length === 0) {
-        setToast('Could not detect chapters — make sure your file uses # Chapter headers')
-        setTimeout(() => setToast(null), 4000)
-        return
-      }
-      setImportChapters(parsed)
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false)
+    setUserData(prev => prev ? { ...prev, writingOnboardingComplete: true } : prev)
+  }
+
+  const handleReopenOnboarding = (step?: number) => {
+    setOnboardingStart(step)
+    setShowOnboarding(true)
+  }
+
+  // Draggable divider
+  const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startSplit = splitPos
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const delta = e.clientX - startX
+      const deltaPercent = (delta / rect.width) * 100
+      const newSplit = Math.min(80, Math.max(30, startSplit + deltaPercent))
+      setSplitPos(newSplit)
+      localStorage.setItem(LS_SPLIT, String(newSplit))
     }
-    reader.readAsText(file)
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [splitPos])
+
+  // Build system prompt
+  const selectedBook = userData?.bookCatalog.find(b => b.id === selectedBookId)
+  const systemPrompt = useMemo(() => {
+    const sg = (() => {
+      try { return JSON.parse(wb.getValue('setup', 'styleGuide') || '{}') }
+      catch { return {} }
+    })()
+
+    return `You are a fiction writing assistant helping the author write ${selectedBook?.title || 'their book'}.
+
+STORY SPECIFICATIONS:
+- Genre: ${sg.niche || 'Not specified'}
+- POV: ${sg.pov || 'Not specified'}
+- Tense: ${sg.tense || 'Not specified'}
+- Target: ${sg.totalWordCount || 'Not specified'} words total, ${sg.chapterWordCount || 'Not specified'} words per chapter
+- Tropes: ${sg.tropes || 'Not specified'}
+
+STORY OUTLINE:
+${(wb.getValue('setup', 'outline') || 'Not filled in yet.').slice(0, 2000)}
+
+CHARACTER BIBLE:
+${(wb.getValue('setup', 'characterBible') || 'Not filled in yet.').slice(0, 1500)}
+
+WRITING STYLE:
+${sg.personalStyle || 'No personal style preferences set.'}
+
+STORY SO FAR:
+${(wb.getValue('writing', 'storySoFar') || 'Not started yet.').slice(0, 1500)}
+
+WRITING FORMULA:
+- Hook readers in the first paragraph, start in the middle of the action
+- Introduce key tropes within the first 500 words
+- Every chapter ends with a cliffhanger or hook
+- Short sentences and paragraphs (1-3 sentences max)
+- Show don't tell
+- Minimize dialogue tags
+- Balance dialogue, action, and internal thought
+
+CHICAGO STYLE REMINDERS:
+- Use serial (Oxford) comma
+- Dialogue punctuation inside quotes: "Like this," she said.
+- Em dashes without spaces—like this
+- Spell out numbers under one hundred in narrative
+
+CALENDAR DATE RULE:
+NEVER use a specific calendar date, month, or day of the week as atmospheric filler.
+Calendar anchors are PLOT FACTS. For atmosphere use time of day instead.
+If a calendar anchor is genuinely needed, flag it: [TIMELINE ANCHOR: Friday, November]
+
+CURRENT PHASE: ${activePhase}
+
+When writing a chapter, respond with ONLY the chapter prose — no preamble, no notes, no "Here is Chapter X:". Just the story, ready to use. Target ${sg.chapterWordCount || '1500-2000'} words. Always end with a hook or cliffhanger.`
+  }, [selectedBook, wb, activePhase])
+
+  // Handle save to chapter from chat
+  const handleSaveToChapter = useCallback((content: string, chapterIndex: number) => {
+    wb.setValue('writing', 'drafts', chapterIndex, content)
+    setActivePhase('writing')
+  }, [wb])
+
+  // Handle send to chat from workbook
+  const handleSendToChat = useCallback((text: string) => {
+    // We can't directly set the chat input from here, so we'll use a ref pattern
+    // For now, switch to chat on mobile
+    setShowMobileChat(true)
   }, [])
 
-  const handleImportConfirm = useCallback(() => {
-    if (!importChapters) return
-    const meta = workbook.getChapterMeta('writing')
+  if (!session) return null
 
-    for (const ch of importChapters) {
-      const idx = ch.chapterNumber - 1
-      const existing = workbook.getChapterDraftMeta(idx)
-      const newDraftIdx = existing.draftCount
-      // Save imported content as a new draft
-      workbook.setChapterDraft(idx, newDraftIdx, ch.content)
-      // Update draft meta — switch to the new draft
-      workbook.setChapterDraftMeta(idx, {
-        draftCount: newDraftIdx + 1,
-        activeDraft: newDraftIdx,
-      })
-      // Update chapter title if import has one and existing is empty
-      if (ch.title && !(meta.titles[idx]?.trim())) {
-        const titles = [...meta.titles]
-        while (titles.length <= idx) titles.push('')
-        titles[idx] = ch.title
-        workbook.setChapterMeta('writing', { ...workbook.getChapterMeta('writing'), titles })
-      }
-    }
-
-    // Extend chapter count if import added new chapters
-    const maxImportIdx = Math.max(...importChapters.map(c => c.chapterNumber - 1))
-    if (maxImportIdx >= meta.count) {
-      const titles = [...workbook.getChapterMeta('writing').titles]
-      while (titles.length <= maxImportIdx) titles.push('')
-      for (const ch of importChapters) {
-        if (ch.chapterNumber - 1 >= meta.count && ch.title) {
-          titles[ch.chapterNumber - 1] = ch.title
-        }
-      }
-      workbook.setChapterMeta('writing', { count: maxImportIdx + 1, titles })
-    }
-
-    setImportChapters(null)
-    setActiveNavItem('chapter:0')
-    triggerStorySoFarUpdate()
-    setToast(`${importChapters.length} chapters imported`)
-    setTimeout(() => setToast(null), 3000)
-  }, [importChapters, workbook, triggerStorySoFarUpdate])
-
-  const setValueAsync = useCallback(
-    async (p: string, s: string, content: string, chapterIndex?: number) => {
-      workbook.setValue(p, s, content, chapterIndex)
-    },
-    [workbook]
-  )
-
-  // ── Loading state ──────────────────────────────────────────────────
-  if (onboardingComplete === null) {
+  // Loading state
+  if (!userData) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-sm" style={{ color: '#9CA3AF' }}>Loading…</div>
+        <div className="animate-spin w-8 h-8 rounded-full" style={{ border: '3px solid #E5E7EB', borderTopColor: '#E9A020' }} />
       </div>
     )
   }
 
-  const bookId = selectedBookId ?? ''
-  const bookTitle = selectedBook?.title ?? ''
+  // Onboarding
+  if (showOnboarding) {
+    return (
+      <div className="h-full overflow-y-auto" style={{ background: 'white' }}>
+        <OnboardingFlow onComplete={handleOnboardingComplete} startStep={onboardingStart} />
+      </div>
+    )
+  }
 
-  const hasChapterContent = (() => {
-    const meta = workbook.getChapterMeta('writing')
-    return Array.from({ length: meta.count }, (_, i) =>
-      workbook.getActiveDraftContent(i)
-    ).some(c => c.trim())
-  })()
-
+  // Main workspace
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
-      {/* Onboarding overlay */}
-      {showOnboarding && (
-        <WritingOnboarding
-          onComplete={() => {
-            setShowOnboarding(false)
-            setOnboardingComplete(true)
-            fetch('/api/settings')
-              .then(r => r.json())
-              .then(d => setHasApiKey(!!d.anthropicApiKey))
-              .catch(() => {})
-          }}
-        />
-      )}
+    <div className="flex flex-col h-full" style={{ background: 'white' }}>
+      {/* Book selector */}
+      <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid #E5E7EB' }}>
+        <div className="relative">
+          <button
+            onClick={() => setShowBookDropdown(!showBookDropdown)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-[14px] font-semibold cursor-pointer"
+            style={{ background: '#FFF8F0', color: '#1E2D3D', border: '0.5px solid #E5E7EB' }}
+          >
+            <BookOpen size={14} style={{ color: '#E9A020' }} />
+            {selectedBook?.title || 'Select a book'}
+            <ChevronDown size={14} style={{ color: '#9CA3AF' }} />
+          </button>
+          {showBookDropdown && (
+            <div
+              className="absolute top-full left-0 mt-1 w-64 rounded-lg shadow-lg z-50 py-1 max-h-60 overflow-y-auto"
+              style={{ background: 'white', border: '1px solid #E5E7EB' }}
+            >
+              {(userData.bookCatalog || []).map(book => (
+                <button
+                  key={book.id}
+                  onClick={() => handleBookChange(book.id)}
+                  className="w-full text-left px-4 py-2.5 text-[13px] cursor-pointer bg-transparent border-none hover:bg-gray-50 transition-colors"
+                  style={{ color: '#1E2D3D' }}
+                >
+                  {book.title}
+                </button>
+              ))}
+              {(!userData.bookCatalog || userData.bookCatalog.length === 0) && (
+                <div className="px-4 py-3 text-[13px]" style={{ color: '#9CA3AF' }}>
+                  No books yet. Add one in Settings.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
-      {/* ── Shared top bar ─────────────────────────────────────────── */}
-      <WritingNotebookTopBar
-        books={books}
-        selectedBookId={bookId}
-        onBookChange={id => setSelectedBookId(id)}
-        onNewBook={() => window.open('/dashboard/settings', '_blank')}
-        wordCount={wordCount}
-        saving={workbook.saving}
-        lastSavedAt={lastSavedAt}
-        bookId={bookId}
-        onAddChapter={handleAddChapter}
-        onFileImport={handleFileImport}
-      />
-
-      {/* ═══ DESKTOP LAYOUT ════════════════════════════════════════ */}
-      <div className="flex-1 hidden md:flex overflow-hidden">
-        {/* Left — SidebarNav (196px) */}
-        <SidebarNav
-          workbookData={workbook.data}
-          getChapterMeta={workbook.getChapterMeta}
-          getChapterDraftMeta={workbook.getChapterDraftMeta}
-          activeNavItem={activeNavItem}
-          onNavChange={handleNavChange}
-          onAddChapter={handleAddChapter}
-          storySoFarStatus={storySoFarStatus}
-          onStorySoFarUpdate={triggerStorySoFarUpdate}
-          hasChapterContent={hasChapterContent}
-        />
-
-        {/* Center — AI panel + editor */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Inline AI panel (collapsed by default) */}
-          <InlineAIPanel
-            bookId={bookId}
-            bookTitle={bookTitle}
-            workbookData={workbook.data}
-            styleGuide={workbook.getStyleGuide()}
-            hasApiKey={hasApiKey}
-            activeNavItem={activeNavItem}
+      {/* Desktop split pane */}
+      <div ref={containerRef} className="flex-1 hidden md:flex overflow-hidden relative">
+        {/* Left pane — Workbook */}
+        <div style={{ width: `${splitPos}%` }} className="overflow-y-auto">
+          <Workbook
+            getValue={wb.getValue}
+            setValue={wb.setValue}
+            getSaveState={wb.getSaveState}
+            onSendToChat={handleSendToChat}
+            activePhase={activePhase}
+            setActivePhase={setActivePhase}
           />
+        </div>
 
-          {/* Editor */}
-          <div className="flex-1 overflow-hidden">
-            <EditorArea
-              key={activeNavItem}
-              activeNavItem={activeNavItem}
-              bookId={bookId}
-              workbookData={workbook.data}
-              getValue={workbook.getValue}
-              setValue={workbook.setValue}
-              getChapterMeta={workbook.getChapterMeta}
-              setChapterMeta={workbook.setChapterMeta}
-              getStyleGuide={workbook.getStyleGuide}
-              setStyleGuide={workbook.setStyleGuide}
-              getChapterDraftMeta={workbook.getChapterDraftMeta}
-              setChapterDraftMeta={workbook.setChapterDraftMeta}
-              getChapterDraft={workbook.getChapterDraft}
-              setChapterDraft={workbook.setChapterDraft}
-              getActiveDraftContent={workbook.getActiveDraftContent}
-              onWordCountChange={setWordCount}
-              onKeystroke={resetIdleTimer}
-              onStorySoFarUpdate={triggerStorySoFarUpdate}
-              storySoFarStatus={storySoFarStatus}
-              hasChapterContent={hasChapterContent}
+        {/* Divider */}
+        <div
+          ref={dividerRef}
+          className="w-[3px] flex-shrink-0 hover:w-[5px] transition-all"
+          style={{ background: '#1E2D3D', cursor: 'col-resize', opacity: 0.2 }}
+          onMouseDown={handleDividerMouseDown}
+        />
+
+        {/* Right pane — AI Chat */}
+        <div style={{ width: `${100 - splitPos}%` }} className="overflow-hidden">
+          <AIChat
+            hasApiKey={!!userData.anthropicApiKey}
+            bookId={selectedBookId}
+            bookTitle={selectedBook?.title || ''}
+            activePhase={activePhase}
+            systemPrompt={systemPrompt}
+            onReopenOnboarding={handleReopenOnboarding}
+            onSaveToChapter={handleSaveToChapter}
+          />
+        </div>
+      </div>
+
+      {/* Mobile stacked view */}
+      <div className="flex-1 flex flex-col md:hidden overflow-hidden">
+        {!showMobileChat ? (
+          <div className="flex-1 overflow-y-auto">
+            <Workbook
+              getValue={wb.getValue}
+              setValue={wb.setValue}
+              getSaveState={wb.getSaveState}
+              onSendToChat={handleSendToChat}
+              activePhase={activePhase}
+              setActivePhase={setActivePhase}
             />
           </div>
-        </div>
-      </div>
-
-      {/* ═══ MOBILE LAYOUT ════════════════════════════════════════ */}
-      <div className="flex-1 md:hidden overflow-hidden pb-14">
-        {mobileTab === 'notebook' && (
-          <NotebookPane
-            bookId={bookId}
-            activePhase={phase}
-            onPhaseChange={setPhase}
-            activeSection={activeSection}
-            activeChapterIndex={activeChapterIndex}
-            onSectionChange={handleMobileSectionChange}
-            getValue={workbook.getValue}
-            setValue={setValueAsync}
-            getChapterMeta={workbook.getChapterMeta}
-            saving={workbook.saving}
-            saved={workbook.saved}
-          />
+        ) : (
+          <div className="flex-1 overflow-hidden">
+            <AIChat
+              hasApiKey={!!userData.anthropicApiKey}
+              bookId={selectedBookId}
+              bookTitle={selectedBook?.title || ''}
+              activePhase={activePhase}
+              systemPrompt={systemPrompt}
+              onReopenOnboarding={handleReopenOnboarding}
+              onSaveToChapter={handleSaveToChapter}
+            />
+          </div>
         )}
-        {mobileTab === 'chapters' && (
-          <ChapterDrawer
-            bookId={bookId}
-            workbookData={workbook.data}
-            getChapterMeta={workbook.getChapterMeta}
-            drawerToggle={drawerToggle}
-            onDrawerToggle={setDrawerToggle}
-            activeChapterIndex={activeChapterIndex}
-            onChapterClick={idx => { handleMobileChapterClick(idx); setMobileTab('notebook') }}
-            onSectionClick={section => {
-              handleMobileSectionChange(section)
-              setPhase(section === 'storySoFar' ? 'writing' : 'setup')
-              setMobileTab('notebook')
-            }}
-            onAddChapter={() => { handleMobileAddChapter(); setMobileTab('notebook') }}
-            onOpenChat={() => setMobileTab('chat')}
-          />
-        )}
-        {mobileTab === 'chat' && (
-          <AIChatPanel
-            isOpen
-            onClose={() => setMobileTab('notebook')}
-            bookId={bookId}
-            bookTitle={bookTitle}
-            activePhase={phase}
-            workbookData={workbook.data}
-            styleGuide={workbook.getStyleGuide()}
-            hasApiKey={hasApiKey}
-            onSaveToWorkbook={handleSaveToWorkbook}
-          />
-        )}
-      </div>
 
-      <MobileBottomBar activeTab={mobileTab} onTabChange={setMobileTab} />
-
-      {/* ── Import preview modal ────────────────────────────────────── */}
-      {importChapters && (
-        <ImportPreviewModal
-          chapters={importChapters}
-          getChapterDraftMeta={workbook.getChapterDraftMeta}
-          existingChapterCount={workbook.getChapterMeta('writing').count}
-          onConfirm={handleImportConfirm}
-          onCancel={() => setImportChapters(null)}
-        />
-      )}
-
-      {/* ── Story So Far toast ─────────────────────────────────────── */}
-      {toast && (
-        <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-medium z-50 transition-opacity duration-300"
-          style={{
-            background: '#1E2D3D',
-            color: '#FFFFFF',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-          }}
+        {/* Mobile toggle */}
+        <button
+          onClick={() => setShowMobileChat(!showMobileChat)}
+          className="flex items-center justify-center gap-2 py-3 text-[13px] font-semibold cursor-pointer"
+          style={{ background: '#E9A020', color: 'white', border: 'none' }}
         >
-          <span
-            className="w-2 h-2 rounded-full"
-            style={{ background: '#8B5CF6' }}
-          />
-          {toast}
-        </div>
-      )}
+          {showMobileChat ? (
+            <><BookOpen size={14} /> Switch to Workbook</>
+          ) : (
+            <><MessageSquare size={14} /> Switch to AI Chat</>
+          )}
+        </button>
+      </div>
     </div>
   )
 }

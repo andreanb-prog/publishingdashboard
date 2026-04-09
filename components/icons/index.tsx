@@ -24,6 +24,7 @@ export {
   LayoutGrid,
   Columns,
   PenLine,
+  PenTool,
   Lock,
   CreditCard,
   User,

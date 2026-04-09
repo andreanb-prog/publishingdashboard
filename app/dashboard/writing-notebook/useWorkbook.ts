@@ -1,185 +1,97 @@
 'use client'
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
-export type Phase = 'setup' | 'writing' | 'edit' | 'polish'
-
-export interface ChapterMeta {
-  count: number
-  titles: string[]
-}
-
-export interface StyleGuide {
-  niche?: string
-  pov?: string
-  tense?: string
-  totalWordCount?: string
-  chapterWordCount?: string
-  tropes?: string
-  personalStylePreferences?: string
-  killList?: { word: string; scope: 'global' | 'book' }[]
-  aiRules?: { antiSlopEnabled: boolean; writingFormulaEnabled: boolean }
-}
-
-export interface ChapterDraftMeta {
-  draftCount: number
-  activeDraft: number
-}
-
-export interface WorkbookData {
-  [key: string]: string
+interface WorkbookRecord {
+  phase: string
+  section: string
+  chapterIndex: number | null
+  content: string
 }
 
 export function useWorkbook(bookId: string | null) {
-  const [data, setData] = useState<WorkbookData>({})
-  const [saving, setSaving] = useState<Record<string, boolean>>({})
-  const [saved, setSaved] = useState<Record<string, boolean>>({})
-  const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({})
-  const [loaded, setLoaded] = useState(false)
+  const [records, setRecords] = useState<Map<string, string>>(new Map())
+  const [saveStates, setSaveStates] = useState<Map<string, 'idle' | 'saving' | 'saved'>>(new Map())
+  const timeoutRefs = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const loaded = useRef(false)
 
-  // Load all records for this book
-  const load = useCallback(async () => {
-    if (!bookId) {
-      setData({})
-      setLoaded(true)
-      return
-    }
-    try {
-      const res = await fetch(`/api/writing-notebook?bookId=${bookId}`)
-      if (!res.ok) return
-      const { data: records } = await res.json()
-      const map: WorkbookData = {}
-      for (const r of records) {
-        const key = r.chapterIndex != null
-          ? `${r.phase}:${r.section}:${r.chapterIndex}`
-          : `${r.phase}:${r.section}`
-        map[key] = r.content
-      }
-      setData(map)
-    } catch { /* noop */ }
-    setLoaded(true)
+  const makeKey = (phase: string, section: string, chapterIndex?: number | null) =>
+    `${phase}:${section}:${chapterIndex ?? 'null'}`
+
+  // Load records on mount / book change
+  useEffect(() => {
+    loaded.current = false
+    const params = new URLSearchParams()
+    if (bookId) params.set('bookId', bookId)
+    fetch(`/api/writing-notebook?${params}`)
+      .then(r => r.json())
+      .then(data => {
+        const map = new Map<string, string>()
+        for (const r of (data.records || []) as WorkbookRecord[]) {
+          map.set(makeKey(r.phase, r.section, r.chapterIndex), r.content)
+        }
+        setRecords(map)
+        loaded.current = true
+      })
+      .catch(() => { loaded.current = true })
   }, [bookId])
 
-  useEffect(() => { load() }, [load])
+  const getValue = useCallback((phase: string, section: string, chapterIndex?: number | null) => {
+    return records.get(makeKey(phase, section, chapterIndex)) || ''
+  }, [records])
 
-  const getValue = useCallback((phase: string, section: string, chapterIndex?: number): string => {
-    const key = chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
-    return data[key] ?? ''
-  }, [data])
+  const setValue = useCallback((phase: string, section: string, chapterIndex: number | null, value: string) => {
+    const key = makeKey(phase, section, chapterIndex)
 
-  // Keep bookId in a ref so debounced callbacks always use the current value
-  const bookIdRef = useRef(bookId)
-  bookIdRef.current = bookId
+    setRecords(prev => {
+      const next = new Map(prev)
+      next.set(key, value)
+      return next
+    })
 
-  const setValue = useCallback((phase: string, section: string, content: string, chapterIndex?: number) => {
-    const key = chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
-    setData(prev => ({ ...prev, [key]: content }))
+    // Debounced save
+    const existing = timeoutRefs.current.get(key)
+    if (existing) clearTimeout(existing)
 
-    // Debounced auto-save
-    if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key])
-    setSaving(prev => ({ ...prev, [key]: true }))
-    setSaved(prev => ({ ...prev, [key]: false }))
+    setSaveStates(prev => {
+      const next = new Map(prev)
+      next.set(key, 'saving')
+      return next
+    })
 
-    debounceTimers.current[key] = setTimeout(async () => {
-      const currentBookId = bookIdRef.current
-      if (!currentBookId) {
-        setSaving(prev => ({ ...prev, [key]: false }))
-        return
-      }
+    const timeout = setTimeout(async () => {
       try {
         await fetch('/api/writing-notebook', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            bookId: currentBookId,
-            phase,
-            section,
-            chapterIndex: chapterIndex ?? null,
-            content,
-          }),
+          body: JSON.stringify({ bookId, phase, section, chapterIndex, content: value }),
         })
-        setSaved(prev => ({ ...prev, [key]: true }))
-        setTimeout(() => setSaved(prev => ({ ...prev, [key]: false })), 2000)
-      } catch { /* noop */ }
-      setSaving(prev => ({ ...prev, [key]: false }))
+        setSaveStates(prev => {
+          const next = new Map(prev)
+          next.set(key, 'saved')
+          return next
+        })
+        setTimeout(() => {
+          setSaveStates(prev => {
+            const next = new Map(prev)
+            next.set(key, 'idle')
+            return next
+          })
+        }, 2000)
+      } catch {
+        setSaveStates(prev => {
+          const next = new Map(prev)
+          next.set(key, 'idle')
+          return next
+        })
+      }
     }, 1000)
-  }, [])
 
-  const isSaving = useCallback((phase: string, section: string, chapterIndex?: number): boolean => {
-    const key = chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
-    return saving[key] ?? false
-  }, [saving])
+    timeoutRefs.current.set(key, timeout)
+  }, [bookId])
 
-  const isSaved = useCallback((phase: string, section: string, chapterIndex?: number): boolean => {
-    const key = chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
-    return saved[key] ?? false
-  }, [saved])
+  const getSaveState = useCallback((phase: string, section: string, chapterIndex?: number | null) => {
+    return saveStates.get(makeKey(phase, section, chapterIndex)) || 'idle'
+  }, [saveStates])
 
-  // Get styleGuide parsed from the workbook data
-  const getStyleGuide = useCallback((): StyleGuide => {
-    const raw = data['setup:styleGuide']
-    if (!raw) return {}
-    try { return JSON.parse(raw) } catch { return {} }
-  }, [data])
-
-  const setStyleGuide = useCallback((guide: StyleGuide) => {
-    setValue('setup', 'styleGuide', JSON.stringify(guide))
-  }, [setValue])
-
-  // Get chapterMeta
-  const getChapterMeta = useCallback((phase: 'writing' | 'polish'): ChapterMeta => {
-    const raw = data[`${phase}:chapterMeta`]
-    if (!raw) return { count: 1, titles: [] }
-    try { return JSON.parse(raw) } catch { return { count: 1, titles: [] } }
-  }, [data])
-
-  const setChapterMeta = useCallback((phase: 'writing' | 'polish', meta: ChapterMeta) => {
-    setValue(phase, 'chapterMeta', JSON.stringify(meta))
-  }, [setValue])
-
-  // ── Draft versioning helpers ───────────────────────────────────────────────
-
-  const getChapterDraftMeta = useCallback((chapterIndex: number): ChapterDraftMeta => {
-    const raw = data['writing:chapterDraftMeta']
-    if (!raw) return { draftCount: 1, activeDraft: 0 }
-    try {
-      const all = JSON.parse(raw) as Record<string, ChapterDraftMeta>
-      return all[String(chapterIndex)] ?? { draftCount: 1, activeDraft: 0 }
-    } catch { return { draftCount: 1, activeDraft: 0 } }
-  }, [data])
-
-  const setChapterDraftMeta = useCallback((chapterIndex: number, meta: ChapterDraftMeta) => {
-    const raw = data['writing:chapterDraftMeta']
-    let all: Record<string, ChapterDraftMeta> = {}
-    if (raw) { try { all = JSON.parse(raw) } catch { /* noop */ } }
-    all[String(chapterIndex)] = meta
-    setValue('writing', 'chapterDraftMeta', JSON.stringify(all))
-  }, [data, setValue])
-
-  const getChapterDraft = useCallback((chapterIndex: number, draftIndex: number): string => {
-    // New format first
-    const draftKey = `writing:chapter:${chapterIndex}:draft:${draftIndex}`
-    if (data[draftKey] != null) return data[draftKey]
-    // Fallback to old format for draft 0
-    if (draftIndex === 0) return data[`writing:chapter:${chapterIndex}`] ?? ''
-    return ''
-  }, [data])
-
-  const setChapterDraft = useCallback((chapterIndex: number, draftIndex: number, content: string) => {
-    // Always write to new draft key format
-    // We store as writing:chapter:{N}:draft:{D} — phase=writing, section=chapter:{N}:draft:{D}
-    setValue('writing', `chapter:${chapterIndex}:draft:${draftIndex}`, content)
-  }, [setValue])
-
-  const getActiveDraftContent = useCallback((chapterIndex: number): string => {
-    const meta = getChapterDraftMeta(chapterIndex)
-    return getChapterDraft(chapterIndex, meta.activeDraft)
-  }, [getChapterDraftMeta, getChapterDraft])
-
-  return {
-    data, loaded, getValue, setValue, isSaving, isSaved,
-    saving, saved,
-    getStyleGuide, setStyleGuide, getChapterMeta, setChapterMeta, load,
-    getChapterDraftMeta, setChapterDraftMeta,
-    getChapterDraft, setChapterDraft, getActiveDraftContent,
-  }
+  return { getValue, setValue, getSaveState, loaded: loaded.current }
 }
