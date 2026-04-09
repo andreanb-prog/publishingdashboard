@@ -154,26 +154,65 @@ function toISODate(v: unknown): string {
   return s.split('T')[0]
 }
 
+// ── sheetToRows: handles KDP sheets that have a banner/title row before the
+//   real column-header row.  sheet_to_json() uses row-0 as keys by default;
+//   if those keys don't look like column headers (no ASIN/Title/Date/Units),
+//   we scan the raw rows to find the actual header row and rebuild the objects.
+function sheetToRows(sheet: XLSX.WorkSheet): Record<string, unknown>[] {
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' }) as Record<string, unknown>[]
+
+  // Quick check: does at least one row have a recognisable data column?
+  const HEADER_SIGNALS = ['asin', 'title', 'units', 'kenp', 'royalt', 'date']
+  const hasDataColumns = (r: Record<string, unknown>) =>
+    Object.keys(r).some(k => HEADER_SIGNALS.some(s => k.toLowerCase().includes(s)))
+
+  if (rows.some(hasDataColumns)) return rows
+
+  // Fall back: scan raw rows for the real header row (first 10 rows)
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][]
+  let headerIdx = -1
+  for (let i = 0; i < Math.min(raw.length, 10); i++) {
+    const cells = (raw[i] ?? []).map(c => String(c ?? '').toLowerCase())
+    if (cells.some(c => c.includes('asin') || c.includes('title') || c.includes('royalty date'))) {
+      headerIdx = i
+      break
+    }
+  }
+
+  if (headerIdx < 0) {
+    console.warn('[KDP parser] Could not detect header row — falling back to sheet_to_json default')
+    return rows
+  }
+
+  const headers = (raw[headerIdx] ?? []).map(c => String(c ?? '').trim())
+  console.log(`[KDP parser] Real header row found at index ${headerIdx}:`, headers)
+
+  return raw.slice(headerIdx + 1)
+    .filter(row => (row ?? []).some(c => c !== null && c !== undefined && c !== ''))
+    .map(row => {
+      const obj: Record<string, unknown> = {}
+      headers.forEach((h, i) => { if (h) obj[h] = (row as unknown[])[i] ?? '' })
+      return obj
+    })
+}
+
 // ── KDP Dashboard XLSX format (Combined Sales + KENP Read + Paperback Royalty) ─
 function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   // ── Combined Sales sheet (ebooks) ─────────────────────────────────────────
   const combinedSheet = workbook.Sheets['Combined Sales']
-  const combinedData  = combinedSheet
-    ? (XLSX.utils.sheet_to_json(combinedSheet) as Record<string, unknown>[])
-    : []
+  const combinedData  = combinedSheet ? sheetToRows(combinedSheet) : []
 
   // ── Paperback Royalty sheet ───────────────────────────────────────────────
   const paperbackSheet = workbook.Sheets['Paperback Royalty']
-  const paperbackData  = paperbackSheet
-    ? (XLSX.utils.sheet_to_json(paperbackSheet) as Record<string, unknown>[])
-    : []
+  const paperbackData  = paperbackSheet ? sheetToRows(paperbackSheet) : []
 
   // ── KENP Read sheet ───────────────────────────────────────────────────────
   const kenpSheet = workbook.Sheets['KENP Read']
-  const kenpData  = kenpSheet
-    ? (XLSX.utils.sheet_to_json(kenpSheet) as Record<string, unknown>[])
-    : []
+  const kenpData  = kenpSheet ? sheetToRows(kenpSheet) : []
 
+  console.log(`[KDP parser] Combined Sales: ${combinedData.length} rows`)
+  console.log(`[KDP parser] Paperback Royalty: ${paperbackData.length} rows`)
+  console.log(`[KDP parser] KENP Read: ${kenpData.length} rows`)
   if (combinedData.length) console.log('[KDP parser] Combined Sales headers:', Object.keys(combinedData[0]))
   if (paperbackData.length) console.log('[KDP parser] Paperback Royalty headers:', Object.keys(paperbackData[0]))
   if (kenpData.length)     console.log('[KDP parser] KENP Read headers:', Object.keys(kenpData[0]))
@@ -186,13 +225,17 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   let paperbackUnits = 0
 
   // ── Parse Combined Sales (ebooks) ─────────────────────────────────────────
+  // NOTE: 'Royalty (USD)' / 'Royalties (USD)' must come BEFORE plain 'Royalty'
+  // because pick() uses substring matching and 'Royalty Date' (a date string)
+  // would otherwise match 'Royalty' first, giving num("2026-04-08") = 0.
+  // Similarly, 'Royalty Currency' must be matched explicitly for the currency field.
   for (const row of combinedData) {
     const asin     = str(pick(row, 'ASIN/ISBN', 'ASIN', 'Asin'))
     const title    = str(pick(row, 'Title'))
     const units    = num(pick(row, 'Net Units Sold'))
-    const royalty  = num(pick(row, 'Royalty'))
-    const currency = str(pick(row, 'Currency')).toUpperCase().trim()
-    const date     = toISODate(pick(row, 'Royalty Date'))
+    const royalty  = num(pick(row, 'Royalty (USD)', 'Royalties (USD)', 'Net Royalty', 'Net Royalties', 'Royalty'))
+    const currency = str(pick(row, 'Royalty Currency', 'Currency')).toUpperCase().trim()
+    const date     = toISODate(pick(row, 'Royalty Date', 'Date'))
     const isUSD    = currency === 'USD' || currency === ''
 
     if (!asin && !title) continue
@@ -217,12 +260,12 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
 
   // ── Parse Paperback Royalty ───────────────────────────────────────────────
   for (const row of paperbackData) {
-    const asin     = str(pick(row, 'ASIN', 'ISBN', 'ASIN/ISBN'))
+    const asin     = str(pick(row, 'ASIN/ISBN', 'ASIN', 'ISBN'))
     const title    = str(pick(row, 'Title'))
     const units    = num(pick(row, 'Net Units Sold'))
-    const royalty  = num(pick(row, 'Royalty'))
-    const currency = str(pick(row, 'Currency')).toUpperCase().trim()
-    const date     = toISODate(pick(row, 'Royalty Date'))
+    const royalty  = num(pick(row, 'Royalty (USD)', 'Royalties (USD)', 'Net Royalty', 'Net Royalties', 'Royalty'))
+    const currency = str(pick(row, 'Royalty Currency', 'Currency')).toUpperCase().trim()
+    const date     = toISODate(pick(row, 'Royalty Date', 'Date'))
     const isUSD    = currency === 'USD' || currency === ''
 
     if (!asin && !title) continue
