@@ -229,7 +229,7 @@ export async function POST(req: NextRequest) {
     bookTitle || 'their book',
     enrichedWorkbookData,
     styleGuide || {},
-    { writingKillList: user.writingKillList ?? null },
+    { writingKillList: user?.writingKillList ?? null },
     activePhase || 'Writing',
   )
 
