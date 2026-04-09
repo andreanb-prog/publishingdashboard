@@ -123,7 +123,11 @@ export function ChatPane(props: Props) {
           ? 'Your API key is invalid. Please update it in Settings.'
           : err.error === 'rate_limited'
           ? 'Rate limited. Please wait a moment and try again.'
-          : 'Something went wrong. Please try again.'
+          : err.error === 'server_error'
+          ? 'Server error — try again in a few seconds.'
+          : res.status === 401
+          ? 'Session expired — please refresh the page.'
+          : `Something went wrong (${err.error || res.status}). Please try again.`
         setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', content: errMsg, createdAt: new Date().toISOString() }])
         setStreaming(false)
         return

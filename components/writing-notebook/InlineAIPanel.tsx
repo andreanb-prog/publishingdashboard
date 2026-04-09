@@ -127,7 +127,10 @@ export function InlineAIPanel({
         const data = await res.json().catch(() => ({}))
         if (data.error === 'no_api_key') setError('Add your Anthropic API key in Settings.')
         else if (data.error === 'invalid_key') setError('Your API key is invalid. Update it in Settings.')
-        else setError('Something went wrong. Please try again.')
+        else if (data.error === 'rate_limited') setError('Rate limited — wait a moment and try again.')
+        else if (data.error === 'server_error') setError('Server error — try again in a few seconds.')
+        else if (res.status === 401) setError('Session expired — please refresh the page.')
+        else setError(`Something went wrong (${data.error || res.status}). Please try again.`)
         setIsStreaming(false)
         return
       }
