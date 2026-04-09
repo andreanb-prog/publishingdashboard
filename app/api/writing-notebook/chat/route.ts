@@ -242,7 +242,7 @@ export async function POST(req: NextRequest) {
 
     console.log('[chat] starting stream')
     const stream = await anthropic.messages.stream({
-      model: 'claude-sonnet-4-5-20241022',
+      model: 'claude-sonnet-4-5',
       max_tokens: 4096,
       system: systemPrompt,
       messages,
