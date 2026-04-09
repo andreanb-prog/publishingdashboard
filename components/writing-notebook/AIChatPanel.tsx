@@ -128,9 +128,7 @@ export function AIChatPanel({
           const chunk = decoder.decode(value, { stream: true })
 
           // Check for error markers
-          if (chunk.includes('[ERROR:invalid_key]')) { setError('Your API key is invalid.'); break }
-          if (chunk.includes('[ERROR:rate_limited]')) { setError('Rate limited. Wait a moment and try again.'); break }
-          if (chunk.includes('[ERROR:unknown]')) { setError('Something went wrong.'); break }
+          if (chunk.includes('[ERROR:')) { setError('Something went wrong.'); break }
 
           assistantContent += chunk
           setMessages(prev => {
@@ -140,6 +138,8 @@ export function AIChatPanel({
           })
         }
       }
+
+      console.log('[chat] stream complete, length:', assistantContent.length)
 
       // Persist assistant message
       if (assistantContent) await persistMessage('assistant', assistantContent)

@@ -253,20 +253,18 @@ export async function POST(req: NextRequest) {
           }
           controller.close()
         } catch (err: any) {
-          if (err?.status === 401) {
-            controller.enqueue(encoder.encode('\n\n[ERROR:invalid_key]'))
-          } else if (err?.status === 429) {
-            controller.enqueue(encoder.encode('\n\n[ERROR:rate_limited]'))
-          } else {
-            controller.enqueue(encoder.encode('\n\n[ERROR:unknown]'))
-          }
+          controller.enqueue(encoder.encode('\n\n[ERROR:stream_failed]'))
           controller.close()
         }
       },
     })
 
     return new Response(readable, {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'X-Content-Type-Options': 'nosniff',
+      },
     })
   } catch (err: any) {
     if (err?.status === 401) {
