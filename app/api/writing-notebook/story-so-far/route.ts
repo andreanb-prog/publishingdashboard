@@ -33,26 +33,26 @@ export async function POST(req: NextRequest) {
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: 600,
+    max_tokens: 1200,
     messages: [
       {
         role: 'user',
-        content: `You are a story continuity assistant. Given these chapters, write a concise Story So Far summary (max 200 words) capturing key plot points, character introductions, and where the story currently stands. Write in present tense. Use character names.\n\n${chapterText}`,
+        content: `You are a story continuity assistant. Given these chapters, produce a Story So Far document. For each chapter, generate exactly this format:
+
+Chapter [Number]
+Opening hook: "[Quote the opening line or two verbatim]"
+Summary: [Key events, character developments, plot progression — 100 words max]
+Closing cliffhanger: "[Quote the closing line or two verbatim]"
+
+No preamble. No conclusion. Just the chapter entries.
+
+${chapterText}`,
       },
     ],
   })
 
   const summary =
     response.content[0].type === 'text' ? response.content[0].text : ''
-
-  // Save to Book.storyContent
-  await db.book.update({
-    where: { id: bookId },
-    data: {
-      storyContent: summary,
-      storyContentUpdatedAt: new Date(),
-    },
-  })
 
   return Response.json({ success: true, summary })
 }
