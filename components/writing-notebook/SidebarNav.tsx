@@ -241,7 +241,7 @@ export function SidebarNav({
                   className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
                   style={STATUS_PILL[status]}
                 >
-                  {status === 'Draft' ? getDraftLabel(chDraftMeta.activeDraft + 1) : status}
+                  {status === 'Draft' ? getDraftLabel(chDraftMeta.activeDraft + 1) : status === 'Empty' ? 'Not started' : status}
                 </span>
               </button>
               <button

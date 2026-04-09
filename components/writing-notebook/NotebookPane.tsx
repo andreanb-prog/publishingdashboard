@@ -71,7 +71,7 @@ const STATUS_CONFIG: Record<ChapterStatus, { label: string; bg: string; color: s
   draft:      { label: 'Draft',      bg: 'transparent', color: '#E9A020', border: '1px solid #E9A020', Icon: Pencil },
   complete:   { label: 'Complete',   bg: '#6EBF8B',     color: '#FFFFFF', Icon: CheckCircle },
   needs_edit: { label: 'Needs Edit', bg: 'transparent', color: '#F97B6B', border: '1px solid #F97B6B', Icon: AlertCircle },
-  empty:      { label: 'Empty',      bg: 'transparent', color: '#9CA3AF', border: '1px solid #D1D5DB', Icon: Pencil },
+  empty:      { label: 'Not started', bg: 'transparent', color: '#9CA3AF', border: '1px solid #D1D5DB', Icon: Pencil },
 }
 
 function ChapterStatusButton({ status, onClick }: { status: ChapterStatus; onClick: () => void }) {

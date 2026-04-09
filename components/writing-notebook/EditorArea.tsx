@@ -785,7 +785,7 @@ export function EditorArea({
                 className="px-2.5 py-0.5 rounded-full text-[12px] font-medium"
                 style={STATUS_STYLE[status]}
               >
-                {status}
+                {status === 'Empty' ? 'Not started' : status}
               </span>
               {/* "+ New draft" button when only 1 draft exists */}
               {draftCount <= 1 && (

@@ -39,7 +39,7 @@ const STATUS_STYLES: Record<ChapterStatus, { bg: string; color: string; label: s
   complete:   { bg: '#6EBF8B', color: '#FFFFFF', label: 'Complete',   Icon: CheckCircle },
   draft:      { bg: '#E9A020', color: '#FFFFFF', label: 'Draft',      Icon: Pencil },
   needs_edit: { bg: '#F97B6B', color: '#FFFFFF', label: 'Needs Edit', Icon: AlertCircle },
-  empty:      { bg: 'transparent', color: '#9CA3AF', label: 'Empty', border: '1px solid #D1D5DB', Icon: Pencil },
+  empty:      { bg: 'transparent', color: '#9CA3AF', label: 'Not started', border: '1px solid #D1D5DB', Icon: Pencil },
 }
 
 export function ChapterDrawer({
