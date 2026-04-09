@@ -187,7 +187,7 @@ export default function WritingNotebookPage() {
   })()
 
   return (
-    <div className="flex flex-col h-screen" style={{ background: '#FFFFFF' }}>
+    <div className="flex flex-col h-screen" style={{ background: '#FFF8F0' }}>
       {/* ── Top bar ─────────────────────────────────────────────────── */}
       <WritingNotebookTopBar
         books={books}
@@ -198,59 +198,104 @@ export default function WritingNotebookPage() {
         lastSavedAt={lastSavedAt}
         bookId={bookId}
         onAddChapter={handleAddChapter}
+        isChatOpen={isChatOpen}
+        onToggleChat={() => setIsChatOpen(prev => !prev)}
       />
 
       {/* ═══ DESKTOP LAYOUT ════════════════════════════════════════ */}
       <div className="flex-1 hidden md:flex overflow-hidden">
-        {/* Left — SidebarNav (196px) */}
-        <SidebarNav
-          workbookData={workbook.data}
-          getChapterMeta={workbook.getChapterMeta}
-          getChapterDraftMeta={workbook.getChapterDraftMeta}
-          activeNavItem={activeNavItem}
-          onNavChange={handleNavChange}
-          onAddChapter={handleAddChapter}
-          storySoFarStatus={storySoFarStatus}
-          onStorySoFarUpdate={triggerStorySoFarUpdate}
-          hasChapterContent={hasChapterContent}
-        />
-
-        {/* Center — AI panel + editor */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <InlineAIPanel
-            bookId={bookId}
-            bookTitle={bookTitle}
+        {/* Left pane 55% — SidebarNav + Editor */}
+        <div className="flex overflow-hidden" style={{ width: '55%' }}>
+          <SidebarNav
             workbookData={workbook.data}
-            styleGuide={workbook.getStyleGuide()}
-            hasApiKey={hasApiKey}
+            getChapterMeta={workbook.getChapterMeta}
+            getChapterDraftMeta={workbook.getChapterDraftMeta}
             activeNavItem={activeNavItem}
+            onNavChange={handleNavChange}
+            onAddChapter={handleAddChapter}
+            storySoFarStatus={storySoFarStatus}
+            onStorySoFarUpdate={triggerStorySoFarUpdate}
+            hasChapterContent={hasChapterContent}
           />
 
-          <div className="flex-1 overflow-hidden">
-            <EditorArea
-              key={activeNavItem}
-              activeNavItem={activeNavItem}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <InlineAIPanel
               bookId={bookId}
+              bookTitle={bookTitle}
               workbookData={workbook.data}
-              getValue={workbook.getValue}
-              setValue={workbook.setValue}
-              getChapterMeta={workbook.getChapterMeta}
-              setChapterMeta={workbook.setChapterMeta}
-              getStyleGuide={workbook.getStyleGuide}
-              setStyleGuide={workbook.setStyleGuide}
-              getChapterDraftMeta={workbook.getChapterDraftMeta}
-              setChapterDraftMeta={workbook.setChapterDraftMeta}
-              getChapterDraft={workbook.getChapterDraft}
-              setChapterDraft={workbook.setChapterDraft}
-              getActiveDraftContent={workbook.getActiveDraftContent}
-              onWordCountChange={setWordCount}
-              onKeystroke={resetIdleTimer}
-              onStorySoFarUpdate={triggerStorySoFarUpdate}
-              storySoFarStatus={storySoFarStatus}
-              hasChapterContent={hasChapterContent}
+              styleGuide={workbook.getStyleGuide()}
+              hasApiKey={hasApiKey}
+              activeNavItem={activeNavItem}
             />
+
+            <div className="flex-1 overflow-hidden">
+              <EditorArea
+                key={activeNavItem}
+                activeNavItem={activeNavItem}
+                bookId={bookId}
+                workbookData={workbook.data}
+                getValue={workbook.getValue}
+                setValue={workbook.setValue}
+                getChapterMeta={workbook.getChapterMeta}
+                setChapterMeta={workbook.setChapterMeta}
+                getChapterDraftMeta={workbook.getChapterDraftMeta}
+                setChapterDraftMeta={workbook.setChapterDraftMeta}
+                getChapterDraft={workbook.getChapterDraft}
+                setChapterDraft={workbook.setChapterDraft}
+                getActiveDraftContent={workbook.getActiveDraftContent}
+                getStyleGuide={workbook.getStyleGuide}
+                setStyleGuide={workbook.setStyleGuide}
+                onWordCountChange={setWordCount}
+                onKeystroke={resetIdleTimer}
+                onStorySoFarUpdate={triggerStorySoFarUpdate}
+                storySoFarStatus={storySoFarStatus}
+                hasChapterContent={hasChapterContent}
+              />
+            </div>
           </div>
         </div>
+
+        {/* Right pane 45% — Chapter Drawer */}
+        <div
+          className="overflow-hidden transition-opacity duration-300"
+          style={{
+            width: '45%',
+            borderLeft: '1px solid #E5E7EB',
+            opacity: isChatOpen ? 0.4 : 1,
+          }}
+        >
+          <ChapterDrawer
+            bookId={bookId}
+            workbookData={workbook.data}
+            getChapterMeta={workbook.getChapterMeta}
+            drawerToggle={drawerToggle}
+            onDrawerToggle={setDrawerToggle}
+            activeChapterIndex={activeChapterIndex}
+            onChapterClick={idx => {
+              setActiveNavItem(`chapter:${idx}`)
+            }}
+            onSectionClick={section => {
+              setActiveNavItem(section)
+            }}
+            onAddChapter={handleAddChapter}
+            onOpenChat={() => setIsChatOpen(true)}
+          />
+        </div>
+      </div>
+
+      {/* ═══ DESKTOP FLOATING AI CHAT ═════════════════════════════ */}
+      <div className="hidden md:block">
+        <AIChatPanel
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          bookId={bookId}
+          bookTitle={bookTitle}
+          activePhase={phase}
+          workbookData={workbook.data}
+          styleGuide={workbook.getStyleGuide()}
+          hasApiKey={hasApiKey}
+          onSaveToWorkbook={handleSaveToWorkbook}
+        />
       </div>
 
       {/* ═══ MOBILE LAYOUT ════════════════════════════════════════ */}
@@ -269,9 +314,9 @@ export default function WritingNotebookPage() {
             getValue={workbook.getValue}
             setValue={setValueAsync}
             getChapterMeta={workbook.getChapterMeta}
-            onReloadWorkbook={workbook.load}
             saving={workbook.saving}
             saved={workbook.saved}
+            onReloadWorkbook={workbook.load}
           />
         )}
         {mobileTab === 'chapters' && (

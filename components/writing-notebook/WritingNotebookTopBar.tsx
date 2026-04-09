@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, Plus, Upload } from 'lucide-react'
+import { ChevronLeft, Plus, Upload, Sparkles, X } from 'lucide-react'
 import { BookDropdown } from './BookDropdown'
 import { ExportDropdown } from './ExportDropdown'
 import type { BookRecord } from '@/hooks/useBooks'
@@ -86,6 +86,7 @@ export function WritingNotebookTopBar({
   books, selectedBookId, onBookChange, onNewBook,
   wordCount = 0, saving = {}, lastSavedAt = null,
   bookId = '', onAddChapter, onFileImport,
+  isChatOpen = false, onToggleChat,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -118,7 +119,7 @@ export function WritingNotebookTopBar({
           style={{ color: '#9CA3AF', fontSize: 12 }}
         >
           <ChevronLeft size={14} />
-          Dashboard
+          Back to Dashboard
         </Link>
 
         <div className="w-px h-4 shrink-0" style={{ background: '#E5E7EB' }} />
@@ -164,6 +165,22 @@ export function WritingNotebookTopBar({
           <Plus size={13} />
           Chapter
         </button>
+
+        {/* AI Chat toggle — desktop only */}
+        {onToggleChat && (
+          <button
+            onClick={onToggleChat}
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors"
+            style={{
+              border: '1.5px solid #E9A020',
+              color: isChatOpen ? '#FFFFFF' : '#E9A020',
+              background: isChatOpen ? '#E9A020' : 'transparent',
+            }}
+          >
+            {isChatOpen ? <X size={13} /> : <Sparkles size={13} />}
+            AI Chat
+          </button>
+        )}
       </div>
     </div>
   )

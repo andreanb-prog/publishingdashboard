@@ -75,7 +75,7 @@ export function ChapterDrawer({
       <div className="px-4 pt-3 pb-2 shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-medium" style={{ color: '#1E2D3D' }}>Your Story</h2>
+            <h2 className="text-base font-medium" style={{ color: '#1E2D3D' }}>Chapters</h2>
             <p className="text-xs" style={{ color: '#9CA3AF' }}>
               {maxCount} chapter{maxCount !== 1 ? 's' : ''} &middot; {totalWords.toLocaleString()} words
             </p>
