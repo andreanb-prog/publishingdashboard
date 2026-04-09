@@ -298,7 +298,7 @@ export default function WritingNotebookPage() {
   })()
 
   return (
-    <div className="flex flex-col h-screen" style={{ background: '#FFF8F0' }}>
+    <div className="flex flex-col h-screen" style={{ background: '#FFFFFF' }}>
       {/* ── Top bar ─────────────────────────────────────────────────── */}
       <WritingNotebookTopBar
         books={books}

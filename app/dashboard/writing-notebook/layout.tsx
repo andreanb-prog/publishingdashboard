@@ -8,7 +8,7 @@ export default function WritingNotebookLayout({
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col"
-      style={{ background: '#FFF8F0' }}
+      style={{ background: '#FFFFFF' }}
     >
       {children}
     </div>
