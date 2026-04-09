@@ -4,5 +4,5 @@ node_modules/
 .env.local
 .env*.local
 prisma/seed-swaps.ts
-.claude/skills/
+.claude/
 .vercel
