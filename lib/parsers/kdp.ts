@@ -196,11 +196,76 @@ function sheetToRows(sheet: XLSX.WorkSheet): Record<string, unknown>[] {
     })
 }
 
+// ── parseCombinedSalesSheet: reads "Combined Sales" using raw column indices ──
+// The royalty amount column has NO header name — it must be accessed by position
+// (second-to-last column, equivalent to pandas iloc[:, -2]).
+interface CombinedSalesRow {
+  asin: string; title: string; date: string
+  units: number; royalties: number; currency: string
+}
+
+function parseCombinedSalesSheet(sheet: XLSX.WorkSheet): CombinedSalesRow[] {
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', cellDates: true }) as unknown[][]
+
+  // Find the header row (scan first 10 rows for 'Royalty Date' or 'ASIN')
+  let headerIdx = -1
+  for (let i = 0; i < Math.min(raw.length, 10); i++) {
+    const cells = (raw[i] ?? []).map(c => String(c ?? '').toLowerCase().trim())
+    if (cells.some(c => c === 'royalty date' || c === 'title' || c.includes('asin'))) {
+      headerIdx = i
+      break
+    }
+  }
+
+  if (headerIdx < 0) {
+    console.warn('[KDP parser] Combined Sales: could not find header row in first 10 rows')
+    return []
+  }
+
+  const headers   = (raw[headerIdx] ?? []).map(c => String(c ?? '').trim())
+  const totalCols = headers.length
+
+  // Named column indices
+  const iDate     = headers.findIndex(h => h.toLowerCase() === 'royalty date')
+  const iTitle    = headers.findIndex(h => h.toLowerCase() === 'title')
+  const iAsin     = headers.findIndex(h => h.toLowerCase().includes('asin'))
+  const iUnits    = headers.findIndex(h => h.toLowerCase().includes('net units sold'))
+  // Royalty amount column has NO header → second-to-last column (iloc[:, -2])
+  const iRoyalty  = totalCols - 2
+  // Royalty Currency is the last column
+  const iCurrency = totalCols - 1
+
+  console.log(`[KDP parser] Combined Sales header row at index ${headerIdx}, ${totalCols} cols`)
+  console.log(`[KDP parser] Combined Sales col map — date:${iDate} asin:${iAsin} title:${iTitle} units:${iUnits} royalty(unnamed):${iRoyalty} currency:${iCurrency}`)
+
+  const results: CombinedSalesRow[] = []
+  for (let i = headerIdx + 1; i < raw.length; i++) {
+    const row = raw[i] as unknown[]
+    if (!row || row.every(c => c === '' || c === null || c === undefined)) continue
+
+    const asin  = str(iAsin  >= 0 ? row[iAsin]  : '')
+    const title = str(iTitle >= 0 ? row[iTitle] : '')
+    if (!asin && !title) continue
+
+    results.push({
+      asin,
+      title,
+      date:      toISODate(iDate >= 0 ? row[iDate] : ''),
+      units:     num(iUnits >= 0 ? row[iUnits] : 0),
+      royalties: num(row[iRoyalty]),
+      currency:  str(iCurrency >= 0 ? row[iCurrency] : '').toUpperCase().trim(),
+    })
+  }
+
+  console.log(`[KDP parser] Combined Sales: ${results.length} data rows parsed`)
+  return results
+}
+
 // ── KDP Dashboard XLSX format (Combined Sales + KENP Read + Paperback Royalty) ─
 function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
-  // ── Combined Sales sheet (ebooks) ─────────────────────────────────────────
+  // ── Combined Sales sheet — use raw-array parser (unnamed royalty column) ──
   const combinedSheet = workbook.Sheets['Combined Sales']
-  const combinedData  = combinedSheet ? sheetToRows(combinedSheet) : []
+  const combinedData  = combinedSheet ? parseCombinedSalesSheet(combinedSheet) : []
 
   // ── Paperback Royalty sheet ───────────────────────────────────────────────
   const paperbackSheet = workbook.Sheets['Paperback Royalty']
@@ -210,12 +275,9 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   const kenpSheet = workbook.Sheets['KENP Read']
   const kenpData  = kenpSheet ? sheetToRows(kenpSheet) : []
 
-  console.log(`[KDP parser] Combined Sales: ${combinedData.length} rows`)
-  console.log(`[KDP parser] Paperback Royalty: ${paperbackData.length} rows`)
-  console.log(`[KDP parser] KENP Read: ${kenpData.length} rows`)
-  if (combinedData.length) console.log('[KDP parser] Combined Sales headers:', Object.keys(combinedData[0]))
+  console.log(`[KDP parser] Sheet row counts — Combined Sales: ${combinedData.length}, Paperback Royalty: ${paperbackData.length}, KENP Read: ${kenpData.length}`)
   if (paperbackData.length) console.log('[KDP parser] Paperback Royalty headers:', Object.keys(paperbackData[0]))
-  if (kenpData.length)     console.log('[KDP parser] KENP Read headers:', Object.keys(kenpData[0]))
+  if (kenpData.length)      console.log('[KDP parser] KENP Read headers:', Object.keys(kenpData[0]))
 
   const bookMap = new Map<string, BookData>()
   const dailyUnitsMap = new Map<string, number>()
@@ -225,20 +287,9 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   let paperbackUnits = 0
 
   // ── Parse Combined Sales (ebooks) ─────────────────────────────────────────
-  // NOTE: 'Royalty (USD)' / 'Royalties (USD)' must come BEFORE plain 'Royalty'
-  // because pick() uses substring matching and 'Royalty Date' (a date string)
-  // would otherwise match 'Royalty' first, giving num("2026-04-08") = 0.
-  // Similarly, 'Royalty Currency' must be matched explicitly for the currency field.
   for (const row of combinedData) {
-    const asin     = str(pick(row, 'ASIN/ISBN', 'ASIN', 'Asin'))
-    const title    = str(pick(row, 'Title'))
-    const units    = num(pick(row, 'Net Units Sold'))
-    const royalty  = num(pick(row, 'Royalty (USD)', 'Royalties (USD)', 'Net Royalty', 'Net Royalties', 'Royalty'))
-    const currency = str(pick(row, 'Royalty Currency', 'Currency')).toUpperCase().trim()
-    const date     = toISODate(pick(row, 'Royalty Date', 'Date'))
-    const isUSD    = currency === 'USD' || currency === ''
-
-    if (!asin && !title) continue
+    const { asin, title, date, units, royalties: royalty, currency } = row
+    const isUSD = currency === 'USD' || currency === ''
 
     const key = asin || title
     if (!bookMap.has(key)) {
@@ -323,8 +374,7 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   }
 
   // ── Derive month from first date in Combined Sales ────────────────────────
-  const firstRow = combinedData[0]
-  const firstDate = firstRow ? toISODate(pick(firstRow as Record<string, unknown>, 'Royalty Date')) : ''
+  const firstDate = combinedData[0]?.date ?? ''
   const month = firstDate ? firstDate.substring(0, 7) : new Date().toISOString().substring(0, 7)
 
   const books      = deduplicateBooks(Array.from(bookMap.values()))
