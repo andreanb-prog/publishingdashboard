@@ -16,6 +16,44 @@ const WRITING_FORMULA_TEXT = `WRITING FORMULA:
 
 const ANTI_SLOP_SUMMARY = `ANTI-SLOP RULES — Banned words include: delve, unpack, tapestry, navigate (emotions), testament, nuanced, profound, visceral, palpable, synergy, holistic. Banned openers: Moreover, Furthermore, Additionally, That said. No adverb + weak verb. No telling emotions. Every detail must be specific.`
 
+// ─── MANUSCRIPT CHAPTER PARSER ───────────────────────────────
+const WORD_TO_NUM: Record<string, number> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8,
+  nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14,
+  fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20,
+  'twenty-one': 21, 'twenty-two': 22, 'twenty-three': 23, 'twenty-four': 24, 'twenty-five': 25,
+}
+
+function parseManuscriptChapters(content: string) {
+  const lines = content.split('\n')
+  const CHAPTER_HEADING = /^#{1,3}\s+Chapter\s+(\S+)(?:\s*[—–\-]\s*(.+))?$/i
+  const META_LINE = /^#{3,4}\s+(?:Edited|Draft|Stillwater|Series)/i
+  const TITLE_BLOCK = /^#\s+(?!Chapter\s)/i
+
+  // Pass 1: find chapter heading line indices
+  const chapterStarts: { idx: number; num: string; title: string }[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(CHAPTER_HEADING)
+    if (m) chapterStarts.push({ idx: i, num: m[1], title: (m[2] || '').trim() })
+  }
+
+  // Pass 2: extract body for each chapter, filtering junk lines
+  return chapterStarts.map((ch, ci) => {
+    const startLine = ch.idx + 1
+    const endLine = ci < chapterStarts.length - 1 ? chapterStarts[ci + 1].idx : lines.length
+    const body = lines
+      .slice(startLine, endLine)
+      .filter(l => !META_LINE.test(l) && !TITLE_BLOCK.test(l))
+      .join('\n')
+      .trim()
+
+    const n = parseInt(ch.num, 10)
+    const chapterNumber = !isNaN(n) ? n : (WORD_TO_NUM[ch.num.toLowerCase()] ?? (ci + 1))
+
+    return { number: chapterNumber, title: ch.title, body }
+  })
+}
+
 // ─── TYPES ───────────────────────────────────────────────────
 interface Props {
   phase: Phase
@@ -48,8 +86,6 @@ export function WorkbookPane(props: Props) {
   const [showUpload, setShowUpload] = useState(false)
 
   const handleImport = useCallback((target: ImportTarget, content: string) => {
-    const CHAPTER_RE = /^(?:chapter\s+\d+|ch\.?\s*\d+|part\s+\d+)/gim
-
     if (target.type === 'storyOutline') {
       const existing = getValue('setup', 'storyOutline')
       setValue('setup', 'storyOutline', existing ? existing + '\n\n' + content : content)
@@ -65,16 +101,15 @@ export function WorkbookPane(props: Props) {
       setValue('writing', 'chapter', content, idx)
       setPhase('writing')
     } else if (target.type === 'splitChapters') {
-      const parts = content.split(CHAPTER_RE).filter(s => s.trim())
-      const headings = content.match(CHAPTER_RE) || []
+      const chapters = parseManuscriptChapters(content)
       const meta = getChapterMeta('writing')
-      let startIdx = meta.count
+      const startIdx = meta.count
       const newTitles = [...meta.titles]
-      parts.forEach((text, i) => {
-        newTitles.push(headings[i]?.trim() || '')
-        setValue('writing', 'chapter', text.trim(), startIdx + i)
+      chapters.forEach((ch, i) => {
+        newTitles.push(ch.title || `Chapter ${ch.number}`)
+        setValue('writing', 'chapter', ch.body, startIdx + i)
       })
-      setChapterMeta('writing', { count: startIdx + parts.length, titles: newTitles })
+      setChapterMeta('writing', { count: startIdx + chapters.length, titles: newTitles })
       setPhase('writing')
     }
   }, [getValue, setValue, getChapterMeta, setChapterMeta, setPhase])
