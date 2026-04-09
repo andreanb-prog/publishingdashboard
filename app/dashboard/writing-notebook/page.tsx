@@ -109,6 +109,22 @@ export default function WritingNotebookPage() {
     finally { setStorySoFarStatus('upToDate') }
   }, [selectedBookId, workbook])
 
+  // On page load: auto-generate Story So Far once if chapters have content but summary is empty
+  const didLoadTriggerRef = useRef(false)
+  useEffect(() => {
+    if (!workbook.loaded || didLoadTriggerRef.current) return
+    const currentSummary = workbook.getValue('writing', 'storySoFar')
+    if (currentSummary.trim()) return // already populated
+    const meta = workbook.getChapterMeta('writing')
+    const hasContent = Array.from({ length: meta.count }, (_, i) =>
+      workbook.getValue('writing', 'chapter', i)
+    ).some(c => c.trim())
+    if (hasContent) {
+      didLoadTriggerRef.current = true
+      triggerStorySoFarUpdate()
+    }
+  }, [workbook.loaded]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Trigger when navigating away from a chapter
   const prevNavRef = useRef(activeNavItem)
 
@@ -280,6 +296,7 @@ export default function WritingNotebookPage() {
             getChapterMeta={workbook.getChapterMeta}
             saving={workbook.saving}
             saved={workbook.saved}
+            onChapterBlur={triggerStorySoFarUpdate}
           />
         )}
         {mobileTab === 'chapters' && (

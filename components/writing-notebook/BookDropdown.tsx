@@ -83,7 +83,7 @@ export function BookDropdown({ books, selectedBookId, onBookChange, onNewBook }:
                 <p className="text-[13px] font-medium truncate" style={{ color: '#1E2D3D' }}>
                   {b.title}
                 </p>
-                <p className="text-[11px]" style={{ color: '#9CA3AF' }}>B{i + 1}</p>
+                <p className="text-[11px]" style={{ color: '#9CA3AF' }}>B{b.position}</p>
               </div>
               {b.id === selectedBookId && (
                 <Check size={13} style={{ color: '#6EBF8B', flexShrink: 0 }} />

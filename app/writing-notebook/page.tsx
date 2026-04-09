@@ -1,6 +1,6 @@
 'use client'
 // app/writing-notebook/page.tsx — immersive writing notebook (no sidebar)
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, Sparkles, X } from 'lucide-react'
@@ -164,6 +164,45 @@ export default function WritingNotebookPage() {
     setActiveChapterIndex(chapterIndex)
   }, [setValue, getChapterMeta, setChapterMeta])
 
+  // Story So Far auto-update
+  const triggerStorySoFar = useCallback(async () => {
+    if (!selectedBookId) return
+    const meta = getChapterMeta('writing')
+    const chapters = Array.from({ length: meta.count }, (_, i) => ({
+      title: meta.titles[i] ?? '',
+      content: getValue('writing', 'chapter', i),
+      order: i,
+    })).filter(c => c.content.trim())
+    if (!chapters.length) return
+    try {
+      const res = await fetch('/api/writing-notebook/story-so-far', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId: selectedBookId, chapters }),
+      })
+      const data = await res.json()
+      if (data.success && data.summary) {
+        await setValue('writing', 'storySoFar', data.summary)
+      }
+    } catch { /* fail silently */ }
+  }, [selectedBookId, getChapterMeta, getValue, setValue])
+
+  // On load: fire once if chapters have content but storySoFar is empty
+  const didLoadTriggerRef = useRef(false)
+  useEffect(() => {
+    if (loading || didLoadTriggerRef.current) return
+    const currentSummary = workbookData['writing:storySoFar'] ?? ''
+    if (currentSummary.trim()) return
+    const meta = getChapterMeta('writing')
+    const hasContent = Array.from({ length: meta.count }, (_, i) =>
+      workbookData[`writing:chapter:${i}`] ?? ''
+    ).some(c => c.trim())
+    if (hasContent) {
+      didLoadTriggerRef.current = true
+      triggerStorySoFar()
+    }
+  }, [loading]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const selectedBook = books.find(b => b.id === selectedBookId)
 
   if (loading && books.length === 0) {
@@ -216,6 +255,7 @@ export default function WritingNotebookPage() {
             getChapterMeta={getChapterMeta}
             saving={saving}
             saved={saved}
+            onChapterBlur={triggerStorySoFar}
           />
         </div>
 

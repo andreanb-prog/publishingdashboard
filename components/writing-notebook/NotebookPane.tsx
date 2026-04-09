@@ -17,6 +17,8 @@ interface Props {
   getChapterMeta: (phase: 'writing' | 'polish') => ChapterMeta
   saving: Record<string, boolean>
   saved: Record<string, boolean>
+  /** Called after a chapter textarea blurs with content — use to trigger Story So Far auto-update */
+  onChapterBlur?: () => void
 }
 
 const PHASES: { id: Phase; label: string }[] = [
@@ -43,7 +45,7 @@ function wordCount(text: string): number {
 
 export function NotebookPane({
   bookId, activePhase, onPhaseChange, activeSection, activeChapterIndex,
-  onSectionChange, getValue, setValue, getChapterMeta, saving, saved,
+  onSectionChange, getValue, setValue, getChapterMeta, saving, saved, onChapterBlur,
 }: Props) {
   const getKey = useCallback((phase: string, section: string, chapterIndex?: number) => {
     return chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
@@ -171,7 +173,10 @@ export function NotebookPane({
                     defaultValue={content}
                     placeholder="Start writing your chapter\u2026"
                     onFocus={() => onSectionChange('chapter', i)}
-                    onBlur={(e) => setValue('writing', 'chapter', e.target.value, i)}
+                    onBlur={(e) => {
+                      setValue('writing', 'chapter', e.target.value, i)
+                      if (e.target.value.trim()) onChapterBlur?.()
+                    }}
                     className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none transition-shadow"
                     style={{ border: 'none', minHeight: isActive ? 300 : 100, color: '#1E2D3D', lineHeight: '1.8' }}
                     rows={isActive ? 15 : 4}

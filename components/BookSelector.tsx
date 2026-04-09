@@ -8,9 +8,12 @@ interface Props {
   value: string | null
   onChange: (bookId: string) => void
   placeholder?: string
+  /** Override the displayed title — use when the parent already has the title and
+   *  wants to avoid relying on BookSelector's internal useBooks() lookup. */
+  displayTitle?: string
 }
 
-export default function BookSelector({ value, onChange, placeholder = 'Select a book' }: Props) {
+export default function BookSelector({ value, onChange, placeholder = 'Select a book', displayTitle }: Props) {
   const { books, loading } = useBooks()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -64,7 +67,7 @@ export default function BookSelector({ value, onChange, placeholder = 'Select a 
           />
         )}
         <span className="flex-1 text-left text-[13px] truncate" style={{ color: '#1E2D3D' }}>
-          {selected?.title ?? placeholder}
+          {displayTitle ?? selected?.title ?? placeholder}
         </span>
         <ChevronDown size={13} style={{ color: '#9CA3AF', flexShrink: 0 }} />
       </button>
