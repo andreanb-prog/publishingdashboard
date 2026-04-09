@@ -1,34 +1,237 @@
-import { NextRequest } from 'next/server'
+// app/api/writing-notebook/chat/route.ts — GET history + DELETE clear + POST streaming
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { decrypt } from '@/lib/crypto'
 import Anthropic from '@anthropic-ai/sdk'
 
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const bookId = req.nextUrl.searchParams.get('bookId') || null
+
+  const messages = await db.writingNotebookChat.findMany({
+    where: { userId: session.user.id, bookId },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  })
+
+  return NextResponse.json({ data: messages.reverse() })
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const bookId = req.nextUrl.searchParams.get('bookId') || null
+
+  await db.writingNotebookChat.deleteMany({
+    where: { userId: session.user.id, bookId },
+  })
+
+  return NextResponse.json({ success: true })
+}
+
+function buildSystemPrompt(
+  bookTitle: string,
+  workbookData: Record<string, string>,
+  styleGuide: any,
+  user: { writingKillList: string | null },
+  activePhase: string,
+) {
+  const niche = styleGuide?.niche || 'not specified'
+  const pov = styleGuide?.pov || 'not specified'
+  const tense = styleGuide?.tense || 'not specified'
+  const totalWordCount = styleGuide?.totalWordCount || 'not specified'
+  const chapterWordCount = styleGuide?.chapterWordCount || 'the length specified in your style guide'
+  const tropes = styleGuide?.tropes || 'not specified'
+  const personalStylePreferences = styleGuide?.personalStylePreferences || ''
+
+  const globalKills: { word: string }[] = user.writingKillList
+    ? JSON.parse(user.writingKillList) : []
+  const bookKills: { word: string }[] = styleGuide?.killList ?? []
+  const allKillWords = Array.from(new Set([...globalKills, ...bookKills].map(k => k.word)))
+
+  const killListBlock = allKillWords.length > 0 ? `
+AUTHOR'S PERSONAL KILL LIST — never use these, ever:
+${allKillWords.join(', ')}
+Treat this as absolute.
+` : ''
+
+  const antiSlopEnabled = styleGuide?.aiRules?.antiSlopEnabled ?? true
+  const writingFormulaEnabled = styleGuide?.aiRules?.writingFormulaEnabled ?? true
+
+  const writingFormulaBlock = writingFormulaEnabled ? `
+WRITING FORMULA:
+- Hook readers in the first paragraph — start in the middle of the action
+- Introduce key tropes or genre signals within the first 500 words
+- Every chapter ends with a cliffhanger, question, or hook
+- Short sentences and paragraphs (1-3 sentences max)
+- Show don't tell
+- Minimize dialogue tags
+- Balance dialogue, action, and internal thought
+- Match the tone and content level set in Writing Style above
+` : ''
+
+  // Tier A — always injected
+  const tierA = `
+CHICAGO STYLE PUNCTUATION — follow strictly:
+- Commas and periods always INSIDE quotation marks: "Like this," she said.
+- Always use Oxford comma: red, white, and blue
+- Em dashes NO spaces: He walked in—she froze.
+- Em dash for interruption: "I just wanted to—"
+- Ellipsis WITH spaces: "I don't know . . ."
+- Never ellipsis for interruption — use em dash
+- Dialogue tag comma + lowercase: "Come in," she whispered.
+- No tag = period: "Come in." She opened the door.
+- Single quotes inside double: "She said 'never' and meant it."
+- En dash for ranges: pages 10–20
+- Hyphen for compounds: well-known, self-aware
+
+NEVER use these mechanical AI transitions regardless of any other settings:
+Moreover, Furthermore, Additionally, That said,
+It was clear that, Needless to say, It goes without saying,
+Bold Word: Colon explanation structure
+
+TIME AND DATE RULES:
+- NEVER use calendar date/month/day as atmospheric filler
+- Calendar anchors are PLOT FACTS — only when story requires it
+- For atmosphere use time of day: just past midnight, late afternoon, the gray hour before dawn
+- If calendar anchor needed, flag it: [TIMELINE ANCHOR: Friday, early November]
+- Seasons ok as loose atmosphere — avoid specific months unless plot-required
+- Never invent a day of the week unless outline specifies it
+`
+
+  const antiSlopBlock = antiSlopEnabled ? `
+ANTI-SLOP RULES — follow strictly, no exceptions:
+
+BANNED WORDS — never use:
+delve, unpack, tapestry, navigate (emotions), testament, nuanced,
+profound, visceral, palpable, synergy, holistic,
+"electricity"/"butterflies" as attraction metaphors,
+"breath caught in her throat", "heart raced" as filler,
+"Something about him/her", "more than she cared to admit",
+"against her better judgment" as default,
+"little did she know" unless deliberate foreshadowing,
+"It was the kind of [X] that..." as default opener
+
+BANNED OPENERS:
+Moreover, Furthermore, Additionally, That said,
+It was clear that, Needless to say, It goes without saying,
+"In that moment" as default opener
+
+BANNED ENDINGS:
+- Generic emotional summary applicable to any story
+- Closing line that feels universal without character names
+- "She had a feeling things were about to change" vagueness
+
+BANNED MECHANICS:
+- Adverb + weak verb — cut adverb, find stronger verb
+- "Not fear. Something else." used reflexively — earn it or cut
+- "Not this. Not now." staccato as default — earn it or cut
+- Telling emotions: "she felt confused" — show it
+- Over-explaining reactions — trust the reader
+
+REQUIRED:
+- Specific detail beats general impression every time
+- Ground every scene in the character's body
+- Every ending specific to THIS story, THESE characters
+- Every dialogue line reveals character AND advances scene
+- Never explain the metaphor. Never tell the reader how to feel.
+` : ''
+
+  const outline = (workbookData['setup:storyOutline'] || '').slice(0, 2000)
+  const charBible = (workbookData['setup:characterBible'] || '').slice(0, 1500)
+  const storySoFar = (workbookData['writing:storySoFar'] || '').slice(0, 1500)
+
+  return `You are a fiction writing assistant helping the author write ${bookTitle || 'their book'}.
+
+STORY SPECIFICATIONS:
+- Genre: ${niche}
+- POV: ${pov}
+- Tense: ${tense}
+- Target: ${totalWordCount} words total, ${chapterWordCount} per chapter
+- Tropes: ${tropes}
+
+STORY OUTLINE:
+${outline || 'Not yet provided.'}
+
+CHARACTER BIBLE:
+${charBible || 'Not yet provided.'}
+
+WRITING STYLE:
+${personalStylePreferences || 'Not yet specified.'}
+
+STORY SO FAR:
+${storySoFar || 'Not yet started.'}
+${writingFormulaBlock}${tierA}${antiSlopBlock}${killListBlock}
+CURRENT PHASE: ${activePhase}
+
+When writing a chapter, respond with ONLY the chapter prose — no preamble, no notes, no "Here is Chapter X:". Just the story, ready to use.
+Target ${chapterWordCount} per chapter.
+Always end with a hook or cliffhanger.`
+}
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
-  }
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const user = await db.user.findUnique({ where: { id: session.user.id } })
+  const { bookId, bookTitle, message, activePhase, workbookData, styleGuide } = await req.json()
+
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { anthropicApiKey: true, writingKillList: true },
+  })
+
   if (!user?.anthropicApiKey) {
-    return new Response(JSON.stringify({ error: 'no_api_key' }), { status: 403 })
+    return NextResponse.json({ error: 'no_api_key' }, { status: 403 })
   }
 
   let apiKey: string
   try {
     apiKey = decrypt(user.anthropicApiKey)
   } catch {
-    return new Response(JSON.stringify({ error: 'invalid_key' }), { status: 400 })
+    return NextResponse.json({ error: 'invalid_key' }, { status: 403 })
   }
 
-  const { messages, systemPrompt } = await req.json()
+  // Get last 20 messages for context
+  const history = await db.writingNotebookChat.findMany({
+    where: { userId: session.user.id, bookId: bookId ?? null },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  })
+  const messages: { role: 'user' | 'assistant'; content: string }[] = history
+    .reverse()
+    .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
 
-  const anthropic = new Anthropic({ apiKey })
+  // Append the new user message
+  messages.push({ role: 'user', content: message })
+
+  // Load Book.storyContent as fallback for storySoFar
+  let enrichedWorkbookData = { ...(workbookData || {}) }
+  if (bookId && !enrichedWorkbookData['writing:storySoFar']) {
+    const book = await db.book.findUnique({
+      where: { id: bookId },
+      select: { storyContent: true },
+    })
+    if (book?.storyContent) {
+      enrichedWorkbookData['writing:storySoFar'] = book.storyContent
+    }
+  }
+
+  const systemPrompt = buildSystemPrompt(
+    bookTitle || 'their book',
+    enrichedWorkbookData,
+    styleGuide || {},
+    { writingKillList: user.writingKillList ?? null },
+    activePhase || 'Writing',
+  )
 
   try {
-    const stream = anthropic.messages.stream({
+    const anthropic = new Anthropic({ apiKey })
+    const stream = await anthropic.messages.stream({
       model: 'claude-sonnet-4-5-20241022',
       max_tokens: 4096,
       system: systemPrompt,
@@ -39,21 +242,19 @@ export async function POST(req: NextRequest) {
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          for await (const event of stream) {
-            if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`))
+          for await (const chunk of stream) {
+            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+              controller.enqueue(encoder.encode(chunk.delta.text))
             }
           }
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
           controller.close()
-        } catch (err: unknown) {
-          const error = err as { status?: number }
-          if (error.status === 401) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'invalid_key' })}\n\n`))
-          } else if (error.status === 429) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'rate_limited' })}\n\n`))
+        } catch (err: any) {
+          if (err?.status === 401) {
+            controller.enqueue(encoder.encode('\n\n[ERROR:invalid_key]'))
+          } else if (err?.status === 429) {
+            controller.enqueue(encoder.encode('\n\n[ERROR:rate_limited]'))
           } else {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'stream_error' })}\n\n`))
+            controller.enqueue(encoder.encode('\n\n[ERROR:unknown]'))
           }
           controller.close()
         }
@@ -61,20 +262,15 @@ export async function POST(req: NextRequest) {
     })
 
     return new Response(readable, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-      },
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     })
-  } catch (err: unknown) {
-    const error = err as { status?: number }
-    if (error.status === 401) {
-      return new Response(JSON.stringify({ error: 'invalid_key' }), { status: 401 })
+  } catch (err: any) {
+    if (err?.status === 401) {
+      return NextResponse.json({ error: 'invalid_key' }, { status: 403 })
     }
-    if (error.status === 429) {
-      return new Response(JSON.stringify({ error: 'rate_limited' }), { status: 429 })
+    if (err?.status === 429) {
+      return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
     }
-    return new Response(JSON.stringify({ error: 'api_error' }), { status: 500 })
+    return NextResponse.json({ error: 'unknown' }, { status: 500 })
   }
 }

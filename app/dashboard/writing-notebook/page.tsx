@@ -1,318 +1,341 @@
 'use client'
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
-import { OnboardingFlow } from './OnboardingFlow'
-import { Workbook } from './Workbook'
-import { AIChat } from './AIChat'
-import { useWorkbook } from './useWorkbook'
-import { ChevronDown, MessageSquare, BookOpen } from 'lucide-react'
+import { WritingOnboarding } from './WritingOnboarding'
+import { useWorkbook, type Phase } from './useWorkbook'
+import { WritingTopBar } from './components/WritingTopBar'
+import { WritingSidebar, type SidebarSection } from './components/WritingSidebar'
+import { WritingAIPanel } from './components/WritingAIPanel'
+import { WritingEditor } from './components/WritingEditor'
+import { Toast } from './components/Toast'
 
-interface Book {
+interface BookOption {
   id: string
   title: string
-  genre?: string
-  subgenre?: string
+  sortOrder?: number
 }
 
-interface UserData {
-  writingOnboardingComplete: boolean
-  anthropicApiKey: string | null
-  bookCatalog: Book[]
+// Section label/placeholder map
+const SECTION_META: Record<string, { label: string; placeholder: string }> = {
+  storyOutline:     { label: 'Story Outline', placeholder: 'Outline your story chapter by chapter...' },
+  styleGuide:       { label: 'Style Guide', placeholder: 'Document your writing style preferences, POV, tense, tropes...' },
+  killList:         { label: 'Kill List', placeholder: 'Words and phrases to avoid in your writing...' },
+  seriesBible:      { label: 'Series Bible', placeholder: 'Document your series world, timeline, recurring characters...' },
+  storySoFar:       { label: 'Story So Far', placeholder: 'Running summary of your story will appear here...' },
+  consistencyCheck: { label: 'Consistency Check', placeholder: 'Paste your consistency notes or AI feedback here...' },
+  vellumExport:     { label: 'Vellum Export', placeholder: 'Export notes and settings for Vellum formatting...' },
 }
 
-const LS_BOOK = 'wn_selected_book'
-const LS_SPLIT = 'wn_split_pos'
+function sectionToPhaseSection(s: SidebarSection): { phase: string; section: string; chapterIndex?: number } {
+  if (typeof s === 'object' && 'type' in s && s.type === 'chapter') {
+    return { phase: 'writing', section: 'chapter', chapterIndex: s.index }
+  }
+  switch (s) {
+    case 'storyOutline':     return { phase: 'setup', section: 'storyOutline' }
+    case 'styleGuide':       return { phase: 'setup', section: 'styleGuide' }
+    case 'killList':         return { phase: 'setup', section: 'killList' }
+    case 'seriesBible':      return { phase: 'setup', section: 'characterBible' }
+    case 'storySoFar':       return { phase: 'writing', section: 'storySoFar' }
+    case 'consistencyCheck': return { phase: 'edit', section: 'diagnose' }
+    case 'vellumExport':     return { phase: 'polish', section: 'verify' }
+    default:                 return { phase: 'setup', section: 'storyOutline' }
+  }
+}
 
 export default function WritingNotebookPage() {
   const { data: session } = useSession()
-  const [userData, setUserData] = useState<UserData | null>(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [onboardingStart, setOnboardingStart] = useState<number | undefined>()
-  const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
-  const [splitPos, setSplitPos] = useState(60) // percentage for left pane
-  const [activePhase, setActivePhase] = useState('setup')
-  const [showMobileChat, setShowMobileChat] = useState(false)
-  const [showBookDropdown, setShowBookDropdown] = useState(false)
-  const dividerRef = useRef<HTMLDivElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null)
+  const [hasApiKey, setHasApiKey] = useState(false)
+  const [books, setBooks] = useState<BookOption[]>([])
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('wn_selected_book')
+    return null
+  })
+  const [activeSection, setActiveSection] = useState<SidebarSection>('storyOutline')
+  const [wordCount, setWordCount] = useState(0)
 
-  const wb = useWorkbook(selectedBookId)
+  // Save status
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
 
-  // Load user data
+  // Story So Far status
+  const [storySoFarStatus, setStorySoFarStatus] = useState<'up_to_date' | 'updating' | 'idle'>('idle')
+  const [toastVisible, setToastVisible] = useState(false)
+
+  // Idle timer for Story So Far
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const prevSectionRef = useRef<SidebarSection>(activeSection)
+
+  const workbook = useWorkbook(selectedBookId)
+  const selectedBook = books.find(b => b.id === selectedBookId)
+
+  // Load user state
   useEffect(() => {
     fetch('/api/settings')
       .then(r => r.json())
-      .then(data => {
-        setUserData({
-          writingOnboardingComplete: data.writingOnboardingComplete ?? false,
-          anthropicApiKey: data.anthropicApiKey ?? null,
-          bookCatalog: data.bookCatalog ?? [],
-        })
-        if (!data.writingOnboardingComplete) setShowOnboarding(true)
+      .then(d => {
+        setOnboardingComplete(d.writingOnboardingComplete ?? false)
+        setHasApiKey(!!d.anthropicApiKey)
+        if (!d.writingOnboardingComplete) setShowOnboarding(true)
+      })
+      .catch(() => setOnboardingComplete(false))
+  }, [])
+
+  // Load books
+  useEffect(() => {
+    fetch('/api/books')
+      .then(r => r.json())
+      .then(d => {
+        const bks = (d.books ?? d.data ?? []).map((b: any) => ({ id: b.id, title: b.title, sortOrder: b.sortOrder }))
+        setBooks(bks)
+        if (!selectedBookId && bks.length > 0) setSelectedBookId(bks[0].id)
       })
       .catch(() => {})
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Restore selected book from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem(LS_BOOK)
-    if (saved) setSelectedBookId(saved)
-  }, [])
+    if (selectedBookId) localStorage.setItem('wn_selected_book', selectedBookId)
+  }, [selectedBookId])
 
-  // Restore split position
+  // Chapter meta
+  const chapterMeta = workbook.getChapterMeta('writing')
+
+  // Derive chapter info for sidebar
+  const chapters = Array.from({ length: chapterMeta.count }, (_, i) => {
+    const content = workbook.getValue('writing', 'chapter', i)
+    const title = chapterMeta.titles[i] || ''
+    const status = !content ? 'Empty' as const : 'Draft' as const
+    return { index: i, title, status }
+  })
+
+  // Chapter/word counts for dropdown
+  const chapterCounts: Record<string, number> = {}
+  const wordCounts: Record<string, number> = {}
+  if (selectedBookId) {
+    chapterCounts[selectedBookId] = chapterMeta.count
+    // Count words across all chapters
+    let totalWords = 0
+    for (let i = 0; i < chapterMeta.count; i++) {
+      const c = workbook.getValue('writing', 'chapter', i)
+      if (c) totalWords += c.trim().split(/\s+/).length
+    }
+    wordCounts[selectedBookId] = totalWords
+  }
+
+  // Current section content
+  const ps = sectionToPhaseSection(activeSection)
+  const currentContent = workbook.getValue(ps.phase, ps.section, ps.chapterIndex)
+  const currentTitle = ps.chapterIndex != null ? (chapterMeta.titles[ps.chapterIndex] || '') : ''
+  const currentStatus = ps.chapterIndex != null
+    ? (!currentContent ? 'Empty' : 'Draft')
+    : ''
+
+  // Wire save state from workbook
   useEffect(() => {
-    const saved = localStorage.getItem(LS_SPLIT)
-    if (saved) setSplitPos(parseFloat(saved))
+    const anySaving = Object.values(workbook.data).length > 0 &&
+      (workbook.isSaving(ps.phase, ps.section, ps.chapterIndex))
+    if (anySaving) {
+      setSaveState('saving')
+    }
+  }, [workbook, ps])
+
+  // Content change handler
+  const handleContentChange = useCallback((content: string) => {
+    workbook.setValue(ps.phase, ps.section, content, ps.chapterIndex)
+    setSaveState('saving')
+
+    // Reset idle timer for Story So Far
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+    idleTimerRef.current = setTimeout(() => {
+      triggerStorySoFar()
+    }, 60000) // 60s idle
+
+    // Auto-save status update (debounce mirrors useWorkbook's 1200ms)
+    setTimeout(() => {
+      setSaveState('saved')
+      setLastSavedAt(Date.now())
+    }, 1400)
+  }, [workbook, ps]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleTitleChange = useCallback((title: string) => {
+    if (ps.chapterIndex == null) return
+    const meta = workbook.getChapterMeta('writing')
+    const titles = [...meta.titles]
+    titles[ps.chapterIndex] = title
+    workbook.setChapterMeta('writing', { ...meta, titles })
+  }, [workbook, ps.chapterIndex])
+
+  const handleAddChapter = useCallback(() => {
+    const meta = workbook.getChapterMeta('writing')
+    workbook.setChapterMeta('writing', { count: meta.count + 1, titles: [...meta.titles, ''] })
+    setActiveSection({ type: 'chapter', index: meta.count })
+  }, [workbook])
+
+  const handleAddBook = useCallback(async () => {
+    try {
+      const res = await fetch('/api/books', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Untitled Book' }),
+      })
+      const data = await res.json()
+      if (data.book) {
+        setBooks(prev => [...prev, { id: data.book.id, title: data.book.title }])
+        setSelectedBookId(data.book.id)
+      }
+    } catch {}
   }, [])
 
-  const handleBookChange = (id: string) => {
-    setSelectedBookId(id)
-    localStorage.setItem(LS_BOOK, id)
-    setShowBookDropdown(false)
-  }
-
-  const handleOnboardingComplete = () => {
-    setShowOnboarding(false)
-    setUserData(prev => prev ? { ...prev, writingOnboardingComplete: true } : prev)
-  }
-
-  const handleReopenOnboarding = (step?: number) => {
-    setOnboardingStart(step)
-    setShowOnboarding(true)
-  }
-
-  // Draggable divider
-  const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    const startX = e.clientX
-    const startSplit = splitPos
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!containerRef.current) return
-      const rect = containerRef.current.getBoundingClientRect()
-      const delta = e.clientX - startX
-      const deltaPercent = (delta / rect.width) * 100
-      const newSplit = Math.min(80, Math.max(30, startSplit + deltaPercent))
-      setSplitPos(newSplit)
-      localStorage.setItem(LS_SPLIT, String(newSplit))
+  // Trigger Story So Far update
+  const triggerStorySoFar = useCallback(async () => {
+    if (!selectedBookId) return
+    const meta = workbook.getChapterMeta('writing')
+    const chaptersToSend = []
+    for (let i = 0; i < meta.count; i++) {
+      const content = workbook.getValue('writing', 'chapter', i)
+      if (content?.trim()) {
+        chaptersToSend.push({
+          title: meta.titles[i] || `Chapter ${i + 1}`,
+          content,
+          order: i,
+        })
+      }
     }
+    if (chaptersToSend.length === 0) return
 
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
+    setStorySoFarStatus('updating')
+    try {
+      const res = await fetch('/api/writing-notebook/story-so-far', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId: selectedBookId, chapters: chaptersToSend }),
+      })
+      if (res.ok) {
+        const { summary } = await res.json()
+        // Also update the local workbook data
+        workbook.setValue('writing', 'storySoFar', summary)
+        setStorySoFarStatus('up_to_date')
+        setToastVisible(true)
+      } else {
+        setStorySoFarStatus('idle')
+      }
+    } catch {
+      setStorySoFarStatus('idle')
     }
+  }, [selectedBookId, workbook])
 
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }, [splitPos])
+  // Trigger Story So Far on section change (leaving a chapter)
+  useEffect(() => {
+    const prev = prevSectionRef.current
+    prevSectionRef.current = activeSection
+    if (typeof prev === 'object' && 'type' in prev && prev.type === 'chapter') {
+      // Left a chapter — trigger update
+      triggerStorySoFar()
+    }
+  }, [activeSection, triggerStorySoFar])
 
-  // Build system prompt
-  const selectedBook = userData?.bookCatalog.find(b => b.id === selectedBookId)
-  const systemPrompt = useMemo(() => {
-    const sg = (() => {
-      try { return JSON.parse(wb.getValue('setup', 'styleGuide') || '{}') }
-      catch { return {} }
-    })()
+  const handleExport = useCallback(async () => {
+    if (!selectedBookId) return
+    try {
+      const res = await fetch('/api/writing-notebook/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId: selectedBookId, type: 'manuscript', format: 'text', source: 'drafts' }),
+      })
+      const data = await res.json()
+      if (data.text) {
+        navigator.clipboard.writeText(data.text)
+      }
+    } catch {}
+  }, [selectedBookId])
 
-    return `You are a fiction writing assistant helping the author write ${selectedBook?.title || 'their book'}.
+  const sectionMeta = typeof activeSection === 'string'
+    ? SECTION_META[activeSection] || { label: activeSection, placeholder: '' }
+    : { label: `Chapter ${(activeSection as any).index + 1}`, placeholder: 'Start writing...' }
 
-STORY SPECIFICATIONS:
-- Genre: ${sg.niche || 'Not specified'}
-- POV: ${sg.pov || 'Not specified'}
-- Tense: ${sg.tense || 'Not specified'}
-- Target: ${sg.totalWordCount || 'Not specified'} words total, ${sg.chapterWordCount || 'Not specified'} words per chapter
-- Tropes: ${sg.tropes || 'Not specified'}
-
-STORY OUTLINE:
-${(wb.getValue('setup', 'outline') || 'Not filled in yet.').slice(0, 2000)}
-
-CHARACTER BIBLE:
-${(wb.getValue('setup', 'characterBible') || 'Not filled in yet.').slice(0, 1500)}
-
-WRITING STYLE:
-${sg.personalStyle || 'No personal style preferences set.'}
-
-STORY SO FAR:
-${(wb.getValue('writing', 'storySoFar') || 'Not started yet.').slice(0, 1500)}
-
-WRITING FORMULA:
-- Hook readers in the first paragraph, start in the middle of the action
-- Introduce key tropes within the first 500 words
-- Every chapter ends with a cliffhanger or hook
-- Short sentences and paragraphs (1-3 sentences max)
-- Show don't tell
-- Minimize dialogue tags
-- Balance dialogue, action, and internal thought
-
-CHICAGO STYLE REMINDERS:
-- Use serial (Oxford) comma
-- Dialogue punctuation inside quotes: "Like this," she said.
-- Em dashes without spaces—like this
-- Spell out numbers under one hundred in narrative
-
-CALENDAR DATE RULE:
-NEVER use a specific calendar date, month, or day of the week as atmospheric filler.
-Calendar anchors are PLOT FACTS. For atmosphere use time of day instead.
-If a calendar anchor is genuinely needed, flag it: [TIMELINE ANCHOR: Friday, November]
-
-CURRENT PHASE: ${activePhase}
-
-When writing a chapter, respond with ONLY the chapter prose — no preamble, no notes, no "Here is Chapter X:". Just the story, ready to use. Target ${sg.chapterWordCount || '1500-2000'} words. Always end with a hook or cliffhanger.`
-  }, [selectedBook, wb, activePhase])
-
-  // Handle save to chapter from chat
-  const handleSaveToChapter = useCallback((content: string, chapterIndex: number) => {
-    wb.setValue('writing', 'drafts', chapterIndex, content)
-    setActivePhase('writing')
-  }, [wb])
-
-  // Handle send to chat from workbook
-  const handleSendToChat = useCallback((text: string) => {
-    // We can't directly set the chat input from here, so we'll use a ref pattern
-    // For now, switch to chat on mobile
-    setShowMobileChat(true)
-  }, [])
-
-  if (!session) return null
-
-  // Loading state
-  if (!userData) {
+  if (onboardingComplete === null) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin w-8 h-8 rounded-full" style={{ border: '3px solid #E5E7EB', borderTopColor: '#E9A020' }} />
+        <div className="text-sm" style={{ color: '#9CA3AF' }}>Loading...</div>
       </div>
     )
   }
 
-  // Onboarding
-  if (showOnboarding) {
-    return (
-      <div className="h-full overflow-y-auto" style={{ background: 'white' }}>
-        <OnboardingFlow onComplete={handleOnboardingComplete} startStep={onboardingStart} />
-      </div>
-    )
-  }
-
-  // Main workspace
   return (
-    <div className="flex flex-col h-full" style={{ background: 'white' }}>
-      {/* Book selector */}
-      <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid #E5E7EB' }}>
-        <div className="relative">
-          <button
-            onClick={() => setShowBookDropdown(!showBookDropdown)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-[14px] font-semibold cursor-pointer"
-            style={{ background: '#FFF8F0', color: '#1E2D3D', border: '0.5px solid #E5E7EB' }}
-          >
-            <BookOpen size={14} style={{ color: '#E9A020' }} />
-            {selectedBook?.title || 'Select a book'}
-            <ChevronDown size={14} style={{ color: '#9CA3AF' }} />
-          </button>
-          {showBookDropdown && (
-            <div
-              className="absolute top-full left-0 mt-1 w-64 rounded-lg shadow-lg z-50 py-1 max-h-60 overflow-y-auto"
-              style={{ background: 'white', border: '1px solid #E5E7EB' }}
-            >
-              {(userData.bookCatalog || []).map(book => (
-                <button
-                  key={book.id}
-                  onClick={() => handleBookChange(book.id)}
-                  className="w-full text-left px-4 py-2.5 text-[13px] cursor-pointer bg-transparent border-none hover:bg-gray-50 transition-colors"
-                  style={{ color: '#1E2D3D' }}
-                >
-                  {book.title}
-                </button>
-              ))}
-              {(!userData.bookCatalog || userData.bookCatalog.length === 0) && (
-                <div className="px-4 py-3 text-[13px]" style={{ color: '#9CA3AF' }}>
-                  No books yet. Add one in Settings.
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="flex flex-col h-[calc(100vh-64px)]">
+      {showOnboarding && (
+        <WritingOnboarding
+          onComplete={() => {
+            setShowOnboarding(false)
+            setOnboardingComplete(true)
+            fetch('/api/settings').then(r => r.json()).then(d => setHasApiKey(!!d.anthropicApiKey)).catch(() => {})
+          }}
+        />
+      )}
 
-      {/* Desktop split pane */}
-      <div ref={containerRef} className="flex-1 hidden md:flex overflow-hidden relative">
-        {/* Left pane — Workbook */}
-        <div style={{ width: `${splitPos}%` }} className="overflow-y-auto">
-          <Workbook
-            getValue={wb.getValue}
-            setValue={wb.setValue}
-            getSaveState={wb.getSaveState}
-            onSendToChat={handleSendToChat}
-            activePhase={activePhase}
-            setActivePhase={setActivePhase}
-          />
-        </div>
+      {/* Top bar */}
+      <WritingTopBar
+        books={books}
+        selectedBookId={selectedBookId}
+        onSelectBook={setSelectedBookId}
+        onAddBook={handleAddBook}
+        onAddChapter={handleAddChapter}
+        onExport={handleExport}
+        wordCount={wordCount}
+        saveState={saveState}
+        lastSavedAt={lastSavedAt}
+        chapterCounts={chapterCounts}
+        wordCounts={wordCounts}
+      />
 
-        {/* Divider */}
-        <div
-          ref={dividerRef}
-          className="w-[3px] flex-shrink-0 hover:w-[5px] transition-all"
-          style={{ background: '#1E2D3D', cursor: 'col-resize', opacity: 0.2 }}
-          onMouseDown={handleDividerMouseDown}
+      {/* Main area: sidebar + center */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <WritingSidebar
+          activeSection={activeSection}
+          onSelectSection={setActiveSection}
+          chapters={chapters}
+          onAddChapter={handleAddChapter}
+          storySoFarStatus={storySoFarStatus}
         />
 
-        {/* Right pane — AI Chat */}
-        <div style={{ width: `${100 - splitPos}%` }} className="overflow-hidden">
-          <AIChat
-            hasApiKey={!!userData.anthropicApiKey}
+        {/* Center column */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* AI Panel */}
+          <WritingAIPanel
             bookId={selectedBookId}
-            bookTitle={selectedBook?.title || ''}
-            activePhase={activePhase}
-            systemPrompt={systemPrompt}
-            onReopenOnboarding={handleReopenOnboarding}
-            onSaveToChapter={handleSaveToChapter}
+            bookTitle={selectedBook?.title ?? ''}
+            phase="writing"
+            hasApiKey={hasApiKey}
+            workbookData={workbook.data}
+            getStyleGuide={workbook.getStyleGuide}
+            activeChapterContent={currentContent}
+          />
+
+          {/* Editor */}
+          <WritingEditor
+            section={activeSection}
+            chapterIndex={ps.chapterIndex ?? null}
+            chapterTitle={currentTitle}
+            chapterStatus={currentStatus}
+            content={currentContent}
+            onContentChange={handleContentChange}
+            onTitleChange={handleTitleChange}
+            onWordCountChange={setWordCount}
+            sectionLabel={sectionMeta.label}
+            sectionPlaceholder={sectionMeta.placeholder}
           />
         </div>
       </div>
 
-      {/* Mobile stacked view */}
-      <div className="flex-1 flex flex-col md:hidden overflow-hidden">
-        {!showMobileChat ? (
-          <div className="flex-1 overflow-y-auto">
-            <Workbook
-              getValue={wb.getValue}
-              setValue={wb.setValue}
-              getSaveState={wb.getSaveState}
-              onSendToChat={handleSendToChat}
-              activePhase={activePhase}
-              setActivePhase={setActivePhase}
-            />
-          </div>
-        ) : (
-          <div className="flex-1 overflow-hidden">
-            <AIChat
-              hasApiKey={!!userData.anthropicApiKey}
-              bookId={selectedBookId}
-              bookTitle={selectedBook?.title || ''}
-              activePhase={activePhase}
-              systemPrompt={systemPrompt}
-              onReopenOnboarding={handleReopenOnboarding}
-              onSaveToChapter={handleSaveToChapter}
-            />
-          </div>
-        )}
-
-        {/* Mobile toggle */}
-        <button
-          onClick={() => setShowMobileChat(!showMobileChat)}
-          className="flex items-center justify-center gap-2 py-3 text-[13px] font-semibold cursor-pointer"
-          style={{ background: '#E9A020', color: 'white', border: 'none' }}
-        >
-          {showMobileChat ? (
-            <><BookOpen size={14} /> Switch to Workbook</>
-          ) : (
-            <><MessageSquare size={14} /> Switch to AI Chat</>
-          )}
-        </button>
-      </div>
+      {/* Toast */}
+      <Toast
+        message="Story So Far updated"
+        dotColor="#8B5CF6"
+        visible={toastVisible}
+        onDone={() => setToastVisible(false)}
+      />
     </div>
   )
 }

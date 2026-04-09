@@ -15,16 +15,9 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'bookId and chapters required' }, { status: 400 })
 
   // Verify book belongs to user
-  let book
-  try {
-    book = await db.book.findFirst({
-      where: { id: bookId, userId: session.user.id },
-    })
-  } catch (err) {
-    console.error('[story-so-far] Prisma error fetching book:', err)
-    return Response.json({ success: false, summary: '' }, { status: 200 })
-  }
-
+  const book = await db.book.findFirst({
+    where: { id: bookId, userId: session.user.id },
+  })
   if (!book)
     return Response.json({ error: 'Book not found' }, { status: 404 })
 
@@ -38,37 +31,28 @@ export async function POST(req: NextRequest) {
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-  let summary = ''
-  try {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 1200,
-      messages: [
-        {
-          role: 'user',
-          content: `For each chapter provided, generate a Story So Far entry using this structure:\n\n**Chapter [Number]**\nOpening hook: "[Quote the opening line or two of the chapter verbatim]"\nSummary: [Summarize the key events, character developments, and plot progression in approximately 100 words]\nClosing cliffhanger: "[Quote the closing line or two of the chapter verbatim]"\n\nKeep each chapter summary tight — 100 words max for the summary section. The opening hook and closing cliffhanger should be direct quotes from the chapter text. Do not add any preamble, introduction, or conclusion outside the chapter entries.\n\n${chapterText}`,
-        },
-      ],
-    })
-    summary = response.content[0].type === 'text' ? response.content[0].text : ''
-  } catch (err) {
-    console.error('[story-so-far] Anthropic error:', err)
-    return Response.json({ success: false, summary: '' }, { status: 200 })
-  }
-
-  // Save to Book.storyContent — wrapped separately so a missing column doesn't crash the whole route
-  try {
-    await db.book.update({
-      where: { id: bookId },
-      data: {
-        storyContent: summary,
-        storyContentUpdatedAt: new Date(),
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 600,
+    messages: [
+      {
+        role: 'user',
+        content: `You are a story continuity assistant. Given these chapters, write a concise Story So Far summary (max 200 words) capturing key plot points, character introductions, and where the story currently stands. Write in present tense. Use character names.\n\n${chapterText}`,
       },
-    })
-  } catch (err) {
-    console.error('[story-so-far] Prisma error saving storyContent (column may not exist yet):', err)
-    // Return the summary anyway so the UI still works
-  }
+    ],
+  })
+
+  const summary =
+    response.content[0].type === 'text' ? response.content[0].text : ''
+
+  // Save to Book.storyContent
+  await db.book.update({
+    where: { id: bookId },
+    data: {
+      storyContent: summary,
+      storyContentUpdatedAt: new Date(),
+    },
+  })
 
   return Response.json({ success: true, summary })
 }
