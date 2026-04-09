@@ -583,5 +583,5 @@ model CategoryCache {
   fetchedAt DateTime @default(now())
 
   @@map("CategoryCache")
-  @@unique([userId, asin])
+  @@unique([userId, asin, category])
 }
