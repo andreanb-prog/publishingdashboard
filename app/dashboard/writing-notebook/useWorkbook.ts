@@ -36,6 +36,7 @@ export function useWorkbook(bookId: string | null) {
   const [data, setData] = useState<WorkbookData>({})
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [saved, setSaved] = useState<Record<string, boolean>>({})
+  const [timestamps, setTimestamps] = useState<Record<string, string>>({})
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({})
   const [loaded, setLoaded] = useState(false)
 
@@ -51,13 +52,16 @@ export function useWorkbook(bookId: string | null) {
       if (!res.ok) return
       const { data: records } = await res.json()
       const map: WorkbookData = {}
+      const ts: Record<string, string> = {}
       for (const r of records) {
         const key = r.chapterIndex != null
           ? `${r.phase}:${r.section}:${r.chapterIndex}`
           : `${r.phase}:${r.section}`
         map[key] = r.content
+        if (r.updatedAt) ts[key] = r.updatedAt
       }
       setData(map)
+      setTimestamps(ts)
     } catch { /* noop */ }
     setLoaded(true)
   }, [bookId])
@@ -89,7 +93,7 @@ export function useWorkbook(bookId: string | null) {
         return
       }
       try {
-        await fetch('/api/writing-notebook', {
+        const saveRes = await fetch('/api/writing-notebook', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -100,6 +104,10 @@ export function useWorkbook(bookId: string | null) {
             content,
           }),
         })
+        const saveData = await saveRes.json()
+        if (saveData.data?.updatedAt) {
+          setTimestamps(prev => ({ ...prev, [key]: saveData.data.updatedAt }))
+        }
         setSaved(prev => ({ ...prev, [key]: true }))
         setTimeout(() => setSaved(prev => ({ ...prev, [key]: false })), 2000)
       } catch { /* noop */ }
@@ -172,10 +180,16 @@ export function useWorkbook(bookId: string | null) {
     return getChapterDraft(chapterIndex, meta.activeDraft)
   }, [getChapterDraftMeta, getChapterDraft])
 
+  const getLastEdited = useCallback((phase: string, section: string, chapterIndex?: number): string | null => {
+    const key = chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
+    return timestamps[key] ?? null
+  }, [timestamps])
+
   return {
     data, loaded, getValue, setValue, isSaving, isSaved, saving, saved,
     getStyleGuide, setStyleGuide, getChapterMeta, setChapterMeta,
     getChapterDraftMeta, setChapterDraftMeta, getChapterDraft, setChapterDraft, getActiveDraftContent,
+    getLastEdited,
     load,
   }
 }

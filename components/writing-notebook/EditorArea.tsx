@@ -28,6 +28,16 @@ interface Props {
   onStorySoFarUpdate?: () => void
   storySoFarStatus?: 'upToDate' | 'updating'
   hasChapterContent?: boolean
+  getLastEdited?: (phase: string, section: string, chapterIndex?: number) => string | null
+}
+
+function formatLastEdited(date: string): string {
+  const d = new Date(date)
+  return d.toLocaleString('en-US', {
+    month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+    hour12: true,
+  })
 }
 
 function wordCount(text: string): number {
@@ -337,6 +347,7 @@ export function EditorArea({
   draftOps,
   onWordCountChange, onKeystroke,
   onStorySoFarUpdate, storySoFarStatus, hasChapterContent,
+  getLastEdited,
 }: Props) {
   const { getChapterDraftMeta, setChapterDraftMeta, getChapterDraft, setChapterDraft, getActiveDraftContent } = draftOps
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -505,6 +516,7 @@ export function EditorArea({
     const writingMeta = getChapterMeta('writing')
     const title = writingMeta.titles[chapterIdx] ?? ''
     const status = getChapterStatus(chapterIdx, workbookData)
+    const chapterLastEditedTs = getLastEdited?.('writing', `chapter:${chapterIdx}:draft:${activeDraftIdx}`) ?? null
 
     const STATUS_STYLE: Record<string, React.CSSProperties> = {
       Draft: { background: '#FFF3E0', color: '#E9A020', border: '1px solid #F5CFA0' },
@@ -572,7 +584,7 @@ export function EditorArea({
               defaultValue={title}
               placeholder="Chapter title…"
               onBlur={e => handleTitleBlur(e.target.value)}
-              className="w-full bg-transparent focus:outline-none mb-4"
+              className={`w-full bg-transparent focus:outline-none ${chapterLastEditedTs ? 'mb-1' : 'mb-4'}`}
               style={{
                 fontSize: 24,
                 fontWeight: 500,
@@ -581,6 +593,11 @@ export function EditorArea({
                 fontFamily: 'Plus Jakarta Sans, sans-serif',
               }}
             />
+            {chapterLastEditedTs && (
+              <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }} className="mb-4">
+                Last edited {formatLastEdited(chapterLastEditedTs)}
+              </p>
+            )}
 
             {/* Prose textarea */}
             <ProseTextarea
@@ -600,18 +617,27 @@ export function EditorArea({
     const isStorySoFar = activeNavItem === 'storySoFar'
     const showFillButton = isStorySoFar && hasChapterContent && onStorySoFarUpdate
     const isUpdating = storySoFarStatus === 'updating'
+    const sectionPhase = activeNavItem === 'storySoFar' ? 'writing' : 'setup'
+    const sectionLastEditedTs = getLastEdited?.(sectionPhase, activeNavItem) ?? null
 
     return (
       <div className="flex flex-col h-full overflow-hidden">
         <FormattingToolbar textareaRef={textareaRef} onUpdate={handleContentChange} />
         <div className="flex-1 overflow-y-auto">
           <div className="px-8 py-6 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2
-                style={{ fontSize: 24, fontWeight: 500, color: '#1E2D3D', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-              >
-                {meta.title}
-              </h2>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2
+                  style={{ fontSize: 24, fontWeight: 500, color: '#1E2D3D', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                >
+                  {meta.title}
+                </h2>
+                {sectionLastEditedTs && (
+                  <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400, marginTop: 2 }}>
+                    Last edited {formatLastEdited(sectionLastEditedTs)}
+                  </p>
+                )}
+              </div>
               {showFillButton && !isUpdating && !content.trim() && (
                 <button
                   onClick={onStorySoFarUpdate}

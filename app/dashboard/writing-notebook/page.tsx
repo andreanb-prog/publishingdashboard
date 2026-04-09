@@ -364,6 +364,7 @@ export default function WritingNotebookPage() {
                 onStorySoFarUpdate={triggerStorySoFarUpdate}
                 storySoFarStatus={storySoFarStatus}
                 hasChapterContent={hasChapterContent}
+                getLastEdited={workbook.getLastEdited}
               />
             </div>
           </div>
