@@ -74,6 +74,7 @@ function applyInlineFormat(
   const selected = value.slice(start, end)
   const replacement = before + selected + after
   const newValue = value.slice(0, start) + replacement + value.slice(end)
+  textarea.value = newValue
   onUpdate(newValue)
   setTimeout(() => {
     textarea.selectionStart = start + before.length
@@ -90,6 +91,7 @@ function applyLinePrefix(
   const { selectionStart: start, value } = textarea
   const lineStart = value.lastIndexOf('\n', start - 1) + 1
   const newValue = value.slice(0, lineStart) + prefix + value.slice(lineStart)
+  textarea.value = newValue
   onUpdate(newValue)
   setTimeout(() => {
     textarea.selectionStart = start + prefix.length
@@ -330,7 +332,7 @@ function ProseTextarea({
   return (
     <textarea
       ref={el => { textareaRef.current = el }}
-      value={value}
+      defaultValue={value}
       onChange={e => {
         onChange(e.target.value)
         resize(e.target)
@@ -576,9 +578,17 @@ export function EditorArea({
 
   const [content, setContent] = useState(getInitialContent)
 
-  // Reset content when nav item changes
+  // Reset content when nav item changes or external updates arrive (e.g. AI fills Story So Far)
   useEffect(() => {
-    setContent(getInitialContent())
+    const newContent = getInitialContent()
+    setContent(newContent)
+    // For uncontrolled textarea: only patch the DOM when content actually changed externally
+    // (during normal typing, newContent === textarea.value so nothing happens)
+    if (textareaRef.current && textareaRef.current.value !== newContent) {
+      textareaRef.current.value = newContent
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px'
+    }
   }, [activeNavItem, getInitialContent]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update live word count
@@ -817,6 +827,7 @@ export function EditorArea({
 
             {/* Prose textarea */}
             <ProseTextarea
+              key={`${activeNavItem}-d${activeDraftIdx}`}
               value={content}
               placeholder="Start writing your chapter…"
               onChange={handleContentChange}
