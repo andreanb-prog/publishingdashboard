@@ -39,6 +39,52 @@ export default function WritingNotebookPage() {
   const [toast, setToast] = useState<string | null>(null)
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
 
+  // ── Draggable pane divider ─────────────────────────────────────────
+  const DEFAULT_SPLIT = 55
+  const [splitPct, setSplitPct] = useState(DEFAULT_SPLIT)
+  const isDraggingRef = useRef(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Load persisted split on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('wn-pane-split')
+    if (saved) {
+      const n = parseFloat(saved)
+      if (n >= 30 && n <= 75) setSplitPct(n)
+    }
+  }, [])
+
+  // Persist split changes
+  useEffect(() => {
+    if (splitPct !== DEFAULT_SPLIT) localStorage.setItem('wn-pane-split', String(splitPct))
+  }, [splitPct])
+
+  const onDividerMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    isDraggingRef.current = true
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDraggingRef.current || !containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100
+      setSplitPct(Math.min(75, Math.max(30, pct)))
+    }
+
+    const onMouseUp = () => {
+      isDraggingRef.current = false
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }, [])
+
+  const onDividerDoubleClick = useCallback(() => {
+    setSplitPct(DEFAULT_SPLIT)
+    localStorage.setItem('wn-pane-split', String(DEFAULT_SPLIT))
+  }, [])
+
   // ── Mobile state ───────────────────────────────────────────────────
   const [phase, setPhase] = useState<NotebookPhase>('setup')
   const [activeSection, setActiveSection] = useState('storyOutline')
@@ -203,9 +249,9 @@ export default function WritingNotebookPage() {
       />
 
       {/* ═══ DESKTOP LAYOUT ════════════════════════════════════════ */}
-      <div className="flex-1 hidden md:flex overflow-hidden">
-        {/* Left pane 55% — SidebarNav + Editor */}
-        <div className="flex overflow-hidden" style={{ width: '55%' }}>
+      <div ref={containerRef} className="flex-1 hidden md:flex overflow-hidden">
+        {/* Left pane — SidebarNav + Editor */}
+        <div className="flex overflow-hidden" style={{ width: `${splitPct}%` }}>
           <SidebarNav
             workbookData={workbook.data}
             getChapterMeta={workbook.getChapterMeta}
@@ -255,11 +301,18 @@ export default function WritingNotebookPage() {
           </div>
         </div>
 
-        {/* Right pane 45% — Chapter Drawer */}
+        {/* Draggable divider */}
         <div
-          className="overflow-hidden transition-opacity duration-300"
+          onMouseDown={onDividerMouseDown}
+          onDoubleClick={onDividerDoubleClick}
+          className="shrink-0 hover:bg-[#E9A020] transition-colors duration-150"
+          style={{ width: 4, cursor: 'col-resize', background: 'transparent' }}
+        />
+
+        {/* Right pane — Chapter Drawer */}
+        <div
+          className="flex-1 overflow-hidden transition-opacity duration-300"
           style={{
-            width: '45%',
             borderLeft: '1px solid #E5E7EB',
             opacity: isChatOpen ? 0.4 : 1,
           }}
