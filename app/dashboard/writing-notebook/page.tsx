@@ -1,19 +1,23 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { WritingOnboarding } from './WritingOnboarding'
-import { WorkbookPane } from './WorkbookPane'
-import { ChatPane } from './ChatPane'
-import { BookSelector } from './BookSelector'
-import { useWorkbook, type Phase } from './useWorkbook'
+import { useWorkbook } from './useWorkbook'
+import { WritingNotebookTopBar } from '@/components/writing-notebook/WritingNotebookTopBar'
+import { NotebookPane } from '@/components/writing-notebook/NotebookPane'
+import { ChapterDrawer } from '@/components/writing-notebook/ChapterDrawer'
+import { AIChatPanel } from '@/components/writing-notebook/AIChatPanel'
+import { MobileBottomBar } from '@/components/writing-notebook/MobileBottomBar'
 
 interface BookOption {
   id: string
   title: string
 }
 
+type NotebookPhase = 'setup' | 'writing' | 'polish'
+
 export default function WritingNotebookPage() {
-  const { data: session } = useSession()
+  useSession() // keep auth context active
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null)
   const [hasApiKey, setHasApiKey] = useState(false)
@@ -22,34 +26,24 @@ export default function WritingNotebookPage() {
     if (typeof window !== 'undefined') return localStorage.getItem('wn_selected_book')
     return null
   })
-  const [phase, setPhase] = useState<Phase>('setup')
-  const [splitPos, setSplitPos] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('wn_split_pos')
-      return saved ? parseInt(saved, 10) : 60
-    }
-    return 60
-  })
-  const [mobileView, setMobileView] = useState<'workbook' | 'chat'>('workbook')
-  const [prefillMessage, setPrefillMessage] = useState('')
-  const [globalKillList, setGlobalKillList] = useState<{ word: string; scope: 'global' | 'book' }[]>([])
 
-  const dragging = useRef(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [phase, setPhase] = useState<NotebookPhase>('setup')
+  const [activeSection, setActiveSection] = useState('storyOutline')
+  const [activeChapterIndex, setActiveChapterIndex] = useState<number | null>(null)
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  const [drawerToggle, setDrawerToggle] = useState<'drafts' | 'final'>('drafts')
+  const [mobileTab, setMobileTab] = useState<'notebook' | 'chapters' | 'chat'>('notebook')
 
   const workbook = useWorkbook(selectedBookId)
   const selectedBook = books.find(b => b.id === selectedBookId)
 
-  // Load user state
+  // Load user settings
   useEffect(() => {
     fetch('/api/settings')
       .then(r => r.json())
       .then(d => {
         setOnboardingComplete(d.writingOnboardingComplete ?? false)
         setHasApiKey(!!d.anthropicApiKey)
-        if (d.writingKillList) {
-          try { setGlobalKillList(JSON.parse(d.writingKillList)) } catch {}
-        }
         if (!d.writingOnboardingComplete) setShowOnboarding(true)
       })
       .catch(() => setOnboardingComplete(false))
@@ -60,210 +54,195 @@ export default function WritingNotebookPage() {
     fetch('/api/books')
       .then(r => r.json())
       .then(d => {
-        const bks = (d.books ?? d.data ?? []).map((b: any) => ({ id: b.id, title: b.title }))
+        const bks = (d.books ?? d.data ?? []).map((b: { id: string; title: string }) => ({ id: b.id, title: b.title }))
         setBooks(bks)
-        if (!selectedBookId && bks.length > 0) {
-          setSelectedBookId(bks[0].id)
-        }
+        if (!selectedBookId && bks.length > 0) setSelectedBookId(bks[0].id)
       })
       .catch(() => {})
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (selectedBookId) localStorage.setItem('wn_selected_book', selectedBookId)
   }, [selectedBookId])
 
-  useEffect(() => {
-    localStorage.setItem('wn_split_pos', String(splitPos))
-  }, [splitPos])
-
-  // Drag divider
-  const onMouseDown = useCallback(() => { dragging.current = true }, [])
-  useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
-      if (!dragging.current || !containerRef.current) return
-      const rect = containerRef.current.getBoundingClientRect()
-      const pct = ((e.clientX - rect.left) / rect.width) * 100
-      setSplitPos(Math.max(30, Math.min(80, pct)))
-    }
-    const onMouseUp = () => { dragging.current = false }
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup', onMouseUp)
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
-    }
+  const handleSectionChange = useCallback((section: string, chapterIndex?: number | null) => {
+    setActiveSection(section)
+    setActiveChapterIndex(chapterIndex ?? null)
   }, [])
 
-  const handleBookCreated = useCallback((book: { id: string; title: string }) => {
-    setBooks(prev => [...prev, book])
+  const handleChapterClick = useCallback((chapterIndex: number) => {
+    setPhase('writing')
+    setActiveSection('chapter')
+    setActiveChapterIndex(chapterIndex)
   }, [])
 
-  const handleBookRenamed = useCallback((id: string, newTitle: string) => {
-    setBooks(prev => prev.map(b => b.id === id ? { ...b, title: newTitle } : b))
-  }, [])
+  const handleAddChapter = useCallback(() => {
+    const meta = workbook.getChapterMeta('writing')
+    workbook.setChapterMeta('writing', { count: meta.count + 1, titles: [...meta.titles, ''] })
+    setPhase('writing')
+    setActiveSection('chapter')
+    setActiveChapterIndex(meta.count)
+  }, [workbook])
 
-  const onSendToChat = useCallback((text: string) => {
-    setPrefillMessage(text)
-    setMobileView('chat')
-  }, [])
-
-  const onSaveToChapter = useCallback((content: string, chapterIdx: number) => {
-    const phaseKey = phase === 'polish' ? 'polish' : 'writing'
-    const meta = workbook.getChapterMeta(phaseKey as 'writing' | 'polish')
-    if (chapterIdx >= meta.count) {
-      workbook.setChapterMeta(phaseKey as 'writing' | 'polish', { count: meta.count + 1, titles: [...meta.titles, ''] })
-    }
-    workbook.setValue(phaseKey, 'chapter', content, chapterIdx)
-  }, [phase, workbook])
-
-  const getChapterCount = useCallback(() => {
-    const phaseKey = phase === 'polish' ? 'polish' : 'writing'
-    return workbook.getChapterMeta(phaseKey as 'writing' | 'polish').count
-  }, [phase, workbook])
-
-  const updateGlobalKillList = useCallback(async (list: { word: string; scope: 'global' | 'book' }[]) => {
-    setGlobalKillList(list)
-    // Persist to user record
-    try {
-      await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ writingKillList: JSON.stringify(list) }),
+  const handleSaveToWorkbook = useCallback(async (content: string, chapterIndex: number, chapterTitle?: string) => {
+    const meta = workbook.getChapterMeta('writing')
+    if (chapterIndex >= meta.count) {
+      workbook.setChapterMeta('writing', {
+        count: chapterIndex + 1,
+        titles: [...meta.titles, chapterTitle ?? ''],
       })
-    } catch {}
-  }, [])
+    }
+    workbook.setValue('writing', 'chapter', content, chapterIndex)
+  }, [workbook])
+
+  // Wrap setValue so it matches NotebookPane's Promise<void> signature
+  const setValueAsync = useCallback(
+    async (phase: string, section: string, content: string, chapterIndex?: number) => {
+      workbook.setValue(phase, section, content, chapterIndex)
+    },
+    [workbook]
+  )
 
   if (onboardingComplete === null) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-sm" style={{ color: '#9CA3AF' }}>Loading...</div>
+        <div className="text-sm" style={{ color: '#9CA3AF' }}>Loading…</div>
       </div>
     )
   }
 
+  const bookId = selectedBookId ?? ''
+  const bookTitle = selectedBook?.title ?? ''
+
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)]">
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
       {/* Onboarding overlay */}
       {showOnboarding && (
         <WritingOnboarding
           onComplete={() => {
             setShowOnboarding(false)
             setOnboardingComplete(true)
-            // Re-check API key
             fetch('/api/settings').then(r => r.json()).then(d => setHasApiKey(!!d.anthropicApiKey)).catch(() => {})
           }}
         />
       )}
 
-      {/* Book selector */}
-      <div className="flex items-center gap-3 px-4 py-2.5 flex-shrink-0" style={{ borderBottom: '1px solid #EEEBE6', background: '#FFFFFF' }}>
-        <BookSelector
-          books={books}
-          selectedBookId={selectedBookId}
-          onSelectBook={setSelectedBookId}
-          onBookCreated={handleBookCreated}
-          onBookRenamed={handleBookRenamed}
-        />
+      {/* Top bar */}
+      <WritingNotebookTopBar
+        books={books}
+        selectedBookId={bookId}
+        onBookChange={(id) => setSelectedBookId(id)}
+        isChatOpen={isChatOpen}
+        onToggleChat={() => setIsChatOpen(prev => !prev)}
+      />
 
-        {/* Mobile toggle */}
-        <div className="md:hidden ml-auto">
-          <button
-            onClick={() => setMobileView(mobileView === 'workbook' ? 'chat' : 'workbook')}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold border-none cursor-pointer"
-            style={{ background: '#E9A020', color: '#FFFFFF' }}
-          >
-            {mobileView === 'workbook' ? 'Open AI Chat' : 'Back to Workbook'}
-          </button>
-        </div>
-      </div>
-
-      {/* Split pane — desktop */}
-      <div ref={containerRef} className="flex-1 hidden md:flex overflow-hidden" style={{ background: '#FAFAF9' }}>
-        {/* Left — Workbook */}
-        <div style={{ width: `${splitPos}%` }} className="overflow-hidden flex flex-col" >
-          <WorkbookPane
-            phase={phase}
-            setPhase={setPhase}
-            getValue={workbook.getValue}
-            setValue={workbook.setValue}
-            isSaving={workbook.isSaving}
-            isSaved={workbook.isSaved}
-            getStyleGuide={workbook.getStyleGuide}
-            setStyleGuide={workbook.setStyleGuide}
+      {/* ── Desktop layout ─────────────────────────────────── */}
+      <div className="flex-1 hidden md:flex overflow-hidden">
+        {/* Left — Chapter Drawer */}
+        <div className="overflow-hidden flex flex-col shrink-0" style={{ width: 260 }}>
+          <ChapterDrawer
+            bookId={bookId}
+            workbookData={workbook.data}
             getChapterMeta={workbook.getChapterMeta}
-            setChapterMeta={workbook.setChapterMeta}
-            onSendToChat={onSendToChat}
-            globalKillList={globalKillList}
-            onUpdateGlobalKillList={updateGlobalKillList}
-            bookId={selectedBookId}
-            bookTitle={selectedBook?.title ?? ''}
-            data={workbook.data}
+            drawerToggle={drawerToggle}
+            onDrawerToggle={setDrawerToggle}
+            activeChapterIndex={activeChapterIndex}
+            onChapterClick={handleChapterClick}
+            onSectionClick={(section) => {
+              handleSectionChange(section)
+              setPhase(section === 'storySoFar' ? 'writing' : 'setup')
+            }}
+            onAddChapter={handleAddChapter}
+            onOpenChat={() => setIsChatOpen(true)}
           />
         </div>
 
-        {/* Divider */}
+        {/* Center — Notebook editor (shrinks when chat opens) */}
         <div
-          onMouseDown={onMouseDown}
-          className="w-[3px] flex-shrink-0 hover:bg-[#E9A020] transition-colors"
-          style={{ background: '#EEEBE6', cursor: 'col-resize' }}
-        />
-
-        {/* Right — Chat */}
-        <div style={{ width: `${100 - splitPos}%` }} className="overflow-hidden flex flex-col bg-white">
-          <ChatPane
-            bookId={selectedBookId}
-            bookTitle={selectedBook?.title ?? ''}
-            phase={phase}
-            hasApiKey={hasApiKey}
-            onReOpenOnboarding={() => setShowOnboarding(true)}
-            workbookData={workbook.data}
-            getStyleGuide={workbook.getStyleGuide}
-            prefillMessage={prefillMessage}
-            clearPrefill={() => setPrefillMessage('')}
-            onSaveToChapter={onSaveToChapter}
-            getChapterCount={getChapterCount}
+          className="flex-1 overflow-hidden flex flex-col transition-all duration-300"
+          style={{ marginRight: isChatOpen ? 420 : 0 }}
+        >
+          <NotebookPane
+            bookId={bookId}
+            activePhase={phase}
+            onPhaseChange={setPhase}
+            activeSection={activeSection}
+            activeChapterIndex={activeChapterIndex}
+            onSectionChange={handleSectionChange}
+            getValue={workbook.getValue}
+            setValue={setValueAsync}
+            getChapterMeta={workbook.getChapterMeta}
+            saving={workbook.saving}
+            saved={workbook.saved}
           />
         </div>
+
+        {/* Right — AI Chat Panel (fixed, slides in) */}
+        <AIChatPanel
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          bookId={bookId}
+          bookTitle={bookTitle}
+          activePhase={phase}
+          workbookData={workbook.data}
+          styleGuide={workbook.getStyleGuide()}
+          hasApiKey={hasApiKey}
+          onSaveToWorkbook={handleSaveToWorkbook}
+        />
       </div>
 
-      {/* Mobile — stacked */}
-      <div className="flex-1 md:hidden overflow-hidden">
-        {mobileView === 'workbook' ? (
-          <WorkbookPane
-            phase={phase}
-            setPhase={setPhase}
+      {/* ── Mobile layout ──────────────────────────────────── */}
+      <div className="flex-1 md:hidden overflow-hidden pb-14">
+        {mobileTab === 'notebook' && (
+          <NotebookPane
+            bookId={bookId}
+            activePhase={phase}
+            onPhaseChange={setPhase}
+            activeSection={activeSection}
+            activeChapterIndex={activeChapterIndex}
+            onSectionChange={handleSectionChange}
             getValue={workbook.getValue}
-            setValue={workbook.setValue}
-            isSaving={workbook.isSaving}
-            isSaved={workbook.isSaved}
-            getStyleGuide={workbook.getStyleGuide}
-            setStyleGuide={workbook.setStyleGuide}
+            setValue={setValueAsync}
             getChapterMeta={workbook.getChapterMeta}
-            setChapterMeta={workbook.setChapterMeta}
-            onSendToChat={onSendToChat}
-            globalKillList={globalKillList}
-            onUpdateGlobalKillList={updateGlobalKillList}
-            bookId={selectedBookId}
-            bookTitle={selectedBook?.title ?? ''}
-            data={workbook.data}
+            saving={workbook.saving}
+            saved={workbook.saved}
           />
-        ) : (
-          <ChatPane
-            bookId={selectedBookId}
-            bookTitle={selectedBook?.title ?? ''}
-            phase={phase}
-            hasApiKey={hasApiKey}
-            onReOpenOnboarding={() => setShowOnboarding(true)}
+        )}
+        {mobileTab === 'chapters' && (
+          <ChapterDrawer
+            bookId={bookId}
             workbookData={workbook.data}
-            getStyleGuide={workbook.getStyleGuide}
-            prefillMessage={prefillMessage}
-            clearPrefill={() => setPrefillMessage('')}
-            onSaveToChapter={onSaveToChapter}
-            getChapterCount={getChapterCount}
+            getChapterMeta={workbook.getChapterMeta}
+            drawerToggle={drawerToggle}
+            onDrawerToggle={setDrawerToggle}
+            activeChapterIndex={activeChapterIndex}
+            onChapterClick={(idx) => { handleChapterClick(idx); setMobileTab('notebook') }}
+            onSectionClick={(section) => {
+              handleSectionChange(section)
+              setPhase(section === 'storySoFar' ? 'writing' : 'setup')
+              setMobileTab('notebook')
+            }}
+            onAddChapter={() => { handleAddChapter(); setMobileTab('notebook') }}
+            onOpenChat={() => setMobileTab('chat')}
+          />
+        )}
+        {mobileTab === 'chat' && (
+          <AIChatPanel
+            isOpen={true}
+            onClose={() => setMobileTab('notebook')}
+            bookId={bookId}
+            bookTitle={bookTitle}
+            activePhase={phase}
+            workbookData={workbook.data}
+            styleGuide={workbook.getStyleGuide()}
+            hasApiKey={hasApiKey}
+            onSaveToWorkbook={handleSaveToWorkbook}
           />
         )}
       </div>
+
+      {/* Mobile bottom nav */}
+      <MobileBottomBar activeTab={mobileTab} onTabChange={setMobileTab} />
     </div>
   )
 }

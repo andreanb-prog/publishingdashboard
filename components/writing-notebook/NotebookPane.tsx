@@ -1,7 +1,7 @@
 'use client'
 // components/writing-notebook/NotebookPane.tsx
 import { useCallback } from 'react'
-import type { ChapterMeta } from '@/app/writing-notebook/page'
+import type { ChapterMeta } from '@/app/dashboard/writing-notebook/useWorkbook'
 
 type Phase = 'setup' | 'writing' | 'polish'
 

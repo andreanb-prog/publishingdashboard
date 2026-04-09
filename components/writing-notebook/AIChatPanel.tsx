@@ -2,7 +2,7 @@
 // components/writing-notebook/AIChatPanel.tsx
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { X, Send, Save, Loader2, AlertTriangle } from 'lucide-react'
-import type { WorkbookData, StyleGuide } from '@/app/writing-notebook/page'
+import type { WorkbookData, StyleGuide } from '@/app/dashboard/writing-notebook/useWorkbook'
 
 type Message = { role: 'user' | 'assistant'; content: string }
 

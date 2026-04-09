@@ -18,7 +18,7 @@ export interface StyleGuide {
   niche?: string; pov?: string; tense?: string
   totalWordCount?: string; chapterWordCount?: string
   tropes?: string; personalStylePreferences?: string
-  killList?: { word: string }[]
+  killList?: { word: string; scope: 'global' | 'book' }[]
   aiRules?: { antiSlopEnabled: boolean; writingFormulaEnabled: boolean }
 }
 
