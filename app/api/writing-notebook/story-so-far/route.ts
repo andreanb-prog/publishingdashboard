@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 600,
+      max_tokens: 1000,
       messages: [
         {
           role: 'user',
-          content: `You are a story continuity assistant. Given these chapters, write a concise Story So Far summary (max 200 words) capturing key plot points, character introductions, and where the story currently stands. Write in present tense. Use character names.\n\n${chapterText}`,
+          content: `For each chapter provided, generate a Story So Far entry using this structure:\n\n**Chapter [Number]**\nOpening hook: "[Quote the opening line or two of the chapter verbatim]"\nSummary: [Summarize the key events, character developments, and plot progression in approximately 100 words]\nClosing cliffhanger: "[Quote the closing line or two of the chapter verbatim]"\n\nKeep each chapter summary tight — 100 words max for the summary section. The opening hook and closing cliffhanger should be direct quotes from the chapter text. Do not add any preamble, introduction, or conclusion outside the chapter entries.\n\n${chapterText}`,
         },
       ],
     })
