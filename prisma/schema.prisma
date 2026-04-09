@@ -128,6 +128,8 @@ model Book {
   manuscriptSummary    String?   @db.Text
   manuscriptUploadedAt DateTime?
   bibleUpdatedAt       DateTime? @updatedAt
+  storyContent            String?
+  storyContentUpdatedAt   DateTime?
   createdAt             DateTime  @default(now())
 
   @@index([userId])
