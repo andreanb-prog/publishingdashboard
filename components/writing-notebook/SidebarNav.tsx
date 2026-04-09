@@ -1,5 +1,6 @@
 'use client'
-import { Plus, FileText } from 'lucide-react'
+import { Plus, FileText, Trash2 } from 'lucide-react'
+import { useState, useRef } from 'react'
 import type { WorkbookData, ChapterMeta, ChapterDraftMeta } from '@/app/dashboard/writing-notebook/useWorkbook'
 
 export type StorySoFarStatus = 'upToDate' | 'updating'
@@ -15,6 +16,7 @@ interface Props {
   storySoFarStatus: StorySoFarStatus
   onStorySoFarUpdate?: () => void
   hasChapterContent?: boolean
+  onDeleteChapter?: (chapterIndex: number) => void
 }
 
 const BOOK_COLORS = [
@@ -89,8 +91,27 @@ function SectionLabel({ children }: { children: string }) {
 
 export function SidebarNav({
   workbookData, getChapterMeta, getChapterDraftMeta, getActiveDraftContent, activeNavItem, onNavChange, onAddChapter, storySoFarStatus,
-  onStorySoFarUpdate, hasChapterContent,
+  onStorySoFarUpdate, hasChapterContent, onDeleteChapter,
 }: Props) {
+  const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null)
+  const autoDeleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleTrashClick = (idx: number) => {
+    if (autoDeleteTimerRef.current) clearTimeout(autoDeleteTimerRef.current)
+    setConfirmingDelete(idx)
+    autoDeleteTimerRef.current = setTimeout(() => setConfirmingDelete(null), 5000)
+  }
+
+  const handleCancelDelete = () => {
+    if (autoDeleteTimerRef.current) clearTimeout(autoDeleteTimerRef.current)
+    setConfirmingDelete(null)
+  }
+
+  const handleConfirmDelete = (idx: number) => {
+    if (autoDeleteTimerRef.current) clearTimeout(autoDeleteTimerRef.current)
+    setConfirmingDelete(null)
+    onDeleteChapter?.(idx)
+  }
   const writingMeta = getChapterMeta('writing')
   const polishMeta = getChapterMeta('polish')
   const maxCount = Math.max(writingMeta.count, polishMeta.count, 0)
@@ -162,36 +183,77 @@ export function SidebarNav({
           const dotColor = BOOK_COLORS[idx % BOOK_COLORS.length]
           const chDraftMeta = getChapterDraftMeta(idx)
 
-          return (
-            <button
-              key={idx}
-              onClick={() => onNavChange(id)}
-              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-colors"
-              style={{
-                background: isActive ? '#FFF3E0' : 'transparent',
-                color: isActive ? '#1E2D3D' : '#4B5563',
-                fontWeight: isActive ? 500 : 400,
-              }}
-            >
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ background: dotColor }}
-              />
-              <span className="text-[13px] flex-1 truncate min-w-0">
-                Ch {idx + 1}{title ? ` · ${title}` : ''}
-              </span>
-              {chDraftMeta.draftCount > 1 && (
-                <span className="text-[10px] shrink-0" style={{ color: '#9CA3AF' }}>
-                  {chDraftMeta.draftCount} drafts
-                </span>
-              )}
-              <span
-                className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
-                style={STATUS_PILL[status]}
+          if (confirmingDelete === idx) {
+            return (
+              <div
+                key={idx}
+                className="w-full flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
+                style={{ background: '#FFF0EE', border: '0.5px solid #F97B6B' }}
               >
-                {status === 'Draft' ? getDraftLabel(chDraftMeta.activeDraft + 1) : status}
-              </span>
-            </button>
+                <span className="text-[12px] flex-1 truncate" style={{ color: '#1E2D3D' }}>
+                  Delete Ch {idx + 1}?
+                </span>
+                <button
+                  onClick={handleCancelDelete}
+                  className="text-[11px] px-2 py-0.5 rounded shrink-0 transition-opacity hover:opacity-70"
+                  style={{ color: '#6B7280', background: '#F3F4F6' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleConfirmDelete(idx)}
+                  className="text-[11px] px-2 py-0.5 rounded shrink-0 font-medium transition-opacity hover:opacity-80"
+                  style={{ color: '#FFFFFF', background: '#F97B6B' }}
+                >
+                  Delete
+                </button>
+              </div>
+            )
+          }
+
+          return (
+            <div
+              key={idx}
+              className="group w-full flex items-center rounded-lg"
+              style={{ background: isActive ? '#FFF3E0' : 'transparent' }}
+            >
+              <button
+                onClick={() => onNavChange(id)}
+                className="flex-1 flex items-center gap-2 px-3 py-1.5 text-left min-w-0 transition-colors"
+                style={{
+                  color: isActive ? '#1E2D3D' : '#4B5563',
+                  fontWeight: isActive ? 500 : 400,
+                }}
+              >
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ background: dotColor }}
+                />
+                <span className="text-[13px] flex-1 truncate min-w-0">
+                  Ch {idx + 1}{title ? ` · ${title}` : ''}
+                </span>
+                {chDraftMeta.draftCount > 1 && (
+                  <span className="text-[10px] shrink-0" style={{ color: '#9CA3AF' }}>
+                    {chDraftMeta.draftCount} drafts
+                  </span>
+                )}
+                <span
+                  className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
+                  style={STATUS_PILL[status]}
+                >
+                  {status === 'Draft' ? getDraftLabel(chDraftMeta.activeDraft + 1) : status}
+                </span>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleTrashClick(idx) }}
+                className="opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-1.5 rounded-r-lg shrink-0"
+                style={{ color: '#9CA3AF' }}
+                title="Delete chapter"
+                tabIndex={-1}
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
           )
         })}
 

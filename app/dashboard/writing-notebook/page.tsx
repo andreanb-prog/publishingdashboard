@@ -213,6 +213,40 @@ export default function WritingNotebookPage() {
     setActiveNavItem(`chapter:${meta.count}`)
   }, [workbook])
 
+  const handleDeleteChapter = useCallback(async (chapterIndex: number) => {
+    if (!selectedBookId) return
+
+    // Switch nav immediately if the deleted chapter is active
+    const activeIdx = activeNavItem.startsWith('chapter:') ? parseInt(activeNavItem.split(':')[1]) : null
+    if (activeIdx === chapterIndex) {
+      const meta = workbook.getChapterMeta('writing')
+      const newCount = meta.count - 1
+      if (chapterIndex > 0) {
+        setActiveNavItem(`chapter:${chapterIndex - 1}`)
+      } else if (newCount > 0) {
+        setActiveNavItem('chapter:0')
+      } else {
+        setActiveNavItem('storyOutline')
+      }
+    } else if (activeIdx != null && activeIdx > chapterIndex) {
+      setActiveNavItem(`chapter:${activeIdx - 1}`)
+    }
+
+    try {
+      await fetch('/api/writing-notebook/chapter', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId: selectedBookId, chapterIndex }),
+      })
+      // Clear cache to prevent stale flash, then reload fresh data
+      try { localStorage.removeItem(`wn-cache-${selectedBookId}`) } catch { /* noop */ }
+      await workbook.load()
+    } catch { /* noop */ }
+
+    setToast('Chapter deleted')
+    setTimeout(() => setToast(null), 2000)
+  }, [selectedBookId, workbook, activeNavItem])
+
   const handleMobileAddChapter = useCallback(() => {
     const meta = workbook.getChapterMeta('writing')
     workbook.setChapterMeta('writing', { count: meta.count + 1, titles: [...meta.titles, ''], statuses: [...meta.statuses, 'empty'] })
@@ -340,6 +374,7 @@ export default function WritingNotebookPage() {
             storySoFarStatus={storySoFarStatus}
             onStorySoFarUpdate={triggerStorySoFarUpdate}
             hasChapterContent={hasChapterContent}
+            onDeleteChapter={handleDeleteChapter}
           />
 
           <div className="flex-1 flex flex-col overflow-hidden">
