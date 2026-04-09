@@ -765,14 +765,21 @@ export function BookCatalog() {
     try {
       const res = await fetch('/api/books', { cache: 'no-store' })
       const data = await res.json()
-      if (Array.isArray(data.books)) {
+      console.log('[BookCatalog] GET /api/books raw response:', JSON.stringify(data).slice(0, 300))
+      if (!res.ok) {
+        console.error('[BookCatalog] GET /api/books failed:', res.status, data)
+      } else if (Array.isArray(data.books)) {
         setBooks(data.books.map((b: Book & { pubDate?: string | null }) => ({
           ...b,
           excludeFromDashboard: b.excludeFromDashboard ?? false,
           pubDate: b.pubDate ? new Date(b.pubDate).toISOString() : null,
         })))
+      } else {
+        console.warn('[BookCatalog] GET /api/books — unexpected shape, no data.books array')
       }
-    } catch {}
+    } catch (err) {
+      console.error('[BookCatalog] GET /api/books threw:', err)
+    }
     setLoading(false)
   }, [])
 
@@ -862,6 +869,7 @@ export function BookCatalog() {
         console.log('[BookCatalog] POST response', res.status, data)
         if (!res.ok) return data.error ?? `Save failed (${res.status})`
         if (data.book) {
+          // Append immediately so the list updates without waiting for re-fetch
           setBooks(prev => [...prev, {
             ...data.book,
             excludeFromDashboard: data.book.excludeFromDashboard ?? false,
@@ -870,6 +878,8 @@ export function BookCatalog() {
         }
       }
 
+      // Re-fetch for full consistency (catches any server-side transforms)
+      await loadBooks()
       closeModal()
       return null
     } catch (err) {

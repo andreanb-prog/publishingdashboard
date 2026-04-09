@@ -41,38 +41,48 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const existing = await db.book.findMany({
-    where: { userId: session.user.id },
-    orderBy: { sortOrder: 'asc' },
-  })
+  try {
+    const existing = await db.book.findMany({
+      where: { userId: session.user.id },
+      orderBy: { sortOrder: 'asc' },
+    })
 
-  if (existing.length > 0) {
-    // One-time fix: ensure canonical books are at the right sortOrder positions.
-    const fixes: Promise<unknown>[] = []
-    for (const book of existing) {
-      const asin = book.asin?.trim().toUpperCase()
-      if (asin && CANONICAL_ORDER[asin] !== undefined && book.sortOrder !== CANONICAL_ORDER[asin]) {
-        fixes.push(db.book.update({ where: { id: book.id }, data: { sortOrder: CANONICAL_ORDER[asin] } }))
+    console.log('[GET /api/books] userId:', session.user.id, '| books found:', existing.length)
+
+    if (existing.length > 0) {
+      // One-time fix: ensure canonical books are at the right sortOrder positions.
+      const fixes: Promise<unknown>[] = []
+      for (const book of existing) {
+        const asin = book.asin?.trim().toUpperCase()
+        if (asin && CANONICAL_ORDER[asin] !== undefined && book.sortOrder !== CANONICAL_ORDER[asin]) {
+          fixes.push(db.book.update({ where: { id: book.id }, data: { sortOrder: CANONICAL_ORDER[asin] } }))
+        }
       }
+      if (fixes.length > 0) {
+        await Promise.all(fixes)
+        const fixed = await db.book.findMany({ where: { userId: session.user.id }, orderBy: { sortOrder: 'asc' } })
+        console.log('[GET /api/books] after canonical fix, returning:', fixed.length, 'books')
+        return NextResponse.json({ books: fixed })
+      }
+      return NextResponse.json({ books: existing })
     }
-    if (fixes.length > 0) {
-      await Promise.all(fixes)
-      const fixed = await db.book.findMany({ where: { userId: session.user.id }, orderBy: { sortOrder: 'asc' } })
-      return NextResponse.json({ books: fixed })
-    }
-    return NextResponse.json({ books: existing })
+
+    // Auto-seed defaults on first load
+    console.log('[GET /api/books] no books found — seeding defaults for userId:', session.user.id)
+    await db.book.createMany({
+      data: DEFAULT_BOOKS.map(b => ({ ...b, userId: session.user.id })),
+    })
+
+    const seeded = await db.book.findMany({
+      where: { userId: session.user.id },
+      orderBy: { sortOrder: 'asc' },
+    })
+    console.log('[GET /api/books] seeded', seeded.length, 'books')
+    return NextResponse.json({ books: seeded })
+  } catch (err) {
+    console.error('[GET /api/books] error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-
-  // Auto-seed defaults on first load
-  await db.book.createMany({
-    data: DEFAULT_BOOKS.map(b => ({ ...b, userId: session.user.id })),
-  })
-
-  const seeded = await db.book.findMany({
-    where: { userId: session.user.id },
-    orderBy: { sortOrder: 'asc' },
-  })
-  return NextResponse.json({ books: seeded })
 }
 
 // POST — create a new book
@@ -80,22 +90,30 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const count = await db.book.count({ where: { userId: session.user.id } })
+  try {
+    const count = await db.book.count({ where: { userId: session.user.id } })
+    const body = await req.json()
 
-  const body = await req.json()
-  const book = await db.book.create({
-    data: {
-      userId: session.user.id,
-      title: String(body.title ?? '').trim(),
-      asin: body.asin ? String(body.asin).trim() : null,
-      seriesName: body.seriesName ? String(body.seriesName).trim() : null,
-      seriesOrder: body.seriesOrder != null ? Number(body.seriesOrder) : null,
-      isLeadMagnet: Boolean(body.isLeadMagnet),
-      coverUrl: body.coverUrl ? String(body.coverUrl) : null,
-      pubDate: body.pubDate ? new Date(body.pubDate) : null,
-      sortOrder: count,
-    },
-  })
+    console.log('[POST /api/books] userId:', session.user.id, '| body:', JSON.stringify(body))
 
-  return NextResponse.json({ book })
+    const book = await db.book.create({
+      data: {
+        userId: session.user.id,
+        title: String(body.title ?? '').trim(),
+        asin: body.asin ? String(body.asin).trim() : null,
+        seriesName: body.seriesName ? String(body.seriesName).trim() : null,
+        seriesOrder: body.seriesOrder != null ? Number(body.seriesOrder) : null,
+        isLeadMagnet: Boolean(body.isLeadMagnet),
+        coverUrl: body.coverUrl ? String(body.coverUrl) : null,
+        pubDate: body.pubDate ? new Date(body.pubDate) : null,
+        sortOrder: count,
+      },
+    })
+
+    console.log('[POST /api/books] created book id:', book.id, '| title:', book.title)
+    return NextResponse.json({ book })
+  } catch (err) {
+    console.error('[POST /api/books] error:', err)
+    return NextResponse.json({ error: 'Failed to create book', detail: String(err) }, { status: 500 })
+  }
 }
