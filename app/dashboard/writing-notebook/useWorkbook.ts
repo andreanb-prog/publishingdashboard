@@ -144,23 +144,27 @@ export function useWorkbook(bookId: string | null) {
 
   // Chapter draft meta (multi-draft support per chapter)
   const getChapterDraftMeta = useCallback((chapterIndex: number): ChapterDraftMeta => {
+    // Try spec key first, fall back to legacy key
     const raw = data[`writing:chapterDraftMeta:${chapterIndex}`]
     if (!raw) return { draftCount: 1, activeDraft: 0 }
     try { return JSON.parse(raw) } catch { return { draftCount: 1, activeDraft: 0 } }
   }, [data])
 
   const setChapterDraftMeta = useCallback((chapterIndex: number, meta: ChapterDraftMeta) => {
-    setValue('writing', 'chapterDraftMeta', JSON.stringify(meta), chapterIndex)
+    setValue('writing', `chapterDraftMeta:${chapterIndex}`, JSON.stringify(meta))
   }, [setValue])
 
   const getChapterDraft = useCallback((chapterIndex: number, draftIndex: number): string => {
-    if (draftIndex === 0) return getValue('writing', 'chapter', chapterIndex)
-    return getValue('writing', `chapterDraft${draftIndex}`, chapterIndex)
+    // Spec key: writing:chapter:{N}:draft:{M}
+    // Draft 0 falls back to legacy writing:chapter:{N} for backward compat
+    const drafKey = `chapter:${chapterIndex}:draft:${draftIndex}`
+    const val = getValue('writing', drafKey)
+    if (val || draftIndex !== 0) return val
+    return getValue('writing', 'chapter', chapterIndex)
   }, [getValue])
 
   const setChapterDraft = useCallback((chapterIndex: number, draftIndex: number, content: string) => {
-    if (draftIndex === 0) { setValue('writing', 'chapter', content, chapterIndex); return }
-    setValue('writing', `chapterDraft${draftIndex}`, content, chapterIndex)
+    setValue('writing', `chapter:${chapterIndex}:draft:${draftIndex}`, content)
   }, [setValue])
 
   const getActiveDraftContent = useCallback((chapterIndex: number): string => {

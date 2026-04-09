@@ -246,15 +246,22 @@ export default function WritingNotebookPage() {
     const newTitles = [...meta.titles]
     const newStatuses = [...meta.statuses]
 
+    // Snapshot all draft metas upfront to avoid stale reads within the loop
+    const draftMetas = new Map<number, { draftCount: number; activeDraft: number }>()
     for (const ch of importChapters) {
       const idx = ch.chapterNumber - 1
-      const draftMeta = workbook.getChapterDraftMeta(idx)
+      if (!draftMetas.has(idx)) draftMetas.set(idx, { ...workbook.getChapterDraftMeta(idx) })
+    }
+
+    for (const ch of importChapters) {
+      const idx = ch.chapterNumber - 1
+      const dm = draftMetas.get(idx)!
       // Save as new draft
-      workbook.setChapterDraft(idx, draftMeta.draftCount, ch.content)
-      workbook.setChapterDraftMeta(idx, {
-        draftCount: draftMeta.draftCount + 1,
-        activeDraft: draftMeta.draftCount, // switch to new draft
-      })
+      workbook.setChapterDraft(idx, dm.draftCount, ch.content)
+      const updated = { draftCount: dm.draftCount + 1, activeDraft: dm.draftCount }
+      workbook.setChapterDraftMeta(idx, updated)
+      // Keep local snapshot current in case same idx appears again
+      draftMetas.set(idx, updated)
       // Update title if import has one and existing is empty
       if (ch.title && !newTitles[idx]) newTitles[idx] = ch.title
       if (!newStatuses[idx]) newStatuses[idx] = 'draft'
@@ -343,11 +350,13 @@ export default function WritingNotebookPage() {
                 setValue={workbook.setValue}
                 getChapterMeta={workbook.getChapterMeta}
                 setChapterMeta={workbook.setChapterMeta}
-                getChapterDraftMeta={workbook.getChapterDraftMeta}
-                setChapterDraftMeta={workbook.setChapterDraftMeta}
-                getChapterDraft={workbook.getChapterDraft}
-                setChapterDraft={workbook.setChapterDraft}
-                getActiveDraftContent={workbook.getActiveDraftContent}
+                draftOps={{
+                  getChapterDraftMeta: workbook.getChapterDraftMeta,
+                  setChapterDraftMeta: workbook.setChapterDraftMeta,
+                  getChapterDraft: workbook.getChapterDraft,
+                  setChapterDraft: workbook.setChapterDraft,
+                  getActiveDraftContent: workbook.getActiveDraftContent,
+                }}
                 getStyleGuide={workbook.getStyleGuide}
                 setStyleGuide={workbook.setStyleGuide}
                 onWordCountChange={setWordCount}

@@ -87,9 +87,9 @@ export function parseManuscriptIntoChapters(text: string): ParsedChapter[] {
     const title = extractTitle(chapterLines)
     const pov = extractPov(chapterLines)
 
-    // Build content — strip header/metadata lines, keep prose
+    // Build content — strip header/metadata lines, keep prose, collapse blank runs
     const contentLines = chapterLines.filter(l => !shouldStripLine(l))
-    const content = contentLines.join('\n').trim()
+    const content = contentLines.join('\n').replace(/\n{3,}/g, '\n\n').trim()
 
     chapters.push({
       chapterNumber: c + 1,

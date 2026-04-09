@@ -4,6 +4,14 @@ import { Bold, Italic, Underline, Heading1, Heading2, Quote, List, Undo2, Redo2,
 import type { ChapterMeta, ChapterDraftMeta, StyleGuide, WorkbookData } from '@/app/dashboard/writing-notebook/useWorkbook'
 import { ExportDropdown } from './ExportDropdown'
 
+export interface DraftOps {
+  getChapterDraftMeta: (chapterIndex: number) => ChapterDraftMeta
+  setChapterDraftMeta: (chapterIndex: number, meta: ChapterDraftMeta) => void
+  getChapterDraft: (chapterIndex: number, draftIndex: number) => string
+  setChapterDraft: (chapterIndex: number, draftIndex: number, content: string) => void
+  getActiveDraftContent: (chapterIndex: number) => string
+}
+
 interface Props {
   activeNavItem: string
   bookId: string
@@ -14,11 +22,7 @@ interface Props {
   setChapterMeta: (phase: 'writing' | 'polish', meta: ChapterMeta) => void
   getStyleGuide: () => StyleGuide
   setStyleGuide: (guide: StyleGuide) => void
-  getChapterDraftMeta: (chapterIndex: number) => ChapterDraftMeta
-  setChapterDraftMeta: (chapterIndex: number, meta: ChapterDraftMeta) => void
-  getChapterDraft: (chapterIndex: number, draftIndex: number) => string
-  setChapterDraft: (chapterIndex: number, draftIndex: number, content: string) => void
-  getActiveDraftContent: (chapterIndex: number) => string
+  draftOps: DraftOps
   onWordCountChange: (count: number) => void
   onKeystroke: () => void
   onStorySoFarUpdate?: () => void
@@ -227,6 +231,58 @@ function KillListEditor({
   )
 }
 
+// ── New draft button (shared between pill-row and single-draft views) ───────
+
+function NewDraftButton({ onNewDraft, align = 'left' }: {
+  onNewDraft: (copyContent: boolean) => void
+  align?: 'left' | 'right'
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="px-2 py-1 text-[12px] font-medium transition-opacity hover:opacity-70"
+        style={{ color: '#E9A020', background: 'none', border: 'none' }}
+      >
+        + New draft
+      </button>
+      {open && (
+        <div
+          className={`absolute top-full mt-1 flex gap-1.5 px-2 py-1.5 rounded-lg z-10 ${align === 'right' ? 'right-0' : 'left-0'}`}
+          style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+        >
+          <button
+            onClick={() => { onNewDraft(false); setOpen(false) }}
+            className="px-3 py-1 rounded-md text-[12px] font-medium transition-colors hover:bg-gray-50"
+            style={{ color: '#1E2D3D', border: '0.5px solid #E5E7EB' }}
+          >
+            Start blank
+          </button>
+          <button
+            onClick={() => { onNewDraft(true); setOpen(false) }}
+            className="px-3 py-1 rounded-md text-[12px] font-medium transition-colors hover:bg-gray-50"
+            style={{ color: '#1E2D3D', border: '0.5px solid #E5E7EB' }}
+          >
+            Copy current draft
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Auto-sizing prose textarea ──────────────────────────────────────────────
 
 function ProseTextarea({
@@ -278,11 +334,11 @@ export function EditorArea({
   activeNavItem, bookId, workbookData,
   getValue, setValue, getChapterMeta, setChapterMeta,
   getStyleGuide, setStyleGuide,
-  getChapterDraftMeta, setChapterDraftMeta,
-  getChapterDraft, setChapterDraft, getActiveDraftContent,
+  draftOps,
   onWordCountChange, onKeystroke,
   onStorySoFarUpdate, storySoFarStatus, hasChapterContent,
 }: Props) {
+  const { getChapterDraftMeta, setChapterDraftMeta, getChapterDraft, setChapterDraft, getActiveDraftContent } = draftOps
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   // Parse nav item → workbook coordinates
@@ -293,9 +349,6 @@ export function EditorArea({
   const draftMeta = isChapter && chapterIdx != null ? getChapterDraftMeta(chapterIdx) : null
   const activeDraftIdx = draftMeta?.activeDraft ?? 0
   const draftCount = draftMeta?.draftCount ?? 1
-
-  // New-draft inline choice state
-  const [showNewDraftChoice, setShowNewDraftChoice] = useState(false)
 
   const getInitialContent = useCallback((): string => {
     if (isChapter && chapterIdx != null) return getActiveDraftContent(chapterIdx)
@@ -313,7 +366,6 @@ export function EditorArea({
   // Reset content when nav item changes
   useEffect(() => {
     setContent(getInitialContent())
-    setShowNewDraftChoice(false)
   }, [activeNavItem, getInitialContent]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update live word count
@@ -346,7 +398,6 @@ export function EditorArea({
     setChapterDraftMeta(chapterIdx, { draftCount, activeDraft: draftIdx })
     // Load new draft content
     setContent(getChapterDraft(chapterIdx, draftIdx))
-    setShowNewDraftChoice(false)
   }
 
   // Create a new draft
@@ -359,7 +410,6 @@ export function EditorArea({
     setChapterDraft(chapterIdx, newIdx, newContent)
     setChapterDraftMeta(chapterIdx, { draftCount: draftCount + 1, activeDraft: newIdx })
     setContent(newContent)
-    setShowNewDraftChoice(false)
   }
 
   // Update chapter title in chapterMeta
@@ -469,7 +519,7 @@ export function EditorArea({
           <div className="px-8 py-6 max-w-3xl mx-auto">
             {/* Draft switcher row — show if draftCount > 1 */}
             {draftCount > 1 && (
-              <div className="flex items-center gap-1.5 mb-3 relative">
+              <div className="flex items-center gap-1.5 mb-3">
                 {Array.from({ length: draftCount }, (_, i) => (
                   <button
                     key={i}
@@ -491,34 +541,7 @@ export function EditorArea({
                     Draft {i + 1}
                   </button>
                 ))}
-                <button
-                  onClick={() => setShowNewDraftChoice(v => !v)}
-                  className="px-2 py-1 text-[12px] font-medium transition-opacity hover:opacity-70"
-                  style={{ color: '#E9A020', background: 'none', border: 'none' }}
-                >
-                  + New draft
-                </button>
-                {showNewDraftChoice && (
-                  <div
-                    className="absolute top-full left-0 mt-1 flex gap-1.5 px-2 py-1.5 rounded-lg z-10"
-                    style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
-                  >
-                    <button
-                      onClick={() => handleNewDraft(false)}
-                      className="px-3 py-1 rounded-md text-[12px] font-medium transition-colors hover:bg-gray-50"
-                      style={{ color: '#1E2D3D', border: '0.5px solid #E5E7EB' }}
-                    >
-                      Start blank
-                    </button>
-                    <button
-                      onClick={() => handleNewDraft(true)}
-                      className="px-3 py-1 rounded-md text-[12px] font-medium transition-colors hover:bg-gray-50"
-                      style={{ color: '#1E2D3D', border: '0.5px solid #E5E7EB' }}
-                    >
-                      Copy current draft
-                    </button>
-                  </div>
-                )}
+                <NewDraftButton onNewDraft={handleNewDraft} />
               </div>
             )}
 
@@ -538,35 +561,8 @@ export function EditorArea({
               </span>
               {/* "+ New draft" button when only 1 draft exists */}
               {draftCount <= 1 && (
-                <div className="relative ml-auto">
-                  <button
-                    onClick={() => setShowNewDraftChoice(v => !v)}
-                    className="px-2 py-1 text-[12px] font-medium transition-opacity hover:opacity-70"
-                    style={{ color: '#E9A020', background: 'none', border: 'none' }}
-                  >
-                    + New draft
-                  </button>
-                  {showNewDraftChoice && (
-                    <div
-                      className="absolute top-full right-0 mt-1 flex gap-1.5 px-2 py-1.5 rounded-lg z-10"
-                      style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
-                    >
-                      <button
-                        onClick={() => handleNewDraft(false)}
-                        className="px-3 py-1 rounded-md text-[12px] font-medium transition-colors hover:bg-gray-50"
-                        style={{ color: '#1E2D3D', border: '0.5px solid #E5E7EB' }}
-                      >
-                        Start blank
-                      </button>
-                      <button
-                        onClick={() => handleNewDraft(true)}
-                        className="px-3 py-1 rounded-md text-[12px] font-medium transition-colors hover:bg-gray-50"
-                        style={{ color: '#1E2D3D', border: '0.5px solid #E5E7EB' }}
-                      >
-                        Copy current draft
-                      </button>
-                    </div>
-                  )}
+                <div className="ml-auto">
+                  <NewDraftButton onNewDraft={handleNewDraft} align="right" />
                 </div>
               )}
             </div>
