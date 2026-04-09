@@ -82,10 +82,6 @@ model User {
   bookFunnelDownloads   BookFunnelDownload[]
   bookfunnelWebhookSecret String?
   inboundEmailAddress     String?   // Postmark inbound address for swap auto-detection
-  // Writing Notebook
-  anthropicApiKey            String?
-  anthropicKeyAddedAt        DateTime?
-  writingOnboardingComplete  Boolean  @default(false)
   writingKillList            String?  // JSON: { word: string, scope: 'global'|'book' }[]
   launches      Launch[]
   swapEntries   SwapEntry[]
@@ -94,6 +90,7 @@ model User {
   uploadLogs              UploadLog[]
   writingNotebooks        WritingNotebook[]
   writingNotebookChats    WritingNotebookChat[]
+  chapterAudits           ChapterAudit[]
   createdAt     DateTime       @default(now())
 }
 
@@ -576,6 +573,20 @@ model WritingNotebookChat {
   createdAt DateTime @default(now())
 
   @@index([userId, bookId, createdAt])
+}
+
+model ChapterAudit {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId       String
+  chapterIndex Int
+  draftIndex   Int      @default(0)
+  auditType    String   // 'ku_pacing' | 'heat_map' | 'emotional_arc'
+  findings     String   @db.Text  // JSON array of findings
+  createdAt    DateTime @default(now())
+
+  @@index([userId, bookId, chapterIndex])
 }
 
 model CategoryCache {

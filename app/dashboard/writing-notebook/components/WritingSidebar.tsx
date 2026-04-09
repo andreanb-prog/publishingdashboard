@@ -7,7 +7,7 @@ export type SidebarSection =
   | 'storyOutline' | 'styleGuide' | 'killList' | 'seriesBible'
   | 'storySoFar'
   | { type: 'chapter'; index: number }
-  | 'consistencyCheck' | 'vellumExport'
+  | 'consistencyCheck' | 'chapterAudit' | 'vellumExport'
 
 interface ChapterInfo {
   index: number
@@ -147,6 +147,7 @@ export function WritingSidebar({ activeSection, onSelectSection, chapters, onAdd
           Polish
         </div>
         <NavItem section="consistencyCheck" icon="&#128269;" label="Consistency Check" />
+        <NavItem section="chapterAudit" icon="&#128209;" label="Chapter Audit" />
         <NavItem section="vellumExport" icon="&#128228;" label="Vellum Export" />
       </nav>
     </aside>

@@ -211,6 +211,7 @@ export default function WritingNotebookPage() {
         >
           <NotebookPane
             bookId={selectedBookId ?? ''}
+            bookTitle={selectedBook?.title}
             activePhase={activePhase}
             onPhaseChange={setActivePhase}
             activeSection={activeSection}

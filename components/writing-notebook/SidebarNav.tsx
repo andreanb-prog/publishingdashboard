@@ -198,6 +198,7 @@ export function SidebarNav({
         {/* ── Polish ────────────────────────── */}
         <SectionLabel>Polish</SectionLabel>
         <NavItem id="consistencyCheck" icon="🔍" label="Consistency Check" activeNavItem={activeNavItem} onNavChange={onNavChange} />
+        <NavItem id="chapterAudit"     icon="📋" label="Chapter Audit"     activeNavItem={activeNavItem} onNavChange={onNavChange} />
         <NavItem id="vellumExport"     icon="📤" label="Vellum Export"     activeNavItem={activeNavItem} onNavChange={onNavChange} />
       </div>
 

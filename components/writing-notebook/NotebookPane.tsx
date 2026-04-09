@@ -4,11 +4,13 @@ import { useState, useCallback } from 'react'
 import { Pencil, CheckCircle, AlertCircle, ScrollText, Loader2 } from 'lucide-react'
 import type { ChapterMeta, ChapterStatus } from '@/app/writing-notebook/page'
 import { WorkbookImporter } from './WorkbookImporter'
+import { AuditPanel } from './AuditPanel'
 
 type Phase = 'setup' | 'writing' | 'polish'
 
 interface Props {
   bookId: string
+  bookTitle?: string
   activePhase: Phase
   onPhaseChange: (p: Phase) => void
   activeSection: string
@@ -67,11 +69,13 @@ function ChapterStatusButton({ status, onClick }: { status: ChapterStatus; onCli
 }
 
 export function NotebookPane({
-  bookId, activePhase, onPhaseChange, activeSection, activeChapterIndex,
+  bookId, bookTitle, activePhase, onPhaseChange, activeSection, activeChapterIndex,
   onSectionChange, getValue, setValue, getChapterMeta, saving, saved, onReloadWorkbook,
 }: Props) {
   const [toast, setToast] = useState('')
   const [summarizingChapter, setSummarizingChapter] = useState<number | null>(null)
+  const [polishTab, setPolishTab] = useState<'finalDrafts' | 'chapterAudit'>('finalDrafts')
+  const [auditChapterIndex, setAuditChapterIndex] = useState(0)
 
   const getKey = useCallback((phase: string, section: string, chapterIndex?: number) => {
     return chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
@@ -291,59 +295,122 @@ export function NotebookPane({
         {/* POLISH phase */}
         {activePhase === 'polish' && (
           <>
-            {polishMeta.count === 0 && (
-              <div className="text-center py-8" style={{ color: '#9CA3AF' }}>
-                <p className="text-sm">No final drafts yet. Finish your chapters in the Writing phase first.</p>
-              </div>
-            )}
-            {Array.from({ length: polishMeta.count }, (_, i) => {
-              const key = getKey('polish', 'finalDraft', i)
-              const content = getValue('polish', 'finalDraft', i)
-              const title = polishMeta.titles[i] ?? ''
-              const isActive = activeSection === 'finalDraft' && activeChapterIndex === i
-              return (
-                <div
-                  key={i}
-                  className="rounded-lg p-3"
+            {/* Polish sub-tabs */}
+            <div className="flex gap-1 mb-4">
+              {(['finalDrafts', 'chapterAudit'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setPolishTab(tab)}
+                  className="px-3 py-1.5 rounded-full text-[12px] font-medium border-none cursor-pointer transition-all"
                   style={{
-                    border: isActive ? '1.5px solid #6EBF8B' : '0.5px solid #E5E7EB',
-                    background: isActive ? '#F0FDF4' : '#FFFFFF',
+                    background: polishTab === tab ? '#1E2D3D' : '#F5F5F4',
+                    color: polishTab === tab ? '#FFFFFF' : '#4B5563',
                   }}
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#6EBF8B', color: '#FFFFFF' }}>
-                      Ch {i + 1}
-                    </span>
-                    <input
-                      key={`fd-title-${i}-${bookId}-${title}`}
-                      defaultValue={title}
-                      placeholder="Chapter title"
-                      onBlur={(e) => {
-                        const meta = getChapterMeta('polish')
-                        const titles = [...meta.titles]
-                        titles[i] = e.target.value
-                        setValue('polish', 'chapterMeta', JSON.stringify({ ...meta, titles }))
-                      }}
-                      onClick={() => onSectionChange('finalDraft', i)}
-                      className="flex-1 text-sm font-medium bg-transparent focus:outline-none"
-                      style={{ color: '#1E2D3D' }}
-                    />
-                    <SavedIndicator saving={saving[key]} saved={saved[key]} />
-                    <span className="text-xs" style={{ color: '#9CA3AF' }}>{wordCount(content).toLocaleString()} words</span>
+                  {tab === 'finalDrafts' ? 'Final Drafts' : 'Chapter Audit'}
+                </button>
+              ))}
+            </div>
+
+            {/* Final Drafts sub-tab */}
+            {polishTab === 'finalDrafts' && (
+              <>
+                {polishMeta.count === 0 && (
+                  <div className="text-center py-8" style={{ color: '#9CA3AF' }}>
+                    <p className="text-sm">No final drafts yet. Finish your chapters in the Writing phase first.</p>
                   </div>
-                  <textarea
-                    key={`fd-${i}-${bookId}-${content ? 'loaded' : 'empty'}`}
-                    defaultValue={content}
-                    placeholder="Paste or write your final draft here\u2026"
-                    onFocus={() => onSectionChange('finalDraft', i)}
-                    onBlur={(e) => setValue('polish', 'finalDraft', e.target.value, i)}
-                    className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none transition-shadow"
-                    style={{ border: 'none', minHeight: isActive ? 300 : 100, color: '#1E2D3D', lineHeight: '1.8' }}
-                    rows={isActive ? 15 : 4}
-                  />
-                </div>
-              )
-            })}
+                )}
+                {Array.from({ length: polishMeta.count }, (_, i) => {
+                  const key = getKey('polish', 'finalDraft', i)
+                  const content = getValue('polish', 'finalDraft', i)
+                  const title = polishMeta.titles[i] ?? ''
+                  const isActive = activeSection === 'finalDraft' && activeChapterIndex === i
+                  return (
+                    <div
+                      key={i}
+                      className="rounded-lg p-3"
+                      style={{
+                        border: isActive ? '1.5px solid #6EBF8B' : '0.5px solid #E5E7EB',
+                        background: isActive ? '#F0FDF4' : '#FFFFFF',
+                      }}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#6EBF8B', color: '#FFFFFF' }}>
+                          Ch {i + 1}
+                        </span>
+                        <input
+                          key={`fd-title-${i}-${bookId}-${title}`}
+                          defaultValue={title}
+                          placeholder="Chapter title"
+                          onBlur={(e) => {
+                            const meta = getChapterMeta('polish')
+                            const titles = [...meta.titles]
+                            titles[i] = e.target.value
+                            setValue('polish', 'chapterMeta', JSON.stringify({ ...meta, titles }))
+                          }}
+                          onClick={() => onSectionChange('finalDraft', i)}
+                          className="flex-1 text-sm font-medium bg-transparent focus:outline-none"
+                          style={{ color: '#1E2D3D' }}
+                        />
+                        <SavedIndicator saving={saving[key]} saved={saved[key]} />
+                        <span className="text-xs" style={{ color: '#9CA3AF' }}>{wordCount(content).toLocaleString()} words</span>
+                      </div>
+                      <textarea
+                        key={`fd-${i}-${bookId}-${content ? 'loaded' : 'empty'}`}
+                        defaultValue={content}
+                        placeholder="Paste or write your final draft here..."
+                        onFocus={() => onSectionChange('finalDraft', i)}
+                        onBlur={(e) => setValue('polish', 'finalDraft', e.target.value, i)}
+                        className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none transition-shadow"
+                        style={{ border: 'none', minHeight: isActive ? 300 : 100, color: '#1E2D3D', lineHeight: '1.8' }}
+                        rows={isActive ? 15 : 4}
+                      />
+                    </div>
+                  )
+                })}
+              </>
+            )}
+
+            {/* Chapter Audit sub-tab */}
+            {polishTab === 'chapterAudit' && (
+              <>
+                {writingMeta.count === 0 ? (
+                  <div className="text-center py-8" style={{ color: '#9CA3AF' }}>
+                    <p className="text-sm">No chapters yet. Write some chapters first to run an audit.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col" style={{ height: 'calc(100vh - 200px)' }}>
+                    {/* Chapter selector */}
+                    {writingMeta.count > 1 && (
+                      <div className="flex gap-1 mb-3 flex-wrap">
+                        {Array.from({ length: writingMeta.count }, (_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setAuditChapterIndex(i)}
+                            className="px-2.5 py-1 rounded-full text-[11px] font-medium border-none cursor-pointer transition-all"
+                            style={{
+                              background: auditChapterIndex === i ? '#E9A020' : '#F5F5F4',
+                              color: auditChapterIndex === i ? '#FFFFFF' : '#4B5563',
+                            }}
+                          >
+                            Ch {i + 1}{writingMeta.titles[i] ? ` · ${writingMeta.titles[i]}` : ''}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex-1 overflow-hidden rounded-lg" style={{ border: '0.5px solid #E5E7EB', background: '#FFFFFF' }}>
+                      <AuditPanel
+                        bookId={bookId}
+                        bookTitle={bookTitle || 'Untitled'}
+                        chapterIndex={auditChapterIndex}
+                        chapterTitle={writingMeta.titles[auditChapterIndex] ?? ''}
+                        chapterContent={getValue('writing', 'chapter', auditChapterIndex)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </>
         )}
       </div>
