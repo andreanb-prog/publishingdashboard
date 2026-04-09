@@ -3,16 +3,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { WritingOnboarding } from './WritingOnboarding'
 import { useWorkbook } from './useWorkbook'
+import { useBooks } from '@/hooks/useBooks'
 import { WritingNotebookTopBar } from '@/components/writing-notebook/WritingNotebookTopBar'
 import { NotebookPane } from '@/components/writing-notebook/NotebookPane'
 import { ChapterDrawer } from '@/components/writing-notebook/ChapterDrawer'
 import { AIChatPanel } from '@/components/writing-notebook/AIChatPanel'
 import { MobileBottomBar } from '@/components/writing-notebook/MobileBottomBar'
-
-interface BookOption {
-  id: string
-  title: string
-}
 
 type NotebookPhase = 'setup' | 'writing' | 'polish'
 
@@ -21,7 +17,7 @@ export default function WritingNotebookPage() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null)
   const [hasApiKey, setHasApiKey] = useState(false)
-  const [books, setBooks] = useState<BookOption[]>([])
+  const { books } = useBooks()
   const [selectedBookId, setSelectedBookId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('wn_selected_book')
     return null
@@ -49,17 +45,12 @@ export default function WritingNotebookPage() {
       .catch(() => setOnboardingComplete(false))
   }, [])
 
-  // Load books
+  // Auto-select first book on mount
   useEffect(() => {
-    fetch('/api/books')
-      .then(r => r.json())
-      .then(d => {
-        const bks = (d.books ?? d.data ?? []).map((b: { id: string; title: string }) => ({ id: b.id, title: b.title }))
-        setBooks(bks)
-        if (!selectedBookId && bks.length > 0) setSelectedBookId(bks[0].id)
-      })
-      .catch(() => {})
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    if (books.length > 0 && !selectedBookId) {
+      setSelectedBookId(books[0].id)
+    }
+  }, [books]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (selectedBookId) localStorage.setItem('wn_selected_book', selectedBookId)
@@ -129,7 +120,6 @@ export default function WritingNotebookPage() {
 
       {/* Top bar */}
       <WritingNotebookTopBar
-        books={books}
         selectedBookId={bookId}
         onBookChange={(id) => setSelectedBookId(id)}
         isChatOpen={isChatOpen}

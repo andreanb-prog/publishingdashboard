@@ -2,6 +2,7 @@
 // app/writing-notebook/page.tsx — immersive writing notebook (no sidebar)
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { useBooks } from '@/hooks/useBooks'
 import { WritingNotebookTopBar } from '@/components/writing-notebook/WritingNotebookTopBar'
 import { NotebookPane } from '@/components/writing-notebook/NotebookPane'
 import { ChapterDrawer } from '@/components/writing-notebook/ChapterDrawer'
@@ -10,7 +11,6 @@ import { MobileBottomBar } from '@/components/writing-notebook/MobileBottomBar'
 
 type Phase = 'setup' | 'writing' | 'polish'
 type MobileTab = 'notebook' | 'chapters' | 'chat'
-type Book = { id: string; title: string }
 
 export interface WorkbookData { [key: string]: string }
 export interface ChapterMeta { count: number; titles: string[] }
@@ -26,7 +26,7 @@ export default function WritingNotebookPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const [books, setBooks] = useState<Book[]>([])
+  const { books } = useBooks()
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
   const [workbookData, setWorkbookData] = useState<WorkbookData>({})
   const [activePhase, setActivePhase] = useState<Phase>('writing')
@@ -40,20 +40,14 @@ export default function WritingNotebookPage() {
   const [saved, setSaved] = useState<Record<string, boolean>>({})
   const [hasApiKey, setHasApiKey] = useState(false)
 
-  // Load books
+  // Select book from URL param or first book
   useEffect(() => {
-    fetch('/api/books')
-      .then(r => r.json())
-      .then(data => {
-        const bks = (data.books ?? data.data ?? []).map((b: { id: string; title: string }) => ({ id: b.id, title: b.title }))
-        setBooks(bks)
-        const paramBookId = searchParams.get('bookId')
-        const initial = paramBookId && bks.find((b: Book) => b.id === paramBookId)
-          ? paramBookId : bks[0]?.id ?? null
-        setSelectedBookId(initial)
-      })
-      .catch(() => setLoading(false))
-  }, [searchParams])
+    if (books.length === 0) return
+    const paramBookId = searchParams.get('bookId')
+    const initial = paramBookId && books.find(b => b.id === paramBookId)
+      ? paramBookId : books[0]?.id ?? null
+    setSelectedBookId(prev => prev ?? initial)
+  }, [books, searchParams])
 
   // Check API key
   useEffect(() => {
@@ -184,7 +178,6 @@ export default function WritingNotebookPage() {
   return (
     <div className="flex flex-col h-screen" style={{ background: '#FFF8F0' }}>
       <WritingNotebookTopBar
-        books={books}
         selectedBookId={selectedBookId ?? ''}
         onBookChange={setSelectedBookId}
         isChatOpen={isChatOpen}
