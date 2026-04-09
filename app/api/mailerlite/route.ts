@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Use the requesting user's own saved key only — no env var fallback
+  // Try: header → user's saved key → env var fallback
   let apiKey = req.headers.get('x-mailerlite-key') || null
 
   if (!apiKey) {
@@ -23,7 +23,11 @@ export async function GET(req: NextRequest) {
     apiKey = user?.mailerLiteKey || null
   }
 
+  if (!apiKey) apiKey = process.env.MAILERLITE_API_KEY || null
+
   if (!apiKey) return NextResponse.json({ error: 'No MailerLite API key' }, { status: 400 })
+
+  console.log('[MailerLite route] key source:', apiKey === process.env.MAILERLITE_API_KEY ? 'env' : 'user-db')
 
   try {
     const data = await fetchMailerLiteStats(apiKey)
