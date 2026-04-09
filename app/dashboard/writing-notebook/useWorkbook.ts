@@ -3,9 +3,12 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 
 export type Phase = 'setup' | 'writing' | 'edit' | 'polish'
 
+export type ChapterStatus = 'draft' | 'complete' | 'needs_edit' | 'empty'
+
 export interface ChapterMeta {
   count: number
   titles: string[]
+  statuses: ChapterStatus[]
 }
 
 export interface ChapterDraftMeta {
@@ -128,16 +131,47 @@ export function useWorkbook(bookId: string | null) {
   // Get chapterMeta
   const getChapterMeta = useCallback((phase: 'writing' | 'polish'): ChapterMeta => {
     const raw = data[`${phase}:chapterMeta`]
-    if (!raw) return { count: 1, titles: [] }
-    try { return JSON.parse(raw) } catch { return { count: 1, titles: [] } }
+    if (!raw) return { count: 1, titles: [], statuses: [] }
+    try {
+      const parsed = JSON.parse(raw)
+      return { count: parsed.count ?? 1, titles: parsed.titles ?? [], statuses: parsed.statuses ?? [] }
+    } catch { return { count: 1, titles: [], statuses: [] } }
   }, [data])
 
   const setChapterMeta = useCallback((phase: 'writing' | 'polish', meta: ChapterMeta) => {
     setValue(phase, 'chapterMeta', JSON.stringify(meta))
   }, [setValue])
 
+  // Chapter draft meta (multi-draft support per chapter)
+  const getChapterDraftMeta = useCallback((chapterIndex: number): ChapterDraftMeta => {
+    const raw = data[`writing:chapterDraftMeta:${chapterIndex}`]
+    if (!raw) return { draftCount: 1, activeDraft: 0 }
+    try { return JSON.parse(raw) } catch { return { draftCount: 1, activeDraft: 0 } }
+  }, [data])
+
+  const setChapterDraftMeta = useCallback((chapterIndex: number, meta: ChapterDraftMeta) => {
+    setValue('writing', 'chapterDraftMeta', JSON.stringify(meta), chapterIndex)
+  }, [setValue])
+
+  const getChapterDraft = useCallback((chapterIndex: number, draftIndex: number): string => {
+    if (draftIndex === 0) return getValue('writing', 'chapter', chapterIndex)
+    return getValue('writing', `chapterDraft${draftIndex}`, chapterIndex)
+  }, [getValue])
+
+  const setChapterDraft = useCallback((chapterIndex: number, draftIndex: number, content: string) => {
+    if (draftIndex === 0) { setValue('writing', 'chapter', content, chapterIndex); return }
+    setValue('writing', `chapterDraft${draftIndex}`, content, chapterIndex)
+  }, [setValue])
+
+  const getActiveDraftContent = useCallback((chapterIndex: number): string => {
+    const meta = getChapterDraftMeta(chapterIndex)
+    return getChapterDraft(chapterIndex, meta.activeDraft)
+  }, [getChapterDraftMeta, getChapterDraft])
+
   return {
     data, loaded, getValue, setValue, isSaving, isSaved, saving, saved,
-    getStyleGuide, setStyleGuide, getChapterMeta, setChapterMeta, load,
+    getStyleGuide, setStyleGuide, getChapterMeta, setChapterMeta,
+    getChapterDraftMeta, setChapterDraftMeta, getChapterDraft, setChapterDraft, getActiveDraftContent,
+    load,
   }
 }

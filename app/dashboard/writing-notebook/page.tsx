@@ -149,13 +149,13 @@ export default function WritingNotebookPage() {
   // ── Chapter handlers ───────────────────────────────────────────────
   const handleAddChapter = useCallback(() => {
     const meta = workbook.getChapterMeta('writing')
-    workbook.setChapterMeta('writing', { count: meta.count + 1, titles: [...meta.titles, ''] })
+    workbook.setChapterMeta('writing', { count: meta.count + 1, titles: [...meta.titles, ''], statuses: [...meta.statuses, 'empty'] })
     setActiveNavItem(`chapter:${meta.count}`)
   }, [workbook])
 
   const handleMobileAddChapter = useCallback(() => {
     const meta = workbook.getChapterMeta('writing')
-    workbook.setChapterMeta('writing', { count: meta.count + 1, titles: [...meta.titles, ''] })
+    workbook.setChapterMeta('writing', { count: meta.count + 1, titles: [...meta.titles, ''], statuses: [...meta.statuses, 'empty'] })
     setPhase('writing')
     setActiveSection('chapter')
     setActiveChapterIndex(meta.count)
@@ -164,7 +164,7 @@ export default function WritingNotebookPage() {
   const handleSaveToWorkbook = useCallback(async (content: string, chapterIndex: number, chapterTitle?: string) => {
     const meta = workbook.getChapterMeta('writing')
     if (chapterIndex >= meta.count) {
-      workbook.setChapterMeta('writing', { count: chapterIndex + 1, titles: [...meta.titles, chapterTitle ?? ''] })
+      workbook.setChapterMeta('writing', { count: chapterIndex + 1, titles: [...meta.titles, chapterTitle ?? ''], statuses: [...meta.statuses, 'draft'] })
     }
     workbook.setValue('writing', 'chapter', content, chapterIndex)
   }, [workbook])
@@ -206,6 +206,7 @@ export default function WritingNotebookPage() {
         <SidebarNav
           workbookData={workbook.data}
           getChapterMeta={workbook.getChapterMeta}
+          getChapterDraftMeta={workbook.getChapterDraftMeta}
           activeNavItem={activeNavItem}
           onNavChange={handleNavChange}
           onAddChapter={handleAddChapter}
@@ -237,6 +238,11 @@ export default function WritingNotebookPage() {
               setChapterMeta={workbook.setChapterMeta}
               getStyleGuide={workbook.getStyleGuide}
               setStyleGuide={workbook.setStyleGuide}
+              getChapterDraftMeta={workbook.getChapterDraftMeta}
+              setChapterDraftMeta={workbook.setChapterDraftMeta}
+              getChapterDraft={workbook.getChapterDraft}
+              setChapterDraft={workbook.setChapterDraft}
+              getActiveDraftContent={workbook.getActiveDraftContent}
               onWordCountChange={setWordCount}
               onKeystroke={resetIdleTimer}
               onStorySoFarUpdate={triggerStorySoFarUpdate}
@@ -263,6 +269,7 @@ export default function WritingNotebookPage() {
             getValue={workbook.getValue}
             setValue={setValueAsync}
             getChapterMeta={workbook.getChapterMeta}
+            onReloadWorkbook={workbook.load}
             saving={workbook.saving}
             saved={workbook.saved}
           />
