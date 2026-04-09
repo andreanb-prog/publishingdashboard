@@ -212,8 +212,7 @@ interface CombinedSalesMeta {
 }
 
 function parseCombinedSalesSheet(sheet: XLSX.WorkSheet): { rows: CombinedSalesRow[]; meta: CombinedSalesMeta } {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const raw = (XLSX.utils.sheet_to_json as any)(sheet, { header: 1, defval: '', cellDates: true }) as unknown[][]
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][]
   const strategiesUsed: string[] = []
 
   // ── Strategy 4: Banner row scan — check rows 0–10 for real header ──────────
