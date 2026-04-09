@@ -9,6 +9,10 @@ import { db } from '@/lib/db'
 import { fetchMailerLiteStats } from '@/lib/mailerlite'
 
 export async function GET(req: NextRequest) {
+  console.log('[mailerlite] handler called')
+  console.log('[mailerlite] env key exists:', !!process.env.MAILERLITE_API_KEY)
+  console.log('[mailerlite] env key prefix:', process.env.MAILERLITE_API_KEY?.slice(0, 8))
+
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

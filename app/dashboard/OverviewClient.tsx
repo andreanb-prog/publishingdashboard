@@ -740,7 +740,7 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
       {!analysis && analyses.length === 0 && (
         <div className="mb-7">
           <div className="text-[22px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
-            Good morning{userName ? `, ${userName}` : ''}. Your dashboard is ready — it just needs your data.
+            {(() => { const h = new Date().getHours(); return h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening' })()}{userName ? `, ${userName}` : ''}. Your dashboard is ready — it just needs your data.
           </div>
           <p className="text-[13px] mb-5" style={{ color: '#6B7280' }}>
             Connect your channels below to unlock your personalised coaching.

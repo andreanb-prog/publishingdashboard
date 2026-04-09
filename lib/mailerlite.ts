@@ -11,6 +11,8 @@ const ML = 'https://connect.mailerlite.com/api'
 
 async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; data: any }> {
   const url = `${ML}${path}`
+  console.log('[mailerlite] fetching url:', url)
+  console.log('[mailerlite] key prefix:', apiKey?.slice(0, 8))
   try {
     const res = await fetch(url, {
       cache: 'no-store',
@@ -20,11 +22,13 @@ async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; dat
         Accept: 'application/json',
       },
     })
+    console.log('[mailerlite] response status:', res.status, 'for', path)
     if (res.ok) {
       const data = await res.json()
       return { ok: true, data }
     }
-    console.log(`[MailerLite] ${url} returned ${res.status}`)
+    const responseText = await res.text()
+    console.log('[mailerlite] response body:', responseText.slice(0, 300))
     return { ok: false, data: null }
   } catch (e) {
     console.error(`[MailerLite] ${url} failed:`, e)

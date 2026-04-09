@@ -397,10 +397,10 @@ export default function MailerLitePage() {
     : 'Author avg: 1.5–2.5%'
 
   const benchmarks = [
-    { metric: 'Open Rate',  yours: ml?.openRate  || 0, avg: '20–25',   unit: '%', good: (v: number) => v >= openTarget  },
-    { metric: 'Click Rate', yours: ml?.clickRate || 0, avg: '1.5–2.5', unit: '%', good: (v: number) => v >= clickTarget },
-    { metric: 'List Size',  yours: ml?.listSize  || 0, avg: null, unit: '', good: () => true },
-    { metric: 'Unsubscribes (recent)', yours: ml?.unsubscribes || 0, avg: null, unit: '', good: (v: number) => v < 30 },
+    { metric: 'Open Rate',  yours: ml?.openRate  ?? 0, avg: '20–25',   unit: '%', good: (v: number) => v >= openTarget  },
+    { metric: 'Click Rate', yours: ml?.clickRate ?? 0, avg: '1.5–2.5', unit: '%', good: (v: number) => v >= clickTarget },
+    { metric: 'List Size',  yours: ml?.listSize  ?? 0, avg: null, unit: '', good: () => true },
+    { metric: 'Unsubscribes (recent)', yours: ml?.unsubscribes ?? 0, avg: null, unit: '', good: (v: number) => v < 30 },
   ]
 
   if (loading) {
