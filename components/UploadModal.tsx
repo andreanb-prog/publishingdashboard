@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { FileUp, BarChart2, BookOpen, Sparkles, CheckCircle, Upload } from 'lucide-react'
-import type { KDPData, BookData, MetaData, PinterestData } from '@/types'
+import type { KDPData, BookData, MetaData, PinterestData, ParseDiagnostics } from '@/types'
 
 type FileType = 'kdp' | 'meta' | 'pinterest' | 'adtracker' | 'unknown'
 type FileStatus = 'reading' | 'done' | 'error' | 'unknown'
@@ -17,6 +17,7 @@ interface ParsedFile {
   data: KDPData | MetaData | PinterestData | null
   errorMessage?: string
   summary?: string
+  diagnostics?: ParseDiagnostics
 }
 
 interface StageInfo {
@@ -148,6 +149,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
   const [stageError, setStageError]         = useState<{ stage: StageId; message: string } | null>(null)
   const [kdpDataQuality, setKdpDataQuality] = useState<'SUSPECT_DATA' | 'INCOMPLETE_DATA' | null>(null)
   const [progressPct, setProgressPct]       = useState(0)
+  const [expandedDiag, setExpandedDiag]     = useState<Set<string>>(new Set())
   const [error, setError]                   = useState<string | null>(null)
   const [isTouch, setIsTouch]               = useState(false)
   const [cyclingMsgIdx, setCyclingMsgIdx]   = useState(0)
@@ -178,6 +180,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
       setStageError(null)
       setKdpDataQuality(null)
       setProgressPct(0)
+      setExpandedDiag(new Set())
     }
   }, [open])
 
@@ -272,7 +275,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           const kdpSummary = bookCount > 0
             ? `${rowCount} row${rowCount !== 1 ? 's' : ''} imported for ${bookCount} title${bookCount !== 1 ? 's' : ''}`
             : 'Parsed — no rows found. Make sure you exported All Titles.'
-          update({ type: 'kdp', status: 'done', data: kdpResult, summary: kdpSummary })
+          update({ type: 'kdp', status: 'done', data: kdpResult, summary: kdpSummary, diagnostics: kdpResult.diagnostics })
         } else if (detectedType === 'meta') {
           const { parseMetaFile } = await import('@/lib/parsers/meta')
           // Prefer "Worksheet" sheet (new Meta XLSX format), fall back to first sheet
@@ -323,7 +326,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           const kdpSummary = bookCount > 0
             ? `${rowCount} row${rowCount !== 1 ? 's' : ''} imported for ${bookCount} title${bookCount !== 1 ? 's' : ''}`
             : 'Parsed — no rows found. Make sure you exported All Titles.'
-          update({ type: 'kdp', status: 'done', data: kdpResult, summary: kdpSummary })
+          update({ type: 'kdp', status: 'done', data: kdpResult, summary: kdpSummary, diagnostics: kdpResult.diagnostics })
         } else {
           update({
             type: 'unknown', status: 'error', data: null,
@@ -603,68 +606,147 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                         style={{ color: '#6B7280' }}>
                         Added files
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         {files.map(f => {
                           const badge = BADGE[f.type]
+                          const diag  = f.diagnostics
+                          const diagStatus: 'success' | 'partial' | 'failure' = !diag ? 'success'
+                            : diag.rowCount === 0 ? 'failure'
+                            : diag.skippedRows > 0 ? 'partial'
+                            : 'success'
+                          const isExpanded = expandedDiag.has(f.id)
+                          const toggleDiag = () => setExpandedDiag(prev => {
+                            const next = new Set(prev)
+                            next.has(f.id) ? next.delete(f.id) : next.add(f.id)
+                            return next
+                          })
+
                           return (
-                            <div key={f.id}
-                              className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
-                              style={{ background: '#F9F8F6', border: '0.5px solid #EEEBE6' }}>
+                            <div key={f.id}>
+                              <div
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
+                                style={{ background: '#F9F8F6', border: '0.5px solid #EEEBE6' }}>
 
-                              {/* Status icon */}
-                              <div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
-                                {f.status === 'reading' ? (
-                                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ color: '#E9A020' }}>
-                                    <circle cx="7" cy="7" r="5.5" stroke="#EEEBE6" strokeWidth="1.5" />
-                                    <path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                                  </svg>
-                                ) : f.status === 'error' ? (
-                                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                    <path d="M1 1L13 13M13 1L1 13" stroke="#F97B6B" strokeWidth="1.5" strokeLinecap="round" />
-                                  </svg>
-                                ) : (
-                                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                    <path d="M2.5 7L5.5 10L11.5 4" stroke="#6EBF8B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                  </svg>
-                                )}
-                              </div>
-
-                              {/* Filename */}
-                              <div className="flex-1 min-w-0">
-                                <div className="text-[12.5px] font-medium truncate" style={{ color: '#1E2D3D' }}>
-                                  {f.filename}
+                                {/* Status icon */}
+                                <div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+                                  {f.status === 'reading' ? (
+                                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ color: '#E9A020' }}>
+                                      <circle cx="7" cy="7" r="5.5" stroke="#EEEBE6" strokeWidth="1.5" />
+                                      <path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                                    </svg>
+                                  ) : f.status === 'error' ? (
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                      <path d="M1 1L13 13M13 1L1 13" stroke="#F97B6B" strokeWidth="1.5" strokeLinecap="round" />
+                                    </svg>
+                                  ) : (
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                      <path d="M2.5 7L5.5 10L11.5 4" stroke="#6EBF8B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                  )}
                                 </div>
-                                {f.status === 'error' && (
-                                  <div className="text-[11px]" style={{ color: '#F97B6B' }}>
-                                    {f.errorMessage ?? 'Could not read this file'}
+
+                                {/* Filename */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[12.5px] font-medium truncate" style={{ color: '#1E2D3D' }}>
+                                    {f.filename}
                                   </div>
+                                  {f.status === 'error' && (
+                                    <div className="text-[11px]" style={{ color: '#F97B6B' }}>
+                                      {f.errorMessage ?? 'Could not read this file'}
+                                    </div>
+                                  )}
+                                  {f.status === 'done' && !diag && f.summary && (
+                                    <div className="text-[11px]" style={{ color: '#6EBF8B' }}>
+                                      ✓ {f.summary}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Type badge */}
+                                {f.status !== 'reading' && (
+                                  <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
+                                    style={{ background: badge.bg, color: badge.color }}>
+                                    {badge.label}
+                                  </span>
                                 )}
-                                {f.status === 'done' && f.summary && (
-                                  <div className="text-[11px]" style={{ color: '#6EBF8B' }}>
-                                    ✓ {f.summary}
-                                  </div>
-                                )}
+
+                                {/* Remove */}
+                                <button
+                                  onClick={e => { e.stopPropagation(); removeFile(f.id) }}
+                                  className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded transition-all hover:bg-stone-200 min-w-[24px] min-h-[24px]"
+                                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}
+                                  aria-label="Remove file"
+                                >
+                                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                    <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                                  </svg>
+                                </button>
                               </div>
 
-                              {/* Type badge */}
-                              {f.status !== 'reading' && (
-                                <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
-                                  style={{ background: badge.bg, color: badge.color }}>
-                                  {badge.label}
-                                </span>
-                              )}
+                              {/* ── Diagnostics panel ── */}
+                              {f.status === 'done' && diag && (
+                                <div className="rounded-b-lg overflow-hidden"
+                                  style={{ background: diagStatus === 'success' ? 'rgba(110,191,139,0.07)' : diagStatus === 'partial' ? 'rgba(233,160,32,0.07)' : 'rgba(249,123,107,0.07)', border: '0.5px solid', borderColor: diagStatus === 'success' ? 'rgba(110,191,139,0.3)' : diagStatus === 'partial' ? 'rgba(233,160,32,0.3)' : 'rgba(249,123,107,0.3)', borderTop: 'none', marginTop: -1 }}>
+                                  <div className="px-3 py-2 flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      {/* Status line */}
+                                      {diagStatus === 'success' && (
+                                        <div className="text-[11px] font-medium" style={{ color: '#166534' }}>
+                                          {diag.rowCount} row{diag.rowCount !== 1 ? 's' : ''} imported from {diag.sheetUsed} sheet
+                                        </div>
+                                      )}
+                                      {diagStatus === 'partial' && (
+                                        <div className="text-[11px] font-medium" style={{ color: '#92400E' }}>
+                                          {diag.rowCount} of {diag.rowCount + diag.skippedRows} rows imported — {diag.skippedRows} skipped
+                                          {diag.skipReasons.length > 0 && (
+                                            <span style={{ fontWeight: 400 }}> ({diag.skipReasons.join(', ')})</span>
+                                          )}
+                                        </div>
+                                      )}
+                                      {diagStatus === 'failure' && (
+                                        <div className="text-[11px] font-medium" style={{ color: '#B91C1C' }}>
+                                          0 rows imported — could not read file
+                                          {diag.sheetsFound.length > 0 && (
+                                            <span style={{ fontWeight: 400 }}> · sheets found: {diag.sheetsFound.join(', ')}</span>
+                                          )}
+                                          {diag.error && (
+                                            <div style={{ fontWeight: 400, marginTop: 1 }}>{diag.error}</div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    {/* Expand toggle — only if there's a first row to show */}
+                                    {diag.firstParsedRow && (
+                                      <button
+                                        onClick={toggleDiag}
+                                        className="flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded transition-all hover:opacity-70"
+                                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: diagStatus === 'success' ? '#166534' : diagStatus === 'partial' ? '#92400E' : '#B91C1C' }}
+                                      >
+                                        {isExpanded ? 'hide ▲' : 'details ▼'}
+                                      </button>
+                                    )}
+                                  </div>
 
-                              {/* Remove */}
-                              <button
-                                onClick={e => { e.stopPropagation(); removeFile(f.id) }}
-                                className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded transition-all hover:bg-stone-200 min-w-[24px] min-h-[24px]"
-                                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}
-                                aria-label="Remove file"
-                              >
-                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                                  <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                                </svg>
-                              </button>
+                                  {/* Collapsible first-row table */}
+                                  {isExpanded && diag.firstParsedRow && (
+                                    <div className="px-3 pb-2.5 overflow-x-auto">
+                                      <div className="text-[9.5px] font-bold uppercase tracking-wider mb-1" style={{ color: '#6B7280' }}>
+                                        First parsed row
+                                      </div>
+                                      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 10 }}>
+                                        <tbody>
+                                          {Object.entries(diag.firstParsedRow).slice(0, 8).map(([k, v]) => (
+                                            <tr key={k}>
+                                              <td style={{ padding: '1px 6px 1px 0', color: '#6B7280', whiteSpace: 'nowrap', fontWeight: 600, verticalAlign: 'top' }}>{k}</td>
+                                              <td style={{ padding: '1px 0', color: '#1E2D3D', wordBreak: 'break-all' }}>{String(v ?? '')}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )
                         })}

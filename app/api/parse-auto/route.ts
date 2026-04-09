@@ -67,10 +67,17 @@ async function saveMetaRowsToDB(userId: string, csvText: string): Promise<number
   }
 }
 
-async function logUpload(userId: string, dataType: string, fileName: string, rowsParsed: number) {
+async function logUpload(
+  userId: string,
+  fileType: string,
+  fileName: string,
+  rowCount: number,
+  status: string = 'success',
+  details: object = {},
+) {
   try {
     await db.uploadLog.create({
-      data: { userId, dataType, fileName, rowsParsed, uploadedAt: new Date() },
+      data: { userId, fileType, fileName, rowCount, status, details },
     })
   } catch (err) {
     console.error('[parse-auto] Failed to write UploadLog:', err)
@@ -143,9 +150,15 @@ export async function POST(req: NextRequest) {
 
       if (excelType === 'kdp') {
         const data = parseKDPFile(buffer)
-        await logUpload(session.user.id, 'kdp', file.name, data.books.length)
+        const diag = data.diagnostics ?? null
+        const uploadStatus = !diag ? 'success'
+          : diag.rowCount === 0 ? 'error'
+          : diag.skippedRows > 0 ? 'partial'
+          : 'success'
+        await logUpload(session.user.id, 'kdp', file.name, data.rowCount ?? data.books.length, uploadStatus, diag ?? {})
         return NextResponse.json({
           success: true, type: 'kdp', data,
+          diagnostics: diag,
           summary: `${data.totalUnits} units · ${data.totalKENP?.toLocaleString()} KENP · $${data.totalRoyaltiesUSD} royalties`,
         })
       }
@@ -161,10 +174,16 @@ export async function POST(req: NextRequest) {
         // Save each row to MetaAdData for date-range filtering
         const savedRows = await saveMetaRowsToDB(session.user.id, csvText)
         const rowCount = savedRows > 0 ? savedRows : data.ads.length
-        await logUpload(session.user.id, 'meta', file.name, rowCount)
+        const metaDiag = {
+          rowCount, sheetsFound: wb.SheetNames, sheetUsed: sheetName,
+          columnsDetected: [], skippedRows: 0, skipReasons: [],
+          firstParsedRow: null, error: rowCount === 0 ? 'No rows parsed' : null,
+        }
+        await logUpload(session.user.id, 'meta', file.name, rowCount, rowCount > 0 ? 'success' : 'error', metaDiag)
         return NextResponse.json({
           success: true, type: 'meta', data,
           rowCount,
+          diagnostics: metaDiag,
           summary: `${rowCount} rows saved · ${data.ads.length} campaigns · $${data.totalSpend} spend · ${data.totalClicks} clicks`,
         })
       }
@@ -180,18 +199,23 @@ export async function POST(req: NextRequest) {
       const data = parseMetaFile(text)
       const savedRows = await saveMetaRowsToDB(session.user.id, text)
       const rowCount = savedRows > 0 ? savedRows : data.ads.length
-      await logUpload(session.user.id, 'meta', file.name, rowCount)
+      const csvDiag = { rowCount, sheetsFound: ['CSV'], sheetUsed: 'CSV', columnsDetected: [], skippedRows: 0, skipReasons: [], firstParsedRow: null, error: rowCount === 0 ? 'No rows parsed' : null }
+      await logUpload(session.user.id, 'meta', file.name, rowCount, rowCount > 0 ? 'success' : 'error', csvDiag)
       return NextResponse.json({
         success: true, type: 'meta', data,
         rowCount,
+        diagnostics: csvDiag,
         summary: `${rowCount} rows saved · ${data.ads.length} campaigns · $${data.totalSpend} spend · ${data.totalClicks} clicks`,
       })
     }
 
     if (csvType === 'pinterest') {
       const data = parsePinterestFile(text)
+      const pinDiag = { rowCount: data.pinCount, sheetsFound: ['CSV'], sheetUsed: 'CSV', columnsDetected: [], skippedRows: 0, skipReasons: [], firstParsedRow: null, error: null }
+      await logUpload(session.user.id, 'pinterest', file.name, data.pinCount, 'success', pinDiag)
       return NextResponse.json({
         success: true, type: 'pinterest', data,
+        diagnostics: pinDiag,
         summary: `${data.totalImpressions} impressions · ${data.pinCount} pins`,
       })
     }

@@ -64,9 +64,9 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
 
     // 6. KDP upload timestamp
     db.uploadLog.findFirst({
-      where: { userId, dataType: 'kdp' },
-      orderBy: { uploadedAt: 'desc' },
-      select: { uploadedAt: true },
+      where: { userId, fileType: 'kdp' },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
     }).catch(() => null),
   ])
 
@@ -89,7 +89,7 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
   // KDP last uploaded timestamp
   let kdpLastUploadedAt: string | null = null
   if (kdpUploadLog) {
-    kdpLastUploadedAt = kdpUploadLog.uploadedAt.toISOString()
+    kdpLastUploadedAt = kdpUploadLog.createdAt.toISOString()
   } else if (kdpRecord) {
     kdpLastUploadedAt = (kdpRecord.data as any)?.kdpUploadedAt ?? kdpRecord.createdAt.toISOString()
   }

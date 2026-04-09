@@ -537,15 +537,17 @@ model Ad {
 }
 
 model UploadLog {
-  id         String   @id @default(cuid())
-  userId     String
-  dataType   String   // "kdp" | "meta" | "kenp"
-  uploadedAt DateTime @default(now())
-  fileName   String?
-  rowsParsed Int      @default(0)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  userId    String
+  fileName  String   @default("")
+  fileType  String   @default("unknown")  // "kdp" | "meta" | "pinterest" | "unknown"
+  rowCount  Int      @default(0)
+  status    String   @default("success")  // "success" | "partial" | "error"
+  details   Json     @default("{}")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, dataType])
+  @@index([userId])
 }
 
 model WritingNotebook {

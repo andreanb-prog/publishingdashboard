@@ -12,10 +12,10 @@ export async function GET(req: NextRequest) {
   if (!channel) return NextResponse.json({ error: 'channel param required' }, { status: 400 })
 
   const log = await db.uploadLog.findFirst({
-    where: { userId: session.user.id, dataType: channel },
-    orderBy: { uploadedAt: 'desc' },
-    select: { uploadedAt: true, fileName: true },
+    where: { userId: session.user.id, fileType: channel },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true, fileName: true },
   })
 
-  return NextResponse.json({ uploadedAt: log?.uploadedAt ?? null, fileName: log?.fileName ?? null })
+  return NextResponse.json({ uploadedAt: log?.createdAt ?? null, fileName: log?.fileName ?? null })
 }
