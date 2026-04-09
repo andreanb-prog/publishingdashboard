@@ -175,66 +175,70 @@ Always end with a hook or cliffhanger.`
 }
 
 export async function POST(req: NextRequest) {
-  console.log('[chat] POST hit, env key exists:', !!process.env.ANTHROPIC_API_KEY)
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { bookId, bookTitle, message, activePhase, workbookData, styleGuide } = await req.json()
-
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { anthropicApiKey: true, writingKillList: true },
-  })
-
-  let apiKey: string
-  if (user?.anthropicApiKey) {
-    try {
-      apiKey = decrypt(user.anthropicApiKey)
-    } catch {
-      return NextResponse.json({ error: 'invalid_key' }, { status: 403 })
-    }
-  } else if (process.env.ANTHROPIC_API_KEY) {
-    console.log('[writing-notebook/chat] No user key — falling back to ANTHROPIC_API_KEY env var')
-    apiKey = process.env.ANTHROPIC_API_KEY
-  } else {
-    return NextResponse.json({ error: 'no_api_key' }, { status: 403 })
-  }
-
-  // Get last 20 messages for context
-  const history = await db.writingNotebookChat.findMany({
-    where: { userId: session.user.id, bookId: bookId ?? null },
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-  })
-  const messages: { role: 'user' | 'assistant'; content: string }[] = history
-    .reverse()
-    .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
-
-  // Append the new user message
-  messages.push({ role: 'user', content: message })
-
-  // Load Book.storyContent as fallback for storySoFar
-  let enrichedWorkbookData = { ...(workbookData || {}) }
-  if (bookId && !enrichedWorkbookData['writing:storySoFar']) {
-    const book = await db.book.findUnique({
-      where: { id: bookId },
-      select: { storyContent: true },
-    })
-    if (book?.storyContent) {
-      enrichedWorkbookData['writing:storySoFar'] = book.storyContent
-    }
-  }
-
-  const systemPrompt = buildSystemPrompt(
-    bookTitle || 'their book',
-    enrichedWorkbookData,
-    styleGuide || {},
-    { writingKillList: user?.writingKillList ?? null },
-    activePhase || 'Writing',
-  )
-
   try {
+    console.log('[chat] POST hit, env key exists:', !!process.env.ANTHROPIC_API_KEY)
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { bookId, bookTitle, message, activePhase, workbookData, styleGuide } = await req.json()
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { anthropicApiKey: true, writingKillList: true },
+    })
+
+    let apiKey: string
+    if (user?.anthropicApiKey) {
+      try {
+        apiKey = decrypt(user.anthropicApiKey)
+      } catch {
+        return NextResponse.json({ error: 'invalid_key' }, { status: 403 })
+      }
+    } else if (process.env.ANTHROPIC_API_KEY) {
+      console.log('[writing-notebook/chat] No user key — falling back to ANTHROPIC_API_KEY env var')
+      apiKey = process.env.ANTHROPIC_API_KEY
+    } else {
+      return NextResponse.json({ error: 'no_api_key' }, { status: 403 })
+    }
+
+    // Get last 20 messages for context
+    const history = await db.writingNotebookChat.findMany({
+      where: { userId: session.user.id, bookId: bookId ?? null },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    })
+    const messages: { role: 'user' | 'assistant'; content: string }[] = history
+      .reverse()
+      .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+
+    // Append the new user message
+    messages.push({ role: 'user', content: message })
+
+    // Load Book.storyContent as fallback for storySoFar
+    let enrichedWorkbookData = { ...(workbookData || {}) }
+    if (bookId && !enrichedWorkbookData['writing:storySoFar']) {
+      const book = await db.book.findUnique({
+        where: { id: bookId },
+        select: { storyContent: true },
+      })
+      if (book?.storyContent) {
+        enrichedWorkbookData['writing:storySoFar'] = book.storyContent
+      }
+    }
+
+    console.log('[chat] building system prompt')
+    const systemPrompt = buildSystemPrompt(
+      bookTitle || 'their book',
+      enrichedWorkbookData,
+      styleGuide || {},
+      { writingKillList: user?.writingKillList ?? null },
+      activePhase || 'Writing',
+    )
+
+    console.log('[chat] creating anthropic client')
     const anthropic = new Anthropic({ apiKey })
+
+    console.log('[chat] starting stream')
     const stream = await anthropic.messages.stream({
       model: 'claude-sonnet-4-5-20241022',
       max_tokens: 4096,
@@ -266,13 +270,12 @@ export async function POST(req: NextRequest) {
         'X-Content-Type-Options': 'nosniff',
       },
     })
-  } catch (err: any) {
-    if (err?.status === 401) {
-      return NextResponse.json({ error: 'invalid_key' }, { status: 403 })
-    }
-    if (err?.status === 429) {
-      return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
-    }
-    return NextResponse.json({ error: 'unknown' }, { status: 500 })
+  } catch (outerErr: any) {
+    console.error('[chat] OUTER ERROR:', outerErr?.message)
+    console.error('[chat] OUTER ERROR stack:', outerErr?.stack?.slice(0, 500))
+    return new Response(JSON.stringify({ error: outerErr?.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }
