@@ -189,6 +189,17 @@ export default function WritingNotebookPage() {
     }
     prevNavRef.current = item
     setActiveNavItem(item)
+
+    // Auto-switch phase based on sidebar section
+    const polishItems = ['consistencyCheck', 'chapterAudit', 'vellumExport']
+    const setupItems = ['storyOutline', 'styleGuide', 'killList', 'seriesBible']
+    if (polishItems.includes(item)) {
+      setPhase('polish')
+    } else if (item.startsWith('chapter:') || item === 'storySoFar' || item === 'manuscript') {
+      setPhase('writing')
+    } else if (setupItems.includes(item)) {
+      setPhase('setup')
+    }
   }, [triggerStorySoFarUpdate])
 
   // 60-second idle timer

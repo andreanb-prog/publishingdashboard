@@ -1,6 +1,6 @@
 'use client'
 // components/writing-notebook/NotebookPane.tsx
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Pencil, CheckCircle, AlertCircle, ScrollText, Loader2 } from 'lucide-react'
 import type { ChapterMeta, ChapterStatus } from '@/lib/writing-notebook-types'
 import { WorkbookImporter } from './WorkbookImporter'
@@ -94,8 +94,15 @@ export function NotebookPane({
 }: Props) {
   const [toast, setToast] = useState('')
   const [summarizingChapter, setSummarizingChapter] = useState<number | null>(null)
-  const [polishTab, setPolishTab] = useState<'finalDrafts' | 'chapterAudit'>('finalDrafts')
+  const [polishTab, setPolishTab] = useState<'finalDrafts' | 'chapterAudit'>(
+    activeSection === 'chapterAudit' ? 'chapterAudit' : 'finalDrafts'
+  )
   const [auditChapterIndex, setAuditChapterIndex] = useState(0)
+
+  // Sync polishTab when sidebar nav changes
+  useEffect(() => {
+    if (activeSection === 'chapterAudit') setPolishTab('chapterAudit')
+  }, [activeSection])
   const titleInputRefs = useRef<Map<number, HTMLInputElement>>(new Map())
 
   const getKey = useCallback((phase: string, section: string, chapterIndex?: number) => {
