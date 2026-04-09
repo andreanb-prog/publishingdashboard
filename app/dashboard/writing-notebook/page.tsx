@@ -100,15 +100,23 @@ export default function WritingNotebookPage() {
   const [showImportModal, setShowImportModal] = useState(false)
 
   // ── Init ───────────────────────────────────────────────────────────
-  // Select book from URL param or first book
+  // Select book from URL param, localStorage cache, or first book
   useEffect(() => {
     if (books.length === 0) return
     const paramBookId = searchParams.get('bookId')
-    const initial = paramBookId && books.find(b => b.id === paramBookId)
-      ? paramBookId
+    if (paramBookId && books.find(b => b.id === paramBookId)) {
+      setSelectedBookId(prev => prev ?? paramBookId)
+      return
+    }
+    // No valid bookId in URL — check localStorage
+    const cachedId = localStorage.getItem('wn-last-book')
+    const fallbackId = (cachedId && books.find(b => b.id === cachedId))
+      ? cachedId
       : books[0]?.id ?? null
-    setSelectedBookId(prev => prev ?? initial)
-  }, [books, searchParams])
+    if (fallbackId) {
+      router.replace(`/dashboard/writing-notebook?bookId=${fallbackId}`, { scroll: false })
+    }
+  }, [books, searchParams, router])
 
   // Check API key
   useEffect(() => {
@@ -303,7 +311,10 @@ export default function WritingNotebookPage() {
       <WritingNotebookTopBar
         books={books}
         selectedBookId={bookId}
-        onBookChange={id => setSelectedBookId(id)}
+        onBookChange={id => {
+          if (id) localStorage.setItem('wn-last-book', id)
+          setSelectedBookId(id)
+        }}
         wordCount={wordCount}
         saving={workbook.saving}
         lastSavedAt={lastSavedAt}
