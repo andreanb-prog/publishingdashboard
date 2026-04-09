@@ -5,11 +5,14 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Neon serverless closes idle connections — limit pool to 1 and set timeouts
+// Neon serverless closes idle connections — use pooled endpoint (port 5432) and set timeouts
 function buildDatabaseUrl() {
   const base = process.env.DATABASE_URL ?? ''
   if (!base) return base
   const url = new URL(base)
+  // Ensure pooled connection (port 5432). Port 5433 is the direct/non-pooled endpoint
+  // which cold-starts on every request. Port 5432 goes through PgBouncer and stays warm.
+  if (url.port === '5433') url.port = '5432'
   if (!url.searchParams.has('connection_limit')) url.searchParams.set('connection_limit', '1')
   if (!url.searchParams.has('pool_timeout')) url.searchParams.set('pool_timeout', '20')
   if (!url.searchParams.has('connect_timeout')) url.searchParams.set('connect_timeout', '10')

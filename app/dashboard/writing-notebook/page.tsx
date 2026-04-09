@@ -341,31 +341,42 @@ export default function WritingNotebookPage() {
             />
 
             <div className="flex-1 overflow-hidden">
-              <EditorArea
-                key={activeNavItem}
-                activeNavItem={activeNavItem}
-                bookId={bookId}
-                workbookData={workbook.data}
-                getValue={workbook.getValue}
-                setValue={workbook.setValue}
-                getChapterMeta={workbook.getChapterMeta}
-                setChapterMeta={workbook.setChapterMeta}
-                draftOps={{
-                  getChapterDraftMeta: workbook.getChapterDraftMeta,
-                  setChapterDraftMeta: workbook.setChapterDraftMeta,
-                  getChapterDraft: workbook.getChapterDraft,
-                  setChapterDraft: workbook.setChapterDraft,
-                  getActiveDraftContent: workbook.getActiveDraftContent,
-                }}
-                getStyleGuide={workbook.getStyleGuide}
-                setStyleGuide={workbook.setStyleGuide}
-                onWordCountChange={setWordCount}
-                onKeystroke={resetIdleTimer}
-                onStorySoFarUpdate={triggerStorySoFarUpdate}
-                storySoFarStatus={storySoFarStatus}
-                hasChapterContent={hasChapterContent}
-                getLastEdited={workbook.getLastEdited}
-              />
+              {!workbook.loaded ? (
+                <div className="h-full p-8 space-y-4 overflow-auto">
+                  <div className="animate-pulse bg-gray-100 rounded h-6 w-40" />
+                  <div className="animate-pulse bg-gray-100 rounded h-48 w-full" />
+                  <div className="animate-pulse bg-gray-100 rounded h-5 w-32 mt-2" />
+                  <div className="animate-pulse bg-gray-100 rounded h-36 w-full" />
+                  <div className="animate-pulse bg-gray-100 rounded h-5 w-36 mt-2" />
+                  <div className="animate-pulse bg-gray-100 rounded h-28 w-full" />
+                </div>
+              ) : (
+                <EditorArea
+                  key={activeNavItem}
+                  activeNavItem={activeNavItem}
+                  bookId={bookId}
+                  workbookData={workbook.data}
+                  getValue={workbook.getValue}
+                  setValue={workbook.setValue}
+                  getChapterMeta={workbook.getChapterMeta}
+                  setChapterMeta={workbook.setChapterMeta}
+                  draftOps={{
+                    getChapterDraftMeta: workbook.getChapterDraftMeta,
+                    setChapterDraftMeta: workbook.setChapterDraftMeta,
+                    getChapterDraft: workbook.getChapterDraft,
+                    setChapterDraft: workbook.setChapterDraft,
+                    getActiveDraftContent: workbook.getActiveDraftContent,
+                  }}
+                  getStyleGuide={workbook.getStyleGuide}
+                  setStyleGuide={workbook.setStyleGuide}
+                  onWordCountChange={setWordCount}
+                  onKeystroke={resetIdleTimer}
+                  onStorySoFarUpdate={triggerStorySoFarUpdate}
+                  storySoFarStatus={storySoFarStatus}
+                  hasChapterContent={hasChapterContent}
+                  getLastEdited={workbook.getLastEdited}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -423,23 +434,32 @@ export default function WritingNotebookPage() {
       {/* ═══ MOBILE LAYOUT ════════════════════════════════════════ */}
       <div className="flex-1 md:hidden overflow-hidden pb-14">
         {mobileTab === 'notebook' && (
-          <NotebookPane
-            bookId={bookId}
-            activePhase={phase}
-            onPhaseChange={setPhase}
-            activeSection={activeSection}
-            activeChapterIndex={activeChapterIndex}
-            onSectionChange={(section, chapterIndex) => {
-              setActiveSection(section)
-              setActiveChapterIndex(chapterIndex ?? null)
-            }}
-            getValue={workbook.getValue}
-            setValue={setValueAsync}
-            getChapterMeta={workbook.getChapterMeta}
-            saving={workbook.saving}
-            saved={workbook.saved}
-            onReloadWorkbook={workbook.load}
-          />
+          !workbook.loaded ? (
+            <div className="h-full p-6 space-y-4 overflow-auto">
+              <div className="animate-pulse bg-gray-100 rounded h-6 w-36" />
+              <div className="animate-pulse bg-gray-100 rounded h-40 w-full" />
+              <div className="animate-pulse bg-gray-100 rounded h-5 w-28 mt-2" />
+              <div className="animate-pulse bg-gray-100 rounded h-32 w-full" />
+            </div>
+          ) : (
+            <NotebookPane
+              bookId={bookId}
+              activePhase={phase}
+              onPhaseChange={setPhase}
+              activeSection={activeSection}
+              activeChapterIndex={activeChapterIndex}
+              onSectionChange={(section, chapterIndex) => {
+                setActiveSection(section)
+                setActiveChapterIndex(chapterIndex ?? null)
+              }}
+              getValue={workbook.getValue}
+              setValue={setValueAsync}
+              getChapterMeta={workbook.getChapterMeta}
+              saving={workbook.saving}
+              saved={workbook.saved}
+              onReloadWorkbook={workbook.load}
+            />
+          )
         )}
         {mobileTab === 'chapters' && (
           <ChapterDrawer

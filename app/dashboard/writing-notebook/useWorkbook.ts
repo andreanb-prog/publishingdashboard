@@ -47,6 +47,20 @@ export function useWorkbook(bookId: string | null) {
       setLoaded(true)
       return
     }
+
+    // Show cached data instantly so the UI isn't blank on repeat visits
+    const cacheKey = `wn-cache-${bookId}`
+    try {
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) {
+        const { data: cachedData, timestamps: cachedTs } = JSON.parse(cached)
+        setData(cachedData)
+        setTimestamps(cachedTs)
+        setLoaded(true) // render immediately from cache; fresh data updates below
+      }
+    } catch { /* noop */ }
+
+    // Fetch fresh data in background (or initial load if no cache)
     try {
       const res = await fetch(`/api/writing-notebook?bookId=${bookId}`)
       if (!res.ok) return
@@ -62,6 +76,10 @@ export function useWorkbook(bookId: string | null) {
       }
       setData(map)
       setTimestamps(ts)
+      // Refresh cache with latest data
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({ data: map, timestamps: ts }))
+      } catch { /* noop — storage quota or private mode */ }
     } catch { /* noop */ }
     setLoaded(true)
   }, [bookId])
