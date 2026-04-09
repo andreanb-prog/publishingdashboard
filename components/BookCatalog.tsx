@@ -750,7 +750,7 @@ export function BookCatalog() {
   // Load books
   const loadBooks = useCallback(async () => {
     try {
-      const res = await fetch('/api/books')
+      const res = await fetch('/api/books', { cache: 'no-store' })
       const data = await res.json()
       if (Array.isArray(data.books)) {
         setBooks(data.books.map((b: Book & { pubDate?: string | null }) => ({
@@ -822,19 +822,36 @@ export function BookCatalog() {
       }
 
       if (editingBook) {
-        await fetch(`/api/books/${editingBook.id}`, {
+        const res = await fetch(`/api/books/${editingBook.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
+        const data = await res.json()
+        if (data.book) {
+          setBooks(prev => prev.map(b => b.id === editingBook.id ? {
+            ...data.book,
+            excludeFromDashboard: data.book.excludeFromDashboard ?? false,
+            pubDate: data.book.pubDate ? new Date(data.book.pubDate).toISOString() : null,
+          } : b))
+        }
       } else {
-        await fetch('/api/books', {
+        const res = await fetch('/api/books', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
+        const data = await res.json()
+        if (data.book) {
+          setBooks(prev => [...prev, {
+            ...data.book,
+            excludeFromDashboard: data.book.excludeFromDashboard ?? false,
+            pubDate: data.book.pubDate ? new Date(data.book.pubDate).toISOString() : null,
+          }])
+        }
       }
 
+      // Also re-fetch to ensure full consistency
       await loadBooks()
       closeModal()
     } finally {
