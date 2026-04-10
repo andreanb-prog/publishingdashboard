@@ -3,8 +3,9 @@
 // Header: Authorization: Bearer {key}
 // DO NOT use: api.mailerlite.com/api/v2, X-MailerLite-ApiKey header, or any v2 endpoint.
 //
-// SUBSCRIBER COUNTS: GET /subscribers/stats → { total, active, unsubscribed, ... }
-// The cursor-paginated /subscribers endpoint does NOT include meta.total.
+// SUBSCRIBER COUNTS: GET /subscribers?limit=0 → { total } (active by default)
+// GET /subscribers?limit=0&filter[status]=unsubscribed → { total } for unsubs.
+// /subscribers/stats has rates/engagement, NOT counts.
 import type { MailerLiteData, MailerLiteAutomation } from '@/types'
 
 const ML = 'https://connect.mailerlite.com/api'
@@ -37,24 +38,30 @@ async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; dat
 }
 
 // ── Subscriber counts (simple, bulletproof) ─────────────────────────────────
+// /subscribers/stats does NOT have counts — it has rates/engagement.
+// /subscribers?limit=0 returns { total } for active subs (default filter).
+// /subscribers?limit=0&filter[status]=unsubscribed returns unsub count.
 export async function getMailerLiteStats(apiKey: string) {
-  // Get subscriber stats
-  const res = await fetch(
-    'https://connect.mailerlite.com/api/subscribers/stats',
-    {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json',
-      },
-      cache: 'no-store',
-    }
-  )
-  console.log('[mailerlite] stats status:', res.status)
-  const json = await res.json()
-  console.log('[mailerlite] stats body:', JSON.stringify(json).slice(0, 300))
+  const headers = {
+    'Authorization': `Bearer ${apiKey}`,
+    'Accept': 'application/json',
+  }
+  const opts = { headers, cache: 'no-store' as const }
+
+  const [activeRes, unsubRes] = await Promise.all([
+    fetch('https://connect.mailerlite.com/api/subscribers?limit=0', opts),
+    fetch('https://connect.mailerlite.com/api/subscribers?limit=0&filter[status]=unsubscribed', opts),
+  ])
+
+  console.log('[mailerlite] active status:', activeRes.status, '| unsub status:', unsubRes.status)
+  const activeJson = await activeRes.json()
+  const unsubJson = await unsubRes.json()
+  console.log('[mailerlite] active body:', JSON.stringify(activeJson).slice(0, 200))
+  console.log('[mailerlite] unsub body:', JSON.stringify(unsubJson).slice(0, 200))
+
   return {
-    listSize: json.active ?? json.total ?? 0,
-    unsubscribes: json.unsubscribed ?? 0,
+    listSize: activeJson.total ?? 0,
+    unsubscribes: unsubJson.total ?? 0,
   }
 }
 
