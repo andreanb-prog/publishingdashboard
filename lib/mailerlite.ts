@@ -36,25 +36,35 @@ async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; dat
   }
 }
 
-// ── Account-level stats ─────────────────────────────────────────────────────
-// Subscriber counts: GET /subscribers/stats → { total, active, unsubscribed, ... }
-// The cursor-paginated /subscribers endpoint does NOT include meta.total.
-// Open/click rates: from the largest group (if any groups exist).
-export async function getMailerLiteStats(apiKey: string): Promise<{
-  listSize: number; unsubscribed: number
-  openRate: number; clickRate: number
-  sentCount: number; bouncedCount: number
-}> {
-  // Use the stats endpoint for accurate counts (single call for both active + unsubscribed)
-  const [statsRes, groupsResult] = await Promise.all([
-    mlFetch('/subscribers/stats', apiKey),
-    mlFetch('/groups?limit=100', apiKey),
-  ])
+// ── Subscriber counts (simple, bulletproof) ─────────────────────────────────
+export async function getMailerLiteStats(apiKey: string) {
+  // Get subscriber stats
+  const res = await fetch(
+    'https://connect.mailerlite.com/api/subscribers/stats',
+    {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json',
+      },
+      cache: 'no-store',
+    }
+  )
+  console.log('[mailerlite] stats status:', res.status)
+  const json = await res.json()
+  console.log('[mailerlite] stats body:', JSON.stringify(json).slice(0, 300))
+  return {
+    listSize: json.active ?? json.total ?? 0,
+    unsubscribes: json.unsubscribed ?? 0,
+  }
+}
 
-  const listSize     = statsRes.data?.active ?? statsRes.data?.total ?? 0
-  const unsubscribed = statsRes.data?.unsubscribed ?? 0
+export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteData> {
+  // ── Subscriber counts (simple endpoint) ────────────────────────
+  const { listSize, unsubscribes: totalUnsubscribes } = await getMailerLiteStats(apiKey)
+  console.log('[MailerLite] listSize:', listSize, '| unsubscribed:', totalUnsubscribes)
 
-  // Pull open/click rates from the largest group if available
+  // ── Group stats (open/click rates) ────────────────────────────
+  const groupsResult = await mlFetch('/groups?limit=100', apiKey)
   let openRate = 0, clickRate = 0, sentCount = 0, bouncedCount = 0
   const groupList: any[] = groupsResult.ok ? (groupsResult.data?.data ?? []) : []
   if (groupList.length > 0) {
@@ -68,15 +78,7 @@ export async function getMailerLiteStats(apiKey: string): Promise<{
     sentCount    = primary.sent_count    ?? 0
     bouncedCount = primary.bounced_count ?? 0
   }
-
-  console.log('[MailerLite] subscriber counts:', { listSize, unsubscribed, openRate, clickRate })
-  return { listSize, unsubscribed, openRate, clickRate, sentCount, bouncedCount }
-}
-
-export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteData> {
-  // ── Group stats (list-level open/click rates, counts) ──────────
-  const { listSize, unsubscribed: totalUnsubscribes, openRate, clickRate, sentCount, bouncedCount } = await getMailerLiteStats(apiKey)
-  console.log('[MailerLite] listSize:', listSize, '| unsubscribed:', totalUnsubscribes, '| openRate:', openRate, '| clickRate:', clickRate)
+  console.log('[MailerLite] openRate:', openRate, '| clickRate:', clickRate)
 
   // ── Campaigns ──────────────────────────────────────────────────
   const campResult = await mlFetch('/campaigns?limit=100&filter[status]=sent&sort=-sent_at', apiKey)
