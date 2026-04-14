@@ -84,6 +84,7 @@ export default function TaskCenterPage() {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
   const [copyMsg, setCopyMsg] = useState('')
+  const [seedLoading, setSeedLoading] = useState(false)
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -324,7 +325,7 @@ export default function TaskCenterPage() {
               <span style={{ color: 'rgba(30,45,61,0.25)', fontSize: '24px' }}>&#10003;</span>
             </div>
             <p className="text-[15px] font-medium mb-2" style={{ color: '#1E2D3D' }}>No tasks yet</p>
-            <div className="flex gap-4">
+            <div className="flex gap-4 mb-3">
               <button onClick={() => setShowModal(true)} className="text-[13px] font-semibold bg-transparent border-none cursor-pointer" style={{ color: '#E9A020' }}>
                 Add your first task
               </button>
@@ -332,6 +333,28 @@ export default function TaskCenterPage() {
                 Let AI suggest some &rarr;
               </button>
             </div>
+            <button
+              onClick={async () => {
+                setSeedLoading(true)
+                try {
+                  const res = await fetch('/api/tasks/seed', { method: 'POST' })
+                  if (res.ok) await fetchTasks()
+                } finally {
+                  setSeedLoading(false)
+                }
+              }}
+              disabled={seedLoading}
+              className="px-4 py-2 rounded-lg text-[13px] font-semibold"
+              style={{
+                background: 'transparent',
+                border: '1px solid #E9A020',
+                color: '#E9A020',
+                cursor: seedLoading ? 'wait' : 'pointer',
+                opacity: seedLoading ? 0.6 : 1,
+              }}
+            >
+              {seedLoading ? 'Loading...' : 'Load starter tasks'}
+            </button>
           </div>
         )}
 
