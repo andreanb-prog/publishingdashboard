@@ -216,3 +216,20 @@ export interface Analysis {
   crossChannelPlan?: CrossChannelPlan
   generatedAt: string
 }
+
+export interface Task {
+  id: string
+  userId: string
+  title: string
+  description?: string | null
+  priority: 'high' | 'medium' | 'low'
+  status: 'todo' | 'done'
+  dueDate?: string | null
+  category?: string | null
+  isAISuggested: boolean
+  aiReason?: string | null
+  assignee: string
+  completedAt?: string | null
+  createdAt: string
+  updatedAt: string
+}

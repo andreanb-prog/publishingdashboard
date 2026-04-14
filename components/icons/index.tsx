@@ -44,6 +44,7 @@ export {
   ChevronRight,
   Plus,
   Search,
+  ListChecks,
 } from 'lucide-react'
 
 // Custom SVG icons (kept for legacy use)
