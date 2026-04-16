@@ -294,6 +294,8 @@ model LaunchTask {
   status       String   @default("not_started") // "not_started" | "in_progress" | "done" | "skipped"
   actionType   String?
   actionPrompt String?
+  assignedTo   String?
+  notes        String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

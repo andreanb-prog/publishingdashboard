@@ -581,11 +581,12 @@ function CorrelationChart({ rows, color }: CorrelationChartProps) {
         />
         <Tooltip
           contentStyle={{ background: 'white', border: '0.5px solid #EEEBE6', borderRadius: 8, fontSize: 12 }}
-          formatter={(value: number | null, name: string) => {
-            if (value == null) return ['—', name]
-            if (name === 'BSR') return [`#${value.toLocaleString()}`, name]
-            if (name === 'Ad Spend') return [`$${value.toFixed(2)}`, name]
-            return [value.toLocaleString(), name]
+          formatter={(value, name) => {
+            const label = String(name)
+            if (typeof value !== 'number') return ['—', label]
+            if (label === 'BSR') return [`#${value.toLocaleString()}`, label]
+            if (label === 'Ad Spend') return [`$${value.toFixed(2)}`, label]
+            return [value.toLocaleString(), label]
           }}
         />
         <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -651,9 +652,10 @@ function TrendChart({ rows }: { rows: RoasRow[] }) {
         />
         <Tooltip
           contentStyle={{ background: 'white', border: '0.5px solid #EEEBE6', borderRadius: 8, fontSize: 12 }}
-          formatter={(value: number | null, name: string) => {
-            if (value == null) return ['—', name]
-            return [`$${value.toFixed(2)}`, name]
+          formatter={(value, name) => {
+            const label = String(name)
+            if (typeof value !== 'number') return ['—', label]
+            return [`$${value.toFixed(2)}`, label]
           }}
         />
         <Legend wrapperStyle={{ fontSize: 11 }} />
