@@ -637,6 +637,24 @@ model BsrLog {
   @@index([userId, asin])
 }
 
+model MetaAdStat {
+  id      String   @id @default(cuid())
+  userId  String
+  date    DateTime
+  spend   Float
+
+  @@index([userId, date])
+}
+
+model MailerLiteSnapshot {
+  id          String   @id @default(cuid())
+  userId      String
+  date        DateTime
+  activeCount Int
+
+  @@index([userId, date])
+}
+
 model MetaAdData {
   id            String   @id @default(cuid())
   userId        String
