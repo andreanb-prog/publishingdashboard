@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
 import BookSelector from '@/components/BookSelector'
 import NoBooksEmptyState from '@/components/NoBooksEmptyState'
+import BsrFetchButton from '@/components/bsr/BsrFetchButton'
 import { useBooks } from '@/hooks/useBooks'
 
 interface CategoryEntry {
@@ -14,6 +15,14 @@ interface CategoryEntry {
   fetchedAt: string
 }
 
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  if (diff < 60_000) return 'just now'
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`
+  return `${Math.floor(diff / 86_400_000)}d ago`
+}
+
 export default function CategoryIntelligence() {
   const { books, loading: booksLoading } = useBooks()
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
@@ -22,7 +31,33 @@ export default function CategoryIntelligence() {
   const [lookupLoading, setLookupLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Current BSR — display-only, not saved to BsrLog
+  const [currentBsr, setCurrentBsr] = useState<number | null>(null)
+  const [bsrFetchedAt, setBsrFetchedAt] = useState<string | null>(null)
+
   const selectedBook = books.find(b => b.id === selectedBookId)
+
+  // Pre-populate BSR from today's BsrLog on mount/book change (display-only)
+  useEffect(() => {
+    if (!selectedBook?.asin) {
+      setCurrentBsr(null)
+      setBsrFetchedAt(null)
+      return
+    }
+    fetch(`/api/books/bsr/history?asin=${encodeURIComponent(selectedBook.asin)}&days=1`)
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d.rows) && d.rows.length > 0) {
+          const today = new Date().toISOString().split('T')[0]
+          const todayRow = d.rows.find((r: { date: string; rank: number | null }) => r.date === today)
+          if (todayRow?.rank != null) {
+            setCurrentBsr(todayRow.rank)
+            setBsrFetchedAt(null) // pre-populated from DB, not a live fetch
+          }
+        }
+      })
+      .catch(() => {})
+  }, [selectedBook?.asin])
 
   // Fetch cached categories
   const fetchCached = useCallback(async (asin: string) => {
@@ -122,6 +157,35 @@ export default function CategoryIntelligence() {
           />
         </div>
       </div>
+
+      {/* ── Current BSR row ───────────────────────────────────────────────── */}
+      {selectedBook?.asin && (
+        <div
+          className="flex flex-wrap items-center gap-3 mb-4 px-3 py-2.5 rounded-lg"
+          style={{ background: '#FFF8F0', border: '0.5px solid #EEEBE6' }}
+        >
+          <BsrFetchButton
+            asin={selectedBook.asin}
+            size="sm"
+            onResult={rank => {
+              setCurrentBsr(rank)
+              setBsrFetchedAt(new Date().toISOString())
+            }}
+          />
+          <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
+            {currentBsr != null ? (
+              <>Current BSR: <span style={{ color: '#E9A020' }}>#{currentBsr.toLocaleString()}</span></>
+            ) : (
+              <span style={{ color: '#9CA3AF' }}>Current BSR: —</span>
+            )}
+          </span>
+          {bsrFetchedAt && (
+            <span className="text-[12px]" style={{ color: '#9CA3AF' }}>
+              Last checked: {timeAgo(bsrFetchedAt)}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Loading state */}
       {(loading || lookupLoading) && (

@@ -628,14 +628,26 @@ model CategoryCache {
 }
 
 model BsrLog {
-  id        String   @id @default(cuid())
-  userId    String
-  asin      String
-  bookTitle String?
-  rank      Int
-  fetchedAt DateTime @default(now())
+  id                String   @id @default(cuid())
+  userId            String
+  asin              String
+  bookTitle         String?
+  rank              Int?
+  adSpend           Float?
+  adSpendAutoFilled Boolean  @default(false)
+  clicks            Int?
+  revenue           Float?
+  pageReads         Int?
+  orders            Int?
+  newSubs           Int?
+  newSubsAutoFilled Boolean  @default(false)
+  lpv               Int?
+  notes             String?
+  date              DateTime @default(now())
+  fetchedAt         DateTime @default(now())
 
   @@index([userId, asin])
+  @@index([userId, asin, date])
 }
 
 model MetaAdStat {
