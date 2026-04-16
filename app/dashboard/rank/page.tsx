@@ -39,6 +39,11 @@ interface SummaryData {
   costPerSub: number | null
 }
 
+// ── Feature Flags ─────────────────────────────────────────────────────────────
+
+// Set to true to restore the 7-day data tables (BSR/ROAS spreadsheet grids)
+const SHOW_DAILY_TABLE = false
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
@@ -788,8 +793,10 @@ function BookTab({ book }: { book: BookRecord }) {
             </span>
           </div>
 
-          {/* 7-day table */}
-          <RoasTable rows={rows} loading={loading} asin={book.asin} onSave={handleCellSave} />
+          {/* 7-day table — hidden via SHOW_DAILY_TABLE flag */}
+          {SHOW_DAILY_TABLE && (
+            <RoasTable rows={rows} loading={loading} asin={book.asin} onSave={handleCellSave} />
+          )}
 
           {/* Correlation chart */}
           <div className="rounded-lg p-4" style={{ background: 'white', border: '0.5px solid #EEEBE6' }}>
@@ -878,8 +885,10 @@ function LeadMagnetTab() {
         </div>
       </div>
 
-      {/* 7-day table */}
-      <LmTable rows={rows} loading={loading} onSave={handleCellSave} />
+      {/* 7-day table — hidden via SHOW_DAILY_TABLE flag */}
+      {SHOW_DAILY_TABLE && (
+        <LmTable rows={rows} loading={loading} onSave={handleCellSave} />
+      )}
 
       {/* Trend chart */}
       <div className="rounded-lg p-4" style={{ background: 'white', border: '0.5px solid #EEEBE6' }}>
