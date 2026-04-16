@@ -581,7 +581,7 @@ function CorrelationChart({ rows, color }: CorrelationChartProps) {
         />
         <Tooltip
           contentStyle={{ background: 'white', border: '0.5px solid #EEEBE6', borderRadius: 8, fontSize: 12 }}
-          formatter={(value, name) => {
+          formatter={(value: unknown, name: unknown) => {
             const label = String(name)
             if (typeof value !== 'number') return ['—', label]
             if (label === 'BSR') return [`#${value.toLocaleString()}`, label]
@@ -652,7 +652,7 @@ function TrendChart({ rows }: { rows: RoasRow[] }) {
         />
         <Tooltip
           contentStyle={{ background: 'white', border: '0.5px solid #EEEBE6', borderRadius: 8, fontSize: 12 }}
-          formatter={(value, name) => {
+          formatter={(value: unknown, name: unknown) => {
             const label = String(name)
             if (typeof value !== 'number') return ['—', label]
             return [`$${value.toFixed(2)}`, label]
