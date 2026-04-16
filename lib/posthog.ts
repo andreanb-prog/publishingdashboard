@@ -1,0 +1,10 @@
+import PostHog from 'posthog-js'
+
+export const initPostHog = () => {
+  if (typeof window !== 'undefined') {
+    PostHog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+      api_host: 'https://app.posthog.com',
+      capture_pageview: true,
+    })
+  }
+}

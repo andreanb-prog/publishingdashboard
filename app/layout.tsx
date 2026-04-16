@@ -5,6 +5,7 @@ import './globals.css'
 import { Providers } from './providers'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/next'
+import { PostHogProvider } from '@/components/PostHogProvider'
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={plusJakarta.variable}>
       <body className="font-sans bg-cream text-[#0d1f35] antialiased">
         <Providers>{children}</Providers>
+        <PostHogProvider />
         <SpeedInsights />
         <Analytics />
       </body>
