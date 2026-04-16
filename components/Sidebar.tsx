@@ -6,7 +6,7 @@ import { signOut, useSession } from 'next-auth/react'
 import {
   LayoutDashboard, BookOpen, TrendingUp, Mail, ArrowLeftRight, Pin,
   BarChart2, ArrowUpRight, DollarSign, Users, GraduationCap,
-  Settings2, Database, LogOut, Rocket, Palette, PenLine,
+  Settings2, Database, LogOut, Rocket, Palette, PenLine, CheckSquare,
 } from '@/components/icons'
 import type { LucideIcon } from 'lucide-react'
 
@@ -15,6 +15,7 @@ type NavItem = { label: string; href: string; Icon: LucideIcon }
 const NAV_ITEMS: NavItem[] = [
   { label: 'My Dashboard', href: '/dashboard', Icon: LayoutDashboard },
   { label: 'Launch Planner', href: '/dashboard/launch', Icon: Rocket },
+  { label: 'Task Center', href: '/dashboard/tasks', Icon: CheckSquare },
   { label: 'Creative Hub', href: '/dashboard/creative', Icon: Palette },
   { label: 'Writing Notebook', href: '/writing-notebook', Icon: PenLine },
 ]

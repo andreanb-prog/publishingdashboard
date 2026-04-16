@@ -53,6 +53,8 @@ export async function POST(req: NextRequest) {
     dueDate: string
     actionType?: string | null
     actionPrompt?: string | null
+    assignedTo?: string | null
+    notes?: string | null
   }
   try {
     body = await req.json()
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
   }
 
-  const { name, channel, phase, dueDate, actionType, actionPrompt } = body
+  const { name, channel, phase, dueDate, actionType, actionPrompt, assignedTo, notes } = body
   if (!name || !channel || !phase || !dueDate) {
     return NextResponse.json({ error: 'name, channel, phase, dueDate required' }, { status: 400 })
   }
@@ -75,6 +77,8 @@ export async function POST(req: NextRequest) {
       status: 'not_started',
       actionType: actionType ?? null,
       actionPrompt: actionPrompt ?? null,
+      assignedTo: assignedTo ?? null,
+      notes: notes ?? null,
     },
   })
 
