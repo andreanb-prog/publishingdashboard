@@ -35,6 +35,7 @@ interface RoasRow {
 interface SummaryData {
   totalSpend: number | null
   bestBsr: number | null
+  bestBsrTitle: string | null
   overallRoas: number | null
   costPerSub: number | null
 }
@@ -109,11 +110,15 @@ function SummaryStrip() {
       .finally(() => setLoading(false))
   }, [])
 
-  const tiles: { label: string; value: string | null }[] = [
+  const tiles: { label: string; value: string | null; sublabel?: string | null }[] = [
     { label: "Today's Total Spend", value: data?.totalSpend != null ? `$${data.totalSpend.toFixed(2)}` : null },
-    { label: 'Best BSR Today',       value: data?.bestBsr    != null ? `#${data.bestBsr.toLocaleString()}` : null },
-    { label: 'Overall ROAS (7d)',    value: data?.overallRoas != null ? `${data.overallRoas.toFixed(2)}x` : null },
-    { label: 'Cost Per Subscriber',  value: data?.costPerSub  != null ? `$${data.costPerSub.toFixed(2)}` : null },
+    {
+      label: 'Best BSR Today',
+      value: data?.bestBsr != null ? `#${data.bestBsr.toLocaleString()}` : null,
+      sublabel: data?.bestBsrTitle ?? null,
+    },
+    { label: 'Overall ROAS (7d)',   value: data?.overallRoas != null ? `${data.overallRoas.toFixed(2)}x` : null },
+    { label: 'Cost Per Subscriber', value: data?.costPerSub  != null ? `$${data.costPerSub.toFixed(2)}` : null },
   ]
 
   return (
@@ -136,7 +141,9 @@ function SummaryStrip() {
               )}
             </div>
           )}
-          <div className="text-[12px]" style={{ color: '#9CA3AF' }}>{tile.label}</div>
+          <div className="text-[12px]" style={{ color: '#9CA3AF' }}>
+            {tile.label}{tile.sublabel ? ` · ${tile.sublabel}` : ''}
+          </div>
         </div>
       ))}
     </div>
