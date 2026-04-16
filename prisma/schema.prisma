@@ -626,6 +626,17 @@ model CategoryCache {
   @@unique([userId, asin, category])
 }
 
+model BsrLog {
+  id        String   @id @default(cuid())
+  userId    String
+  asin      String
+  bookTitle String?
+  rank      Int
+  fetchedAt DateTime @default(now())
+
+  @@index([userId, asin])
+}
+
 model MetaAdData {
   id            String   @id @default(cuid())
   userId        String

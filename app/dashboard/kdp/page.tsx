@@ -24,6 +24,7 @@ import {
 } from '@/lib/chartConfig'
 import { LastUploadBadge } from '@/components/LastUploadBadge'
 import CategoryIntelligence from '@/components/CategoryIntelligence'
+import BsrTracker from '@/components/BsrTracker'
 import type { Analysis, DailyData, RoasLog, MailerLiteCampaign } from '@/types'
 
 
@@ -1308,6 +1309,16 @@ export default function KDPPage() {
             subtitle="See every Amazon category your book is in and how you rank"
           >
             <CategoryIntelligence />
+          </CollapsibleSection>
+
+          {/* ── Sales Rank Tracker ── */}
+          <CollapsibleSection
+            title="Sales Rank Tracker"
+            storageKey="kdp-section-bsr"
+            className="mb-5"
+            subtitle="Track your Amazon Best Seller Rank over time"
+          >
+            <BsrTracker />
           </CollapsibleSection>
         </>
       )}
