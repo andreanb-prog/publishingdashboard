@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import type { Task } from '@/types'
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
@@ -561,8 +562,9 @@ function AddTaskModal({
     })
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
+  if (typeof document === 'undefined') return null
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center" onClick={onClose}>
       <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.3)' }} />
       <div
         className="relative w-full max-w-md mx-4 rounded-xl p-6"
@@ -675,6 +677,7 @@ function AddTaskModal({
           Cancel
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
