@@ -175,52 +175,74 @@ Always end with a hook or cliffhanger.`
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { bookId, bookTitle, message, activePhase, workbookData, styleGuide } = await req.json()
-
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { anthropicApiKey: true, writingKillList: true },
-  })
-
-  if (!user?.anthropicApiKey) {
-    return NextResponse.json({ error: 'no_api_key' }, { status: 403 })
-  }
-
-  let apiKey: string
   try {
-    apiKey = decrypt(user.anthropicApiKey)
-  } catch {
-    return NextResponse.json({ error: 'invalid_key' }, { status: 403 })
-  }
+    console.log('[chat] POST hit, env key exists:', !!process.env.ANTHROPIC_API_KEY)
+    console.log('[chat] step 1: getting session')
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    console.log('[chat] step 2: parsing body')
+    const { bookId, bookTitle, message, activePhase, workbookData, styleGuide } = await req.json()
+    console.log('[chat] step 3: fetching user, bookId:', bookId)
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { anthropicApiKey: true, writingKillList: true },
+    })
+    console.log('[chat] step 4: got user, has key:', !!user?.anthropicApiKey)
 
-  // Get last 20 messages for context
-  const history = await db.writingNotebookChat.findMany({
-    where: { userId: session.user.id, bookId: bookId ?? null },
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-  })
-  const messages: { role: 'user' | 'assistant'; content: string }[] = history
-    .reverse()
-    .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+    let apiKey: string
+    if (user?.anthropicApiKey) {
+      try {
+        apiKey = decrypt(user.anthropicApiKey)
+      } catch {
+        return NextResponse.json({ error: 'invalid_key' }, { status: 403 })
+      }
+    } else if (process.env.ANTHROPIC_API_KEY) {
+      console.log('[writing-notebook/chat] No user key — falling back to ANTHROPIC_API_KEY env var')
+      apiKey = process.env.ANTHROPIC_API_KEY
+    } else {
+      return NextResponse.json({ error: 'no_api_key' }, { status: 403 })
+    }
 
-  // Append the new user message
-  messages.push({ role: 'user', content: message })
+    // Get last 20 messages for context
+    const history = await db.writingNotebookChat.findMany({
+      where: { userId: session.user.id, bookId: bookId ?? null },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    })
+    const messages: { role: 'user' | 'assistant'; content: string }[] = history
+      .reverse()
+      .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
 
-  const systemPrompt = buildSystemPrompt(
-    bookTitle || 'their book',
-    workbookData || {},
-    styleGuide || {},
-    { writingKillList: user.writingKillList ?? null },
-    activePhase || 'Writing',
-  )
+    // Append the new user message
+    messages.push({ role: 'user', content: message })
 
-  try {
+    // Load Book.storyContent as fallback for storySoFar
+    let enrichedWorkbookData = { ...(workbookData || {}) }
+    if (bookId && !enrichedWorkbookData['writing:storySoFar']) {
+      const book = await db.book.findUnique({
+        where: { id: bookId },
+        select: { storyContent: true },
+      })
+      if (book?.storyContent) {
+        enrichedWorkbookData['writing:storySoFar'] = book.storyContent
+      }
+    }
+
+    console.log('[chat] building system prompt')
+    const systemPrompt = buildSystemPrompt(
+      bookTitle || 'their book',
+      enrichedWorkbookData,
+      styleGuide || {},
+      { writingKillList: user?.writingKillList ?? null },
+      activePhase || 'Writing',
+    )
+
+    console.log('[chat] creating anthropic client')
     const anthropic = new Anthropic({ apiKey })
+
+    console.log('[chat] starting stream')
     const stream = await anthropic.messages.stream({
-      model: 'claude-sonnet-4-5-20241022',
+      model: 'claude-sonnet-4-5',
       max_tokens: 4096,
       system: systemPrompt,
       messages,
@@ -237,28 +259,28 @@ export async function POST(req: NextRequest) {
           }
           controller.close()
         } catch (err: any) {
-          if (err?.status === 401) {
-            controller.enqueue(encoder.encode('\n\n[ERROR:invalid_key]'))
-          } else if (err?.status === 429) {
-            controller.enqueue(encoder.encode('\n\n[ERROR:rate_limited]'))
-          } else {
-            controller.enqueue(encoder.encode('\n\n[ERROR:unknown]'))
-          }
+          console.error('[chat] STREAM ERROR:', err?.message)
+          console.error('[chat] STREAM ERROR status:', err?.status)
+          console.error('[chat] STREAM ERROR stack:', err?.stack?.slice(0, 500))
+          controller.enqueue(encoder.encode(`\n\n[ERROR:stream_failed] ${err?.message || 'unknown'}`))
           controller.close()
         }
       },
     })
 
     return new Response(readable, {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'X-Content-Type-Options': 'nosniff',
+      },
     })
-  } catch (err: any) {
-    if (err?.status === 401) {
-      return NextResponse.json({ error: 'invalid_key' }, { status: 403 })
-    }
-    if (err?.status === 429) {
-      return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
-    }
-    return NextResponse.json({ error: 'unknown' }, { status: 500 })
+  } catch (outerErr: any) {
+    console.error('[chat] OUTER ERROR:', outerErr?.message)
+    console.error('[chat] OUTER ERROR stack:', outerErr?.stack?.slice(0, 500))
+    return new Response(JSON.stringify({ error: outerErr?.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }

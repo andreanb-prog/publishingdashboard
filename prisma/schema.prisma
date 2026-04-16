@@ -43,6 +43,10 @@ model User {
   image         String?
   apiKey        String?        // Claude API key (encrypted)
   mailerLiteKey String?        // MailerLite API key
+  // Writing Notebook
+  anthropicApiKey           String?    // User's own Anthropic API key (encrypted)
+  anthropicKeyAddedAt       DateTime?
+  writingOnboardingComplete Boolean    @default(false)
   books         Json?          // My Books: [{title, asin, category, series, bookNumber}]
   columnPrefs   Json?          // Per-page column visibility: { meta: ['spend', 'clicks', ...] }
   goals         Json?          // Channel goals: { kdp_royalties: 500, meta_ctr: 15, ... }
@@ -78,18 +82,17 @@ model User {
   bookFunnelDownloads   BookFunnelDownload[]
   bookfunnelWebhookSecret String?
   inboundEmailAddress     String?   // Postmark inbound address for swap auto-detection
-  // Writing Notebook
-  anthropicApiKey            String?
-  anthropicKeyAddedAt        DateTime?
-  writingOnboardingComplete  Boolean  @default(false)
   writingKillList            String?  // JSON: { word: string, scope: 'global'|'book' }[]
   launches      Launch[]
   swapEntries   SwapEntry[]
   swapPolicies  SwapPolicy[]
   authorLists   AuthorList[]
   uploadLogs              UploadLog[]
+  metaAdData              MetaAdData[]
   writingNotebooks        WritingNotebook[]
   writingNotebookChats    WritingNotebookChat[]
+  chapterAudits           ChapterAudit[]
+  tasks                   Task[]
   createdAt     DateTime       @default(now())
 }
 
@@ -128,6 +131,8 @@ model Book {
   manuscriptSummary    String?   @db.Text
   manuscriptUploadedAt DateTime?
   bibleUpdatedAt       DateTime? @updatedAt
+  storyContent            String?
+  storyContentUpdatedAt   DateTime?
   createdAt             DateTime  @default(now())
 
   @@index([userId])
@@ -289,8 +294,6 @@ model LaunchTask {
   status       String   @default("not_started") // "not_started" | "in_progress" | "done" | "skipped"
   actionType   String?
   actionPrompt String?
-  assignedTo   String?
-  notes        String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -535,15 +538,17 @@ model Ad {
 }
 
 model UploadLog {
-  id         String   @id @default(cuid())
-  userId     String
-  dataType   String   // "kdp" | "meta" | "kenp"
-  uploadedAt DateTime @default(now())
-  fileName   String?
-  rowsParsed Int      @default(0)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  userId    String
+  fileName  String   @default("")
+  fileType  String   @default("unknown")  // "kdp" | "meta" | "pinterest" | "unknown"
+  rowCount  Int      @default(0)
+  status    String   @default("success")  // "success" | "partial" | "error"
+  details   Json     @default("{}")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, dataType])
+  @@index([userId])
 }
 
 model WritingNotebook {
@@ -574,6 +579,42 @@ model WritingNotebookChat {
   @@index([userId, bookId, createdAt])
 }
 
+model ChapterAudit {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId       String
+  chapterIndex Int
+  draftIndex   Int      @default(0)
+  auditType    String   // 'ku_pacing' | 'heat_map' | 'emotional_arc'
+  findings     String   @db.Text  // JSON array of findings
+  createdAt    DateTime @default(now())
+
+  @@index([userId, bookId, chapterIndex])
+}
+
+model Task {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  priority      String    @default("medium")   // "high" | "medium" | "low"
+  status        String    @default("todo")     // "todo" | "done"
+  dueDate       DateTime?
+  category      String?                        // "KDP" | "Meta ads" | "MailerLite" | "Writing" | "List building" | "Pinterest" | "General"
+  isAISuggested Boolean   @default(false)
+  aiReason      String?
+  assignee      String    @default("author")   // "author" | "va" | "editor" | "designer"
+  assignedTo    String?                        // free-text name or email of the person assigned
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, dueDate])
+}
+
 model CategoryCache {
   id        String   @id @default(cuid())
   userId    String
@@ -583,5 +624,52 @@ model CategoryCache {
   fetchedAt DateTime @default(now())
 
   @@map("CategoryCache")
+  @@unique([userId, asin, category])
+}
+
+model BsrLog {
+  id        String   @id @default(cuid())
+  userId    String
+  asin      String
+  bookTitle String?
+  rank      Int
+  fetchedAt DateTime @default(now())
+
   @@index([userId, asin])
+}
+
+model MetaAdStat {
+  id      String   @id @default(cuid())
+  userId  String
+  date    DateTime
+  spend   Float
+
+  @@index([userId, date])
+}
+
+model MailerLiteSnapshot {
+  id          String   @id @default(cuid())
+  userId      String
+  date        DateTime
+  activeCount Int
+
+  @@index([userId, date])
+}
+
+model MetaAdData {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date          DateTime
+  campaignName  String
+  spend         Float    @default(0)
+  impressions   Int      @default(0)
+  clicks        Int      @default(0)
+  ctr           Float    @default(0)
+  cpc           Float    @default(0)
+  results       Float?
+  costPerResult Float?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, date])
 }

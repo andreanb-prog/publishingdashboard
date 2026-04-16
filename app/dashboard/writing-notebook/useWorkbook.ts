@@ -3,9 +3,17 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 
 export type Phase = 'setup' | 'writing' | 'edit' | 'polish'
 
+export type ChapterStatus = 'draft' | 'complete' | 'needs_edit' | 'empty'
+
 export interface ChapterMeta {
   count: number
   titles: string[]
+  statuses: ChapterStatus[]
+}
+
+export interface ChapterDraftMeta {
+  draftCount: number
+  activeDraft: number
 }
 
 export interface StyleGuide {
@@ -28,6 +36,7 @@ export function useWorkbook(bookId: string | null) {
   const [data, setData] = useState<WorkbookData>({})
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [saved, setSaved] = useState<Record<string, boolean>>({})
+  const [timestamps, setTimestamps] = useState<Record<string, string>>({})
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({})
   const [loaded, setLoaded] = useState(false)
 
@@ -38,18 +47,39 @@ export function useWorkbook(bookId: string | null) {
       setLoaded(true)
       return
     }
+
+    // Show cached data instantly so the UI isn't blank on repeat visits
+    const cacheKey = `wn-cache-${bookId}`
+    try {
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) {
+        const { data: cachedData, timestamps: cachedTs } = JSON.parse(cached)
+        setData(cachedData)
+        setTimestamps(cachedTs)
+        setLoaded(true) // render immediately from cache; fresh data updates below
+      }
+    } catch { /* noop */ }
+
+    // Fetch fresh data in background (or initial load if no cache)
     try {
       const res = await fetch(`/api/writing-notebook?bookId=${bookId}`)
       if (!res.ok) return
       const { data: records } = await res.json()
       const map: WorkbookData = {}
+      const ts: Record<string, string> = {}
       for (const r of records) {
         const key = r.chapterIndex != null
           ? `${r.phase}:${r.section}:${r.chapterIndex}`
           : `${r.phase}:${r.section}`
         map[key] = r.content
+        if (r.updatedAt) ts[key] = r.updatedAt
       }
       setData(map)
+      setTimestamps(ts)
+      // Refresh cache with latest data
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({ data: map, timestamps: ts }))
+      } catch { /* noop — storage quota or private mode */ }
     } catch { /* noop */ }
     setLoaded(true)
   }, [bookId])
@@ -81,7 +111,7 @@ export function useWorkbook(bookId: string | null) {
         return
       }
       try {
-        await fetch('/api/writing-notebook', {
+        const saveRes = await fetch('/api/writing-notebook', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -92,11 +122,15 @@ export function useWorkbook(bookId: string | null) {
             content,
           }),
         })
+        const saveData = await saveRes.json()
+        if (saveData.data?.updatedAt) {
+          setTimestamps(prev => ({ ...prev, [key]: saveData.data.updatedAt }))
+        }
         setSaved(prev => ({ ...prev, [key]: true }))
         setTimeout(() => setSaved(prev => ({ ...prev, [key]: false })), 2000)
       } catch { /* noop */ }
       setSaving(prev => ({ ...prev, [key]: false }))
-    }, 1000)
+    }, 1200)
   }, [])
 
   const isSaving = useCallback((phase: string, section: string, chapterIndex?: number): boolean => {
@@ -123,16 +157,57 @@ export function useWorkbook(bookId: string | null) {
   // Get chapterMeta
   const getChapterMeta = useCallback((phase: 'writing' | 'polish'): ChapterMeta => {
     const raw = data[`${phase}:chapterMeta`]
-    if (!raw) return { count: 1, titles: [] }
-    try { return JSON.parse(raw) } catch { return { count: 1, titles: [] } }
+    if (!raw) return { count: 1, titles: [], statuses: [] }
+    try {
+      const parsed = JSON.parse(raw)
+      return { count: parsed.count ?? 1, titles: parsed.titles ?? [], statuses: parsed.statuses ?? [] }
+    } catch { return { count: 1, titles: [], statuses: [] } }
   }, [data])
 
   const setChapterMeta = useCallback((phase: 'writing' | 'polish', meta: ChapterMeta) => {
     setValue(phase, 'chapterMeta', JSON.stringify(meta))
   }, [setValue])
 
+  // Chapter draft meta (multi-draft support per chapter)
+  const getChapterDraftMeta = useCallback((chapterIndex: number): ChapterDraftMeta => {
+    // Try spec key first, fall back to legacy key
+    const raw = data[`writing:chapterDraftMeta:${chapterIndex}`]
+    if (!raw) return { draftCount: 1, activeDraft: 0 }
+    try { return JSON.parse(raw) } catch { return { draftCount: 1, activeDraft: 0 } }
+  }, [data])
+
+  const setChapterDraftMeta = useCallback((chapterIndex: number, meta: ChapterDraftMeta) => {
+    setValue('writing', `chapterDraftMeta:${chapterIndex}`, JSON.stringify(meta))
+  }, [setValue])
+
+  const getChapterDraft = useCallback((chapterIndex: number, draftIndex: number): string => {
+    // Spec key: writing:chapter:{N}:draft:{M}
+    // Draft 0 falls back to legacy writing:chapter:{N} for backward compat
+    const drafKey = `chapter:${chapterIndex}:draft:${draftIndex}`
+    const val = getValue('writing', drafKey)
+    if (val || draftIndex !== 0) return val
+    return getValue('writing', 'chapter', chapterIndex)
+  }, [getValue])
+
+  const setChapterDraft = useCallback((chapterIndex: number, draftIndex: number, content: string) => {
+    setValue('writing', `chapter:${chapterIndex}:draft:${draftIndex}`, content)
+  }, [setValue])
+
+  const getActiveDraftContent = useCallback((chapterIndex: number): string => {
+    const meta = getChapterDraftMeta(chapterIndex)
+    return getChapterDraft(chapterIndex, meta.activeDraft)
+  }, [getChapterDraftMeta, getChapterDraft])
+
+  const getLastEdited = useCallback((phase: string, section: string, chapterIndex?: number): string | null => {
+    const key = chapterIndex != null ? `${phase}:${section}:${chapterIndex}` : `${phase}:${section}`
+    return timestamps[key] ?? null
+  }, [timestamps])
+
   return {
-    data, loaded, getValue, setValue, isSaving, isSaved,
-    getStyleGuide, setStyleGuide, getChapterMeta, setChapterMeta, load,
+    data, loaded, getValue, setValue, isSaving, isSaved, saving, saved,
+    getStyleGuide, setStyleGuide, getChapterMeta, setChapterMeta,
+    getChapterDraftMeta, setChapterDraftMeta, getChapterDraft, setChapterDraft, getActiveDraftContent,
+    getLastEdited,
+    load,
   }
 }

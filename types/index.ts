@@ -1,5 +1,17 @@
 // types/index.ts
 
+export interface ParseDiagnostics {
+  rowCount: number
+  sheetsFound: string[]
+  sheetUsed: string
+  columnsDetected: string[]
+  skippedRows: number
+  skipReasons: string[]
+  firstParsedRow: Record<string, unknown> | null
+  error: string | null
+  strategyUsed?: string
+}
+
 export interface KDPData {
   month: string
   totalRoyaltiesUSD: number
@@ -9,6 +21,7 @@ export interface KDPData {
   dailyUnits: DailyData[]
   dailyKENP: DailyData[]
   rowCount?: number
+  diagnostics?: ParseDiagnostics
   summary: {
     paidUnits: number
     freeUnits: number
@@ -202,4 +215,22 @@ export interface Analysis {
   executiveSummary?: ExecutiveSummary
   crossChannelPlan?: CrossChannelPlan
   generatedAt: string
+}
+
+export interface Task {
+  id: string
+  userId: string
+  title: string
+  description?: string | null
+  priority: 'high' | 'medium' | 'low'
+  status: 'todo' | 'done'
+  dueDate?: string | null
+  category?: string | null
+  isAISuggested: boolean
+  aiReason?: string | null
+  assignee: string
+  assignedTo?: string | null
+  completedAt?: string | null
+  createdAt: string
+  updatedAt: string
 }

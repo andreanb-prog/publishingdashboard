@@ -24,26 +24,44 @@ export async function POST(req: NextRequest) {
 
   const { bookId, phase, section, chapterIndex, content } = await req.json()
 
-  const record = await db.writingNotebook.upsert({
+  if (!phase || !section) {
+    return NextResponse.json({ error: 'phase and section required' }, { status: 400 })
+  }
+
+  const userId = session.user.id
+  const safeBookId = bookId ?? null
+  const safeChapterIndex = chapterIndex ?? null
+
+  // Use findFirst + update/create to handle nullable fields in unique constraint
+  // PostgreSQL treats NULL != NULL in unique indexes, so upsert with null fields won't match
+  const existing = await db.writingNotebook.findFirst({
     where: {
-      userId_bookId_phase_section_chapterIndex: {
-        userId: session.user.id,
-        bookId: bookId ?? null,
-        phase,
-        section,
-        chapterIndex: chapterIndex ?? null,
-      },
-    },
-    update: { content },
-    create: {
-      userId: session.user.id,
-      bookId: bookId ?? null,
+      userId,
+      bookId: safeBookId,
       phase,
       section,
-      chapterIndex: chapterIndex ?? null,
-      content,
+      chapterIndex: safeChapterIndex,
     },
   })
+
+  let record
+  if (existing) {
+    record = await db.writingNotebook.update({
+      where: { id: existing.id },
+      data: { content },
+    })
+  } else {
+    record = await db.writingNotebook.create({
+      data: {
+        userId,
+        bookId: safeBookId,
+        phase,
+        section,
+        chapterIndex: safeChapterIndex,
+        content,
+      },
+    })
+  }
 
   return NextResponse.json({ data: record })
 }

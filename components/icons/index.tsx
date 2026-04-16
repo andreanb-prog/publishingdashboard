@@ -24,6 +24,7 @@ export {
   LayoutGrid,
   Columns,
   PenLine,
+  PenTool,
   Lock,
   CreditCard,
   User,
@@ -42,7 +43,8 @@ export {
   ChevronLeft,
   ChevronRight,
   Plus,
-  CheckSquare,
+  Search,
+  ListChecks,
 } from 'lucide-react'
 
 // Custom SVG icons (kept for legacy use)

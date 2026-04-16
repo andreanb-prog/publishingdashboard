@@ -6,7 +6,8 @@ import { signOut, useSession } from 'next-auth/react'
 import {
   LayoutDashboard, BookOpen, TrendingUp, Mail, ArrowLeftRight, Pin,
   BarChart2, ArrowUpRight, DollarSign, Users, GraduationCap,
-  Settings2, Database, LogOut, Rocket, Palette, PenLine, CheckSquare,
+  Settings2, Database, LogOut, Rocket, Palette, PenTool, Search,
+  ListChecks,
 } from '@/components/icons'
 import type { LucideIcon } from 'lucide-react'
 
@@ -14,10 +15,10 @@ type NavItem = { label: string; href: string; Icon: LucideIcon }
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'My Dashboard', href: '/dashboard', Icon: LayoutDashboard },
+  { label: 'Task Center', href: '/dashboard/tasks', Icon: ListChecks },
   { label: 'Launch Planner', href: '/dashboard/launch', Icon: Rocket },
-  { label: 'Task Center', href: '/dashboard/tasks', Icon: CheckSquare },
   { label: 'Creative Hub', href: '/dashboard/creative', Icon: Palette },
-  { label: 'Writing Notebook', href: '/writing-notebook', Icon: PenLine },
+  { label: 'Writing Notebook', href: '/dashboard/writing-notebook', Icon: PenTool },
 ]
 
 const CHANNEL_ITEMS: NavItem[] = [
@@ -29,6 +30,7 @@ const CHANNEL_ITEMS: NavItem[] = [
 ]
 
 const TOOL_ITEMS: NavItem[] = [
+  { label: 'Category Research',  href: '/dashboard/kdp#category-intelligence', Icon: Search },
   { label: 'Advanced Metrics',   href: '/dashboard/metrics',       Icon: BarChart2      },
   { label: 'Rank Tracker',       href: '/dashboard/rank',          Icon: ArrowUpRight   },
   { label: 'Learn the Terms',    href: '/dashboard/learn',         Icon: GraduationCap  },

@@ -1,6 +1,6 @@
 // lib/parsers/kdp.ts
 import * as XLSX from 'xlsx'
-import type { KDPData, BookData, DailyData } from '@/types'
+import type { KDPData, BookData, DailyData, ParseDiagnostics } from '@/types'
 
 export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
   const workbook = XLSX.read(buffer, {
@@ -154,29 +154,174 @@ function toISODate(v: unknown): string {
   return s.split('T')[0]
 }
 
+// ── sheetToRows: handles KDP sheets that have a banner/title row before the
+//   real column-header row.  sheet_to_json() uses row-0 as keys by default;
+//   if those keys don't look like column headers (no ASIN/Title/Date/Units),
+//   we scan the raw rows to find the actual header row and rebuild the objects.
+function sheetToRows(sheet: XLSX.WorkSheet): Record<string, unknown>[] {
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' }) as Record<string, unknown>[]
+
+  // Quick check: does at least one row have a recognisable data column?
+  const HEADER_SIGNALS = ['asin', 'title', 'units', 'kenp', 'royalt', 'date']
+  const hasDataColumns = (r: Record<string, unknown>) =>
+    Object.keys(r).some(k => HEADER_SIGNALS.some(s => k.toLowerCase().includes(s)))
+
+  if (rows.some(hasDataColumns)) return rows
+
+  // Fall back: scan raw rows for the real header row (first 10 rows)
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][]
+  let headerIdx = -1
+  for (let i = 0; i < Math.min(raw.length, 10); i++) {
+    const cells = (raw[i] ?? []).map(c => String(c ?? '').toLowerCase())
+    if (cells.some(c => c.includes('asin') || c.includes('title') || c.includes('royalty date'))) {
+      headerIdx = i
+      break
+    }
+  }
+
+  if (headerIdx < 0) {
+    console.warn('[KDP parser] Could not detect header row — falling back to sheet_to_json default')
+    return rows
+  }
+
+  const headers = (raw[headerIdx] ?? []).map(c => String(c ?? '').trim())
+  console.log(`[KDP parser] Real header row found at index ${headerIdx}:`, headers)
+
+  return raw.slice(headerIdx + 1)
+    .filter(row => (row ?? []).some(c => c !== null && c !== undefined && c !== ''))
+    .map(row => {
+      const obj: Record<string, unknown> = {}
+      headers.forEach((h, i) => { if (h) obj[h] = (row as unknown[])[i] ?? '' })
+      return obj
+    })
+}
+
+// ── parseCombinedSalesSheet: reads "Combined Sales" using raw column indices ──
+// The royalty amount column has NO header name — it must be accessed by position
+// (second-to-last column, equivalent to pandas iloc[:, -2]).
+interface CombinedSalesRow {
+  asin: string; title: string; date: string
+  units: number; royalties: number; currency: string
+}
+
+interface CombinedSalesMeta {
+  headersFound: string[]
+  strategiesUsed: string[]
+  skippedCount: number
+  firstRow: CombinedSalesRow | null
+}
+
+function parseCombinedSalesSheet(sheet: XLSX.WorkSheet): { rows: CombinedSalesRow[]; meta: CombinedSalesMeta } {
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][]
+  const strategiesUsed: string[] = []
+
+  // ── Strategy 4: Banner row scan — check rows 0–10 for real header ──────────
+  let headerIdx = -1
+  for (let i = 0; i < Math.min(raw.length, 10); i++) {
+    const cells = (raw[i] ?? []).map(c => String(c ?? '').toLowerCase().trim())
+    if (cells.some(c => c === 'royalty date' || c === 'title' || c.includes('asin'))) {
+      headerIdx = i
+      break
+    }
+  }
+
+  if (headerIdx < 0) {
+    console.warn('[KDP parser] Combined Sales: could not find header row in first 10 rows')
+    strategiesUsed.push('S4-banner-scan:failed')
+    return { rows: [], meta: { headersFound: [], strategiesUsed, skippedCount: 0, firstRow: null } }
+  }
+
+  if (headerIdx > 0) {
+    strategiesUsed.push(`S4-banner-scan:header-at-row-${headerIdx}`)
+    console.log(`[KDP parser] Combined Sales — Strategy 4 succeeded: banner row at index ${headerIdx}`)
+  } else {
+    strategiesUsed.push('S1-direct-header:row-0')
+  }
+
+  const headers   = (raw[headerIdx] ?? []).map(c => String(c ?? '').trim())
+  const totalCols = headers.length
+
+  // ── Strategy 1: Exact column name match ─────────────────────────────────────
+  let iDate  = headers.findIndex(h => h.toLowerCase() === 'royalty date')
+  let iTitle = headers.findIndex(h => h.toLowerCase() === 'title')
+  let iAsin  = headers.findIndex(h => h.toLowerCase() === 'asin/isbn')
+  let iUnits = headers.findIndex(h => h.toLowerCase() === 'net units sold')
+
+  // ── Strategy 2: Fuzzy case-insensitive partial match ────────────────────────
+  if (iDate  < 0) { iDate  = headers.findIndex(h => h.toLowerCase().includes('royalty date') || h.toLowerCase().includes('date')); if (iDate  >= 0) strategiesUsed.push('S2-fuzzy:date') }
+  if (iAsin  < 0) { iAsin  = headers.findIndex(h => h.toLowerCase().includes('asin'));          if (iAsin  >= 0) strategiesUsed.push('S2-fuzzy:asin')  }
+  if (iUnits < 0) { iUnits = headers.findIndex(h => h.toLowerCase().includes('units sold') || h.toLowerCase().includes('units')); if (iUnits >= 0) strategiesUsed.push('S2-fuzzy:units') }
+
+  if (iDate  >= 0 && !strategiesUsed.some(s => s.includes('date')))  strategiesUsed.push('S1-exact:date')
+  if (iAsin  >= 0 && !strategiesUsed.some(s => s.includes('asin')))  strategiesUsed.push('S1-exact:asin')
+  if (iUnits >= 0 && !strategiesUsed.some(s => s.includes('units'))) strategiesUsed.push('S1-exact:units')
+
+  // ── Strategy 3: Positional fallback — royalty = iloc -2, currency = iloc -1 ─
+  const iRoyalty  = totalCols - 2  // unnamed royalty column
+  const iCurrency = totalCols - 1  // Royalty Currency is last column
+  strategiesUsed.push('S3-positional:royalty=iloc[-2],currency=iloc[-1]')
+
+  console.log(`[KDP parser] Combined Sales header row at index ${headerIdx}, ${totalCols} cols`)
+  console.log(`[KDP parser] Combined Sales col map — date:${iDate} asin:${iAsin} title:${iTitle} units:${iUnits} royalty(unnamed):${iRoyalty} currency:${iCurrency}`)
+  console.log(`[KDP parser] Combined Sales strategies: ${strategiesUsed.join(' | ')}`)
+
+  const results: CombinedSalesRow[] = []
+  let skippedCount = 0
+  for (let i = headerIdx + 1; i < raw.length; i++) {
+    const row = raw[i] as unknown[]
+    if (!row || row.every(c => c === '' || c === null || c === undefined)) continue
+
+    const asin  = str(iAsin  >= 0 ? row[iAsin]  : '')
+    const title = str(iTitle >= 0 ? row[iTitle] : '')
+    if (!asin && !title) { skippedCount++; continue }
+
+    results.push({
+      asin,
+      title,
+      date:      toISODate(iDate >= 0 ? row[iDate] : ''),
+      units:     num(iUnits >= 0 ? row[iUnits] : 0),
+      royalties: num(row[iRoyalty]),
+      currency:  str(iCurrency >= 0 ? row[iCurrency] : '').toUpperCase().trim(),
+    })
+  }
+
+  console.log(`[KDP parser] Combined Sales: ${results.length} data rows parsed, ${skippedCount} skipped`)
+
+  const firstRow = results[0] ?? null
+  return {
+    rows: results,
+    meta: {
+      headersFound: headers,
+      strategiesUsed,
+      skippedCount,
+      firstRow,
+    },
+  }
+}
+
 // ── KDP Dashboard XLSX format (Combined Sales + KENP Read + Paperback Royalty) ─
 function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
-  // ── Combined Sales sheet (ebooks) ─────────────────────────────────────────
-  const combinedSheet = workbook.Sheets['Combined Sales']
-  const combinedData  = combinedSheet
-    ? (XLSX.utils.sheet_to_json(combinedSheet) as Record<string, unknown>[])
-    : []
+  const sheetsFound = workbook.SheetNames
+
+  // ── Combined Sales sheet — use raw-array parser (unnamed royalty column) ──
+  const combinedSheet  = workbook.Sheets['Combined Sales']
+  const combinedResult = combinedSheet
+    ? parseCombinedSalesSheet(combinedSheet)
+    : { rows: [], meta: { headersFound: [], strategiesUsed: [], skippedCount: 0, firstRow: null } }
+  const combinedData = combinedResult.rows
+  const combinedMeta = combinedResult.meta
 
   // ── Paperback Royalty sheet ───────────────────────────────────────────────
   const paperbackSheet = workbook.Sheets['Paperback Royalty']
-  const paperbackData  = paperbackSheet
-    ? (XLSX.utils.sheet_to_json(paperbackSheet) as Record<string, unknown>[])
-    : []
+  const paperbackData  = paperbackSheet ? sheetToRows(paperbackSheet) : []
 
   // ── KENP Read sheet ───────────────────────────────────────────────────────
   const kenpSheet = workbook.Sheets['KENP Read']
-  const kenpData  = kenpSheet
-    ? (XLSX.utils.sheet_to_json(kenpSheet) as Record<string, unknown>[])
-    : []
+  const kenpData  = kenpSheet ? sheetToRows(kenpSheet) : []
 
-  if (combinedData.length) console.log('[KDP parser] Combined Sales headers:', Object.keys(combinedData[0]))
+  console.log(`[KDP parser] Sheet row counts — Combined Sales: ${combinedData.length}, Paperback Royalty: ${paperbackData.length}, KENP Read: ${kenpData.length}`)
   if (paperbackData.length) console.log('[KDP parser] Paperback Royalty headers:', Object.keys(paperbackData[0]))
-  if (kenpData.length)     console.log('[KDP parser] KENP Read headers:', Object.keys(kenpData[0]))
+  if (kenpData.length)      console.log('[KDP parser] KENP Read headers:', Object.keys(kenpData[0]))
 
   const bookMap = new Map<string, BookData>()
   const dailyUnitsMap = new Map<string, number>()
@@ -187,15 +332,8 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
 
   // ── Parse Combined Sales (ebooks) ─────────────────────────────────────────
   for (const row of combinedData) {
-    const asin     = str(pick(row, 'ASIN/ISBN', 'ASIN', 'Asin'))
-    const title    = str(pick(row, 'Title'))
-    const units    = num(pick(row, 'Net Units Sold'))
-    const royalty  = num(pick(row, 'Royalty'))
-    const currency = str(pick(row, 'Currency')).toUpperCase().trim()
-    const date     = toISODate(pick(row, 'Royalty Date'))
-    const isUSD    = currency === 'USD' || currency === ''
-
-    if (!asin && !title) continue
+    const { asin, title, date, units, royalties: royalty, currency } = row
+    const isUSD = currency === 'USD' || currency === ''
 
     const key = asin || title
     if (!bookMap.has(key)) {
@@ -217,12 +355,12 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
 
   // ── Parse Paperback Royalty ───────────────────────────────────────────────
   for (const row of paperbackData) {
-    const asin     = str(pick(row, 'ASIN', 'ISBN', 'ASIN/ISBN'))
+    const asin     = str(pick(row, 'ASIN/ISBN', 'ASIN', 'ISBN'))
     const title    = str(pick(row, 'Title'))
     const units    = num(pick(row, 'Net Units Sold'))
-    const royalty  = num(pick(row, 'Royalty'))
-    const currency = str(pick(row, 'Currency')).toUpperCase().trim()
-    const date     = toISODate(pick(row, 'Royalty Date'))
+    const royalty  = num(pick(row, 'Royalty (USD)', 'Royalties (USD)', 'Net Royalty', 'Net Royalties', 'Royalty'))
+    const currency = str(pick(row, 'Royalty Currency', 'Currency')).toUpperCase().trim()
+    const date     = toISODate(pick(row, 'Royalty Date', 'Date'))
     const isUSD    = currency === 'USD' || currency === ''
 
     if (!asin && !title) continue
@@ -280,8 +418,7 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   }
 
   // ── Derive month from first date in Combined Sales ────────────────────────
-  const firstRow = combinedData[0]
-  const firstDate = firstRow ? toISODate(pick(firstRow as Record<string, unknown>, 'Royalty Date')) : ''
+  const firstDate = combinedData[0]?.date ?? ''
   const month = firstDate ? firstDate.substring(0, 7) : new Date().toISOString().substring(0, 7)
 
   const books      = deduplicateBooks(Array.from(bookMap.values()))
@@ -297,9 +434,26 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
     .map(([date, value]) => ({ date, value }))
     .sort((a, b) => a.date.localeCompare(b.date))
 
+  // ── Build diagnostics ─────────────────────────────────────────────────────
+  const skipReasons: string[] = []
+  if (combinedMeta.skippedCount > 0) skipReasons.push('Missing ASIN and title')
+  const diagnostics: ParseDiagnostics = {
+    rowCount:        combinedData.length,
+    sheetsFound,
+    sheetUsed:       'Combined Sales',
+    columnsDetected: combinedMeta.headersFound,
+    skippedRows:     combinedMeta.skippedCount,
+    skipReasons,
+    firstParsedRow:  combinedMeta.firstRow ? { ...combinedMeta.firstRow } as Record<string, unknown> : null,
+    error:           combinedData.length === 0 ? 'No data rows found in Combined Sales sheet' : null,
+    strategyUsed:    combinedMeta.strategiesUsed.join(' | '),
+  }
+
   return {
     month, totalRoyaltiesUSD, totalUnits, totalKENP: resolvedKENP,
     books, dailyUnits, dailyKENP,
+    rowCount: combinedData.length,
+    diagnostics,
     summary: { paidUnits, freeUnits: 0, paperbackUnits },
   }
 }
@@ -461,9 +615,24 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
   const kenpFromBooks = books.reduce((sum, b) => sum + b.kenp, 0)
   const resolvedKENP  = kenpFromBooks > totalKENP ? kenpFromBooks : totalKENP
 
+  const ordersHeaders = ordersData.length > 0 ? Object.keys(ordersData[0]) : []
+  const diagnostics: ParseDiagnostics = {
+    rowCount:        ordersData.length,
+    sheetsFound:     workbook.SheetNames,
+    sheetUsed:       ordersSheetName ?? 'Orders Processed',
+    columnsDetected: ordersHeaders,
+    skippedRows:     0,
+    skipReasons:     [],
+    firstParsedRow:  ordersData[0] ? { ...ordersData[0] } as Record<string, unknown> : null,
+    error:           ordersData.length === 0 ? 'No data rows found in orders sheet' : null,
+    strategyUsed:    'S1-exact | S2-fuzzy via pick()',
+  }
+
   return {
     month, totalRoyaltiesUSD, totalUnits, totalKENP: resolvedKENP,
     books, dailyUnits, dailyKENP,
+    rowCount: ordersData.length,
+    diagnostics,
     summary: { paidUnits, freeUnits, paperbackUnits },
   }
 }
@@ -539,10 +708,24 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
   // Flat exports don't include a date column — use current month as best guess
   const month = new Date().toISOString().substring(0, 7)
 
+  const flatHeaders = rows.length > 0 ? Object.keys(rows[0]) : []
+  const diagnostics: ParseDiagnostics = {
+    rowCount,
+    sheetsFound:     workbook.SheetNames,
+    sheetUsed:       sheetName ?? workbook.SheetNames[0],
+    columnsDetected: flatHeaders,
+    skippedRows:     rows.length - rowCount,
+    skipReasons:     rows.length - rowCount > 0 ? ['Missing ASIN and title'] : [],
+    firstParsedRow:  rows[0] ? { ...rows[0] } as Record<string, unknown> : null,
+    error:           rowCount === 0 ? 'No rows with valid ASIN or title found' : null,
+    strategyUsed:    'S1-exact | S2-fuzzy via pick()',
+  }
+
   return {
     month, totalRoyaltiesUSD, totalUnits, totalKENP,
     books, dailyUnits: [], dailyKENP: [],
     summary: { paidUnits, freeUnits: 0, paperbackUnits: 0 },
     rowCount,
+    diagnostics,
   }
 }

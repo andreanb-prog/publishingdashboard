@@ -32,10 +32,12 @@ export async function POST(req: NextRequest) {
     // Record upload timestamp
     await db.uploadLog.create({
       data: {
-        userId:    session.user.id,
-        dataType:  'meta',
-        fileName:  file.name,
-        uploadedAt: new Date(),
+        userId:   session.user.id,
+        fileType: 'meta',
+        fileName: file.name,
+        rowCount: data.ads.length,
+        status:   'success',
+        details:  {},
       },
     }).catch(() => {}) // non-fatal
 

@@ -2,7 +2,7 @@
 // components/writing-notebook/AIChatPanel.tsx
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { X, Send, Save, Loader2, AlertTriangle } from 'lucide-react'
-import type { WorkbookData, StyleGuide } from '@/app/writing-notebook/page'
+import type { WorkbookData, StyleGuide } from '@/app/dashboard/writing-notebook/useWorkbook'
 
 type Message = { role: 'user' | 'assistant'; content: string }
 
@@ -104,9 +104,13 @@ export function AIChatPanel({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
+        console.error('[AIChatPanel] POST failed', { status: res.status, error: data.error, data })
         if (data.error === 'no_api_key') setError('Add your Anthropic API key in Settings.')
         else if (data.error === 'invalid_key') setError('Your API key is invalid. Update it in Settings.')
-        else setError('Something went wrong. Please try again.')
+        else if (data.error === 'rate_limited') setError('Rate limited — wait a moment and try again.')
+        else if (data.error === 'server_error') setError('Server error — try again in a few seconds.')
+        else if (res.status === 401) setError('Session expired — please refresh the page.')
+        else setError(`Something went wrong (${data.error || res.status}). Please try again.`)
         setIsStreaming(false)
         return
       }
@@ -115,7 +119,7 @@ export function AIChatPanel({
       const reader = res.body?.getReader()
       const decoder = new TextDecoder()
       let assistantContent = ''
-      setMessages([...newMessages, { role: 'assistant', content: '' }])
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }])
 
       if (reader) {
         while (true) {
@@ -124,9 +128,7 @@ export function AIChatPanel({
           const chunk = decoder.decode(value, { stream: true })
 
           // Check for error markers
-          if (chunk.includes('[ERROR:invalid_key]')) { setError('Your API key is invalid.'); break }
-          if (chunk.includes('[ERROR:rate_limited]')) { setError('Rate limited. Wait a moment and try again.'); break }
-          if (chunk.includes('[ERROR:unknown]')) { setError('Something went wrong.'); break }
+          if (chunk.includes('[ERROR:')) { setError('Something went wrong.'); break }
 
           assistantContent += chunk
           setMessages(prev => {
@@ -136,6 +138,8 @@ export function AIChatPanel({
           })
         }
       }
+
+      console.log('[chat] stream complete, length:', assistantContent.length)
 
       // Persist assistant message
       if (assistantContent) await persistMessage('assistant', assistantContent)

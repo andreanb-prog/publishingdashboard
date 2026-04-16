@@ -23,6 +23,8 @@ import {
   peakPoints,
 } from '@/lib/chartConfig'
 import { LastUploadBadge } from '@/components/LastUploadBadge'
+import CategoryIntelligence from '@/components/CategoryIntelligence'
+import BsrTracker from '@/components/BsrTracker'
 import type { Analysis, DailyData, RoasLog, MailerLiteCampaign } from '@/types'
 
 
@@ -340,6 +342,9 @@ function HeatmapCalendar({
     return `rgba(249,123,107,${(0.5 + (t - 0.66) * 1.5).toFixed(2)})`
   }
 
+  const peakVal = Math.max(...data.map(d => d.value))
+  const showInline = data.length <= 31
+
   return (
     <div>
       <div
@@ -348,11 +353,18 @@ function HeatmapCalendar({
       >
         {data.map((d, i) => {
           const isEmail = emailSendDates.has(d.date)
+          const isPeak  = d.value > 0 && d.value === peakVal
+          const tooltipParts = [
+            formatShortDate(d.date),
+            `${d.value} units`,
+            ...(isPeak ? ['Peak day'] : []),
+            ...(isEmail ? ['Email sent'] : []),
+          ]
           return (
             <div
               key={i}
-              title={`${formatShortDate(d.date)}: ${d.value} units${isEmail ? ' · Email sent' : ''}`}
-              className="rounded-sm flex flex-col items-center justify-end pb-1"
+              title={tooltipParts.join(' · ')}
+              className="rounded-sm flex flex-col items-center justify-center gap-0.5 relative group"
               style={{
                 background: cellColor(d.value),
                 minHeight: 48,
@@ -361,9 +373,17 @@ function HeatmapCalendar({
                 cursor: 'default',
               }}
             >
+              {showInline && (
+                <span
+                  className="text-[6px] leading-none"
+                  style={{ color: d.value > maxVal * 0.5 ? 'rgba(30,45,61,0.45)' : '#9CA3AF' }}
+                >
+                  {new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </span>
+              )}
               <span
-                className="text-[7px] font-bold leading-none"
-                style={{ color: d.value > maxVal * 0.5 ? 'rgba(30,45,61,0.5)' : '#9CA3AF' }}
+                className="text-[8px] font-bold leading-none"
+                style={{ color: d.value > maxVal * 0.5 ? 'rgba(30,45,61,0.6)' : '#9CA3AF' }}
               >
                 {d.value > 0 ? d.value : ''}
               </span>
@@ -371,7 +391,8 @@ function HeatmapCalendar({
           )
         })}
       </div>
-      {/* Date labels row */}
+      {/* Date labels row — only when cells are too narrow for inline dates */}
+      {!showInline && (
       <div
         className="grid gap-1 mt-1"
         style={{ gridTemplateColumns: `repeat(${Math.min(data.length, 31)}, 1fr)`, height: 28, overflow: 'hidden' }}
@@ -393,6 +414,7 @@ function HeatmapCalendar({
           </div>
         ))}
       </div>
+      )}
       <div className="flex flex-wrap items-center justify-between mt-3 gap-2">
         <ChartLegend items={[
           { color: '#FFF8F0',          label: '0 units',   type: 'square' },
@@ -1277,6 +1299,26 @@ export default function KDPPage() {
                 emailCampaignMap={emailCampaignMap}
               />
             </div>
+          </CollapsibleSection>
+
+          {/* ── Category Intelligence ── */}
+          <CollapsibleSection
+            title="Category Intelligence"
+            storageKey="kdp-section-categories"
+            className="mb-5"
+            subtitle="See every Amazon category your book is in and how you rank"
+          >
+            <CategoryIntelligence />
+          </CollapsibleSection>
+
+          {/* ── Sales Rank Tracker ── */}
+          <CollapsibleSection
+            title="Sales Rank Tracker"
+            storageKey="kdp-section-bsr"
+            className="mb-5"
+            subtitle="Track your Amazon Best Seller Rank over time"
+          >
+            <BsrTracker />
           </CollapsibleSection>
         </>
       )}

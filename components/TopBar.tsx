@@ -19,6 +19,13 @@ interface TopBarProps {
   user: { name?: string | null; email?: string | null; id: string; preferredGreetingName?: string | null }
 }
 
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good Morning'
+  if (hour < 17) return 'Good Afternoon'
+  return 'Good Evening'
+}
+
 export function TopBar({ user }: TopBarProps) {
   const now = new Date()
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
@@ -111,7 +118,7 @@ export function TopBar({ user }: TopBarProps) {
         {/* Left zone: greeting */}
         <div className="flex-1">
           <div className="text-[16px] font-medium leading-none" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            Good morning{(user.preferredGreetingName ?? user.name) ? `, ${user.preferredGreetingName ?? user.name!.split(' ')[0]}` : ''}
+            {getGreeting()}{(user.preferredGreetingName ?? user.name) ? `, ${user.preferredGreetingName ?? user.name!.split(' ')[0]}` : ''}
           </div>
           <div className="text-[11px] mt-1" style={{ color: '#6B7280' }}>
             {dateStr}

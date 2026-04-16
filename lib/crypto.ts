@@ -1,12 +1,11 @@
-// lib/crypto.ts
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto'
 
 const ALGORITHM = 'aes-256-gcm'
 
 function getKey(): Buffer {
-  const hex = process.env.ENCRYPTION_KEY
-  if (!hex) throw new Error('ENCRYPTION_KEY environment variable is not set')
-  return Buffer.from(hex, 'hex')
+  const key = process.env.ENCRYPTION_KEY
+  if (!key) throw new Error('ENCRYPTION_KEY environment variable is not set')
+  return Buffer.from(key, 'hex')
 }
 
 export function encrypt(text: string): string {

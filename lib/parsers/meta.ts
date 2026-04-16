@@ -24,9 +24,10 @@ export function parseMetaFile(csvText: string): MetaData {
     return 0
   }
 
-  // Filter to rows that have ad names (skip summary/blank rows)
+  // Filter to rows that have a recognizable name column (skip summary/blank rows)
+  // New Meta XLSX format ("Worksheet" sheet) uses "Campaign name" instead of "Ad name"
   const adRows = rows.filter((r) => {
-    const name = r['Ad name'] ?? r['Ad Name'] ?? r['Ad set name'] ?? ''
+    const name = r['Ad name'] ?? r['Ad Name'] ?? r['Ad set name'] ?? r['Campaign name'] ?? ''
     return String(name).trim() !== ''
   })
 

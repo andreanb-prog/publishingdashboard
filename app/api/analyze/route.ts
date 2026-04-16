@@ -408,12 +408,12 @@ export async function GET(req: NextRequest) {
   // Prefer UploadLog for last upload timestamp — it's set at parse time, not analysis time
   try {
     const kdpLog = await db.uploadLog.findFirst({
-      where: { userId: session.user.id, dataType: 'kdp' },
-      orderBy: { uploadedAt: 'desc' },
-      select: { uploadedAt: true },
+      where: { userId: session.user.id, fileType: 'kdp' },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
     })
     if (kdpLog) {
-      kdpLastUploadedAt = kdpLog.uploadedAt.toISOString()
+      kdpLastUploadedAt = kdpLog.createdAt.toISOString()
     } else if (kdpRecord) {
       // Fallback for uploads before UploadLog existed
       kdpLastUploadedAt = (kdpRecord.data as any)?.kdpUploadedAt ?? kdpRecord.createdAt.toISOString()

@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { Analysis, RankLog, RoasLog, ChannelScore, CoachingInsight, CrossChannelPlan } from '@/types'
+import type { DashboardData } from '@/lib/dashboard-data'
 import { getCoachTitle } from '@/lib/coachTitle'
 import { fmtPct, fmtCurrency } from '@/lib/utils'
 
@@ -417,14 +418,15 @@ function OtherObservations({ items }: { items: CoachingInsight[] }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export function OverviewClient({ userName }: { userName?: string | null } = {}) {
-  const [analysis,  setAnalysis]  = useState<any>(null)
-  const [analyses,  setAnalyses]  = useState<Analysis[]>([])
-  const [rankLogs,  setRankLogs]  = useState<RankLog[]>([])
-  const [roasLogs,  setRoasLogs]  = useState<RoasLog[]>([])
-  const [loading,   setLoading]   = useState(true)
+export function OverviewClient({ userName, initialData }: { userName?: string | null; initialData?: DashboardData } = {}) {
+  const hasInitial = !!initialData
+  const [analysis,  setAnalysis]  = useState<any>(initialData?.analysis ?? null)
+  const [analyses,  setAnalyses]  = useState<Analysis[]>(initialData?.analyses ?? [])
+  const [rankLogs,  setRankLogs]  = useState<RankLog[]>(initialData?.rankLogs ?? [])
+  const [roasLogs,  setRoasLogs]  = useState<RoasLog[]>(initialData?.roasLogs ?? [])
+  const [loading,   setLoading]   = useState(!hasInitial)
   const [generating, setGenerating] = useState(false)
-  const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(null)
+  const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(initialData?.kdpLastUploadedAt ?? null)
   const [copied,      setCopied]      = useState(false)
   const [copying,     setCopying]     = useState(false)
   const [coachTitle]  = useState(() => getCoachTitle())
@@ -502,8 +504,8 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
   const animCtr   = useCountUp(_ctrTarget,   isFresh && !!analysis?.meta?.bestAd)
 
   const [refreshKey,   setRefreshKey]   = useState(0)
-  const [liveML,       setLiveML]       = useState<import('@/types').MailerLiteData | null>(null)
-  const [metaLastSync, setMetaLastSync] = useState<string | null>(null)
+  const [liveML,       setLiveML]       = useState<import('@/types').MailerLiteData | null>(initialData?.mailerLiteData ?? null)
+  const [metaLastSync, setMetaLastSync] = useState<string | null>(initialData?.metaLastSync ?? null)
   const [syncingMeta,  setSyncingMeta]  = useState(false)
   const [syncingML,    setSyncingML]    = useState(false)
   const [metaErrorBanner, setMetaErrorBanner] = useState(false)
@@ -518,21 +520,20 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
   }, [])
 
   useEffect(() => {
+    // Skip initial fetch if server-side data was provided (refreshKey === 0)
+    if (hasInitial && refreshKey === 0) return
+
     Promise.all([
       fetch('/api/analyze').then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({})),
       fetch('/api/rank').then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({ logs: [] })),
       fetch('/api/roas').then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({ logs: [] })),
       fetch('/api/mailerlite').then(r => r.ok ? r.json() : null).catch(() => null),
     ]).then(([analyzeData, rankData, roasData, mlData]) => {
-      // Read the single latest analysis blob
       const analysis = analyzeData.analysis ?? null
-      console.log('[Overview] analysis keys:', analysis ? Object.keys(analysis) : 'null')
-      console.log('[Overview] kdp:', analysis?.kdp ? `units=${analysis.kdp.totalUnits} kenp=${analysis.kdp.totalKENP} royalties=${analysis.kdp.totalRoyaltiesUSD}` : 'MISSING')
       setAnalysis(analysis)
       setKdpLastUploadedAt(analyzeData.kdpLastUploadedAt ?? null)
       setMetaLastSync(analyzeData.metaLastSync ?? null)
 
-      // Keep analyses array for history table — each item's .data field has the blob
       const rows: Analysis[] = (analyzeData.analyses ?? [])
         .map((r: { data?: Analysis }) => r.data)
         .filter((d: unknown): d is Analysis => !!d && typeof d === 'object' && 'month' in (d as object))
@@ -542,7 +543,7 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
       setRoasLogs(roasData.logs ?? [])
       if (mlData?.data) setLiveML(mlData.data)
     }).catch(console.error).finally(() => setLoading(false))
-  }, [refreshKey])
+  }, [refreshKey, hasInitial])
 
   async function handleSyncMeta() {
     setSyncingMeta(true)
@@ -662,11 +663,15 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
     return (
       <div className="p-4 md:p-8 max-w-[1400px]">
         <div className="animate-pulse space-y-4">
-          <div className="h-20 rounded-xl" style={{ background: '#EEEBE6' }} />
+          <div className="h-20 rounded-xl" style={{ background: '#FFF8F0' }} />
           <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-            {[1,2,3,4].map(i => <div key={i} className="h-24 rounded-xl" style={{ background: '#EEEBE6' }} />)}
+            {[1,2,3,4].map(i => <div key={i} className="h-24 rounded-xl" style={{ background: '#FFF8F0' }} />)}
           </div>
-          <div className="h-40 rounded-xl" style={{ background: '#EEEBE6' }} />
+          <div className="h-40 rounded-xl" style={{ background: '#FFF8F0' }} />
+          <div className="h-32 rounded-xl" style={{ background: '#FFF8F0' }} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[1,2,3,4].map(i => <div key={i} className="h-36 rounded-xl" style={{ background: '#FFF8F0' }} />)}
+          </div>
         </div>
       </div>
     )
@@ -735,7 +740,7 @@ export function OverviewClient({ userName }: { userName?: string | null } = {}) 
       {!analysis && analyses.length === 0 && (
         <div className="mb-7">
           <div className="text-[22px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
-            Good morning{userName ? `, ${userName}` : ''}. Your dashboard is ready — it just needs your data.
+            {(() => { const h = new Date().getHours(); return h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening' })()}{userName ? `, ${userName}` : ''}. Your dashboard is ready — it just needs your data.
           </div>
           <p className="text-[13px] mb-5" style={{ color: '#6B7280' }}>
             Connect your channels below to unlock your personalised coaching.
