@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const SKILL_TEXT = `I want to set up the BookClicker newsletter swap triage skill. Here is the full skill — please read it, confirm you understand it, and walk me through setup so I can start running morning triage.
 
 ---
