@@ -915,6 +915,19 @@ type TabId = 0 | 1 | 2 | 3
 export default function RoasHubPage() {
   const { books, loading } = useBooks()
   const [activeTab, setActiveTab] = useState<TabId>(0)
+  const [exporting, setExporting] = useState(false)
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const { exportRoasHub } = await import('./export-xlsx')
+      await exportRoasHub()
+    } catch (e) {
+      console.error('ROAS Hub export failed:', e)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   // First 3 non-LM books
   const bookTabs = books.slice(0, 3)
@@ -963,13 +976,28 @@ export default function RoasHubPage() {
   return (
     <div className="p-4 sm:p-8 pb-8 max-w-[1240px]">
       {/* ── Page header ── */}
-      <div className="mb-5">
-        <h1 className="font-sans text-[24px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
-          ROAS Hub
-        </h1>
-        <p className="text-[13px]" style={{ color: '#9CA3AF' }}>
-          Is your spend working? Track rank, revenue, and cost per result — every day.
-        </p>
+      <div className="flex items-start justify-between mb-5">
+        <div>
+          <h1 className="font-sans text-[24px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
+            ROAS Hub
+          </h1>
+          <p className="text-[13px]" style={{ color: '#9CA3AF' }}>
+            Is your spend working? Track rank, revenue, and cost per result — every day.
+          </p>
+        </div>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="px-3 py-2 rounded-lg text-[13px] font-medium transition-all disabled:opacity-50 whitespace-nowrap"
+          style={{
+            background: 'white',
+            border: '1px solid #E9A020',
+            color: '#E9A020',
+            cursor: exporting ? 'wait' : 'pointer',
+          }}
+        >
+          {exporting ? 'Exporting…' : 'Export →'}
+        </button>
       </div>
 
       {/* ── Summary Strip ── */}
