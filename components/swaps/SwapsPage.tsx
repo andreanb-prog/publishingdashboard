@@ -889,8 +889,17 @@ export function SwapsPage({
   initialSwaps: SwapRecord[]
 }) {
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   const [swaps, setSwaps] = useState<SwapRecord[]>(initialSwaps)
   const [showModal, setShowModal] = useState(false)
+
+  useEffect(() => setMounted(true), [])
+
+  if (!mounted) return (
+    <div style={{ padding: '2rem', fontFamily: 'Plus Jakarta Sans' }}>
+      <div style={{ fontSize: 18, fontWeight: 500, color: '#1E2D3D' }}>Swaps &amp; Promos</div>
+    </div>
+  )
 
   // ─── Metrics ───────────────────────────────────────────────────────────
   const metrics = useMemo(() => {
