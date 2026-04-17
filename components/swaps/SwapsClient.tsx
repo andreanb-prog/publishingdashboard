@@ -391,23 +391,23 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <button
                 onClick={() => setCalMonthOffset(p => p - 1)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#6B7280', padding: '2px 8px' }}
+                style={{ fontSize: 22, fontWeight: 600, padding: '8px 16px', border: '0.5px solid rgba(30,45,61,0.15)', borderRadius: 8, background: 'white', cursor: 'pointer', color: '#1E2D3D', lineHeight: 1 }}
               >
-                &lsaquo;
+                &#8249;
               </button>
               <p style={{ fontSize: 14, fontWeight: 600, color: '#1E2D3D', margin: 0 }}>Swap Calendar &mdash; {monthLabel}</p>
               <button
                 onClick={() => setCalMonthOffset(p => p + 1)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#6B7280', padding: '2px 8px' }}
+                style={{ fontSize: 22, fontWeight: 600, padding: '8px 16px', border: '0.5px solid rgba(30,45,61,0.15)', borderRadius: 8, background: 'white', cursor: 'pointer', color: '#1E2D3D', lineHeight: 1 }}
               >
-                &rsaquo;
+                &#8250;
               </button>
             </div>
 
             {/* Day labels */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, paddingBottom: 4 }}>
               {dayLabels.map(d => (
-                <div key={d} style={{ fontSize: 10, color: '#9ca3af', textAlign: 'center' }}>{d}</div>
+                <div key={d} style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>{d}</div>
               ))}
             </div>
 
@@ -438,14 +438,17 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
                       background: densityColor(count),
                       outline: isToday ? '2px solid #1E2D3D' : 'none',
                       outlineOffset: isToday ? 1 : 0,
+                      position: 'relative' as const,
+                      overflow: 'hidden',
                     }}
                   >
-                    <span style={{ fontSize: 10, color: densityText(count), lineHeight: 1 }}>{dayNum}</span>
+                    {/* Ghost watermark day number */}
+                    <span style={{ position: 'absolute' as const, bottom: 4, right: 6, fontSize: 28, fontWeight: 700, opacity: 0.15, color: 'inherit', lineHeight: 1, pointerEvents: 'none' as const }}>{dayNum}</span>
                     {count > 0 && (
-                      <span style={{ fontSize: 9, color: densityText(count), lineHeight: 1, marginTop: 1 }}>{count}</span>
+                      <span style={{ fontSize: 14, color: densityText(count), lineHeight: 1, position: 'relative' as const, zIndex: 1 }}>{count}</span>
                     )}
                     {books.length > 0 && (
-                      <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
+                      <div style={{ display: 'flex', gap: 3, marginTop: 2, position: 'relative' as const, zIndex: 1 }}>
                         {books.slice(0, 3).map((_, bi) => (
                           <div key={bi} style={{ width: 4, height: 4, borderRadius: '50%', background: dotColors[bi % dotColors.length] }} />
                         ))}
@@ -467,8 +470,8 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
                 { color: '#C23B1E', label: '15+' },
               ].map(item => (
                 <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <div style={{ width: 12, height: 12, borderRadius: 3, background: item.color }} />
-                  <span style={{ fontSize: 11, color: '#6B7280' }}>{item.label}</span>
+                  <div style={{ width: 14, height: 14, borderRadius: 3, background: item.color }} />
+                  <span style={{ fontSize: 12, color: '#6B7280' }}>{item.label}</span>
                 </div>
               ))}
             </div>
