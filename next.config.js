@@ -13,8 +13,18 @@ const nextConfig = {
     return [
       {
         source: '/writing-notebook',
-        destination: '/dashboard/writing-notebook',
-        permanent: true,
+        destination: '/dashboard',
+        permanent: false,
+      },
+      {
+        source: '/dashboard/writing-notebook',
+        destination: '/dashboard',
+        permanent: false,
+      },
+      {
+        source: '/dashboard/creative',
+        destination: '/dashboard',
+        permanent: false,
       },
     ]
   },

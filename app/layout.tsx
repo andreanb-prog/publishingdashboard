@@ -39,8 +39,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={plusJakarta.variable}>
       <body className="font-sans bg-cream text-[#0d1f35] antialiased">
-        <Providers>{children}</Providers>
-        <PostHogProvider />
+        <Providers>
+          {children}
+          <PostHogProvider />
+        </Providers>
         <SpeedInsights />
         <Analytics />
       </body>
