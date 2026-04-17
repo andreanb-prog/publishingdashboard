@@ -1071,14 +1071,14 @@ export function SwapsPage({
         />
       </div>
 
-      {/* Two-column: Heatmap + Upcoming */}
+      {/* Two-column: Heatmap + Upcoming (stubbed — rebuild in separate session) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <HeatmapCalendar swaps={swaps} today={today} />
-        <UpcomingSwapsList
-          swaps={swaps}
-          today={today}
-          onMarkComplete={handleMarkComplete}
-        />
+        <div style={{ padding: '2rem', background: '#FFF8F0', borderRadius: 12, textAlign: 'center', color: '#1E2D3D', fontSize: 14 }}>
+          Swap calendar coming soon
+        </div>
+        <div style={{ padding: '2rem', background: '#FFF8F0', borderRadius: 12, textAlign: 'center', color: '#1E2D3D', fontSize: 14 }}>
+          Upcoming swaps list coming soon
+        </div>
       </div>
 
       {/* Modal */}
