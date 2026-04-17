@@ -9,9 +9,9 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const swaps = await db.swapEntry.findMany({
+  const swaps = await db.swap.findMany({
     where: { userId: session.user.id },
-    orderBy: { promoDate: 'desc' },
+    orderBy: { promoDate: 'asc' },
   })
 
   return NextResponse.json({ success: true, swaps })
@@ -23,35 +23,20 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
 
-  const entry = await db.swapEntry.create({
+  const swap = await db.swap.create({
     data: {
-      userId: session.user.id,
-      promoType:        body.promoType        ?? 'swap',
-      role:             body.role             ?? null,
-      platform:         body.platform         ?? 'other',
-      partnerName:      body.partnerName      ?? null,
-      partnerListName:  body.partnerListName  ?? null,
-      partnerListSize:  body.partnerListSize  ? Number(body.partnerListSize) : null,
-      partnerLink:      body.partnerLink      ?? null,
-      myBook:           body.myBook           ?? null,
-      myList:           body.myList           ?? '',
-      theirBook:        body.theirBook        ?? null,
-      swapType:         body.swapType         ?? null,
-      promoDate:        body.promoDate        ? new Date(body.promoDate) : null,
-      confirmation:     body.confirmation     ?? 'applied',
-      paymentType:      body.paymentType      ?? 'swap',
-      cost:             body.cost             ? Number(body.cost) : 0,
-      reportedOpenRate: body.reportedOpenRate ? Number(body.reportedOpenRate) : null,
-      reportedClickRate:body.reportedClickRate? Number(body.reportedClickRate): null,
-      clicks:           body.clicks           ? Number(body.clicks) : null,
-      impressions:      body.impressions      ? Number(body.impressions) : null,
-      subsGained:       body.subsGained       ? Number(body.subsGained) : null,
-      firstSwap:        body.firstSwap        ?? false,
-      overSwapFlag:     body.overSwapFlag     ?? false,
-      qualityRating:    body.qualityRating    ?? null,
-      notes:            body.notes            ?? null,
+      userId:          session.user.id,
+      partnerName:     body.partnerName,
+      partnerEmail:    body.partnerEmail ?? null,
+      partnerListSize: body.partnerListSize ? Number(body.partnerListSize) : null,
+      bookTitle:       body.bookTitle,
+      promoFormat:     body.promoFormat ?? null,
+      promoDate:       new Date(body.promoDate),
+      direction:       body.direction,
+      source:          body.source ?? null,
+      launchWindow:    body.launchWindow ?? null,
     },
   })
 
-  return NextResponse.json({ success: true, entry })
+  return NextResponse.json({ success: true, swap })
 }
