@@ -9,25 +9,6 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['xlsx', 'pdfjs-dist'],
   },
-  async redirects() {
-    return [
-      {
-        source: '/writing-notebook',
-        destination: '/dashboard',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/writing-notebook',
-        destination: '/dashboard',
-        permanent: false,
-      },
-      {
-        source: '/dashboard/creative',
-        destination: '/dashboard',
-        permanent: false,
-      },
-    ]
-  },
 }
 
 module.exports = nextConfig
