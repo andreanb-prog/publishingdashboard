@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { initPostHog, posthogClient } from '@/lib/posthog'
@@ -46,9 +46,14 @@ function PostHogIdentify() {
 }
 
 export function PostHogProvider() {
+  const [mounted, setMounted] = useState(false)
+
   useEffect(() => {
+    setMounted(true)
     initPostHog()
   }, [])
+
+  if (!mounted) return null
 
   return (
     <>
