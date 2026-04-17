@@ -33,7 +33,7 @@ const CHANNEL_ITEMS: NavItem[] = [
 const TOOL_ITEMS: NavItem[] = [
   { label: 'Category Research',  href: '/dashboard/kdp#category-intelligence', Icon: Search },
   { label: 'Advanced Metrics',   href: '/dashboard/metrics',       Icon: BarChart2      },
-  { label: 'ROAS Hub',            href: '/dashboard/rank',          Icon: BarChart2      },
+  // { label: 'ROAS Hub',            href: '/dashboard/rank',          Icon: BarChart2      },
   { label: 'Learn the Terms',    href: '/dashboard/learn',         Icon: GraduationCap  },
   { label: 'Settings',           href: '/dashboard/settings',      Icon: Settings2      },
   { label: 'My Data',            href: '/dashboard/data-vault',    Icon: Database       },
