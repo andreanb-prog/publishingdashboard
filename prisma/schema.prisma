@@ -93,6 +93,7 @@ model User {
   writingNotebookChats    WritingNotebookChat[]
   chapterAudits           ChapterAudit[]
   tasks                   Task[]
+  swaps         Swap[]
   createdAt     DateTime       @default(now())
 }
 
@@ -686,4 +687,24 @@ model MetaAdData {
   createdAt     DateTime @default(now())
 
   @@index([userId, date])
+}
+
+model Swap {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  partnerName     String
+  partnerEmail    String?
+  partnerListSize Int?
+  bookTitle       String
+  promoFormat     String?
+  promoDate       DateTime
+  direction       String   // "you_promote" | "they_promote"
+  status          String   @default("booked") // "booked" | "confirmed" | "complete"
+  source          String?  // "bookclicker" | "bookfunnel" | "direct"
+  launchWindow    String?  // optional label e.g. "Crush Season"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
 }

@@ -221,6 +221,63 @@ async function processEmail(
   console.log(`[INBOUND] [${sourceLabel}] Unrecognized subject — no action:`, subject)
 }
 
+// ── Auto-detect BookClicker / BookFunnel emails → create Swap record ─────────
+
+function parseBookTitle(body: string): string | null {
+  const m = body.match(/(?:Book|Title):\s*(.+)/i)
+  return m ? m[1].trim() : null
+}
+
+async function detectAndCreateSwap(
+  userId: string,
+  subject: string,
+  body: string,
+  from: string,
+) {
+  const fromLower = from.toLowerCase()
+  const subjectLower = subject.toLowerCase()
+
+  let source: 'bookclicker' | 'bookfunnel' | null = null
+  if (fromLower.includes('bookclicker') || subjectLower.includes('bookclicker')) {
+    source = 'bookclicker'
+  } else if (fromLower.includes('bookfunnel') || subjectLower.includes('bookfunnel')) {
+    source = 'bookfunnel'
+  }
+
+  if (!source) return
+
+  // Only act on confirmation-type emails
+  const isConfirmation =
+    subjectLower.includes('confirm') ||
+    subjectLower.includes('accepted') ||
+    subjectLower.includes('approved') ||
+    subjectLower.includes('booking')
+  if (!isConfirmation) return
+
+  const partnerName = parsePartnerName(body)
+  const bookTitle = parseBookTitle(body)
+  const promoDate = parsePromoDate(body)
+
+  if (!partnerName && !bookTitle) return
+
+  try {
+    await db.swap.create({
+      data: {
+        userId,
+        partnerName: partnerName ?? 'Unknown partner',
+        bookTitle: bookTitle ?? 'Unknown title',
+        promoDate: promoDate ?? new Date(),
+        direction: 'they_promote', // inbound confirmation = they confirmed they'll promote you
+        status: 'booked',
+        source,
+      },
+    })
+    console.log(`[INBOUND] swap auto-created from ${source}:`, { partnerName, bookTitle, promoDate })
+  } catch (err) {
+    console.error('[INBOUND] Failed to auto-create Swap record:', err)
+  }
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -278,6 +335,9 @@ export async function POST(req: NextRequest) {
   const userId = user.id
 
   try {
+    // ── Auto-detect BookClicker / BookFunnel confirmation → create Swap record ──
+    await detectAndCreateSwap(userId, Subject, TextBody, From)
+
     // ── Process main email body ───────────────────────────────────────────
     if (TextBody.trim()) {
       await processEmail(userId, Subject, TextBody, `TextBody (${MessageID})`)
