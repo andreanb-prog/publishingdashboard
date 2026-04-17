@@ -154,12 +154,11 @@ function ReachBar({
 
 // ─── Heatmap Calendar ────────────────────────────────────────────────────────
 
-function HeatmapCalendar({ swaps }: { swaps: SwapRecord[] }) {
+function HeatmapCalendar({ swaps, today }: { swaps: SwapRecord[]; today: Date }) {
   const [monthOffset, setMonthOffset] = useState(0)
 
   const { year, month, days, dayNames } = useMemo(() => {
-    const now = new Date()
-    const d = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1)
+    const d = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1)
     const yr = d.getFullYear()
     const mo = d.getMonth()
     const firstDay = new Date(yr, mo, 1).getDay() // 0=Sun
@@ -178,7 +177,7 @@ function HeatmapCalendar({ swaps }: { swaps: SwapRecord[] }) {
       days: cells,
       dayNames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     }
-  }, [monthOffset])
+  }, [monthOffset, today])
 
   const swapsByDate = useMemo(() => {
     const map = new Map<string, SwapRecord[]>()
@@ -190,7 +189,6 @@ function HeatmapCalendar({ swaps }: { swaps: SwapRecord[] }) {
     return map
   }, [swaps])
 
-  const today = new Date()
   const monthLabel = new Date(year, month).toLocaleDateString('en-US', {
     month: 'long',
     year: 'numeric',
@@ -354,21 +352,22 @@ function HeatmapCalendar({ swaps }: { swaps: SwapRecord[] }) {
 
 function UpcomingSwapsList({
   swaps,
+  today,
   onMarkComplete,
 }: {
   swaps: SwapRecord[]
+  today: Date
   onMarkComplete: (id: string) => void
 }) {
   const upcoming = useMemo(() => {
-    const now = new Date()
-    now.setHours(0, 0, 0, 0)
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     return swaps
-      .filter(s => new Date(s.promoDate) >= now && s.status !== 'complete')
+      .filter(s => new Date(s.promoDate) >= startOfDay && s.status !== 'complete')
       .sort(
         (a, b) =>
           new Date(a.promoDate).getTime() - new Date(b.promoDate).getTime()
       )
-  }, [swaps])
+  }, [swaps, today])
 
   // Group by date
   const grouped = useMemo(() => {
@@ -889,13 +888,13 @@ export function SwapsPage({
   initialSwaps: SwapRecord[]
 }) {
   const router = useRouter()
-  const [mounted, setMounted] = useState(false)
+  const [today, setToday] = useState<Date | null>(null)
   const [swaps, setSwaps] = useState<SwapRecord[]>(initialSwaps)
   const [showModal, setShowModal] = useState(false)
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => setToday(new Date()), [])
 
-  if (!mounted) return (
+  if (!today) return (
     <div style={{ padding: '2rem', fontFamily: 'Plus Jakarta Sans' }}>
       <div style={{ fontSize: 18, fontWeight: 500, color: '#1E2D3D' }}>Swaps &amp; Promos</div>
     </div>
@@ -1074,9 +1073,10 @@ export function SwapsPage({
 
       {/* Two-column: Heatmap + Upcoming */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <HeatmapCalendar swaps={swaps} />
+        <HeatmapCalendar swaps={swaps} today={today} />
         <UpcomingSwapsList
           swaps={swaps}
+          today={today}
           onMarkComplete={handleMarkComplete}
         />
       </div>
