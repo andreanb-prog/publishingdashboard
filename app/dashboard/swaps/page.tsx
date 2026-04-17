@@ -2,11 +2,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { redirect } from 'next/navigation'
-import { SwapsPage } from '@/components/swaps/SwapsPage'
+import SwapsClient from '@/components/swaps/SwapsClient'
 
-export const dynamic = 'force-dynamic'
-
-export default async function SwapsPageServer() {
+export default async function SwapsPage() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) redirect('/login')
 
@@ -15,7 +13,6 @@ export default async function SwapsPageServer() {
     orderBy: { promoDate: 'asc' },
   })
 
-  // Serialize dates for client component
   const serialized = swaps.map(s => ({
     ...s,
     promoDate: s.promoDate.toISOString(),
@@ -23,5 +20,5 @@ export default async function SwapsPageServer() {
     updatedAt: s.updatedAt.toISOString(),
   }))
 
-  return <SwapsPage initialSwaps={serialized} />
+  return <SwapsClient swaps={serialized} />
 }
