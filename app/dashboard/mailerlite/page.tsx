@@ -333,6 +333,8 @@ function CampaignPerformanceSection({
   )
 }
 
+interface MLList { id: string; mailerliteId: string; name: string; activeCount: number; unsubCount: number; lastSyncedAt: string | null }
+
 export default function MailerLitePage() {
   const [coachTitle] = useState(() => getCoachTitle())
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
@@ -344,6 +346,10 @@ export default function MailerLitePage() {
   const [flaggedCampaign, setFlaggedCampaign] = useState<FlaggedCampaign | null>(null)
   const [campaignsLoading, setCampaignsLoading] = useState(true)
   const [campaignsError, setCampaignsError] = useState(false)
+
+  // Multi-list state
+  const [mlLists, setMlLists] = useState<MLList[]>([])
+  const [activeListId, setActiveListId] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -366,6 +372,14 @@ export default function MailerLitePage() {
       fetch('/api/prefs')
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(d => { if (d.goals) setGoals(d.goals) })
+        .catch(() => {}),
+      fetch('/api/mailerlite/lists/saved')
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(d => {
+          const lists: MLList[] = d.lists ?? []
+          setMlLists(lists)
+          if (lists.length > 0) setActiveListId(lists[0].id)
+        })
         .catch(() => {}),
     ]).finally(() => setLoading(false))
 
@@ -431,6 +445,80 @@ export default function MailerLitePage() {
               email_list_size: ml.listSize,
             }}
           />
+
+          {/* ── Multi-list: combined totals + tab strip ─────────────────── */}
+          {mlLists.length >= 2 && (
+            <div className="mb-4">
+              {/* Combined totals */}
+              <div className="rounded-xl px-5 py-3 mb-3 flex items-center gap-6"
+                style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: '#9CA3AF' }}>Total active (all lists)</div>
+                  <div className="text-[22px] font-semibold" style={{ color: '#1E2D3D' }}>
+                    {mlLists.reduce((s, l) => s + l.activeCount, 0).toLocaleString()}
+                  </div>
+                </div>
+                <div style={{ width: '0.5px', height: 32, background: 'rgba(30,45,61,0.1)' }} />
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: '#9CA3AF' }}>Total unsubscribed</div>
+                  <div className="text-[22px] font-semibold" style={{ color: '#F97B6B' }}>
+                    {mlLists.reduce((s, l) => s + l.unsubCount, 0).toLocaleString()}
+                  </div>
+                </div>
+                <div className="ml-auto text-[10px]" style={{ color: '#9CA3AF' }}>
+                  {mlLists.length} lists
+                </div>
+              </div>
+              {/* Tab strip */}
+              <div className="flex gap-1 flex-wrap">
+                {mlLists.map(list => (
+                  <button
+                    key={list.id}
+                    onClick={() => setActiveListId(list.id)}
+                    className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border-none cursor-pointer transition-all"
+                    style={{
+                      background: activeListId === list.id ? '#1E2D3D' : 'white',
+                      color: activeListId === list.id ? 'white' : '#6B7280',
+                      border: activeListId === list.id ? 'none' : '0.5px solid rgba(30,45,61,0.15)',
+                    }}
+                  >
+                    {list.name}
+                    <span className="ml-1.5 text-[10px] opacity-70">
+                      {list.activeCount.toLocaleString()}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {/* Active list detail card */}
+              {(() => {
+                const active = mlLists.find(l => l.id === activeListId)
+                if (!active) return null
+                const lastSync = active.lastSyncedAt
+                  ? new Date(active.lastSyncedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                  : 'Never synced'
+                return (
+                  <div className="mt-3 rounded-xl px-5 py-3 flex items-center gap-6"
+                    style={{ background: '#FFF8F0', border: '0.5px solid rgba(30,45,61,0.08)' }}>
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                      style={{ background: '#1E2D3D', color: 'white' }}>
+                      {active.name}
+                    </span>
+                    <div>
+                      <div className="text-[10px]" style={{ color: '#9CA3AF' }}>Active</div>
+                      <div className="text-[16px] font-semibold" style={{ color: '#1E2D3D' }}>{active.activeCount.toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px]" style={{ color: '#9CA3AF' }}>Unsubscribed</div>
+                      <div className="text-[16px] font-semibold" style={{ color: '#F97B6B' }}>{active.unsubCount.toLocaleString()}</div>
+                    </div>
+                    <div className="ml-auto text-[10px]" style={{ color: '#9CA3AF' }}>
+                      Synced: {lastSync}
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+          )}
 
           <div className="flex items-center gap-2 mb-2">
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"

@@ -11,7 +11,13 @@ import {
   User,
   SlidersHorizontal,
   Shield,
+  Trash2,
+  RefreshCw,
 } from 'lucide-react'
+
+// ── MailerLite list types ─────────────────────────────────────────────────────
+interface MLGroup { id: string; name: string; activeCount: number }
+interface MLList { id: string; mailerliteId: string; name: string; activeCount: number; unsubCount: number; lastSyncedAt: string | null }
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type TabId = 'my-books' | 'connections' | 'profile' | 'preferences' | 'privacy'
@@ -324,6 +330,260 @@ function WritingAssistantKeySection() {
               </button>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── MailerLite multi-list manager ────────────────────────────────────────────
+function MailerLiteListManager() {
+  const [lists,       setLists]       = useState<MLList[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [showAdd,     setShowAdd]     = useState(false)
+  const [groups,      setGroups]      = useState<MLGroup[]>([])
+  const [groupsLoading, setGroupsLoading] = useState(false)
+  const [groupsError,   setGroupsError]   = useState('')
+  const [selectedGroup, setSelectedGroup] = useState('')
+  const [labelInput,    setLabelInput]    = useState('')
+  const [saving,        setSaving]        = useState(false)
+  const [saveError,     setSaveError]     = useState('')
+  const [syncingId,     setSyncingId]     = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+
+  // Load saved lists from DB
+  useEffect(() => {
+    fetch('/api/mailerlite/lists/saved')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => setLists(d.lists ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function openAdd() {
+    setShowAdd(true)
+    setGroupsLoading(true)
+    setGroupsError('')
+    setSelectedGroup('')
+    setLabelInput('')
+    setSaveError('')
+    try {
+      const res = await fetch('/api/mailerlite/lists')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to load')
+      // Filter out already-connected groups
+      const connectedIds = new Set(lists.map(l => l.mailerliteId))
+      setGroups((data.groups ?? []).filter((g: MLGroup) => !connectedIds.has(g.id)))
+    } catch (e: unknown) {
+      setGroupsError((e as Error).message ?? 'Could not load your MailerLite lists. Check your API key.')
+    } finally {
+      setGroupsLoading(false)
+    }
+  }
+
+  async function handleSave() {
+    if (!selectedGroup || !labelInput.trim()) return
+    setSaving(true)
+    setSaveError('')
+    try {
+      const res = await fetch('/api/mailerlite/lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mailerliteId: selectedGroup, name: labelInput.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Save failed')
+      setLists(prev => [...prev, data.list])
+      setShowAdd(false)
+    } catch (e: unknown) {
+      setSaveError((e as Error).message ?? 'Could not save')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleSync(id: string) {
+    setSyncingId(id)
+    try {
+      const res = await fetch('/api/mailerlite/sync', { method: 'POST' })
+      const data = await res.json()
+      if (data.lists) {
+        setLists(prev => prev.map(l => {
+          const updated = data.lists.find((u: { id: string; activeCount: number; unsubCount: number }) => u.id === l.id)
+          return updated ? { ...l, activeCount: updated.activeCount, unsubCount: updated.unsubCount, lastSyncedAt: new Date().toISOString() } : l
+        }))
+      }
+    } catch {}
+    finally { setSyncingId(null) }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      await fetch(`/api/mailerlite/lists/${id}`, { method: 'DELETE' })
+      setLists(prev => prev.filter(l => l.id !== id))
+    } catch {}
+    finally { setConfirmDelete(null) }
+  }
+
+  function fmtSync(iso: string | null) {
+    if (!iso) return 'Never synced'
+    const d = new Date(iso)
+    const diffMin = Math.round((Date.now() - d.getTime()) / 60000)
+    if (diffMin < 2) return 'Just now'
+    if (diffMin < 60) return `${diffMin}m ago`
+    const diffH = Math.round(diffMin / 60)
+    if (diffH < 24) return `${diffH}h ago`
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
+  if (loading) {
+    return <div className="h-6 w-32 rounded animate-pulse" style={{ background: '#E5E7EB' }} />
+  }
+
+  return (
+    <div>
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#9CA3AF' }}>
+          Your MailerLite Lists
+        </span>
+        <button
+          onClick={openAdd}
+          className="text-[11px] font-semibold border-none bg-transparent cursor-pointer"
+          style={{ color: '#E9A020' }}
+        >
+          + Add list
+        </button>
+      </div>
+
+      {/* Add list panel */}
+      {showAdd && (
+        <div className="rounded-[8px] p-3 mb-3" style={{ background: '#FFF8F0', border: '0.5px solid rgba(233,160,32,0.35)' }}>
+          <div className="text-[11px] font-semibold mb-2" style={{ color: '#1E2D3D' }}>Connect a list</div>
+          {groupsLoading ? (
+            <div className="text-[11px]" style={{ color: '#9CA3AF' }}>Loading your lists…</div>
+          ) : groupsError ? (
+            <div className="text-[11px]" style={{ color: '#F97B6B' }}>{groupsError}</div>
+          ) : groups.length === 0 ? (
+            <div className="text-[11px]" style={{ color: '#9CA3AF' }}>No unconnected lists found in your MailerLite account.</div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div>
+                <div className="text-[10px] font-medium mb-1" style={{ color: '#6B7280' }}>Select list</div>
+                <select
+                  value={selectedGroup}
+                  onChange={e => setSelectedGroup(e.target.value)}
+                  className="w-full text-[11px] px-2.5 py-2 rounded-md outline-none"
+                  style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: 'white', color: '#1E2D3D' }}
+                >
+                  <option value="">— choose —</option>
+                  {groups.map(g => (
+                    <option key={g.id} value={g.id}>
+                      {g.name} ({g.activeCount.toLocaleString()} active)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div className="text-[10px] font-medium mb-1" style={{ color: '#6B7280' }}>Label</div>
+                <input
+                  type="text"
+                  value={labelInput}
+                  onChange={e => setLabelInput(e.target.value)}
+                  placeholder="e.g. Romance, Cozy Mystery"
+                  className="w-full text-[11px] px-2.5 py-2 rounded-md outline-none"
+                  style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: 'white', color: '#1E2D3D' }}
+                />
+              </div>
+              {saveError && <div className="text-[11px]" style={{ color: '#F97B6B' }}>{saveError}</div>}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSave}
+                  disabled={!selectedGroup || !labelInput.trim() || saving}
+                  className="text-[10px] font-semibold px-3 py-1.5 rounded-[5px] border-none cursor-pointer disabled:opacity-40"
+                  style={{ background: '#E9A020', color: '#1E2D3D' }}
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+                <button
+                  onClick={() => setShowAdd(false)}
+                  className="text-[10px] border-none bg-transparent cursor-pointer"
+                  style={{ color: '#9CA3AF' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* List cards */}
+      {lists.length === 0 ? (
+        <div className="text-center py-6" style={{ color: '#9CA3AF' }}>
+          <div className="text-[11px] mb-1">No lists connected yet</div>
+          <button onClick={openAdd} className="text-[11px] font-semibold border-none bg-transparent cursor-pointer" style={{ color: '#E9A020' }}>
+            + Add your first list
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {lists.map(list => (
+            <div key={list.id} className="rounded-[8px] px-3 py-2.5 flex items-center gap-3"
+              style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)', borderRadius: 8 }}>
+              {/* Genre pill */}
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0"
+                style={{ background: '#1E2D3D', color: 'white' }}>
+                {list.name}
+              </span>
+              {/* Stats */}
+              <div className="flex-1 min-w-0 flex items-center gap-3 flex-wrap">
+                <span className="text-[11px]" style={{ color: '#1E2D3D' }}>
+                  <span className="font-semibold">{list.activeCount.toLocaleString()}</span>
+                  <span style={{ color: '#9CA3AF' }}> active</span>
+                </span>
+                <span className="text-[11px]" style={{ color: '#9CA3AF' }}>
+                  {list.unsubCount.toLocaleString()} unsub
+                </span>
+                <span className="text-[10px]" style={{ color: '#9CA3AF' }}>
+                  {fmtSync(list.lastSyncedAt)}
+                </span>
+              </div>
+              {/* Actions */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => handleSync(list.id)}
+                  disabled={syncingId === list.id}
+                  title="Sync now"
+                  className="text-[10px] font-semibold px-2 py-1 rounded-[4px] flex items-center gap-1 disabled:opacity-50"
+                  style={{ border: '0.5px solid rgba(30,45,61,0.2)', background: 'transparent', color: '#6B7280', cursor: 'pointer' }}
+                >
+                  <RefreshCw size={10} className={syncingId === list.id ? 'animate-spin' : ''} />
+                  {syncingId === list.id ? 'Syncing' : 'Sync'}
+                </button>
+                {confirmDelete === list.id ? (
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px]" style={{ color: '#F97B6B' }}>Remove?</span>
+                    <button onClick={() => handleDelete(list.id)}
+                      className="text-[10px] font-semibold border-none bg-transparent cursor-pointer"
+                      style={{ color: '#F97B6B' }}>Yes</button>
+                    <button onClick={() => setConfirmDelete(null)}
+                      className="text-[10px] border-none bg-transparent cursor-pointer"
+                      style={{ color: '#9CA3AF' }}>No</button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDelete(list.id)}
+                    title="Remove list"
+                    className="flex items-center justify-center border-none bg-transparent cursor-pointer p-1 rounded"
+                    style={{ color: '#F97B6B' }}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -699,6 +959,7 @@ export default function SettingsPage() {
                 <StatusPill active={hasSavedML} label={hasSavedML ? '● Active' : 'Not connected'} />
               }
             >
+              {/* API key row */}
               {hasSavedML && !showMLKey ? (
                 <div className="flex items-center justify-between">
                   <span className="text-[11px]" style={{ color: '#9CA3AF' }}>Key saved</span>
@@ -736,6 +997,12 @@ export default function SettingsPage() {
                     </div>
                   )}
                 </>
+              )}
+              {/* Multi-list manager — only shown when key is connected */}
+              {hasSavedML && (
+                <div style={{ borderTop: '0.5px solid rgba(30,45,61,0.06)', paddingTop: 10, marginTop: 4 }}>
+                  <MailerLiteListManager />
+                </div>
               )}
             </IntegCard>
 

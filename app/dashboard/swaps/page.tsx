@@ -32,9 +32,12 @@ interface SwapEntry {
   overSwapFlag: boolean
   qualityRating: string | null
   notes: string | null
+  mailerLiteListId: string | null
   createdAt: string
   updatedAt: string
 }
+
+interface MLListOption { id: string; mailerliteId: string; name: string; activeCount: number }
 
 interface SwapPolicy {
   id: string
@@ -603,26 +606,27 @@ function UpcomingSwaps({
 // ─── Add Promo Modal ──────────────────────────────────────────────────────────
 
 const EMPTY_FORM = {
-  promoType:       'swap',
-  role:            'inbound',
-  platform:        'bookclicker',
-  partnerName:     '',
-  partnerListName: '',
-  partnerListSize: '',
-  partnerLink:     '',
-  myBook:          '',
-  myList:          '',
-  theirBook:       '',
-  swapType:        'solo',
-  promoDate:       '',
-  confirmation:    'applied',
-  paymentType:     'swap',
-  cost:            '',
-  subsGained:      '',
-  firstSwap:       false,
-  qualityRating:   '',
-  notes:           '',
-  impressions:     '',
+  promoType:        'swap',
+  role:             'inbound',
+  platform:         'bookclicker',
+  partnerName:      '',
+  partnerListName:  '',
+  partnerListSize:  '',
+  partnerLink:      '',
+  myBook:           '',
+  myList:           '',
+  theirBook:        '',
+  swapType:         'solo',
+  promoDate:        '',
+  confirmation:     'applied',
+  paymentType:      'swap',
+  cost:             '',
+  subsGained:       '',
+  firstSwap:        false,
+  qualityRating:    '',
+  notes:            '',
+  impressions:      '',
+  mailerLiteListId: '',
 }
 
 function PromoModal({
@@ -634,12 +638,39 @@ function PromoModal({
   onClose: () => void
   onCreated: (entry: SwapEntry) => void
 }) {
-  const [form,   setForm]   = useState({ ...EMPTY_FORM, myList: lists[0]?.name ?? '' })
-  const [saving, setSaving] = useState(false)
-  const [error,  setError]  = useState('')
+  const [form,    setForm]    = useState({ ...EMPTY_FORM, myList: lists[0]?.name ?? '' })
+  const [saving,  setSaving]  = useState(false)
+  const [error,   setError]   = useState('')
+  const [mlLists, setMlLists] = useState<MLListOption[]>([])
+
+  // Load MailerLite lists on mount
+  useEffect(() => {
+    fetch('/api/mailerlite/lists/saved')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        const ls: MLListOption[] = d.lists ?? []
+        setMlLists(ls)
+        // Auto-select silently if only one list
+        if (ls.length === 1) {
+          setForm(prev => ({ ...prev, mailerLiteListId: ls[0].id }))
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const f = (field: string, value: string | boolean) =>
     setForm(prev => ({ ...prev, [field]: value }))
+
+  // When a ML list is selected, use its activeCount as outgoing reach for paid promos
+  function handleMLListChange(listId: string) {
+    f('mailerLiteListId', listId)
+    if (listId && form.promoType !== 'swap') {
+      const selected = mlLists.find(l => l.id === listId)
+      if (selected && !form.impressions) {
+        f('impressions', String(selected.activeCount))
+      }
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -650,10 +681,11 @@ function PromoModal({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...form,
-        partnerListSize: form.partnerListSize ? Number(form.partnerListSize) : null,
-        cost:            form.cost            ? Number(form.cost)            : 0,
-        subsGained:      form.subsGained      ? Number(form.subsGained)      : null,
-        impressions:     form.impressions     ? Number(form.impressions)     : null,
+        partnerListSize:  form.partnerListSize  ? Number(form.partnerListSize)  : null,
+        cost:             form.cost             ? Number(form.cost)             : 0,
+        subsGained:       form.subsGained       ? Number(form.subsGained)       : null,
+        impressions:      form.impressions      ? Number(form.impressions)      : null,
+        mailerLiteListId: form.mailerLiteListId || null,
       }),
     })
     const data = await res.json()
@@ -804,6 +836,21 @@ function PromoModal({
                 {lists.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
               </select>
             </div>
+            {/* MailerLite list picker — only shown if user has 2+ lists */}
+            {mlLists.length >= 2 && (
+              <div>
+                <label className="block text-xs font-medium mb-1" style={lblSty}>Which list are you promoting from?</label>
+                <select value={form.mailerLiteListId} onChange={e => handleMLListChange(e.target.value)}
+                  className={inputCls} style={inputSty}>
+                  <option value="">— select list —</option>
+                  {mlLists.map(l => (
+                    <option key={l.id} value={l.id}>
+                      {l.name} ({l.activeCount.toLocaleString()} active)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium mb-1" style={lblSty}>Promo date</label>
               <input type="date" value={form.promoDate} onChange={e => f('promoDate', e.target.value)}

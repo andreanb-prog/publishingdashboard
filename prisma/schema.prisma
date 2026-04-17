@@ -35,6 +35,22 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model MailerLiteList {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mailerliteId  String
+  name          String
+  activeCount   Int       @default(0)
+  unsubCount    Int       @default(0)
+  lastSyncedAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, mailerliteId])
+  @@index([userId])
+}
+
 model User {
   id            String         @id @default(cuid())
   name          String?
@@ -93,6 +109,7 @@ model User {
   writingNotebookChats    WritingNotebookChat[]
   chapterAudits           ChapterAudit[]
   tasks                   Task[]
+  mailerLiteLists         MailerLiteList[]
   createdAt     DateTime       @default(now())
 }
 
@@ -488,6 +505,9 @@ model SwapEntry {
   firstSwap       Boolean   @default(false)
   overSwapFlag    Boolean   @default(false)
   qualityRating   String?   // "a" | "b" | "c" | "d"
+
+  // MailerLite list this promo promoted from
+  mailerLiteListId String?
 
   // Meta
   notes           String?
