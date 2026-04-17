@@ -179,8 +179,8 @@ export function TopBar({ user }: TopBarProps) {
             )}
           </div>
 
-          {/* Story Mode toggle */}
-          <button
+          {/* Story Mode toggle — HIDDEN */}
+          {/* <button
             onClick={toggleStoryMode}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all hover:bg-stone-50"
             style={{
@@ -192,7 +192,7 @@ export function TopBar({ user }: TopBarProps) {
             title={storyMode ? 'Story Mode on — click to hide copy' : 'Story Mode off — click to show copy'}
           >
             📖 Story Mode
-          </button>
+          </button> */}
 
           {/* Connection status */}
           <ConnectionStatus />

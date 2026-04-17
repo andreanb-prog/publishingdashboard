@@ -40,8 +40,8 @@ const TOOL_ITEMS: NavItem[] = [
 ]
 
 const ADMIN_TOOL_ITEMS: NavItem[] = [
-  { label: 'Daily ROAS Log',     href: '/dashboard/roas',          Icon: DollarSign     },
-  { label: 'List Building ROAS', href: '/dashboard/list-building', Icon: Users          },
+  // { label: 'Daily ROAS Log',     href: '/dashboard/roas',          Icon: DollarSign     },
+  // { label: 'List Building ROAS', href: '/dashboard/list-building', Icon: Users          },
 ]
 
 const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
