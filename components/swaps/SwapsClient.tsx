@@ -27,38 +27,6 @@ interface MLListOption {
   activeCount: number
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function formatK(n: number): string {
-  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
-  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
-  return String(n)
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(/\s+/)
-    .map(w => w[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase()
-}
-
-function formatDateLabel(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
-const AVATAR_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA', '#F472B6']
-
-function avatarColor(name: string): string {
-  const hash = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length]
-}
-
 // ─── Metric Card ────────────────────────────────────────────────────────────
 
 function MetricCard({ label, value, badge }: { label: string; value: string | number; badge?: string }) {
@@ -304,21 +272,9 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
   // ─── Upcoming swaps (string comparison) ───────────────────────────────
   const upcoming = todayStr
     ? swaps
-        .filter(s => s.promoDate.split('T')[0] >= todayStr && s.status !== 'complete')
+        .filter(s => s.promoDate.split('T')[0] >= todayStr)
         .sort((a, b) => a.promoDate.localeCompare(b.promoDate))
     : []
-
-  // Group upcoming by date
-  const grouped: Array<[string, SwapRecord[]]> = []
-  for (const s of upcoming) {
-    const dateKey = s.promoDate.split('T')[0]
-    const last = grouped[grouped.length - 1]
-    if (last && last[0] === dateKey) {
-      last[1].push(s)
-    } else {
-      grouped.push([dateKey, [s]])
-    }
-  }
 
   // ─── Handlers ─────────────────────────────────────────────────────────
   async function handleMarkComplete(id: string) {
@@ -390,99 +346,103 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
 
       {/* Upcoming swaps */}
       {swaps.length > 0 && (
-        <>
-          {/* Upcoming Swaps List */}
-          <div className="rounded-xl p-5" style={{ background: 'white', border: '0.5px solid #E5E7EB' }}>
-            <h3 className="text-sm font-semibold mb-4" style={{ color: '#1E2D3D' }}>Your Upcoming Swaps</h3>
+        <div style={{ marginTop: 8 }}>
+          <p style={{ fontSize: 15, fontWeight: 600, color: '#1E2D3D', marginBottom: '1rem' }}>Your Upcoming Swaps</p>
 
-            {grouped.length === 0 ? (
-              <p className="text-sm py-6 text-center" style={{ color: '#9CA3AF' }}>No upcoming swaps scheduled.</p>
-            ) : (
-              <div className="space-y-5">
-                {grouped.map(([dateKey, entries]) => (
-                  <div key={dateKey}>
-                    <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#9CA3AF' }}>
-                      {formatDateLabel(dateKey + 'T12:00:00Z')}
-                    </p>
-                    <div className="space-y-2">
-                      {entries.map(s => {
-                        const isYouPromote = s.direction === 'you_promote'
-                        const dotColor = isYouPromote ? '#F97B6B' : '#E9A020'
+          {upcoming.length === 0 ? (
+            <p style={{ fontSize: 13, color: '#9ca3af' }}>No upcoming swaps — all caught up!</p>
+          ) : (
+            <div style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)', borderRadius: 12, padding: '0.75rem 1.25rem' }}>
+              {upcoming.map((s, i) => {
+                const isYou = s.direction === 'you_promote'
+                const initials = s.partnerName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+                const dateLabel = new Date(s.promoDate.split('T')[0] + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
-                        return (
-                          <div
-                            key={s.id}
-                            className="flex items-center gap-3 py-2.5 px-3 rounded-lg"
-                            style={{ background: '#FAFAFA' }}
-                          >
-                            {/* Status dot */}
-                            <div
-                              className="flex-shrink-0 rounded-full"
-                              style={{ width: 8, height: 8, background: dotColor }}
-                            />
+                return (
+                  <div
+                    key={s.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '10px 0',
+                      borderBottom: i < upcoming.length - 1 ? '0.5px solid rgba(30,45,61,0.07)' : 'none',
+                    }}
+                  >
+                    {/* Colored dot */}
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: isYou ? '#D85A30' : '#EF9F27', flexShrink: 0 }} />
 
-                            {/* Avatar */}
-                            <div
-                              className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold"
-                              style={{ background: avatarColor(s.partnerName), color: 'white' }}
-                            >
-                              {getInitials(s.partnerName)}
-                            </div>
-
-                            {/* Info */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[13px] font-medium truncate" style={{ color: '#1E2D3D' }}>
-                                  {s.partnerName}
-                                </span>
-                                {isYouPromote ? (
-                                  <span
-                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                                    style={{ background: '#FAECE7', color: '#993C1D' }}
-                                  >
-                                    ↑ You Promote
-                                  </span>
-                                ) : (
-                                  <span
-                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                                    style={{ background: '#FAEEDA', color: '#854F0B' }}
-                                  >
-                                    ↓ They Promote
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-xs mt-0.5 truncate" style={{ color: '#9CA3AF' }}>
-                                {isYouPromote
-                                  ? `${s.bookTitle}${s.promoFormat ? ` · ${s.promoFormat}` : ''}`
-                                  : `${s.bookTitle} · awaiting promotion`}
-                              </p>
-                            </div>
-
-                            {/* Mark complete */}
-                            {isYouPromote && s.status !== 'complete' && (
-                              <button
-                                onClick={() => handleMarkComplete(s.id)}
-                                className="flex-shrink-0 text-[11px] font-semibold px-3 py-1.5 rounded-lg"
-                                style={{
-                                  background: 'rgba(110,191,139,0.15)',
-                                  color: '#6EBF8B',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                Mark complete
-                              </button>
-                            )}
-                          </div>
-                        )
-                      })}
+                    {/* Initials avatar */}
+                    <div
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        flexShrink: 0,
+                        background: isYou ? '#E1F5EE' : '#E6F1FB',
+                        color: isYou ? '#0F6E56' : '#185FA5',
+                      }}
+                    >
+                      {initials}
                     </div>
+
+                    {/* Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: '#1E2D3D' }}>{s.partnerName}</span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 500,
+                            padding: '3px 9px',
+                            borderRadius: 20,
+                            background: isYou ? '#FAECE7' : '#FAEEDA',
+                            color: isYou ? '#993C1D' : '#854F0B',
+                            marginLeft: 'auto',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {isYou ? '↑ You Promote' : '↓ They Promote'}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: 12, color: '#9ca3af', margin: '2px 0 0' }}>
+                        {isYou
+                          ? s.bookTitle + (s.promoFormat ? ' · ' + s.promoFormat : '')
+                          : s.bookTitle + ' · awaiting promotion'}
+                      </p>
+                      <p style={{ fontSize: 11, color: '#9ca3af', margin: '1px 0 0' }}>{dateLabel}</p>
+                    </div>
+
+                    {/* Mark complete */}
+                    {isYou && s.status !== 'complete' && (
+                      <button
+                        onClick={() => handleMarkComplete(s.id)}
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          padding: '3px 9px',
+                          borderRadius: 20,
+                          background: 'rgba(110,191,139,0.15)',
+                          color: '#6EBF8B',
+                          border: 'none',
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                        }}
+                      >
+                        Mark complete
+                      </button>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
+                )
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Modal */}
