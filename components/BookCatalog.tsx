@@ -330,6 +330,12 @@ function BookModal({
   const [manuscriptError, setManuscriptError] = useState('')
   const [manuscriptDragging, setManuscriptDragging] = useState(false)
 
+  // ASIN input mode state
+  const [asinMode, setAsinMode] = useState<'link' | 'manual'>(editing?.asin ? 'manual' : 'link')
+  const [amazonUrl, setAmazonUrl] = useState('')
+  const [asinStatus, setAsinStatus] = useState<'idle' | 'found' | 'not-found'>('idle')
+  const [howToFindOpen, setHowToFindOpen] = useState(false)
+
   async function handleManuscriptUpload(file: File) {
     if (!editing) return
     setManuscriptState('uploading')
@@ -346,6 +352,19 @@ function BookModal({
       setManuscriptState('error')
       setManuscriptError(e instanceof Error ? e.message : 'Upload failed')
     }
+  }
+
+  function extractAsinFromUrl(url: string): string | null {
+    const m = url.match(/(?:dp|gp\/product|ASIN)\/([A-Z0-9]{10})/i)
+    return m ? m[1].toUpperCase() : null
+  }
+
+  function handleAmazonUrlChange(url: string) {
+    setAmazonUrl(url)
+    if (!url.trim()) { setAsinStatus('idle'); return }
+    const found = extractAsinFromUrl(url)
+    if (found) { set('asin', found); setAsinStatus('found') }
+    else { setAsinStatus('not-found') }
   }
 
   // When ASIN is entered, auto-switch to amazon tab if currently on url/upload
@@ -383,6 +402,7 @@ function BookModal({
   })()
 
   const titleValid = form.title.trim().length > 0
+  const asinValid = !form.asin || /^[A-Z0-9]{10}$/.test(form.asin)
 
   // Close on Escape
   useEffect(() => {
@@ -438,26 +458,98 @@ function BookModal({
               <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1.5">
                 ASIN
               </label>
-              <input
-                type="text"
-                value={form.asin}
-                onChange={e => set('asin', e.target.value)}
-                placeholder="e.g. B0GSC2RTF8"
-                className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
-              />
-              {form.asin && (
-                <a
-                  href={`https://www.amazon.com/dp/${form.asin.trim()}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block mt-1 text-[11px] font-semibold no-underline hover:underline"
-                  style={{ color: '#E9A020' }}
-                >
-                  Find your ASIN →
-                </a>
+
+              {/* Pill toggle */}
+              <div className="flex gap-1.5 mb-2">
+                {(['link', 'manual'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => { setAsinMode(mode); setAsinStatus('idle') }}
+                    className="text-[10px] font-semibold px-2.5 py-1 rounded-full border-none cursor-pointer transition-all"
+                    style={{
+                      background: asinMode === mode ? '#1E2D3D' : 'transparent',
+                      color: asinMode === mode ? 'white' : '#1E2D3D',
+                      border: asinMode === mode ? 'none' : '1px solid rgba(30,45,61,0.3)',
+                    }}
+                  >
+                    {mode === 'link' ? 'Paste Amazon link' : 'Enter ASIN manually'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Link mode */}
+              {asinMode === 'link' && (
+                <>
+                  <input
+                    type="text"
+                    value={amazonUrl}
+                    onChange={e => handleAmazonUrlChange(e.target.value)}
+                    onBlur={e => handleAmazonUrlChange(e.target.value)}
+                    placeholder="https://amazon.com/dp/B0GSC2RTF8..."
+                    className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                  />
+                  {asinStatus === 'idle' && (
+                    <span className="block mt-1 text-[11px] text-stone-400">
+                      Paste your book&apos;s Amazon URL — we&apos;ll pull the ASIN automatically
+                    </span>
+                  )}
+                  {asinStatus === 'found' && (
+                    <span className="block mt-1 text-[11px]" style={{ color: '#6EBF8B' }}>
+                      ✓ ASIN found: {form.asin}
+                    </span>
+                  )}
+                  {asinStatus === 'not-found' && (
+                    <span className="block mt-1 text-[11px]" style={{ color: '#F97B6B' }}>
+                      Couldn&apos;t find an ASIN in that link — try the manual option
+                    </span>
+                  )}
+                </>
               )}
-              {!form.asin && (
-                <span className="block mt-1 text-[11px] text-stone-400">No ASIN yet? That&apos;s ok — you can add it later once your book is published.</span>
+
+              {/* Manual mode */}
+              {asinMode === 'manual' && (
+                <>
+                  <input
+                    type="text"
+                    value={form.asin}
+                    onChange={e => set('asin', e.target.value.toUpperCase())}
+                    placeholder="e.g. B0GSC2RTF8"
+                    className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                  />
+                  {form.asin && !/^[A-Z0-9]{10}$/.test(form.asin) && (
+                    <span className="block mt-1 text-[11px]" style={{ color: '#F97B6B' }}>
+                      ASINs are 10 characters — letters and numbers only
+                    </span>
+                  )}
+                  {(!form.asin || /^[A-Z0-9]{10}$/.test(form.asin)) && (
+                    <span className="block mt-1 text-[11px] text-stone-400">
+                      10-character code from your Amazon book page URL
+                    </span>
+                  )}
+                  <div className="mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setHowToFindOpen(p => !p)}
+                      className="text-[11px] border-none bg-transparent cursor-pointer p-0"
+                      style={{ color: '#E9A020' }}
+                    >
+                      How do I find this? →
+                    </button>
+                    {howToFindOpen && (
+                      <p className="mt-1 text-[11px] text-stone-400 leading-relaxed">
+                        Go to your book on Amazon → look at the URL → copy the 10-character code starting with B
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Shared ASIN validation (shows when link mode found a bad ASIN — edge case) */}
+              {asinMode === 'link' && form.asin && !/^[A-Z0-9]{10}$/.test(form.asin) && (
+                <span className="block mt-1 text-[11px]" style={{ color: '#F97B6B' }}>
+                  ASINs are 10 characters — letters and numbers only
+                </span>
               )}
             </div>
             <div>
@@ -729,7 +821,7 @@ function BookModal({
                 const err = await onSave(form)
                 if (err) setSaveError(err)
               }}
-              disabled={!titleValid || isSaving}
+              disabled={!titleValid || !asinValid || isSaving}
               className="px-5 py-2 rounded-lg text-[12.5px] font-semibold border-none cursor-pointer transition-all disabled:opacity-40"
               style={{ background: '#E9A020', color: '#1E2D3D' }}
             >
