@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
 
 interface MLListOption { id: string; name: string; activeCount: number }
@@ -887,7 +886,6 @@ export function SwapsPage({
 }: {
   initialSwaps: SwapRecord[]
 }) {
-  const router = useRouter()
   const [today, setToday] = useState<Date | null>(null)
   const [swaps, setSwaps] = useState<SwapRecord[]>(initialSwaps)
   const [showModal, setShowModal] = useState(false)
