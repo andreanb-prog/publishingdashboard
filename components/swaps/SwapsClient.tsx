@@ -257,6 +257,7 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
   const [swaps, setSwaps] = useState<SwapRecord[]>(initialSwaps)
   const [showModal, setShowModal] = useState(false)
   const [todayStr, setTodayStr] = useState('')
+  const [calMonthOffset, setCalMonthOffset] = useState(0)
 
   useEffect(() => {
     setTodayStr(new Date().toISOString().split('T')[0])
@@ -343,6 +344,137 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
       {swaps.length === 0 && !showModal && (
         <EmptyState onOpenModal={() => setShowModal(true)} />
       )}
+
+      {/* Swap Calendar Heatmap */}
+      {swaps.length > 0 && (() => {
+        const now = new Date()
+        const calDate = new Date(now.getFullYear(), now.getMonth() + calMonthOffset, 1)
+        const year = calDate.getFullYear()
+        const month = calDate.getMonth()
+        const daysInMonth = new Date(year, month + 1, 0).getDate()
+        const firstDayOfWeek = new Date(year, month, 1).getDay()
+        const realTodayStr = now.toISOString().split('T')[0]
+        const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`
+        const monthLabel = calDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+        const swapsByDay: Record<string, number> = {}
+        const booksByDay: Record<string, string[]> = {}
+        swaps.forEach(s => {
+          const day = s.promoDate.split('T')[0]
+          if (day.startsWith(monthStr)) {
+            swapsByDay[day] = (swapsByDay[day] || 0) + 1
+            if (!booksByDay[day]) booksByDay[day] = []
+            if (!booksByDay[day].includes(s.bookTitle)) booksByDay[day].push(s.bookTitle)
+          }
+        })
+
+        function densityColor(count: number): string {
+          if (count === 0) return 'var(--color-bg-empty, #f3f4f6)'
+          if (count <= 2) return '#C0DD97'
+          if (count <= 5) return '#97C459'
+          if (count <= 9) return '#EF9F27'
+          if (count <= 14) return '#E8692A'
+          return '#C23B1E'
+        }
+        function densityText(count: number): string {
+          if (count === 0) return '#9ca3af'
+          if (count <= 5) return '#27500A'
+          return '#ffffff'
+        }
+
+        const dotColors = ['#F97B6B', '#F4A261', '#8B5CF6']
+        const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+        return (
+          <div style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)', borderRadius: 12, padding: '1.25rem', marginBottom: '1rem' }}>
+            {/* Title + nav */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <button
+                onClick={() => setCalMonthOffset(p => p - 1)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#6B7280', padding: '2px 8px' }}
+              >
+                &lsaquo;
+              </button>
+              <p style={{ fontSize: 14, fontWeight: 600, color: '#1E2D3D', margin: 0 }}>Swap Calendar &mdash; {monthLabel}</p>
+              <button
+                onClick={() => setCalMonthOffset(p => p + 1)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#6B7280', padding: '2px 8px' }}
+              >
+                &rsaquo;
+              </button>
+            </div>
+
+            {/* Day labels */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, paddingBottom: 4 }}>
+              {dayLabels.map(d => (
+                <div key={d} style={{ fontSize: 10, color: '#9ca3af', textAlign: 'center' }}>{d}</div>
+              ))}
+            </div>
+
+            {/* Calendar grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+              {/* Empty cells before day 1 */}
+              {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                <div key={`e-${i}`} style={{ aspectRatio: '1', background: 'transparent' }} />
+              ))}
+              {/* Day cells */}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const dayNum = i + 1
+                const dayStr = `${monthStr}-${String(dayNum).padStart(2, '0')}`
+                const count = swapsByDay[dayStr] || 0
+                const isToday = dayStr === realTodayStr
+                const books = booksByDay[dayStr] || []
+                return (
+                  <div
+                    key={dayStr}
+                    style={{
+                      aspectRatio: '1',
+                      borderRadius: 6,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'default',
+                      background: densityColor(count),
+                      outline: isToday ? '2px solid #1E2D3D' : 'none',
+                      outlineOffset: isToday ? 1 : 0,
+                    }}
+                  >
+                    <span style={{ fontSize: 10, color: densityText(count), lineHeight: 1 }}>{dayNum}</span>
+                    {count > 0 && (
+                      <span style={{ fontSize: 9, color: densityText(count), lineHeight: 1, marginTop: 1 }}>{count}</span>
+                    )}
+                    {books.length > 0 && (
+                      <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
+                        {books.slice(0, 3).map((_, bi) => (
+                          <div key={bi} style={{ width: 4, height: 4, borderRadius: '50%', background: dotColors[bi % dotColors.length] }} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Legend */}
+            <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              {[
+                { color: '#f3f4f6', label: 'No swaps' },
+                { color: '#C0DD97', label: '1-2' },
+                { color: '#97C459', label: '3-5' },
+                { color: '#EF9F27', label: '6-9' },
+                { color: '#E8692A', label: '10-14' },
+                { color: '#C23B1E', label: '15+' },
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: item.color }} />
+                  <span style={{ fontSize: 11, color: '#6B7280' }}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Upcoming swaps */}
       {swaps.length > 0 && (
