@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
       direction:       body.direction,
       source:          body.source ?? null,
       launchWindow:    body.launchWindow ?? null,
+      mailerLiteListId: body.mailerLiteListId ?? null,
     },
   })
 
