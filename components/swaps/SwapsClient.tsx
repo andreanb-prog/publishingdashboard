@@ -297,8 +297,9 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
   // ─── Plain calculations (no useMemo) ──────────────────────────────────
   const totalBooked = swaps.length
   const estReach = swaps.reduce((sum, s) => sum + (s.partnerListSize || 0), 0)
-  const youPromotePending = swaps.filter(s => s.direction === 'you_promote' && s.status !== 'complete').length
-  const theyPromotePending = swaps.filter(s => s.direction === 'they_promote' && s.status !== 'complete').length
+  const pendingSend = swaps.filter(s => s.direction === 'you_promote' && s.status !== 'complete').length
+  const pendingReceive = swaps.filter(s => s.direction === 'they_promote' && s.status !== 'complete').length
+  const fmtReach = (n: number) => n >= 1000 ? `${(n/1000).toFixed(1)}K` : String(n)
 
   // ─── Upcoming swaps (string comparison) ───────────────────────────────
   const upcoming = todayStr
@@ -359,22 +360,37 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
         </button>
       </div>
 
+      {/* Metrics Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+        <div style={{ background: '#f9fafb', borderRadius: 10, padding: '14px 16px' }}>
+          <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>Total booked</p>
+          <p style={{ fontSize: 22, fontWeight: 500, color: '#1E2D3D', margin: '4px 0 0' }}>{totalBooked}</p>
+        </div>
+        <div style={{ background: '#f9fafb', borderRadius: 10, padding: '14px 16px' }}>
+          <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>Est. total reach</p>
+          <p style={{ fontSize: 22, fontWeight: 500, color: '#1E2D3D', margin: '4px 0 0' }}>{fmtReach(estReach)}</p>
+          <p style={{ fontSize: 11, color: '#9ca3af', margin: '2px 0 0' }}>&#9888; estimated</p>
+        </div>
+        <div style={{ background: '#f9fafb', borderRadius: 10, padding: '14px 16px' }}>
+          <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>Your promos to send</p>
+          <p style={{ fontSize: 22, fontWeight: 500, color: pendingSend > 0 ? '#D85A30' : '#1E2D3D', margin: '4px 0 0' }}>{pendingSend}</p>
+          <p style={{ fontSize: 11, color: '#9ca3af', margin: '2px 0 0' }}>pending</p>
+        </div>
+        <div style={{ background: '#f9fafb', borderRadius: 10, padding: '14px 16px' }}>
+          <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>Partner promos incoming</p>
+          <p style={{ fontSize: 22, fontWeight: 500, color: pendingReceive > 0 ? '#EF9F27' : '#1E2D3D', margin: '4px 0 0' }}>{pendingReceive}</p>
+          <p style={{ fontSize: 11, color: '#9ca3af', margin: '2px 0 0' }}>pending</p>
+        </div>
+      </div>
+
       {/* Empty state */}
       {swaps.length === 0 && !showModal && (
         <EmptyState onOpenModal={() => setShowModal(true)} />
       )}
 
-      {/* Metrics + upcoming */}
+      {/* Upcoming swaps */}
       {swaps.length > 0 && (
         <>
-          {/* Metric Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <MetricCard label="Total booked" value={totalBooked} />
-            <MetricCard label="Est. total reach" value={formatK(estReach)} badge="⚠ estimated" />
-            <MetricCard label="Your promos to send" value={youPromotePending} badge="pending" />
-            <MetricCard label="Partner promos incoming" value={theyPromotePending} badge="pending" />
-          </div>
-
           {/* Upcoming Swaps List */}
           <div className="rounded-xl p-5" style={{ background: 'white', border: '0.5px solid #E5E7EB' }}>
             <h3 className="text-sm font-semibold mb-4" style={{ color: '#1E2D3D' }}>Your Upcoming Swaps</h3>
