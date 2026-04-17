@@ -25,6 +25,7 @@ type MobileTab = 'notebook' | 'chapters' | 'chat'
 export default function WritingNotebookPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  useEffect(() => { router.replace('/dashboard') }, [router])
   const { books } = useBooks()
 
   // ── Shared ─────────────────────────────────────────────────────────
