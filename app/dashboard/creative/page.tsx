@@ -10,6 +10,7 @@ export const metadata = { title: 'Creative Hub — AuthorDash' }
 export default async function CreativePage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
+  redirect('/dashboard')
 
   const [books, creatives, campaigns] = await Promise.all([
     db.book.findMany({
