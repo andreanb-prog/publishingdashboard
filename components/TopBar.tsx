@@ -1,6 +1,6 @@
 'use client'
 // components/TopBar.tsx — three-zone header: greeting | date range (dashboard only) | check-in + status + upload
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { ConnectionStatus } from './ConnectionStatus'
 import { UploadModal } from './UploadModal'
@@ -61,7 +61,7 @@ export function TopBar({ user }: TopBarProps) {
   function handleApplyDateRange() {
     const range = { from: dateFrom, to: dateTo }
     try { localStorage.setItem('authordash_date_range', JSON.stringify(range)) } catch {}
-    window.dispatchEvent(new CustomEvent('date-range-change', { detail: range }))
+    try { window.dispatchEvent(new CustomEvent('date-range-change', { detail: range })) } catch {}
   }
 
   // Daily Check-In state
@@ -111,7 +111,7 @@ export function TopBar({ user }: TopBarProps) {
     setStoryMode(prev => {
       const next = !prev
       try { localStorage.setItem('story-mode', String(next)) } catch {}
-      window.dispatchEvent(new CustomEvent('story-mode-change', { detail: { on: next } }))
+      try { window.dispatchEvent(new CustomEvent('story-mode-change', { detail: { on: next } })) } catch {}
       return next
     })
   }
@@ -138,11 +138,13 @@ export function TopBar({ user }: TopBarProps) {
     }
   }, [])
 
-  function handleUploadSuccess() {
+  const handleUploadClose = useCallback(() => setUploadOpen(false), [])
+
+  const handleUploadSuccess = useCallback(() => {
     setUploadOpen(false)
     setShowToast(true)
     setTimeout(() => setShowToast(false), 4000)
-  }
+  }, [])
 
   // Direct-upload state for the header "Upload Files" button
   const uploadInputRef = useRef<HTMLInputElement>(null)
@@ -170,7 +172,7 @@ export function TopBar({ user }: TopBarProps) {
         const rows = json.rowCount ?? json.data?.books?.length ?? 0
         setUploadStatus('success')
         setUploadMessage(`✓ Uploaded — ${rows} row${rows !== 1 ? 's' : ''} imported`)
-        window.dispatchEvent(new CustomEvent('dashboard-data-refresh'))
+        try { window.dispatchEvent(new CustomEvent('dashboard-data-refresh')) } catch {}
         setTimeout(() => setUploadStatus('idle'), 5000)
       }
     } catch {
@@ -388,7 +390,7 @@ export function TopBar({ user }: TopBarProps) {
       {/* Upload modal — always rendered so input stays in DOM */}
       <UploadModal
         open={uploadOpen}
-        onClose={() => setUploadOpen(false)}
+        onClose={handleUploadClose}
         onSuccess={handleUploadSuccess}
       />
     </header>

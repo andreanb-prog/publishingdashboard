@@ -92,6 +92,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const rawFiles = useRef<Map<string, File>>(new Map())
+  const mountedRef = useRef(true)
 
   const [files, setFiles]             = useState<ParsedFile[]>([])
   const [dragging, setDragging]       = useState(false)
@@ -99,6 +100,11 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
   const [expandedDiag, setExpandedDiag] = useState<Set<string>>(new Set())
   const [error, setError]             = useState<string | null>(null)
   const [isTouch, setIsTouch]         = useState(false)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   useEffect(() => {
     setIsTouch(window.matchMedia('(pointer: coarse)').matches)
@@ -122,8 +128,8 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape' && !uploading) onClose()
     }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    try { document.addEventListener('keydown', onKey) } catch {}
+    return () => { try { document.removeEventListener('keydown', onKey) } catch {} }
   }, [open, uploading, onClose])
 
   // Lock body scroll when modal is open
@@ -147,9 +153,12 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
   }, [])
 
   async function processFile(file: File, id: string) {
+    if (!mountedRef.current) return
     setFiles(prev => [...prev, { id, filename: file.name, type: 'unknown', status: 'reading', data: null }])
-    const update = (patch: Partial<ParsedFile>) =>
+    const update = (patch: Partial<ParsedFile>) => {
+      if (!mountedRef.current) return
       setFiles(prev => prev.map(f => f.id !== id ? f : { ...f, ...patch }))
+    }
 
     const name = file.name.toLowerCase()
     const isExcel = name.endsWith('.xlsx') || name.endsWith('.xls')
@@ -317,7 +326,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
         throw new Error('No files could be read. Please remove and re-add your files, then try again.')
       }
 
-      window.dispatchEvent(new CustomEvent('dashboard-data-refresh'))
+      try { window.dispatchEvent(new CustomEvent('dashboard-data-refresh')) } catch {}
       onSuccess()
 
       const hasKdp  = files.some(f => f.type === 'kdp')
