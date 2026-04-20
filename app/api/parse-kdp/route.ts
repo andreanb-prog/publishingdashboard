@@ -7,14 +7,6 @@ import { parseKDPFile } from '@/lib/parsers/kdp'
 
 export const maxDuration = 60
 
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb',
-    },
-  },
-}
-
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
