@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
+import { logAdminAction } from '@/lib/adminAudit'
 
 // Default books to pre-populate when a user has none
 const DEFAULT_BOOKS = [
@@ -111,6 +112,14 @@ export async function POST(req: NextRequest) {
     const book = await db.book.create({ data: createData })
 
     console.log('[POST /api/books] created book id:', book.id, '| title:', book.title)
+
+    if (session.user.adminImpersonating && session.user.adminRealEmail) {
+      logAdminAction(session.user.adminRealEmail, session.user.adminImpersonating, 'book_added', {
+        asin: book.asin ?? null,
+        title: book.title,
+      })
+    }
+
     return NextResponse.json({ book })
   } catch (err) {
     console.error('[POST /api/books] Prisma error:', err)

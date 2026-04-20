@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import { parseKDPFile } from '@/lib/parsers/kdp'
+import { logAdminAction } from '@/lib/adminAudit'
 
 export const maxDuration = 60
 
@@ -55,6 +56,14 @@ export async function POST(req: NextRequest) {
     } catch (dbErr) {
       console.error('KDP upload: DB write failed:', dbErr)
       return NextResponse.json({ error: 'Upload failed to save. Please try again.' }, { status: 500 })
+    }
+
+    if (session.user.adminImpersonating && session.user.adminRealEmail) {
+      logAdminAction(session.user.adminRealEmail, session.user.adminImpersonating, 'upload', {
+        filename: file.name,
+        rowCount: data.books.length,
+        fileType: 'kdp',
+      })
     }
 
     return NextResponse.json({ success: true, data, rowCount: data.books.length })

@@ -729,3 +729,15 @@ model Swap {
 
   @@index([userId])
 }
+
+model AdminAuditLog {
+  id                String   @id @default(cuid())
+  adminEmail        String
+  impersonatedEmail String
+  action            String   // "started" | "ended" | "upload" | "book_added"
+  metadata          Json?
+  timestamp         DateTime @default(now())
+
+  @@index([adminEmail])
+  @@index([timestamp])
+}

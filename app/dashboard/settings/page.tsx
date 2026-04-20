@@ -1502,6 +1502,25 @@ export default function SettingsPage() {
     const [impersonateError, setImpersonateError] = useState<string | null>(null)
     const [impersonateSuccess, setImpersonateSuccess] = useState<string | null>(null)
 
+    interface AuditEntry {
+      id: string
+      adminEmail: string
+      impersonatedEmail: string
+      action: string
+      metadata: Record<string, unknown> | null
+      timestamp: string
+    }
+    const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([])
+    const [auditLoading, setAuditLoading] = useState(true)
+
+    useEffect(() => {
+      fetch('/api/admin/audit')
+        .then(r => r.json())
+        .then(d => setAuditLogs(d.logs ?? []))
+        .catch(() => {})
+        .finally(() => setAuditLoading(false))
+    }, [])
+
     async function startImpersonation() {
       if (!impersonateEmail.trim()) return
       setImpersonating(true)
@@ -1527,12 +1546,39 @@ export default function SettingsPage() {
       }
     }
 
+    function fmtTs(iso: string) {
+      const d = new Date(iso)
+      return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    }
+
+    function actionLabel(action: string) {
+      switch (action) {
+        case 'started':    return { label: 'Started',    color: '#E9A020' }
+        case 'ended':      return { label: 'Ended',      color: '#6EBF8B' }
+        case 'upload':     return { label: 'Upload',     color: '#60A5FA' }
+        case 'book_added': return { label: 'Book added', color: '#8B5CF6' }
+        default:           return { label: action,       color: '#9CA3AF' }
+      }
+    }
+
+    function metaSummary(metadata: Record<string, unknown> | null) {
+      if (!metadata) return null
+      const parts: string[] = []
+      if (metadata.filename) parts.push(String(metadata.filename))
+      if (metadata.rowCount != null) parts.push(`${metadata.rowCount} rows`)
+      if (metadata.fileType) parts.push(String(metadata.fileType).toUpperCase())
+      if (metadata.asin) parts.push(String(metadata.asin))
+      if (metadata.title) parts.push(String(metadata.title))
+      return parts.length ? parts.join(' · ') : null
+    }
+
     return (
       <div>
         <PanelHeader title="Admin" subtitle="Impersonate any user to configure their dashboard" />
-        <div className="px-8 py-6 max-w-md">
+        <div className="px-8 py-6">
+          {/* ── Impersonate form ─── */}
           <div
-            className="rounded-[10px] p-5 flex flex-col gap-4"
+            className="rounded-[10px] p-5 flex flex-col gap-4 max-w-md mb-8"
             style={{ background: 'white', border: '0.5px solid rgba(233,160,32,0.4)' }}
           >
             <div className="flex items-center gap-2">
@@ -1540,7 +1586,7 @@ export default function SettingsPage() {
               <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Impersonate User</span>
             </div>
             <p className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>
-              Enter a user email to view and manage their dashboard. An amber banner will appear at the top of every page while in admin view.
+              Enter a user email to view and manage their dashboard. An amber banner will appear at the top of every page while in admin view. Session auto-expires after 30 minutes of inactivity.
             </p>
             <div>
               <label className="block text-[11px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
@@ -1572,6 +1618,64 @@ export default function SettingsPage() {
             >
               {impersonating ? 'Switching…' : 'Impersonate User →'}
             </AmberBtn>
+          </div>
+
+          {/* ── Audit log ─── */}
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[2px] mb-3" style={{ color: '#9CA3AF' }}>
+              Audit Log
+            </div>
+            <div
+              className="rounded-[10px] overflow-hidden"
+              style={{ background: '#FFF8F0', border: '0.5px solid rgba(30,45,61,0.1)' }}
+            >
+              {auditLoading ? (
+                <div className="px-4 py-6 text-[12px]" style={{ color: '#9CA3AF' }}>Loading…</div>
+              ) : auditLogs.length === 0 ? (
+                <div className="px-4 py-6 text-[12px]" style={{ color: '#9CA3AF' }}>No audit entries yet.</div>
+              ) : (
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr style={{ borderBottom: '0.5px solid rgba(30,45,61,0.1)' }}>
+                      <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#9CA3AF' }}>Time</th>
+                      <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#9CA3AF' }}>Viewed as</th>
+                      <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#9CA3AF' }}>Action</th>
+                      <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#9CA3AF' }}>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLogs.map((entry, i) => {
+                      const { label, color } = actionLabel(entry.action)
+                      const detail = metaSummary(entry.metadata)
+                      return (
+                        <tr
+                          key={entry.id}
+                          style={{ borderBottom: i < auditLogs.length - 1 ? '0.5px solid rgba(30,45,61,0.06)' : undefined }}
+                        >
+                          <td className="px-4 py-2.5 text-[11px] font-mono whitespace-nowrap" style={{ color: '#6B7280' }}>
+                            {fmtTs(entry.timestamp)}
+                          </td>
+                          <td className="px-4 py-2.5 text-[11px]" style={{ color: '#1E2D3D' }}>
+                            {entry.impersonatedEmail}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span
+                              className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                              style={{ background: `${color}18`, color }}
+                            >
+                              {label}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-[11px]" style={{ color: '#9CA3AF' }}>
+                            {detail ?? '—'}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         </div>
       </div>

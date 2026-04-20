@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { parseKDPFile } from '@/lib/parsers/kdp'
 import { parseMetaFile } from '@/lib/parsers/meta'
 import { parsePinterestFile } from '@/lib/parsers/pinterest'
+import { logAdminAction } from '@/lib/adminAudit'
 
 // Save raw per-row Meta data to MetaAdData table for date-range filtering
 async function saveMetaRowsToDB(userId: string, csvText: string): Promise<number> {
@@ -155,6 +156,7 @@ export async function POST(req: NextRequest) {
           : diag.skippedRows > 0 ? 'partial'
           : 'success'
         await logUpload(session.user.id, 'kdp', file.name, data.rowCount ?? data.books.length, uploadStatus, diag ?? {})
+        auditUploadIfImpersonating(session, file.name, data.rowCount ?? data.books.length, 'kdp')
         return NextResponse.json({
           success: true, type: 'kdp', data,
           diagnostics: diag,
@@ -179,6 +181,7 @@ export async function POST(req: NextRequest) {
           firstParsedRow: null, error: rowCount === 0 ? 'No rows parsed' : null,
         }
         await logUpload(session.user.id, 'meta', file.name, rowCount, rowCount > 0 ? 'success' : 'error', metaDiag)
+        auditUploadIfImpersonating(session, file.name, rowCount, 'meta')
         return NextResponse.json({
           success: true, type: 'meta', data,
           rowCount,
@@ -200,6 +203,7 @@ export async function POST(req: NextRequest) {
       const rowCount = savedRows > 0 ? savedRows : data.ads.length
       const csvDiag = { rowCount, sheetsFound: ['CSV'], sheetUsed: 'CSV', columnsDetected: [], skippedRows: 0, skipReasons: [], firstParsedRow: null, error: rowCount === 0 ? 'No rows parsed' : null }
       await logUpload(session.user.id, 'meta', file.name, rowCount, rowCount > 0 ? 'success' : 'error', csvDiag)
+      auditUploadIfImpersonating(session, file.name, rowCount, 'meta')
       return NextResponse.json({
         success: true, type: 'meta', data,
         rowCount,
@@ -212,6 +216,7 @@ export async function POST(req: NextRequest) {
       const data = parsePinterestFile(text)
       const pinDiag = { rowCount: data.pinCount, sheetsFound: ['CSV'], sheetUsed: 'CSV', columnsDetected: [], skippedRows: 0, skipReasons: [], firstParsedRow: null, error: null }
       await logUpload(session.user.id, 'pinterest', file.name, data.pinCount, 'success', pinDiag)
+      auditUploadIfImpersonating(session, file.name, data.pinCount, 'pinterest')
       return NextResponse.json({
         success: true, type: 'pinterest', data,
         diagnostics: pinDiag,
@@ -223,5 +228,21 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Auto-parse error:', error)
     return NextResponse.json({ error: 'Failed to read file' }, { status: 500 })
+  }
+}
+
+// Helper to fire audit log after a successful upload during impersonation
+function auditUploadIfImpersonating(
+  session: Awaited<ReturnType<typeof getAugmentedSession>>,
+  filename: string,
+  rowCount: number,
+  fileType: string
+) {
+  if (session?.user?.adminImpersonating && session?.user?.adminRealEmail) {
+    logAdminAction(session.user.adminRealEmail, session.user.adminImpersonating, 'upload', {
+      filename,
+      rowCount,
+      fileType,
+    })
   }
 }
