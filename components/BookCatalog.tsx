@@ -334,6 +334,7 @@ function BookModal({
   const [asinMode, setAsinMode] = useState<'link' | 'manual'>(editing?.asin ? 'manual' : 'link')
   const [amazonUrl, setAmazonUrl] = useState('')
   const [asinStatus, setAsinStatus] = useState<'idle' | 'found' | 'not-found'>('idle')
+  const [lookupStatus, setLookupStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [howToFindOpen, setHowToFindOpen] = useState(false)
 
   async function handleManuscriptUpload(file: File) {
@@ -359,12 +360,28 @@ function BookModal({
     return m ? m[1].toUpperCase() : null
   }
 
-  function handleAmazonUrlChange(url: string) {
+  async function handleAmazonUrlChange(url: string) {
     setAmazonUrl(url)
-    if (!url.trim()) { setAsinStatus('idle'); return }
+    if (!url.trim()) { setAsinStatus('idle'); setLookupStatus('idle'); return }
     const found = extractAsinFromUrl(url)
-    if (found) { set('asin', found); setAsinStatus('found') }
-    else { setAsinStatus('not-found') }
+    if (!found) { setAsinStatus('not-found'); return }
+
+    set('asin', found)
+    setAsinStatus('found')
+    setLookupStatus('loading')
+    try {
+      const res = await fetch(`/api/books/lookup?asin=${found}`)
+      const data = await res.json()
+      if (res.ok) {
+        if (data.title && !form.title.trim()) set('title', data.title)
+        if (data.pubDate && !form.pubDate) set('pubDate', data.pubDate)
+        setLookupStatus('done')
+      } else {
+        setLookupStatus('error')
+      }
+    } catch {
+      setLookupStatus('error')
+    }
   }
 
   // When ASIN is entered, auto-switch to amazon tab if currently on url/upload
@@ -494,7 +511,17 @@ function BookModal({
                       Paste your book&apos;s Amazon URL — we&apos;ll pull the ASIN automatically
                     </span>
                   )}
-                  {asinStatus === 'found' && (
+                  {asinStatus === 'found' && lookupStatus === 'loading' && (
+                    <span className="block mt-1 text-[11px]" style={{ color: '#9CA3AF' }}>
+                      ✓ ASIN found: {form.asin} — looking up details…
+                    </span>
+                  )}
+                  {asinStatus === 'found' && lookupStatus === 'done' && (
+                    <span className="block mt-1 text-[11px]" style={{ color: '#6EBF8B' }}>
+                      ✓ ASIN found: {form.asin} — title &amp; date filled in
+                    </span>
+                  )}
+                  {asinStatus === 'found' && (lookupStatus === 'idle' || lookupStatus === 'error') && (
                     <span className="block mt-1 text-[11px]" style={{ color: '#6EBF8B' }}>
                       ✓ ASIN found: {form.asin}
                     </span>
