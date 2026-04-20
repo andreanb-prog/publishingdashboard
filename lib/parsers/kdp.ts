@@ -761,19 +761,22 @@ function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
 }
 
 // ── Flat format (KDP "By Month" or "By Title" report — single sheet) ─────────
+// Also handles KDP Royalties CSV (Royalty Date, ASIN/ISBN, Royalty, Currency columns)
 function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
   const sheetName = workbook.SheetNames[0]
   const rows = sheetName
     ? (XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as Record<string, unknown>[])
     : []
 
+  const flatHeaders = rows.length > 0 ? Object.keys(rows[0]) : []
+  const lowerHeaders = flatHeaders.map(h => h.trim().toLowerCase())
+
   if (rows.length) {
-    console.log('[KDP parser] Flat headers:', Object.keys(rows[0]))
+    console.log('[KDP parser] Flat headers:', flatHeaders)
     // Check for correct headers but no sales data
-    const headers = Object.keys(rows[0]).map(h => h.toLowerCase())
-    const hasCorrectHeaders = headers.some(h => h.includes('asin') || h.includes('title'))
+    const hasCorrectHeaders = lowerHeaders.some(h => h.includes('asin') || h === 'title')
     if (hasCorrectHeaders && rows.every(r => {
-      const asin  = str(pick(r as Record<string, unknown>, 'ASIN', 'Asin', 'asin'))
+      const asin  = str(pick(r as Record<string, unknown>, 'ASIN', 'ASIN/ISBN', 'Asin', 'asin'))
       const title = str(pick(r as Record<string, unknown>, 'Title', 'Book Title', 'title'))
       return !asin && !title
     })) {
@@ -783,6 +786,29 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
     }
   }
 
+  if (rows.length === 0) {
+    throw new Error('No data found in this file. Please upload a KDP Sales Dashboard or Royalty Estimator report.')
+  }
+
+  // Detect KDP Royalties CSV — has both 'Royalty Date' and 'Currency' columns
+  const isKDPRoyaltiesCSV = lowerHeaders.includes('royalty date') && lowerHeaders.includes('currency')
+
+  // For KDP Royalties CSV: resolve the exact key for the 'Royalty' amount column so we never
+  // accidentally fuzzy-match 'Royalty Type' or 'Royalty Date' (both also start with 'royalty').
+  const exactRoyaltyKey = isKDPRoyaltiesCSV
+    ? (flatHeaders.find(h => h.trim().toLowerCase() === 'royalty') ?? null)
+    : null
+
+  // Determine reporting month: use 'Royalty Date' if present, else fall back to current month
+  let month: string
+  if (isKDPRoyaltiesCSV && rows.length > 0) {
+    const firstDate = toISODate(pick(rows[0], 'Royalty Date'))
+    month = firstDate ? firstDate.substring(0, 7) : new Date().toISOString().substring(0, 7)
+    console.log(`[KDP parser] KDP Royalties CSV detected — reporting month: ${month}`)
+  } else {
+    month = new Date().toISOString().substring(0, 7)
+  }
+
   const bookMap = new Map<string, BookData>()
   let totalKENP         = 0
   let totalRoyaltiesUSD = 0
@@ -790,18 +816,23 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
   let rowCount          = 0
 
   for (const row of rows) {
-    const asin  = str(pick(row, 'ASIN', 'Asin', 'asin'))
+    // 'ASIN/ISBN' is the column name in KDP Royalties CSV — include it as an explicit variant
+    const asin  = str(pick(row, 'ASIN', 'ASIN/ISBN', 'Asin', 'asin'))
     const title = str(pick(row, 'Title', 'Book Title', 'title'))
     if (!asin && !title) continue
 
     // Prefer 'Net Units Sold' (after refunds) over gross 'Units Sold' — Royalty Estimator CSV has both
-    const units   = num(pick(row, 'Net Units Sold', 'Units Sold', 'Paid Units Sold', 'Paid Units', 'Units'))
-    const kenp    = num(pick(row, 'KENP Read', 'KENP Pages Read', 'KU Pages Read', 'Pages Read', 'KENP'))
-    // 'Royalties (USD)' must come before 'Royalty' — otherwise 'Royalty Type' (a text field) fuzzy-matches first
-    const royalty = num(pick(row,
-      'Royalties (USD)', 'Royalty', 'Net Royalty', 'Est. Royalty', 'Royalties', 'Net Royalties',
-      'Total Royalty', 'Total Royalties', 'Est. KU Royalty', 'Estimated Royalty',
-    ))
+    const units = num(pick(row, 'Net Units Sold', 'Units Sold', 'Paid Units Sold', 'Paid Units', 'Units'))
+    const kenp  = num(pick(row, 'KENP Read', 'KENP Pages Read', 'KU Pages Read', 'Pages Read', 'KENP'))
+
+    // For KDP Royalties CSV: use the pre-resolved exact key to avoid fuzzy-matching 'Royalty Type'/'Royalty Date'
+    // For other formats: 'Royalties (USD)' takes precedence over 'Royalty' so the generic fuzzy path still works
+    const royalty = exactRoyaltyKey !== null
+      ? num(row[exactRoyaltyKey])
+      : num(pick(row,
+          'Royalties (USD)', 'Royalty', 'Net Royalty', 'Est. Royalty', 'Royalties', 'Net Royalties',
+          'Total Royalty', 'Total Royalties', 'Est. KU Royalty', 'Estimated Royalty',
+        ))
 
     const currency = str(pick(row, 'Currency', 'currency')).toUpperCase().trim()
     const isUSD    = currency === 'USD' || currency === ''
@@ -825,13 +856,16 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
     rowCount++
   }
 
+  if (rowCount === 0) {
+    throw new Error(
+      'No recognizable KDP data found. Expected columns: ASIN/ISBN (or ASIN), Title, Net Units Sold, Royalty, Currency. ' +
+      'Please upload a KDP Sales Dashboard XLSX, Royalty Estimator XLSX, or KDP Royalties CSV.'
+    )
+  }
+
   const books      = deduplicateBooks(Array.from(bookMap.values()))
   const totalUnits = books.reduce((sum, b) => sum + b.units, 0)
 
-  // Flat exports don't include a date column — use current month as best guess
-  const month = new Date().toISOString().substring(0, 7)
-
-  const flatHeaders = rows.length > 0 ? Object.keys(rows[0]) : []
   const diagnostics: ParseDiagnostics = {
     rowCount,
     sheetsFound:     workbook.SheetNames,
@@ -840,8 +874,8 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
     skippedRows:     rows.length - rowCount,
     skipReasons:     rows.length - rowCount > 0 ? ['Missing ASIN and title'] : [],
     firstParsedRow:  rows[0] ? { ...rows[0] } as Record<string, unknown> : null,
-    error:           rowCount === 0 ? 'No rows with valid ASIN or title found' : null,
-    strategyUsed:    'S1-exact | S2-fuzzy via pick()',
+    error:           null,
+    strategyUsed:    isKDPRoyaltiesCSV ? 'KDP-Royalties-CSV | exact-key-royalty' : 'S1-exact | S2-fuzzy via pick()',
   }
 
   return {

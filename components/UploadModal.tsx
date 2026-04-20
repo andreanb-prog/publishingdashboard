@@ -142,17 +142,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  const handleFiles = useCallback((incoming: FileList | null) => {
-    if (!incoming) return
-    Array.from(incoming).slice(0, 10).forEach(file => {
-      const id = `${file.name}-${Date.now()}-${Math.random()}`
-      rawFiles.current.set(id, file)
-      processFile(file, id)
-    })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  async function processFile(file: File, id: string) {
+  const processFile = useCallback(async (file: File, id: string) => {
     if (!mountedRef.current) return
     setFiles(prev => [...prev, { id, filename: file.name, type: 'unknown', status: 'reading', data: null }])
     const update = (patch: Partial<ParsedFile>) => {
@@ -268,7 +258,17 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
     } catch {
       update({ status: 'error', data: null, errorMessage: "Could not read this file. Make sure it's a KDP .xlsx, Meta .csv/.xlsx, or Pinterest .csv export." })
     }
-  }
+  // setFiles and mountedRef are stable references — empty dep array is intentional
+  }, [])
+
+  const handleFiles = useCallback((incoming: FileList | null) => {
+    if (!incoming) return
+    Array.from(incoming).slice(0, 10).forEach(file => {
+      const id = `${file.name}-${Date.now()}-${Math.random()}`
+      rawFiles.current.set(id, file)
+      processFile(file, id)
+    })
+  }, [processFile])
 
   function removeFile(id: string) {
     setFiles(prev => prev.filter(f => f.id !== id))
