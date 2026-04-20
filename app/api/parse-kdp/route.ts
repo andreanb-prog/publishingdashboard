@@ -8,7 +8,7 @@ import { parseKDPFile } from '@/lib/parsers/kdp'
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '10mb',
+      sizeLimit: '50mb',
     },
   },
 }
@@ -22,9 +22,9 @@ export async function POST(req: NextRequest) {
     const file = formData.get('file') as File
     if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > 50 * 1024 * 1024) {
       console.error('KDP upload: file too large', { size: file.size, name: file.name })
-      return NextResponse.json({ error: 'File too large. Please upload a file under 10MB.' }, { status: 413 })
+      return NextResponse.json({ error: 'File too large. Please upload a file under 50MB.' }, { status: 413 })
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())

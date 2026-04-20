@@ -9,7 +9,7 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['xlsx', 'pdfjs-dist'],
     serverActions: {
-      bodySizeLimit: '10mb',
+      bodySizeLimit: '50mb',
     },
   },
 }
