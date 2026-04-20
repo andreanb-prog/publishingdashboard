@@ -363,12 +363,12 @@ export async function GET(req: NextRequest) {
   const month = searchParams.get('month')
 
   // Optional date-range filter — convert YYYY-MM-DD dates to month strings for WHERE clause
-  const startDate = searchParams.get('start')  // e.g. "2026-04-01"
-  const endDate   = searchParams.get('end')    // e.g. "2026-04-30"
-  const startMonth = startDate ? startDate.substring(0, 7) : null  // "2026-04"
-  const endMonth   = endDate   ? endDate.substring(0, 7)   : null  // "2026-04"
-  const monthFilter = startMonth && endMonth
-    ? { month: { gte: startMonth, lte: endMonth } }
+  const fromDate = searchParams.get('from')  // e.g. "2026-03-21"
+  const toDate   = searchParams.get('to')    // e.g. "2026-04-20"
+  const fromMonth = fromDate ? fromDate.substring(0, 7) : null  // "2026-03"
+  const toMonth   = toDate   ? toDate.substring(0, 7)   : null  // "2026-04"
+  const monthFilter = fromMonth && toMonth
+    ? { month: { gte: fromMonth, lte: toMonth } }
     : {}
 
   // Fetch recent records — enough to backfill any missing channel data per-channel

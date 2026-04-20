@@ -30,8 +30,16 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { searchParams } = new URL(req.url)
+  const from = searchParams.get('from')
+  const to   = searchParams.get('to')
+
+  const dateFilter = from && to
+    ? { date: { gte: new Date(from), lte: new Date(to) } }
+    : {}
+
   const logs = await db.roasLog.findMany({
-    where: { userId: session.user.id },
+    where: { userId: session.user.id, ...dateFilter },
     orderBy: { date: 'desc' },
     take: 21,
   })

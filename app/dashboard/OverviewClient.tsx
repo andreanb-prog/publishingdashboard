@@ -417,6 +417,12 @@ function OtherObservations({ items }: { items: CoachingInsight[] }) {
   )
 }
 
+function getDefaultDateRange() {
+  const to = new Date().toISOString().slice(0, 10)
+  const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  return { from, to }
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 export function OverviewClient({ userName, initialData }: { userName?: string | null; initialData?: DashboardData } = {}) {
   const hasInitial = !!initialData
@@ -503,6 +509,15 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
   const animKenp  = useCountUp(_kenpTarget,  isFresh && !!analysis?.kdp)
   const animCtr   = useCountUp(_ctrTarget,   isFresh && !!analysis?.meta?.bestAd)
 
+  const [dateRange, setDateRange] = useState<{ from: string; to: string }>(() => {
+    if (typeof window === 'undefined') return getDefaultDateRange()
+    try {
+      const stored = localStorage.getItem('authordash_date_range')
+      if (stored) return JSON.parse(stored)
+    } catch {}
+    return getDefaultDateRange()
+  })
+
   const [refreshKey,   setRefreshKey]   = useState(0)
   const [liveML,       setLiveML]       = useState<import('@/types').MailerLiteData | null>(initialData?.mailerLiteData ?? null)
   const [metaLastSync, setMetaLastSync] = useState<string | null>(initialData?.metaLastSync ?? null)
@@ -523,10 +538,12 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
     // Skip initial fetch if server-side data was provided (refreshKey === 0)
     if (hasInitial && refreshKey === 0) return
 
+    const dateParams = new URLSearchParams({ from: dateRange.from, to: dateRange.to }).toString()
+
     Promise.all([
-      fetch('/api/analyze').then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({})),
-      fetch('/api/rank').then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({ logs: [] })),
-      fetch('/api/roas').then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({ logs: [] })),
+      fetch(`/api/analyze?${dateParams}`).then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({})),
+      fetch(`/api/rank?${dateParams}`).then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({ logs: [] })),
+      fetch(`/api/roas?${dateParams}`).then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({ logs: [] })),
       fetch('/api/mailerlite').then(r => r.ok ? r.json() : null).catch(() => null),
     ]).then(([analyzeData, rankData, roasData, mlData]) => {
       const analysis = analyzeData.analysis ?? null
@@ -576,6 +593,26 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
     function onUploadComplete() { setRefreshKey(k => k + 1) }
     window.addEventListener('dashboard-data-refresh', onUploadComplete)
     return () => window.removeEventListener('dashboard-data-refresh', onUploadComplete)
+  }, [])
+
+  // Listen for date range changes fired by TopBar
+  useEffect(() => {
+    function onDateRangeChange(e: Event) {
+      const { from, to } = (e as CustomEvent<{ from: string; to: string }>).detail
+      setDateRange({ from, to })
+      setRefreshKey(k => k + 1)
+    }
+    window.addEventListener('date-range-change', onDateRangeChange)
+    return () => window.removeEventListener('date-range-change', onDateRangeChange)
+  }, [])
+
+  // On mount: if a custom date range is stored, trigger a fresh fetch to respect it
+  useEffect(() => {
+    const def = getDefaultDateRange()
+    if (dateRange.from !== def.from || dateRange.to !== def.to) {
+      setRefreshKey(k => k + 1)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // ── Optimistic UI: if the user lands here right after uploading, show their

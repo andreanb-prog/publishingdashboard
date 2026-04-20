@@ -1,8 +1,23 @@
 'use client'
-// components/TopBar.tsx — three-zone header: greeting | check-in + status + upload
+// components/TopBar.tsx — three-zone header: greeting | date range (dashboard only) | check-in + status + upload
 import { useState, useEffect, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 import { ConnectionStatus } from './ConnectionStatus'
 import { UploadModal } from './UploadModal'
+
+function getDefaultDateRange() {
+  const to = new Date().toISOString().slice(0, 10)
+  const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  return { from, to }
+}
+
+function loadStoredDateRange(): { from: string; to: string } {
+  try {
+    const stored = localStorage.getItem('authordash_date_range')
+    if (stored) return JSON.parse(stored)
+  } catch {}
+  return getDefaultDateRange()
+}
 
 const DAILY_CHECKS = [
   { key: 'priorities', label: 'Review priorities' },
@@ -30,6 +45,24 @@ export function TopBar({ user }: TopBarProps) {
   const now = new Date()
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
   const shortDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+
+  const pathname = usePathname()
+
+  // Date range state — only used on /dashboard
+  const [dateFrom, setDateFrom] = useState(() => {
+    if (typeof window === 'undefined') return getDefaultDateRange().from
+    return loadStoredDateRange().from
+  })
+  const [dateTo, setDateTo] = useState(() => {
+    if (typeof window === 'undefined') return getDefaultDateRange().to
+    return loadStoredDateRange().to
+  })
+
+  function handleApplyDateRange() {
+    const range = { from: dateFrom, to: dateTo }
+    try { localStorage.setItem('authordash_date_range', JSON.stringify(range)) } catch {}
+    window.dispatchEvent(new CustomEvent('date-range-change', { detail: range }))
+  }
 
   // Daily Check-In state
   const [checks, setChecks] = useState<Record<string, boolean>>({})
@@ -124,6 +157,69 @@ export function TopBar({ user }: TopBarProps) {
             {dateStr}
           </div>
         </div>
+
+        {/* Middle zone: date range picker (main dashboard only) */}
+        {pathname === '/dashboard' && (
+          <div className="flex items-center mx-4 flex-shrink-0">
+            <div>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(30,45,61,0.5)', fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: 3 }}>
+                Date Range
+              </div>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={e => setDateFrom(e.target.value)}
+                  style={{
+                    fontSize: 11,
+                    padding: '3px 8px',
+                    borderRadius: 20,
+                    border: '0.5px solid #1E2D3D',
+                    background: 'white',
+                    color: '#1E2D3D',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    outline: 'none',
+                    cursor: 'pointer',
+                  }}
+                />
+                <span style={{ fontSize: 11, color: 'rgba(30,45,61,0.4)' }}>→</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={e => setDateTo(e.target.value)}
+                  style={{
+                    fontSize: 11,
+                    padding: '3px 8px',
+                    borderRadius: 20,
+                    border: '0.5px solid #1E2D3D',
+                    background: 'white',
+                    color: '#1E2D3D',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    outline: 'none',
+                    cursor: 'pointer',
+                  }}
+                />
+                <button
+                  onClick={handleApplyDateRange}
+                  style={{
+                    fontSize: 11,
+                    padding: '4px 12px',
+                    borderRadius: 20,
+                    background: '#E9A020',
+                    color: 'white',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Right zone: check-in, status, upload */}
         <div className="flex items-center gap-2">

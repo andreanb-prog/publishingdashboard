@@ -30,9 +30,15 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const book = searchParams.get('book')
+  const from = searchParams.get('from')
+  const to   = searchParams.get('to')
+
+  const dateFilter = from && to
+    ? { date: { gte: new Date(from), lte: new Date(to) } }
+    : {}
 
   const logs = await db.rankLog.findMany({
-    where: { userId: session.user.id, ...(book ? { book } : {}) },
+    where: { userId: session.user.id, ...dateFilter, ...(book ? { book } : {}) },
     orderBy: { date: 'desc' },
     take: 60,
   })
