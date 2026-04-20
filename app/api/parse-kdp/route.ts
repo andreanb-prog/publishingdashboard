@@ -5,6 +5,14 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { parseKDPFile } from '@/lib/parsers/kdp'
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+}
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -14,24 +22,51 @@ export async function POST(req: NextRequest) {
     const file = formData.get('file') as File
     if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
+    if (file.size > 10 * 1024 * 1024) {
+      console.error('KDP upload: file too large', { size: file.size, name: file.name })
+      return NextResponse.json({ error: 'File too large. Please upload a file under 10MB.' }, { status: 413 })
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer())
-    const data = parseKDPFile(buffer)
 
-    // Record upload timestamp
-    await db.uploadLog.create({
-      data: {
-        userId:   session.user.id,
-        fileType: 'kdp',
-        fileName: file.name,
-        rowCount: data.books.length,
-        status:   'success',
-        details:  {},
-      },
-    }).catch(() => {}) // non-fatal
+    let data
+    try {
+      data = parseKDPFile(buffer)
+    } catch (parseErr) {
+      console.error('KDP upload: unrecognized file format:', parseErr, { name: file.name })
+      return NextResponse.json(
+        { error: 'Unrecognized file format. Please upload a KDP Sales & Royalties report.' },
+        { status: 422 }
+      )
+    }
 
-    return NextResponse.json({ success: true, data })
+    if (!data.books || data.books.length === 0) {
+      console.error('KDP upload: no rows parsed', { name: file.name })
+      return NextResponse.json(
+        { error: "No data found in this file. Make sure you're uploading a KDP Sales & Royalties report." },
+        { status: 422 }
+      )
+    }
+
+    try {
+      await db.uploadLog.create({
+        data: {
+          userId:   session.user.id,
+          fileType: 'kdp',
+          fileName: file.name,
+          rowCount: data.books.length,
+          status:   'success',
+          details:  {},
+        },
+      })
+    } catch (dbErr) {
+      console.error('KDP upload: DB write failed:', dbErr)
+      return NextResponse.json({ error: 'Upload failed to save. Please try again.' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, data, rowCount: data.books.length })
   } catch (error) {
-    console.error('KDP parse error:', error)
-    return NextResponse.json({ error: 'Failed to parse KDP file' }, { status: 500 })
+    console.error('KDP upload: unexpected error:', error)
+    return NextResponse.json({ error: 'Failed to parse KDP file. Please try again.' }, { status: 500 })
   }
 }

@@ -274,8 +274,8 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           const rowCount  = kdpResult.rowCount ?? 0
           const kdpSummary = bookCount > 0
             ? `${rowCount} row${rowCount !== 1 ? 's' : ''} imported for ${bookCount} title${bookCount !== 1 ? 's' : ''}`
-            : 'Parsed — no rows found. Make sure you exported All Titles.'
-          update({ type: 'kdp', status: 'done', data: kdpResult, summary: kdpSummary, diagnostics: kdpResult.diagnostics })
+            : 'No sales data found — download from KDP → Reports → Sales Dashboard → By Month.'
+          update({ type: 'kdp', status: bookCount > 0 ? 'done' : 'error', data: bookCount > 0 ? kdpResult : null, summary: kdpSummary, errorMessage: bookCount === 0 ? "Your file uploaded but no sales data was found. Make sure you're downloading the correct KDP report: Reports → Sales Dashboard → By Month." : undefined, diagnostics: kdpResult.diagnostics })
         } else if (detectedType === 'meta') {
           const { parseMetaFile } = await import('@/lib/parsers/meta')
           // Prefer "Worksheet" sheet (new Meta XLSX format), fall back to first sheet
@@ -325,8 +325,8 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           const rowCount  = kdpResult.rowCount ?? 0
           const kdpSummary = bookCount > 0
             ? `${rowCount} row${rowCount !== 1 ? 's' : ''} imported for ${bookCount} title${bookCount !== 1 ? 's' : ''}`
-            : 'Parsed — no rows found. Make sure you exported All Titles.'
-          update({ type: 'kdp', status: 'done', data: kdpResult, summary: kdpSummary, diagnostics: kdpResult.diagnostics })
+            : 'No sales data found — download from KDP → Reports → Sales Dashboard → By Month.'
+          update({ type: 'kdp', status: bookCount > 0 ? 'done' : 'error', data: bookCount > 0 ? kdpResult : null, summary: kdpSummary, errorMessage: bookCount === 0 ? "Your file uploaded but no sales data was found. Make sure you're downloading the correct KDP report: Reports → Sales Dashboard → By Month." : undefined, diagnostics: kdpResult.diagnostics })
         } else {
           update({
             type: 'unknown', status: 'error', data: null,
@@ -413,10 +413,13 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
         body: JSON.stringify({ kdp: kdpData, meta: metaData, mailerLite: mlData, pinterest: pinData, month }),
       })
       if (!res.ok || !res.body) {
-        let errText = ''
-        try { errText = await res.text() } catch { /* ignore */ }
-        console.error('[upload] /api/analyze failed', res?.status, errText)
-        throw new Error(errText || `Server error ${res?.status ?? 'unknown'}`)
+        let errMsg = ''
+        try {
+          const body = await res.text()
+          try { errMsg = JSON.parse(body).error || body } catch { errMsg = body }
+        } catch { /* ignore */ }
+        console.error('[upload] /api/analyze failed', res?.status, errMsg)
+        throw new Error(errMsg || `Server error ${res?.status ?? 'unknown'}`)
       }
 
       // Read SSE events — server drives stage 3, 4, then complete/error
@@ -461,12 +464,12 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
               if (kdpData?.books?.length) {
                 const rows = kdpData.rowCount ?? 0
                 parts.push(rows > 0
-                  ? `${rows} row${rows !== 1 ? 's' : ''} imported for ${kdpData.books.length} title${kdpData.books.length !== 1 ? 's' : ''}`
+                  ? `${rows} row${rows !== 1 ? 's' : ''} imported`
                   : `${kdpData.books.length} KDP title${kdpData.books.length !== 1 ? 's' : ''}`)
               }
               if (metaData?.ads?.length) parts.push(`${metaData.ads.length} Meta ad${metaData.ads.length !== 1 ? 's' : ''}`)
               if (pinData?.pinCount) parts.push(`${pinData.pinCount} Pinterest pin${pinData.pinCount !== 1 ? 's' : ''}`)
-              setSuccessSummary(parts.length ? `Upload complete — ${parts.join(', ')}` : 'Upload complete')
+              setSuccessSummary(parts.length ? `✓ Uploaded — ${parts.join(', ')}` : '✓ Upload complete')
               advanceToStage(5)
               navigated = true
               setTimeout(() => {

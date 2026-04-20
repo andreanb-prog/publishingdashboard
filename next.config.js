@@ -8,6 +8,9 @@ process.emitWarning = (warning, ...args) => {
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['xlsx', 'pdfjs-dist'],
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
   },
 }
 
