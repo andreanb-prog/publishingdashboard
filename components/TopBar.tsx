@@ -116,7 +116,7 @@ export function TopBar({ user }: TopBarProps) {
     })
   }
 
-  // Upload modal state
+  // Upload modal state (used by MobileNav / settings page via open-upload-modal event)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [showToast, setShowToast] = useState(false)
 
@@ -142,6 +142,41 @@ export function TopBar({ user }: TopBarProps) {
     setUploadOpen(false)
     setShowToast(true)
     setTimeout(() => setShowToast(false), 4000)
+  }
+
+  // Direct-upload state for the header "Upload Files" button
+  const uploadInputRef = useRef<HTMLInputElement>(null)
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [uploadMessage, setUploadMessage] = useState('')
+
+  async function handleDirectFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+
+    setUploadStatus('loading')
+    setUploadMessage('')
+
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch('/api/parse-kdp', { method: 'POST', body: form })
+      const json = await res.json()
+
+      if (!res.ok) {
+        setUploadStatus('error')
+        setUploadMessage(json.error || 'Upload failed. Please try again.')
+      } else {
+        const rows = json.rowCount ?? json.data?.books?.length ?? 0
+        setUploadStatus('success')
+        setUploadMessage(`✓ Uploaded — ${rows} row${rows !== 1 ? 's' : ''} imported`)
+        window.dispatchEvent(new CustomEvent('dashboard-data-refresh'))
+        setTimeout(() => setUploadStatus('idle'), 5000)
+      }
+    } catch {
+      setUploadStatus('error')
+      setUploadMessage('Upload failed. Check your connection and try again.')
+    }
   }
 
   return (
@@ -293,12 +328,39 @@ export function TopBar({ user }: TopBarProps) {
           {/* Connection status */}
           <ConnectionStatus />
 
+          {/* Hidden file input — always in DOM, never conditionally mounted */}
+          <input
+            ref={uploadInputRef}
+            type="file"
+            accept=".csv,.xlsx"
+            style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+            onChange={handleDirectFileChange}
+          />
+
+          {/* Inline upload status */}
+          {uploadStatus !== 'idle' && (
+            <span
+              className="text-[11px] font-medium max-w-[160px] truncate"
+              style={{ color: uploadStatus === 'success' ? '#6EBF8B' : uploadStatus === 'error' ? '#F97B6B' : '#6B7280' }}
+            >
+              {uploadStatus === 'loading' ? 'Uploading...' : uploadMessage}
+            </span>
+          )}
+
           {/* Upload button */}
           <button
-            onClick={() => setUploadOpen(true)}
+            onClick={() => uploadInputRef.current?.click()}
+            disabled={uploadStatus === 'loading'}
             className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all hover:opacity-90"
-            style={{ background: '#E9A020', color: '#0d1f35', border: 'none', cursor: 'pointer' }}>
-            Upload Files
+            style={{
+              background: '#E9A020',
+              color: '#0d1f35',
+              border: 'none',
+              cursor: uploadStatus === 'loading' ? 'not-allowed' : 'pointer',
+              opacity: uploadStatus === 'loading' ? 0.7 : 1,
+            }}
+          >
+            {uploadStatus === 'loading' ? 'Uploading…' : 'Upload Files'}
           </button>
         </div>
       </div>
