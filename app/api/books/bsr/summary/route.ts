@@ -3,12 +3,11 @@
 // Returns 4 KPIs for the summary strip: totalSpend, bestBsr, overallRoas, costPerSub
 // All computed over the last 7 days across all books for the current user.
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

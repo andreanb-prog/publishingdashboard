@@ -3,8 +3,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 
 const ML = 'https://connect.mailerlite.com/api'
@@ -32,7 +31,7 @@ export interface FlaggedCampaign {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   // Try: header → user's saved key → env var fallback

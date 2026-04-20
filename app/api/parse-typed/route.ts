@@ -1,14 +1,13 @@
 // app/api/parse-typed/route.ts
 // Parses a file with a user-specified type (bypasses auto-detection)
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { parseKDPFile } from '@/lib/parsers/kdp'
 import { parseMetaFile } from '@/lib/parsers/meta'
 import { parsePinterestFile } from '@/lib/parsers/pinterest'
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {

@@ -2,8 +2,7 @@
 // POST /api/books/bsr/log — upsert a BsrLog entry (one per user+asin per day)
 // Accepts all ROAS Hub fields; auto-fills adSpend and newSubs from stored data when not provided.
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 
 /** Normalize a date string (YYYY-MM-DD) or today to midnight UTC */
@@ -19,7 +18,7 @@ function toMidnightUTC(dateStr?: string | null): Date {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

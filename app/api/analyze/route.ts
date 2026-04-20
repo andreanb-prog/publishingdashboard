@@ -1,7 +1,6 @@
 // app/api/analyze/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { anthropic, CLAUDE_MODEL, COACHING_SYSTEM_PROMPT } from '@/lib/anthropic'
 import { db } from '@/lib/db'
 import type { KDPData, MetaData, MailerLiteData, PinterestData, Analysis } from '@/types'
@@ -39,7 +38,7 @@ function makeFingerprint(kdp?: KDPData, meta?: MetaData, pinterest?: PinterestDa
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   // Parse body eagerly so it's available inside the async stream worker
@@ -354,7 +353,7 @@ function buildHistorySummary(historical: { month: string; data: unknown }[]): st
 }
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   console.log('[GET] session userId:', session.user.id)

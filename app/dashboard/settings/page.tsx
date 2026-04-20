@@ -13,6 +13,7 @@ import {
   Shield,
   Trash2,
   RefreshCw,
+  ShieldAlert,
 } from 'lucide-react'
 
 // ── MailerLite list types ─────────────────────────────────────────────────────
@@ -20,23 +21,25 @@ interface MLGroup { id: string; name: string; activeCount: number }
 interface MLList { id: string; mailerliteId: string; name: string; activeCount: number; unsubCount: number; lastSyncedAt: string | null }
 
 // ── Types ────────────────────────────────────────────────────────────────────
-type TabId = 'my-books' | 'connections' | 'profile' | 'preferences' | 'privacy'
+type TabId = 'my-books' | 'connections' | 'profile' | 'preferences' | 'privacy' | 'admin'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
 const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
 
 // ── Tab definitions ──────────────────────────────────────────────────────────
-const TABS: {
+const ALL_TABS: {
   id: TabId
   label: string
   description: string
   icon: React.ElementType
+  adminOnly?: boolean
 }[] = [
-  { id: 'my-books',     label: 'My Books',     description: 'Your titles and ASINs',       icon: TabBookOpen },
-  { id: 'connections',  label: 'Connections',  description: 'MailerLite, Meta, KDP',        icon: Plug },
-  { id: 'profile',      label: 'Profile',      description: 'Your name and display settings', icon: User },
-  { id: 'preferences',  label: 'Preferences',  description: 'Benchmarks and digest email',  icon: SlidersHorizontal },
-  { id: 'privacy',      label: 'Privacy',      description: 'Data and account',             icon: Shield },
+  { id: 'my-books',     label: 'My Books',     description: 'Your titles and ASINs',          icon: TabBookOpen },
+  { id: 'connections',  label: 'Connections',  description: 'MailerLite, Meta, KDP',           icon: Plug },
+  { id: 'profile',      label: 'Profile',      description: 'Your name and display settings',  icon: User },
+  { id: 'preferences',  label: 'Preferences',  description: 'Benchmarks and digest email',     icon: SlidersHorizontal },
+  { id: 'privacy',      label: 'Privacy',      description: 'Data and account',                icon: Shield },
+  { id: 'admin',        label: 'Admin',        description: 'Impersonate users',               icon: ShieldAlert, adminOnly: true },
 ]
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -602,7 +605,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     const hash = window.location.hash.replace('#', '') as TabId
-    const validHashes: TabId[] = ['my-books', 'connections', 'profile', 'preferences', 'privacy']
+    const validHashes: TabId[] = ['my-books', 'connections', 'profile', 'preferences', 'privacy', 'admin']
     if (validHashes.includes(hash)) setActiveTab(hash)
   }, [])
 
@@ -1492,13 +1495,99 @@ export default function SettingsPage() {
     )
   }
 
+  // ── Admin Tab ─────────────────────────────────────────────────────────────
+  function TabAdmin() {
+    const [impersonateEmail, setImpersonateEmail] = useState('')
+    const [impersonating, setImpersonating] = useState(false)
+    const [impersonateError, setImpersonateError] = useState<string | null>(null)
+    const [impersonateSuccess, setImpersonateSuccess] = useState<string | null>(null)
+
+    async function startImpersonation() {
+      if (!impersonateEmail.trim()) return
+      setImpersonating(true)
+      setImpersonateError(null)
+      setImpersonateSuccess(null)
+      try {
+        const res = await fetch('/api/admin/impersonate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: impersonateEmail.trim() }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setImpersonateError(data.error ?? 'Failed to impersonate')
+        } else {
+          setImpersonateSuccess(data.email)
+          window.location.reload()
+        }
+      } catch {
+        setImpersonateError('Network error')
+      } finally {
+        setImpersonating(false)
+      }
+    }
+
+    return (
+      <div>
+        <PanelHeader title="Admin" subtitle="Impersonate any user to configure their dashboard" />
+        <div className="px-8 py-6 max-w-md">
+          <div
+            className="rounded-[10px] p-5 flex flex-col gap-4"
+            style={{ background: 'white', border: '0.5px solid rgba(233,160,32,0.4)' }}
+          >
+            <div className="flex items-center gap-2">
+              <ShieldAlert size={16} style={{ color: '#E9A020' }} />
+              <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Impersonate User</span>
+            </div>
+            <p className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>
+              Enter a user email to view and manage their dashboard. An amber banner will appear at the top of every page while in admin view.
+            </p>
+            <div>
+              <label className="block text-[11px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
+                User email
+              </label>
+              <input
+                type="email"
+                value={impersonateEmail}
+                onChange={e => { setImpersonateEmail(e.target.value); setImpersonateError(null) }}
+                onKeyDown={e => { if (e.key === 'Enter') startImpersonation() }}
+                placeholder="user@example.com"
+                className="w-full text-[12px] px-3 py-2 rounded-md outline-none"
+                style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
+              />
+            </div>
+            {impersonateError && (
+              <div className="text-[11px] px-3 py-2 rounded-md" style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
+                {impersonateError}
+              </div>
+            )}
+            {impersonateSuccess && (
+              <div className="text-[11px] px-3 py-2 rounded-md" style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
+                Switching to {impersonateSuccess}…
+              </div>
+            )}
+            <AmberBtn
+              onClick={startImpersonation}
+              disabled={!impersonateEmail.trim() || impersonating}
+            >
+              {impersonating ? 'Switching…' : 'Impersonate User →'}
+            </AmberBtn>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
+  const TABS = ALL_TABS.filter(t => !t.adminOnly || isAdmin)
+
   const tabContent: Record<TabId, React.ReactNode> = {
     'my-books':    <TabMyBooks />,
     'connections': <TabConnections />,
     'profile':     <TabProfile />,
     'preferences': <TabPreferences />,
     'privacy':     <TabPrivacy />,
+    'admin':       <TabAdmin />,
   }
 
   return (

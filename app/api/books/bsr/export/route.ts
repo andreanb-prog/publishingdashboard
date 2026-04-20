@@ -2,8 +2,7 @@
 // GET /api/books/bsr/export
 // Returns all BsrLog entries for the user grouped by book slot for client-side Excel export.
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 
 function dateKey(d: Date) {
@@ -48,7 +47,7 @@ function computeRows(logs: Awaited<ReturnType<typeof db.bsrLog.findMany>>) {
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

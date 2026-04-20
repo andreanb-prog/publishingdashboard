@@ -2,8 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 
 async function getApiKey(userId: string): Promise<string | null> {
@@ -17,7 +16,7 @@ async function getApiKey(userId: string): Promise<string | null> {
 // GET — fetch groups from MailerLite API (for the add-list picker)
 // Use GET /api/mailerlite/lists/saved to fetch the user's saved lists from the DB
 export async function GET(_req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const apiKey = await getApiKey(session.user.id)
@@ -48,7 +47,7 @@ export async function GET(_req: NextRequest) {
 
 // POST — save a new MailerLiteList record for the current user
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()

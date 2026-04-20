@@ -1,11 +1,10 @@
 // app/api/books/[id]/bible/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const book = await db.book.findFirst({
@@ -34,7 +33,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const existing = await db.book.findFirst({ where: { id: params.id, userId: session.user.id } })

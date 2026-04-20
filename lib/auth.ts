@@ -128,6 +128,8 @@ declare module 'next-auth' {
       trialEndsAt?: string | null
       penName?: string | null
       preferredGreetingName?: string | null
+      adminImpersonating?: string | null
+      adminRealEmail?: string | null
     }
   }
 }

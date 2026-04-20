@@ -3,8 +3,7 @@
 // Returns 7 rows sorted date asc with all derived fields computed server-side.
 // Pass format=legacy for the old {bsr, adSpend, subscribers} shape (used by CorrelationGraph).
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 
 function dateKey(d: Date) {
@@ -12,7 +11,7 @@ function dateKey(d: Date) {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

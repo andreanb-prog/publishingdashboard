@@ -1,13 +1,12 @@
 // app/api/parse-meta/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import { parseMetaFile } from '@/lib/parsers/meta'
 import * as XLSX from 'xlsx'
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {

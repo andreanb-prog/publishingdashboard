@@ -1,7 +1,6 @@
 // app/api/books/bsr/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import * as cheerio from 'cheerio'
 
@@ -64,7 +63,7 @@ function parseBsr(html: string): {
 // GET /api/books/bsr?asin=XXXXXXXX          → fetch BSR from Amazon
 // GET /api/books/bsr?asin=XXXXXXXX&history=true → fetch logged history
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -151,7 +150,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/books/bsr — log a rank entry
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

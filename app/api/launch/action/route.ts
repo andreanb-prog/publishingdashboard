@@ -1,7 +1,6 @@
 // app/api/launch/action/route.ts
 import { NextRequest } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { anthropic } from '@/lib/anthropic'
 import { db } from '@/lib/db'
 
@@ -38,7 +37,7 @@ function buildBibleContext(book: {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return new Response('Unauthorized', { status: 401 })
 
   const {

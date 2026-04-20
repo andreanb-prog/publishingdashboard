@@ -1,7 +1,6 @@
 // app/api/kdp/generate-tracker/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import ExcelJS from 'exceljs'
 
@@ -106,7 +105,7 @@ function setColWidths(ws: ExcelJS.Worksheet, cols: typeof BOOK_COLS) {
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

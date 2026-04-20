@@ -1,13 +1,12 @@
 // app/(dashboard)/page.tsx
-import { getServerSession } from 'next-auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
 import { OverviewClient } from './OverviewClient'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { fetchDashboardData } from '@/lib/dashboard-data'
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session) redirect('/login')
 
   // Redirect new users to profile setup if pen name not set

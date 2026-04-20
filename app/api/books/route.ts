@@ -1,7 +1,6 @@
 // app/api/books/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 
 // Default books to pre-populate when a user has none
@@ -38,7 +37,7 @@ const CANONICAL_ORDER: Record<string, number> = {
 
 // GET — list user's books; auto-seed defaults if none exist
 export async function GET() {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
@@ -87,7 +86,7 @@ export async function GET() {
 
 // POST — create a new book
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {

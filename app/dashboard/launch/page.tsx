@@ -1,14 +1,13 @@
 // app/dashboard/launch/page.tsx
-import { getServerSession } from 'next-auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { LaunchClient } from './LaunchClient'
 
 export const metadata = { title: 'Launch Planner — AuthorDash' }
 
 export default async function LaunchPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session) redirect('/login')
 
   const [existingTasks, launches] = await Promise.all([

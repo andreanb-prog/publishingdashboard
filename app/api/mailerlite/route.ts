@@ -3,8 +3,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import { fetchMailerLiteStats } from '@/lib/mailerlite'
 
@@ -13,7 +12,7 @@ export async function GET(req: NextRequest) {
   console.log('[mailerlite] env key exists:', !!process.env.MAILERLITE_API_KEY)
   console.log('[mailerlite] env key prefix:', process.env.MAILERLITE_API_KEY?.slice(0, 8))
 
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   // Try: header → user's saved key → env var fallback

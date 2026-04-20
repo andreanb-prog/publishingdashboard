@@ -1,13 +1,12 @@
 // app/api/books/bsr/fetch/route.ts
 // GET /api/books/bsr/fetch?asin=XXXXXXXX
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import { fetchBsrFromAmazon, isRateLimited, markFetched } from '@/lib/bsr-fetch'
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

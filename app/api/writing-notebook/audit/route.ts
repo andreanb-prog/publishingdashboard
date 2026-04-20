@@ -1,7 +1,6 @@
 // app/api/writing-notebook/audit/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import { anthropic, CLAUDE_MODEL } from '@/lib/anthropic'
 import { buildAuditSystemPrompt, type AuditType, type AuditFinding } from '@/lib/auditPrompts'
@@ -10,7 +9,7 @@ const VALID_AUDIT_TYPES: AuditType[] = ['ku_pacing', 'heat_map', 'emotional_arc'
 
 // POST — run an audit on a chapter
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { bookId, chapterIndex, draftIndex, auditType, chapterContent, chapterTitle, bookTitle } = await req.json()
@@ -71,7 +70,7 @@ export async function POST(req: NextRequest) {
 
 // GET — fetch existing audits for a chapter
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)

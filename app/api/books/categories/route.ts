@@ -1,12 +1,11 @@
 // app/api/books/categories/route.ts
 import { NextRequest } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import { load } from 'cheerio'
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id)
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
 

@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 
 export default async function RootPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   redirect(session ? '/dashboard' : '/login')
 }

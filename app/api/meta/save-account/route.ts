@@ -1,12 +1,11 @@
 // app/api/meta/save-account/route.ts — Save user's selected Meta ad account to DB
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 
 // POST — called from client-side fetch
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { accountId } = await req.json()
@@ -22,7 +21,7 @@ export async function POST(req: NextRequest) {
 
 // GET — fallback: /api/meta/save-account?accountId=act_xxx — saves and hard-redirects
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   const base = process.env.NEXTAUTH_URL ?? 'https://authordash.io'
 
   if (!session?.user?.id) {

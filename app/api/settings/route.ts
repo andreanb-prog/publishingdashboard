@@ -1,7 +1,6 @@
 // app/api/settings/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import { fetchMailerLiteStats, getMailerLiteStats } from '@/lib/mailerlite'
 
@@ -12,7 +11,7 @@ function mask(key: string | null | undefined): string {
 
 // GET — return masked keys + books
 export async function GET() {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const user = await db.user.findUnique({
@@ -91,7 +90,7 @@ export async function GET() {
 
 // POST — test keys, save keys, or save books
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()

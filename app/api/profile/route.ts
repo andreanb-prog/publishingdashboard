@@ -1,11 +1,10 @@
 // app/api/profile/route.ts — Save author profile (pen name, genre, referral)
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { penName, genreCategory, genreSubgenre, referralSource } = await req.json()
@@ -23,7 +22,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {

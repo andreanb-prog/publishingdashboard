@@ -1,13 +1,12 @@
 // app/api/writing-notebook/chat/route.ts — GET history + DELETE clear + POST streaming
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import { decrypt } from '@/lib/crypto'
 import Anthropic from '@anthropic-ai/sdk'
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const bookId = req.nextUrl.searchParams.get('bookId') || null
@@ -22,7 +21,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const bookId = req.nextUrl.searchParams.get('bookId') || null
@@ -178,7 +177,7 @@ export async function POST(req: NextRequest) {
   try {
     console.log('[chat] POST hit, env key exists:', !!process.env.ANTHROPIC_API_KEY)
     console.log('[chat] step 1: getting session')
-    const session = await getServerSession(authOptions)
+    const session = await getAugmentedSession()
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     console.log('[chat] step 2: parsing body')
     const { bookId, bookTitle, message, activePhase, workbookData, styleGuide } = await req.json()
