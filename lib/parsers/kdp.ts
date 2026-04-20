@@ -16,10 +16,15 @@ export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
 
   const sheetNames = workbook.SheetNames
 
-  // KDP Dashboard XLSX — has "Combined Sales" sheet
+  // Distinguish KDP Sales Dashboard (has "Paperback Royalty") from
+  // KDP Royalties Estimator (has "Combined Sales" + "Orders Processed" but no "Paperback Royalty")
   if (sheetNames.includes('Combined Sales')) {
-    console.log('[KDP parser] Detected: KDP Dashboard XLSX format')
-    return parseDashboardFormat(workbook)
+    if (sheetNames.includes('Paperback Royalty')) {
+      console.log('[KDP parser] Detected: KDP Sales Dashboard XLSX format')
+      return parseDashboardFormat(workbook)
+    }
+    console.log('[KDP parser] Detected: KDP Royalties Estimator XLSX format')
+    return parseRoyaltiesEstimatorFormat(workbook)
   }
 
   // Legacy multi-sheet XLSX
@@ -634,6 +639,124 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
     rowCount: ordersData.length,
     diagnostics,
     summary: { paidUnits, freeUnits, paperbackUnits },
+  }
+}
+
+// ── KDP Royalties Estimator XLSX (Combined Sales + KENP Read, no Paperback Royalty) ──
+function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
+  const sheetsFound = workbook.SheetNames
+
+  // Combined Sales — reuse existing raw-array parser (handles named + positional royalty column)
+  const combinedSheet  = workbook.Sheets['Combined Sales']
+  const combinedResult = combinedSheet
+    ? parseCombinedSalesSheet(combinedSheet)
+    : { rows: [], meta: { headersFound: [], strategiesUsed: [], skippedCount: 0, firstRow: null } }
+  const combinedData = combinedResult.rows
+  const combinedMeta = combinedResult.meta
+
+  // KENP Read sheet
+  const kenpSheet = workbook.Sheets['KENP Read']
+  const kenpData  = kenpSheet ? sheetToRows(kenpSheet) : []
+
+  console.log(`[KDP parser] Royalties Estimator — Combined Sales: ${combinedData.length}, KENP Read: ${kenpData.length}`)
+  if (kenpData.length) console.log('[KDP parser] Royalties Estimator KENP headers:', Object.keys(kenpData[0]))
+
+  const bookMap       = new Map<string, BookData>()
+  const dailyUnitsMap = new Map<string, number>()
+  const dailyKENPMap  = new Map<string, number>()
+  let totalRoyaltiesUSD = 0
+  let paidUnits = 0
+
+  // Parse Combined Sales — USD rows only for royalties
+  for (const row of combinedData) {
+    const { asin, title, date, units, royalties: royalty, currency } = row
+    const isUSD = currency === 'USD' || currency === ''
+
+    const key = asin || title
+    if (!key) continue
+    if (!bookMap.has(key)) {
+      bookMap.set(key, {
+        title, asin,
+        shortTitle: title.length > 35 ? title.substring(0, 35) + '...' : title,
+        units: 0, kenp: 0, royalties: 0,
+        format: 'ebook',
+      })
+    }
+    bookMap.get(key)!.units     += units
+    bookMap.get(key)!.royalties += isUSD ? royalty : 0
+
+    if (isUSD) totalRoyaltiesUSD += royalty
+    paidUnits += units
+
+    if (date) dailyUnitsMap.set(date, (dailyUnitsMap.get(date) ?? 0) + units)
+  }
+
+  // Build normalized lookup maps for KENP matching
+  const normalizedBookMap = new Map<string, BookData>(
+    Array.from(bookMap.entries()).map(([key, book]) => [key.trim().toUpperCase(), book])
+  )
+  const titleBookMap = new Map<string, BookData>(
+    Array.from(bookMap.values())
+      .filter(book => !!book.title)
+      .map(book => [book.title.toLowerCase().trim(), book])
+  )
+
+  let totalKENP = 0
+  for (const row of kenpData) {
+    const rawAsin = str(pick(row, 'ASIN', 'Asin'))
+    const asin    = rawAsin.trim().toUpperCase()
+    const title   = str(pick(row, 'Title', 'title')).toLowerCase().trim()
+    const kenp    = num(pick(row,
+      'Kindle Edition Normalized Page (KENP) Read',
+      'KENP Read', 'KENP Pages Read', 'Pages Read', 'KENP',
+    ))
+    const date = toISODate(pick(row, 'Date'))
+
+    const book = (asin && normalizedBookMap.get(asin))
+      || (title && titleBookMap.get(title))
+      || null
+    if (book) book.kenp += kenp
+
+    totalKENP += kenp
+    if (date) dailyKENPMap.set(date, (dailyKENPMap.get(date) ?? 0) + kenp)
+  }
+
+  const firstDate = combinedData[0]?.date ?? ''
+  const month = firstDate ? firstDate.substring(0, 7) : new Date().toISOString().substring(0, 7)
+
+  const books         = deduplicateBooks(Array.from(bookMap.values()))
+  const totalUnits    = books.reduce((sum, b) => sum + b.units, 0)
+  const kenpFromBooks = books.reduce((sum, b) => sum + b.kenp, 0)
+  const resolvedKENP  = kenpFromBooks > totalKENP ? kenpFromBooks : totalKENP
+
+  const dailyUnits: DailyData[] = Array.from(dailyUnitsMap.entries())
+    .map(([date, value]) => ({ date, value }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  const dailyKENP: DailyData[] = Array.from(dailyKENPMap.entries())
+    .map(([date, value]) => ({ date, value }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  const skipReasons: string[] = []
+  if (combinedMeta.skippedCount > 0) skipReasons.push('Missing ASIN and title')
+  const diagnostics: ParseDiagnostics = {
+    rowCount:        combinedData.length,
+    sheetsFound,
+    sheetUsed:       'Combined Sales',
+    columnsDetected: combinedMeta.headersFound,
+    skippedRows:     combinedMeta.skippedCount,
+    skipReasons,
+    firstParsedRow:  combinedMeta.firstRow ? { ...combinedMeta.firstRow } as Record<string, unknown> : null,
+    error:           combinedData.length === 0 ? 'No data rows found in Combined Sales sheet' : null,
+    strategyUsed:    combinedMeta.strategiesUsed.join(' | '),
+  }
+
+  return {
+    month, totalRoyaltiesUSD, totalUnits, totalKENP: resolvedKENP,
+    books, dailyUnits, dailyKENP,
+    rowCount: combinedData.length,
+    diagnostics,
+    summary: { paidUnits, freeUnits: 0, paperbackUnits: 0 },
   }
 }
 
