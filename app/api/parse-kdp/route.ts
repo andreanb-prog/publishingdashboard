@@ -5,6 +5,8 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { parseKDPFile } from '@/lib/parsers/kdp'
 
+export const maxDuration = 60
+
 export const config = {
   api: {
     bodyParser: {

@@ -3,6 +3,11 @@
   "buildCommand": "npx prisma generate && next build",
   "devCommand": "next dev",
   "installCommand": "npm install",
+  "functions": {
+    "app/api/parse-kdp/route.ts": {
+      "maxDuration": 60
+    }
+  },
   "crons": [
     {
       "path": "/api/reports/weekly",
