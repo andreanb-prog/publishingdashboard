@@ -282,10 +282,15 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
     setError(null)
 
     try {
+      let uploaded = 0
+
       for (const f of files) {
         if (f.type === 'unknown' || f.type === 'adtracker') continue
         const rawFile = rawFiles.current.get(f.id)
-        if (!rawFile) continue
+        if (!rawFile) {
+          console.warn('[UploadModal] rawFile missing for id:', f.id, '— file may have been cleared')
+          continue
+        }
 
         if (f.type === 'kdp') {
           const form = new FormData()
@@ -305,6 +310,11 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           form.append('file', rawFile)
           fetch('/api/parse-auto', { method: 'POST', body: form }).catch(() => {})
         }
+        uploaded++
+      }
+
+      if (uploaded === 0) {
+        throw new Error('No files could be read. Please remove and re-add your files, then try again.')
       }
 
       window.dispatchEvent(new CustomEvent('dashboard-data-refresh'))
