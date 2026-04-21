@@ -437,24 +437,10 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
   const [copying,     setCopying]     = useState(false)
   const [coachTitle]  = useState(() => getCoachTitle())
   const [expandedPriority, setExpandedPriority] = useState<number | null>(null)
-  const [donePriorities, setDonePriorities] = useState<Set<number>>(() => {
-    if (typeof window === 'undefined') return new Set()
-    const today = new Date().toISOString().slice(0, 10)
-    try {
-      const stored = localStorage.getItem('priorities-done')
-      if (!stored) return new Set<number>()
-      const { date, indices } = JSON.parse(stored)
-      if (date !== today) return new Set<number>()
-      return new Set<number>(indices)
-    } catch { return new Set<number>() }
-  })
+  const [donePriorities, setDonePriorities] = useState<Set<number>>(new Set())
   const [showCompleted, setShowCompleted] = useState(true)
   const [isFresh,     setIsFresh]     = useState(false)
-  const [storyMode,   setStoryMode]   = useState(() => {
-    if (typeof window === 'undefined') return true
-    const stored = localStorage.getItem('story-mode')
-    return stored === null ? true : stored === 'true'
-  })
+  const [storyMode,   setStoryMode]   = useState(true)
 
   function toggleStoryMode() {
     setStoryMode(prev => {
@@ -475,6 +461,18 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
     }
     window.addEventListener('story-mode-change', onStoryModeChange)
     return () => window.removeEventListener('story-mode-change', onStoryModeChange)
+  }, [])
+
+  // Load done priorities from localStorage on mount (avoids hydration mismatch)
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    try {
+      const stored = localStorage.getItem('priorities-done')
+      if (!stored) return
+      const { date, indices } = JSON.parse(stored)
+      if (date !== today) return
+      setDonePriorities(new Set<number>(indices))
+    } catch {}
   }, [])
 
   // Persist done priorities (date-stamped, resets daily)
