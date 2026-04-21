@@ -14,13 +14,15 @@ export type DashboardData = {
   mailerLiteData: MailerLiteData | null
   kdpLastUploadedAt: string | null
   metaLastSync: string | null
+  bookCount: number
+  hasMailerLiteKey: boolean
 }
 
 // React cache() deduplicates within a single server render,
 // so multiple components calling this get the same result.
 export const fetchDashboardData = cache(async (userId: string): Promise<DashboardData> => {
   // Run ALL queries in parallel — this is the key perf win.
-  const [recentRecords, userRow, rankLogs, roasLogs, mailerLiteData, kdpUploadLog] = await Promise.all([
+  const [recentRecords, userRow, rankLogs, roasLogs, mailerLiteData, kdpUploadLog, bookCount] = await Promise.all([
     // 1. Analysis records (replaces /api/analyze GET)
     db.analysis.findMany({
       where: { userId },
@@ -68,6 +70,9 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
       orderBy: { createdAt: 'desc' },
       select: { createdAt: true },
     }).catch(() => null),
+
+    // 7. Book count (for first-run detection)
+    db.book.count({ where: { userId } }).catch(() => 0),
   ])
 
   // Process analysis data (same logic as /api/analyze GET)
@@ -104,5 +109,7 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
     mailerLiteData,
     kdpLastUploadedAt,
     metaLastSync,
+    bookCount,
+    hasMailerLiteKey: !!userRow?.mailerLiteKey,
   }
 })

@@ -13,6 +13,7 @@ import { InsightCallouts } from '@/components/InsightCallout'
 import { FreshBanner } from '@/components/FreshBanner'
 import { OnboardingBanner } from '@/components/OnboardingBanner'
 import { SetupChecklist } from '@/components/SetupChecklist'
+import { FirstRunBanner } from '@/components/FirstRunBanner'
 import { SortablePage } from '@/components/SortablePage'
 import { BookOpen, TrendingUp, Mail, Pin } from '@/components/icons'
 
@@ -720,6 +721,11 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <OnboardingBanner userName={userName} />
       <SetupChecklist analysis={analysis} />
+      <FirstRunBanner
+        hasBooks={(initialData?.bookCount ?? 0) > 0}
+        hasKdpData={!!(initialData?.kdpLastUploadedAt ?? kdpLastUploadedAt)}
+        hasMailerLite={!!(initialData?.hasMailerLiteKey ?? false)}
+      />
 
       {/* Meta OAuth error banner */}
       {metaErrorBanner && (
