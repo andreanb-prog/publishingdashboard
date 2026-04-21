@@ -16,9 +16,17 @@ interface Props {
   size?: 'sm' | 'md'
 }
 
+function fmtNextAllowed(iso: string | null): string {
+  if (!iso) return 'in ~1h'
+  const mins = Math.max(1, Math.round((new Date(iso).getTime() - Date.now()) / 60_000))
+  if (mins >= 60) return 'in ~1h'
+  return `in ~${mins}m`
+}
+
 export default function BsrFetchButton({ asin, onResult, onError, size = 'md' }: Props) {
   const [state, setState] = useState<State>('idle')
   const [fetchedRank, setFetchedRank] = useState<number | null>(null)
+  const [nextAllowed, setNextAllowed] = useState<string | null>(null)
 
   async function handleFetch() {
     if (!asin || state === 'loading') return
@@ -30,9 +38,10 @@ export default function BsrFetchButton({ asin, onResult, onError, size = 'md' }:
       const d = await r.json()
 
       if (d.error === 'rate_limited') {
+        setNextAllowed(d.nextAllowed ?? null)
         setState('rate_limited')
         onError?.('rate_limited')
-        setTimeout(() => setState('idle'), 3000)
+        setTimeout(() => setState('idle'), 5000)
         return
       }
       if (d.error === 'blocked') {
@@ -65,7 +74,7 @@ export default function BsrFetchButton({ asin, onResult, onError, size = 'md' }:
       state === 'loading' ? 'Fetching…' :
       state === 'success' && fetchedRank != null ? `✓ #${fetchedRank.toLocaleString()}` :
       state === 'blocked' ? 'Amazon blocked' :
-      state === 'rate_limited' ? 'Try again later' :
+      state === 'rate_limited' ? `Refreshes hourly · available ${fmtNextAllowed(nextAllowed)}` :
       'Refresh BSR'
 
     const labelColor =
@@ -77,7 +86,7 @@ export default function BsrFetchButton({ asin, onResult, onError, size = 'md' }:
       <button
         onClick={handleFetch}
         disabled={state === 'loading'}
-        title="Refresh BSR from Amazon"
+        title="BSR refreshes hourly from Amazon"
         className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium transition-all disabled:opacity-50"
         style={{
           background: '#F5F5F4',
@@ -123,6 +132,11 @@ export default function BsrFetchButton({ asin, onResult, onError, size = 'md' }:
           'Refresh Rank →'
         )}
       </button>
+      {state === 'idle' && (
+        <span className="text-[11px]" style={{ color: '#9CA3AF' }}>
+          Refreshes hourly from Amazon
+        </span>
+      )}
       {state === 'blocked' && (
         <span className="text-[11.5px] font-medium" style={{ color: '#E9A020' }}>
           ⚠ Amazon blocked — enter manually
@@ -130,7 +144,7 @@ export default function BsrFetchButton({ asin, onResult, onError, size = 'md' }:
       )}
       {state === 'rate_limited' && (
         <span className="text-[11.5px]" style={{ color: '#9CA3AF' }}>
-          Try again later
+          Refreshes hourly · available {fmtNextAllowed(nextAllowed)}
         </span>
       )}
     </span>
