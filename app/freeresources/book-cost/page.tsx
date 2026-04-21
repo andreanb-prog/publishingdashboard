@@ -132,7 +132,7 @@ export default function BookCostPage() {
 
         {/* CTA buttons */}
         <a
-          href="https://PLACEHOLDER_GOOGLE_DRIVE_LINK"
+          href="https://docs.google.com/document/d/1wRq0x1Upf2st0mNGNfpJ64Q2kHiuWrqC51HWmtwU1IE/copy"
           style={{
             display: 'block', textAlign: 'center', textDecoration: 'none',
             background: '#1E2D3D', color: '#fff', borderRadius: 8,
