@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react'
 import { List, X, House, UploadSimple, GraduationCap, Gear } from '@phosphor-icons/react'
 
 function openUploadModal() {
-  window.dispatchEvent(new CustomEvent('open-upload-modal'))
+  try { window.dispatchEvent(new CustomEvent('open-upload-modal')) } catch {}
 }
 import {
   IconKDP, IconMeta, IconMailerLite, IconSwaps, IconPinterest,

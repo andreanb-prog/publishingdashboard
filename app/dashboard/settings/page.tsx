@@ -681,7 +681,7 @@ export default function SettingsPage() {
 
   // ── KDP file upload ───────────────────────────────────────────────────────
   function openUploadModal() {
-    window.dispatchEvent(new CustomEvent('open-upload-modal'))
+    try { window.dispatchEvent(new CustomEvent('open-upload-modal')) } catch {}
   }
 
   // ── Load settings ─────────────────────────────────────────────────────────
@@ -737,7 +737,7 @@ export default function SettingsPage() {
       setTimeout(() => setMetaSuccess(false), 4000)
       const cleanUrl = window.location.pathname + window.location.search.replace(/[?&]?meta=connected/, '')
       window.history.replaceState(null, '', cleanUrl || window.location.pathname)
-      window.dispatchEvent(new CustomEvent('meta:connected'))
+      try { window.dispatchEvent(new CustomEvent('meta:connected')) } catch {}
     }
     if (window.location.search.includes('meta=error')) {
       setMetaError(true)
@@ -775,7 +775,7 @@ export default function SettingsPage() {
     setMetaLastSync(null)
     setMetaSuccess(false)
     setMetaError(false)
-    window.dispatchEvent(new CustomEvent('meta:disconnected'))
+    try { window.dispatchEvent(new CustomEvent('meta:disconnected')) } catch {}
   }
 
   // ── BookFunnel handlers ──────────────────────────────────────────────────

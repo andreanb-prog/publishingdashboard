@@ -15,6 +15,10 @@ export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
   //   Flat CSV/XLSX:  single sheet with column headers (Royalty Estimator / All Titles)
 
   const sheetNames = workbook.SheetNames
+  console.log('[KDP parser] Sheet names:', sheetNames)
+  const _firstSheet0 = workbook.Sheets[sheetNames[0]]
+  const _a1raw = _firstSheet0?.['A1']?.v
+  console.log('[KDP parser] A1 raw value:', JSON.stringify(_a1raw))
 
   // Distinguish KDP Sales Dashboard (has "Paperback Royalty") from
   // KDP Royalties Estimator (has "Combined Sales" + "Orders Processed" but no "Paperback Royalty")
@@ -37,7 +41,8 @@ export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
   const firstSheet = workbook.Sheets[sheetNames[0]]
   if (firstSheet) {
     const a1 = firstSheet['A1']?.v
-    const a1str = typeof a1 === 'string' ? a1.toLowerCase().trim() : ''
+    const a1str = typeof a1 === 'string' ? a1.replace(/^\uFEFF/, '').toLowerCase().trim() : ''
+    console.log('[KDP parser] A1 normalized:', JSON.stringify(a1str))
     if (a1str === 'sales period') {
       console.log('[KDP parser] Detected: Prior Month Royalties format')
       return parsePriorMonthRoyaltiesFormat(workbook)

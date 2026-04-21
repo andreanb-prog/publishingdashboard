@@ -23,6 +23,11 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer())
 
+    // Debug: log file info and first 500 bytes to trace format detection issues
+    const preview = buffer.slice(0, 500).toString('utf8').replace(/\r\n/g, '\n')
+    console.log('[parse-kdp] file:', file.name, '| size:', file.size, 'bytes')
+    console.log('[parse-kdp] first 500 bytes:', preview)
+
     let data
     try {
       data = parseKDPFile(buffer)
