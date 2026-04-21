@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter Comp Audit · AuthorDash</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream: #FFF8F0;
+    --navy: #1E2D3D;
+    --amber: #E9A020;
+    --sage: #6EBF8B;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    background: var(--cream);
+    color: var(--navy);
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: var(--navy);
+    padding: 20px 24px 22px;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+  .logo-mark {
+    width: 28px;
+    height: 28px;
+    background: var(--amber);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+    letter-spacing: -0.02em;
+    flex-shrink: 0;
+  }
+  .logo-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.01em;
+  }
+  .free-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--amber);
+    background: transparent;
+    border: 1px solid rgba(233,160,32,0.5);
+    border-radius: 20px;
+    padding: 3px 10px;
+  }
+  .header-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .header-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .header-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .header-pill {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 3px 10px;
+  }
+
+  /* Main */
+  .main {
+    padding: 20px 20px 48px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  /* Intro card */
+  .intro-card {
+    background: white;
+    border: 0.5px solid rgba(30,45,61,0.12);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .intro-card p {
+    font-size: 13px;
+    color: rgba(30,45,61,0.65);
+    line-height: 1.7;
+    margin-bottom: 10px;
+  }
+  .intro-card p:last-child { margin-bottom: 0; }
+
+  /* Legal note card */
+  .legal-note {
+    background: rgba(233,160,32,0.08);
+    border-left: 3px solid var(--amber);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  .legal-note-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--amber);
+    margin-bottom: 6px;
+  }
+  .legal-note-body {
+    font-size: 13px;
+    color: rgba(30,45,61,0.65);
+    line-height: 1.65;
+  }
+
+  /* Prompt container */
+  .prompt-container {
+    background: white;
+    border: 0.5px solid rgba(30,45,61,0.12);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .prompt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(30,45,61,0.07);
+    background: var(--cream);
+  }
+  .prompt-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(30,45,61,0.4);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    background: var(--amber);
+    color: var(--navy);
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.15s;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .copy-btn:hover { background: #d4901a; }
+  .copy-btn.copied {
+    background: var(--sage);
+    color: white;
+  }
+  .prompt-text {
+    padding: 16px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: rgba(30,45,61,0.85);
+    white-space: pre-wrap;
+    font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+    max-height: 420px;
+    overflow-y: auto;
+  }
+  .prompt-text::-webkit-scrollbar { width: 4px; }
+  .prompt-text::-webkit-scrollbar-track { background: transparent; }
+  .prompt-text::-webkit-scrollbar-thumb { background: rgba(30,45,61,0.15); border-radius: 2px; }
+
+  /* Tip card */
+  .tip-card {
+    background: rgba(110,191,139,0.08);
+    border-left: 3px solid var(--sage);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 12px;
+  }
+  .tip-item {
+    font-size: 13px;
+    color: rgba(30,45,61,0.65);
+    line-height: 1.65;
+    margin-bottom: 8px;
+    padding-left: 0;
+  }
+  .tip-item:last-child { margin-bottom: 0; }
+  .tip-arrow {
+    color: var(--sage);
+    font-weight: 700;
+    margin-right: 6px;
+  }
+
+  /* Open in Claude CTA */
+  .cta-btn {
+    display: block;
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    background: var(--amber);
+    color: var(--navy);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .cta-btn:hover { opacity: 0.88; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 24px 20px 40px;
+    font-size: 11px;
+    color: rgba(30,45,61,0.3);
+    line-height: 1.9;
+  }
+  .footer a {
+    color: rgba(30,45,61,0.5);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .footer-name {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    color: var(--navy);
+    font-size: 13px;
+    display: block;
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <a href="https://authordash.io" class="logo" target="_blank">
+      <div class="logo-mark">A</div>
+      <span class="logo-text">AuthorDash</span>
+    </a>
+    <div class="free-badge">Free Resource</div>
+  </div>
+  <div class="header-title">Chapter Comp Audit</div>
+  <div class="header-sub">Find out exactly where your Chapter 1 stands against the authors writing in your lane.</div>
+  <div class="header-pills">
+    <div class="header-pill">8 craft dimensions</div>
+    <div class="header-pill">Any AI</div>
+    <div class="header-pill">Works Claude + ChatGPT</div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Intro card -->
+  <div class="intro-card">
+    <p>Want to improve your craft? This is how Claude or ChatGPT can help you study the authors writing in your exact lane — and identify precisely where your Chapter 1 is aligned with them and where it isn't.</p>
+    <p>Use this prompt as a starting point, then make it yours. Add dimensions that matter for your genre. Remove ones that don't. The more you customize it, the sharper the diagnostic gets.</p>
+    <p>Once you run it and get output you like, save the customized prompt in the Claude Project or chat thread for that book. That way you can run it on your next draft without starting over.</p>
+  </div>
+
+  <!-- Legal note -->
+  <div class="legal-note">
+    <div class="legal-note-title">A Note on Pasting Comp Excerpts</div>
+    <div class="legal-note-body">Pasting a few pages of a published book into a private AI chat is the same as highlighting those pages and typing passages into your notebook to study them. Copyright law covers reproduction and distribution — not private craft study. Three ground rules: keep the output private, use it to strengthen your own book only, and if it still feels wrong, describe the comp opening from memory instead of pasting. The analysis still works.</div>
+  </div>
+
+  <!-- Prompt container -->
+  <div class="prompt-container">
+    <div class="prompt-header">
+      <span class="prompt-label">Chapter Comp Audit &middot; 8 Dimensions &middot; Claude + ChatGPT</span>
+      <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 11V3a1 1 0 0 1 1-1h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Copy prompt
+      </button>
+    </div>
+    <div class="prompt-text" id="prompt-text">You are an expert indie romance craft consultant helping me audit my Chapter 1 against the Chapter 1 of authors I'm studying. Use the 8-dimension framework below. Don't rush ahead. Wait for me at each step.
+
+## THE 8 DIMENSIONS
+
+1. Tense — past or present
+2. Opening POV — hero or heroine; who the reader meets first
+3. Opening hook — action word / declaration / complaint / observation / dialogue
+4. Paragraph density — dense (60-120 words per paragraph) / moderate (40-80) / compact (15-40) / fragmented (3-15)
+5. Heat register — explicit (on-page sexual content) / charged-clothed (mutual gaze, body awareness, no explicit language) / brief notice ("he was handsome" and plot moves on) / sweet (blush, flutter, heart skip only)
+6. Humor register — dry+swagger / cozy embarrassment / situational comedy / dry observational / absent
+7. Opening engine — contained scene (one location, one beat) / stacked chaos (multiple plot engines)
+8. Trope clarity — explicit (trope named or clearly flagged by end of chapter) / subtle (implied only)
+
+## THE STEPS
+
+Step 1 — My opening. Ask me to paste my Chapter 1. Wait. When I paste it, confirm receipt and ask me for Step 2. Do not analyze yet.
+
+Step 2 — My comps. Ask me to name 2-3 authors I'm studying — not my favorites, the ones actually writing in my exact lane. Wait for my answer.
+
+Step 3 — Their openings. Ask me to paste the Chapter 1 of each comp title (or the first ~1000 words if that's what I have). Accept them one at a time. Confirm receipt after each.
+
+Step 4 — The matrix. Build a single matrix with my book and each comp title as columns, the 8 dimensions as rows. For every cell, quote a specific short excerpt as evidence — do not summarize, quote. Keep each cell to 3-5 words plus the excerpt.
+
+Step 5 — The honest read. Tell me the 2 dimensions where my book is most off from my comps. Do not soften the feedback. If my opening is fragmented and my comps are dense-block, say so plainly. If my heat register is sweet and my comps are explicit, say so plainly. These are the craft levers I should consider pulling.
+
+Step 6 — One revision question. Give me ONE specific, actionable question I should answer before touching Chapter 1 again. The kind of question that makes a writer close their laptop and think for ten minutes before rewriting a single word.
+
+Start with Step 1 now. Wait for my input.</div>
+  </div>
+
+  <!-- Tip card -->
+  <div class="tip-card">
+    <div class="tip-item"><span class="tip-arrow">→</span>Pick real comps, not wishlist comps. The authors your ideal reader reads in the same week as your book — not your favorites.</div>
+    <div class="tip-item"><span class="tip-arrow">→</span>Don't argue with Step 5. When the AI names your two weakest dimensions, sit with it for 24 hours before deciding whether it's right.</div>
+    <div class="tip-item"><span class="tip-arrow">→</span>The revision question in Step 6 is the whole point. That one question, answered honestly, is what gives you the next draft.</div>
+    <div class="tip-item"><span class="tip-arrow">→</span>If the output feels soft, paste this: "That was too vague. Go back to the matrix evidence and be specific. Quote me the lines that prove it."</div>
+  </div>
+
+  <!-- CTA -->
+  <a class="cta-btn" id="claude-cta" href="#" target="_blank" rel="noopener noreferrer">&#10022; Open in Claude — prompt pre-loaded</a>
+
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  A free resource from <a href="https://authordash.io" target="_blank">AuthorDash</a> · Questions? <a href="mailto:info@ellewilderbooks.com">info@ellewilderbooks.com</a>
+  <span class="footer-name">Elle Wilder</span>
+</div>
+
+<script>
+const PROMPT_TEXT = document.getElementById('prompt-text').textContent;
+
+const CLAUDE_PREFIX = "I want to run a Chapter 1 comp audit on my romance novel. Here is the full prompt — please read it, confirm you understand the 8 dimensions and 6 steps, and then start with Step 1.\n\n";
+
+document.getElementById('claude-cta').href =
+  'https://claude.ai/new?q=' + encodeURIComponent(CLAUDE_PREFIX + PROMPT_TEXT);
+
+function copyPrompt() {
+  navigator.clipboard.writeText(PROMPT_TEXT).then(function() {
+    const btn = document.getElementById('copy-btn');
+    btn.classList.add('copied');
+    btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Copied';
+    setTimeout(function() {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 11V3a1 1 0 0 1 1-1h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Copy prompt';
+    }, 2000);
+  });
+}
+</script>
+</body>
+</html>

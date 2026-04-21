@@ -31,7 +31,7 @@ export default function FreeResourcesPage() {
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '20px 20px 60px' }}>
 
         <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(30,45,61,0.35)', marginBottom: 14 }}>
-          3 resources
+          4 resources
         </p>
 
         {/* Card 1 — Swap Assistant */}
@@ -160,6 +160,53 @@ export default function FreeResourcesPage() {
                 ))}
               </div>
             </div>
+            <span style={{ fontSize: 18, color: 'rgba(30,45,61,0.2)', flexShrink: 0 }}>›</span>
+          </div>
+        </a>
+
+        {/* Card 4 — Chapter Comp Audit */}
+        <a href="/freeresources/comp-audit" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+          <div style={{
+            background: '#fff', border: '0.5px solid rgba(30,45,61,0.12)', borderRadius: 12,
+            padding: 16, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 14,
+          }}>
+            {/* Icon */}
+            <div style={{
+              width: 40, height: 40, borderRadius: 10, background: 'rgba(110,191,139,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <rect x="2" y="3" width="7" height="14" rx="1.5" stroke="#6EBF8B" strokeWidth="1.5" fill="none" />
+                <rect x="11" y="3" width="7" height="14" rx="1.5" stroke="#6EBF8B" strokeWidth="1.5" fill="none" />
+                <line x1="4.5" y1="7" x2="6.5" y2="7" stroke="#6EBF8B" strokeWidth="1.2" strokeLinecap="round" />
+                <line x1="4.5" y1="10" x2="6.5" y2="10" stroke="#6EBF8B" strokeWidth="1.2" strokeLinecap="round" />
+                <line x1="4.5" y1="13" x2="6.5" y2="13" stroke="#6EBF8B" strokeWidth="1.2" strokeLinecap="round" />
+                <line x1="13.5" y1="7" x2="15.5" y2="7" stroke="#6EBF8B" strokeWidth="1.2" strokeLinecap="round" />
+                <line x1="13.5" y1="10" x2="15.5" y2="10" stroke="#6EBF8B" strokeWidth="1.2" strokeLinecap="round" />
+                <line x1="13.5" y1="13" x2="15.5" y2="13" stroke="#6EBF8B" strokeWidth="1.2" strokeLinecap="round" />
+              </svg>
+            </div>
+            {/* Body */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#6EBF8B', marginBottom: 3 }}>
+                AI Prompt Tool
+              </p>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#1E2D3D', marginBottom: 4, letterSpacing: '-0.01em' }}>
+                Chapter Comp Audit
+              </p>
+              <p style={{ fontSize: 12, color: 'rgba(30,45,61,0.55)', lineHeight: 1.55, marginBottom: 8 }}>
+                Paste your Chapter 1 alongside your comp authors. Get a scored matrix showing exactly where your craft dimensions align — and where they don&apos;t.
+              </p>
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                {['Comp Analysis', 'Chapter 1', 'Any AI'].map(pill => (
+                  <span key={pill} style={{
+                    fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20,
+                    background: 'rgba(30,45,61,0.06)', color: 'rgba(30,45,61,0.45)',
+                  }}>{pill}</span>
+                ))}
+              </div>
+            </div>
+            {/* Chevron */}
             <span style={{ fontSize: 18, color: 'rgba(30,45,61,0.2)', flexShrink: 0 }}>›</span>
           </div>
         </a>
