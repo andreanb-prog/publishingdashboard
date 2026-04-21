@@ -513,14 +513,12 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
   const animKenp  = useCountUp(_kenpTarget,  isFresh && !!analysis?.kdp)
   const animCtr   = useCountUp(_ctrTarget,   isFresh && !!analysis?.meta?.bestAd)
 
-  const [dateRange, setDateRange] = useState<{ from: string; to: string }>(getDefaultDateRange)
   useEffect(() => {
     try {
       const stored = localStorage.getItem('authordash_date_range')
       if (stored) {
         const parsed = JSON.parse(stored)
         const def = getDefaultDateRange()
-        setDateRange(parsed)
         if (parsed.from !== def.from || parsed.to !== def.to) setRefreshKey(k => k + 1)
       }
     } catch {}
@@ -546,7 +544,16 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
     // Skip initial fetch if server-side data was provided (refreshKey === 0)
     if (hasInitial && refreshKey === 0) return
 
-    const dateParams = new URLSearchParams({ from: dateRange.from, to: dateRange.to }).toString()
+    // Read the current date range from localStorage (Apply writes there before dispatching
+    // the event, so this is always current regardless of React render timing).
+    const { from, to } = (() => {
+      try {
+        const stored = localStorage.getItem('authordash_date_range')
+        if (stored) return JSON.parse(stored) as { from: string; to: string }
+      } catch {}
+      return getDefaultDateRange()
+    })()
+    const dateParams = new URLSearchParams({ from, to }).toString()
 
     Promise.all([
       fetch(`/api/analyze?${dateParams}`).then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => ({})),
@@ -658,11 +665,12 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
     return () => window.removeEventListener('dashboard-data-refresh', onUploadComplete)
   }, [])
 
-  // Listen for date range changes fired by TopBar
+  // Listen for date range changes fired by TopBar.
+  // localStorage is updated by Apply before the event is dispatched,
+  // so incrementing refreshKey is sufficient — the fetch effect reads
+  // the current range directly from localStorage.
   useEffect(() => {
-    function onDateRangeChange(e: Event) {
-      const { from, to } = (e as CustomEvent<{ from: string; to: string }>).detail
-      setDateRange({ from, to })
+    function onDateRangeChange() {
       setRefreshKey(k => k + 1)
     }
     window.addEventListener('date-range-change', onDateRangeChange)
