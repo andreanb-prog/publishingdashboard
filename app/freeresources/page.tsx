@@ -39,11 +39,7 @@ export default function FreeResourcesPage() {
           <div style={{
             background: '#fff', border: '0.5px solid rgba(30,45,61,0.12)', borderRadius: 12,
             padding: 16, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 14,
-            transition: 'box-shadow 0.15s',
-          }}
-            onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 12px rgba(30,45,61,0.08)')}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
-          >
+          }}>
             {/* Icon */}
             <div style={{
               width: 40, height: 40, borderRadius: 10, background: 'rgba(249,123,107,0.15)',
@@ -88,10 +84,7 @@ export default function FreeResourcesPage() {
           <div style={{
             background: '#fff', border: '0.5px solid rgba(30,45,61,0.12)', borderRadius: 12,
             padding: 16, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 14,
-          }}
-            onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 12px rgba(30,45,61,0.08)')}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
-          >
+          }}>
             {/* Icon */}
             <div style={{
               width: 40, height: 40, borderRadius: 10, background: 'rgba(139,92,246,0.15)',
@@ -133,10 +126,7 @@ export default function FreeResourcesPage() {
           <div style={{
             background: '#fff', border: '0.5px solid rgba(30,45,61,0.12)', borderRadius: 12,
             padding: 16, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 14,
-          }}
-            onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 12px rgba(30,45,61,0.08)')}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
-          >
+          }}>
             {/* Icon */}
             <div style={{
               width: 40, height: 40, borderRadius: 10, background: 'rgba(91,191,181,0.15)',
