@@ -85,6 +85,99 @@ function getPreviousPeriod(start: string, end: string): { start: string; end: st
   return { start: fmt(prevStart), end: fmt(prevEnd) }
 }
 
+// ── Date Range Picker helpers ─────────────────────────────────────────────────
+function ymdToDisplay(ymd: string): string {
+  if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ''
+  const [y, m, d] = ymd.split('-')
+  return `${m}/${d}/${y}`
+}
+
+function displayToYmd(text: string): string | null {
+  const match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (!match) return null
+  const [, m, d, y] = match
+  const date = new Date(`${y}-${m}-${d}T00:00:00`)
+  if (isNaN(date.getTime())) return null
+  return `${y}-${m}-${d}`
+}
+
+const MONTH_NAMES = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December',
+]
+
+function MiniCalendar({
+  selectedYmd, onSelect, viewMonth, onViewMonthChange,
+}: {
+  selectedYmd: string
+  onSelect: (ymd: string) => void
+  viewMonth: Date
+  onViewMonthChange: (d: Date) => void
+}) {
+  const year      = viewMonth.getFullYear()
+  const mo        = viewMonth.getMonth()
+  const firstDow  = new Date(year, mo, 1).getDay()
+  const daysInMo  = new Date(year, mo + 1, 0).getDate()
+  const todayYmd  = fmt(new Date())
+
+  const cells: (number | null)[] = [
+    ...Array(firstDow).fill(null),
+    ...Array.from({ length: daysInMo }, (_, i) => i + 1),
+  ]
+  while (cells.length % 7 !== 0) cells.push(null)
+
+  return (
+    <div className="w-full">
+      <div className="flex items-center justify-between mb-2">
+        <button
+          type="button"
+          onClick={() => onViewMonthChange(new Date(year, mo - 1, 1))}
+          className="w-6 h-6 flex items-center justify-center rounded hover:bg-amber-50 text-[14px] font-semibold"
+          style={{ color: '#1E2D3D' }}
+        >‹</button>
+        <span className="text-[11px] font-semibold" style={{ color: '#1E2D3D' }}>
+          {MONTH_NAMES[mo]} {year}
+        </span>
+        <button
+          type="button"
+          onClick={() => onViewMonthChange(new Date(year, mo + 1, 1))}
+          className="w-6 h-6 flex items-center justify-center rounded hover:bg-amber-50 text-[14px] font-semibold"
+          style={{ color: '#1E2D3D' }}
+        >›</button>
+      </div>
+      <div className="grid grid-cols-7 mb-1">
+        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(day => (
+          <div key={day} className="text-center text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#9CA3AF' }}>{day}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-y-0.5">
+        {cells.map((day, i) => {
+          if (!day) return <div key={i} />
+          const cellYmd    = `${year}-${String(mo + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+          const isSelected = cellYmd === selectedYmd
+          const isToday    = cellYmd === todayYmd
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onSelect(cellYmd)}
+              className="text-center text-[11px] py-[3px] rounded"
+              style={{
+                background: isSelected ? '#E9A020' : 'transparent',
+                color:      isSelected ? 'white' : isToday ? '#E9A020' : '#1E2D3D',
+                fontWeight: isSelected || isToday ? 600 : 400,
+                outline:    isToday && !isSelected ? '0.5px solid #E9A020' : 'none',
+              }}
+            >
+              {day}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── Date Range Picker ─────────────────────────────────────────────────────────
 const PRESETS: { key: Preset; label: string }[] = [
   { key: 'last7',     label: 'Last 7 days' },
@@ -96,50 +189,176 @@ const PRESETS: { key: Preset; label: string }[] = [
 ]
 
 function DateRangePicker({
-  preset, onPreset, customStart, customEnd, onCustomStart, onCustomEnd,
+  preset, onPreset, customStart, customEnd, onApply,
 }: {
   preset: Preset
   onPreset: (p: Preset) => void
   customStart: string
   customEnd: string
-  onCustomStart: (v: string) => void
-  onCustomEnd: (v: string) => void
+  onApply: (start: string, end: string) => void
 }) {
+  const [open,       setOpen]       = useState(false)
+  const [draftStart, setDraftStart] = useState('')
+  const [draftEnd,   setDraftEnd]   = useState('')
+  const [fromText,   setFromText]   = useState('')
+  const [toText,     setToText]     = useState('')
+  const [fromMonth,  setFromMonth]  = useState<Date>(() => new Date())
+  const [toMonth,    setToMonth]    = useState<Date>(() => new Date())
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  // Close on click outside
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  function openPopover() {
+    const today = fmt(new Date())
+    const s = customStart || today
+    const e = customEnd   || today
+    setDraftStart(s)
+    setDraftEnd(e)
+    setFromText(ymdToDisplay(s))
+    setToText(ymdToDisplay(e))
+    setFromMonth(new Date(s + 'T00:00:00'))
+    setToMonth(new Date(e + 'T00:00:00'))
+    setOpen(true)
+  }
+
+  function handleFromText(val: string) {
+    setFromText(val)
+    const ymd = displayToYmd(val)
+    if (ymd) { setDraftStart(ymd); setFromMonth(new Date(ymd + 'T00:00:00')) }
+  }
+
+  function handleToText(val: string) {
+    setToText(val)
+    const ymd = displayToYmd(val)
+    if (ymd) { setDraftEnd(ymd); setToMonth(new Date(ymd + 'T00:00:00')) }
+  }
+
+  function handleFromSelect(ymd: string) {
+    setDraftStart(ymd)
+    setFromText(ymdToDisplay(ymd))
+  }
+
+  function handleToSelect(ymd: string) {
+    setDraftEnd(ymd)
+    setToText(ymdToDisplay(ymd))
+  }
+
+  function handleApply() {
+    let s = draftStart
+    let e = draftEnd || fmt(new Date())
+    if (s && e && e < s) { [s, e] = [e, s] }
+    onPreset('custom')
+    onApply(s, e)
+    setOpen(false)
+  }
+
+  // Preset active style — show Custom as active while popover is open
+  const activePreset = open ? 'custom' : preset
+
   return (
-    <div>
+    <div className="relative" ref={wrapperRef}>
       <div className="flex flex-wrap items-center gap-1.5">
         {PRESETS.map(p => (
           <button
             key={p.key}
-            onClick={() => onPreset(p.key)}
+            type="button"
+            onClick={() => {
+              if (p.key === 'custom') {
+                openPopover()
+              } else {
+                setOpen(false)
+                onPreset(p.key)
+              }
+            }}
             className="px-2.5 py-1 rounded-full text-[12px] font-medium transition-all duration-150"
             style={{
-              background: preset === p.key ? '#E9A020' : '#FFF8F0',
-              color:      preset === p.key ? 'white' : '#1E2D3D',
-              border:     `0.5px solid ${preset === p.key ? '#E9A020' : '#EEEBE6'}`,
+              background: activePreset === p.key ? '#E9A020' : '#FFF8F0',
+              color:      activePreset === p.key ? 'white' : '#1E2D3D',
+              border:     `0.5px solid ${activePreset === p.key ? '#E9A020' : '#EEEBE6'}`,
             }}
           >
             {p.label}
           </button>
         ))}
-        {preset === 'custom' && (
-          <div className="flex items-center gap-2 mt-1 w-full ml-[62px]">
-            <input
-              type="date"
-              value={customStart}
-              onChange={e => onCustomStart(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-navy font-[Plus_Jakarta_Sans]"
-            />
-            <span style={{ color: '#6B7280' }}>→</span>
-            <input
-              type="date"
-              value={customEnd}
-              onChange={e => onCustomEnd(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-navy font-[Plus_Jakarta_Sans]"
-            />
-          </div>
-        )}
       </div>
+
+      {open && (
+        <div
+          className="absolute right-0 mt-2 z-50 rounded-xl shadow-lg p-4"
+          style={{ background: '#FFF8F0', border: '0.5px solid #EEEBE6', width: '460px' }}
+        >
+          <div className="flex gap-4">
+            {/* From */}
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-semibold mb-1.5" style={{ color: '#1E2D3D' }}>From</p>
+              <input
+                type="text"
+                placeholder="MM/DD/YYYY"
+                value={fromText}
+                onChange={e => handleFromText(e.target.value)}
+                className="w-full rounded-lg px-2.5 py-1.5 text-[12px] mb-3 focus:outline-none"
+                style={{ border: '0.5px solid #EEEBE6', background: 'white', color: '#1E2D3D' }}
+              />
+              <MiniCalendar
+                selectedYmd={draftStart}
+                onSelect={handleFromSelect}
+                viewMonth={fromMonth}
+                onViewMonthChange={setFromMonth}
+              />
+            </div>
+
+            <div style={{ width: '0.5px', background: '#EEEBE6', flexShrink: 0 }} />
+
+            {/* To */}
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-semibold mb-1.5" style={{ color: '#1E2D3D' }}>To</p>
+              <input
+                type="text"
+                placeholder="MM/DD/YYYY"
+                value={toText}
+                onChange={e => handleToText(e.target.value)}
+                className="w-full rounded-lg px-2.5 py-1.5 text-[12px] mb-3 focus:outline-none"
+                style={{ border: '0.5px solid #EEEBE6', background: 'white', color: '#1E2D3D' }}
+              />
+              <MiniCalendar
+                selectedYmd={draftEnd}
+                onSelect={handleToSelect}
+                viewMonth={toMonth}
+                onViewMonthChange={setToMonth}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4 pt-3" style={{ borderTop: '0.5px solid #EEEBE6' }}>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="px-3 py-1.5 rounded-lg text-[12px] font-medium"
+              style={{ border: '0.5px solid #EEEBE6', background: 'white', color: '#1E2D3D' }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleApply}
+              className="px-3 py-1.5 rounded-lg text-[12px] font-medium"
+              style={{ background: '#E9A020', border: '0.5px solid #E9A020', color: 'white' }}
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -951,7 +1170,7 @@ export default function KDPPage() {
         <div>
           <DateRangePicker preset={preset} onPreset={handlePreset}
             customStart={customStart} customEnd={customEnd}
-            onCustomStart={setCustomStart} onCustomEnd={setCustomEnd} />
+            onApply={(s, e) => { setCustomStart(s); setCustomEnd(e) }} />
           <p className="text-[11px] mt-1.5" style={{ color: '#9CA3AF' }}>
             {kdpLastUploadedAt
               ? (() => {
