@@ -1,6 +1,6 @@
 // lib/parsers/kdp.ts
 import * as XLSX from 'xlsx'
-import type { KDPData, BookData, DailyData, ParseDiagnostics } from '@/types'
+import type { KDPData, KdpRawRow, BookData, DailyData, ParseDiagnostics } from '@/types'
 
 export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
   const workbook = XLSX.read(buffer, {

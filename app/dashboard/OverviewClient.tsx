@@ -719,7 +719,11 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
     <div className="p-4 md:p-8 max-w-[1400px]">
 
       <Suspense fallback={null}><FreshBanner /></Suspense>
-      <OnboardingBanner userName={userName} />
+      <OnboardingBanner
+        bookCount={initialData?.bookCount ?? 0}
+        hasKdpData={!!analysis?.kdp}
+        hasMailerLiteKey={initialData?.hasMailerLiteKey ?? !!liveML}
+      />
       <SetupChecklist analysis={analysis} />
       <FirstRunBanner
         hasBooks={(initialData?.bookCount ?? 0) > 0}

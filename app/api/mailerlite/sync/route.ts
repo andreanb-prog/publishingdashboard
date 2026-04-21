@@ -28,8 +28,8 @@ export async function POST(_req: NextRequest) {
     select: { mailerLiteKey: true, mailerLiteLists: true },
   })
 
-  const apiKey = user?.mailerLiteKey || process.env.MAILERLITE_API_KEY
-  if (!apiKey) return NextResponse.json({ error: 'No MailerLite API key' }, { status: 400 })
+  const apiKey = user?.mailerLiteKey || null
+  if (!apiKey) return NextResponse.json({ error: 'not_connected' }, { status: 400 })
 
   const lists = user?.mailerLiteLists ?? []
   if (lists.length === 0) return NextResponse.json({ success: true, updated: 0 })

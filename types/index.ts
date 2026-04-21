@@ -12,6 +12,16 @@ export interface ParseDiagnostics {
   strategyUsed?: string
 }
 
+export interface KdpRawRow {
+  asin: string
+  title: string
+  date: string   // YYYY-MM-DD
+  units: number
+  kenp: number
+  royalties: number
+  format?: string
+}
+
 export interface KDPData {
   month: string
   totalRoyaltiesUSD: number
@@ -27,6 +37,7 @@ export interface KDPData {
     freeUnits: number
     paperbackUnits: number
   }
+  rawSaleRows?: KdpRawRow[]
 }
 
 export interface BookData {

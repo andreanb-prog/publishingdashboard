@@ -650,6 +650,24 @@ model CategoryCache {
   @@unique([userId, asin, category])
 }
 
+model KdpSale {
+  id        String   @id @default(cuid())
+  userId    String
+  asin      String
+  title     String
+  date      String   // YYYY-MM-DD (per-day granularity for accumulation across uploads)
+  units     Int      @default(0)
+  kenp      Int      @default(0)
+  royalties Float    @default(0)
+  format    String?  // 'ebook' | 'paperback'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, asin, date])
+  @@index([userId])
+  @@index([userId, date])
+}
+
 model BsrLog {
   id                String   @id @default(cuid())
   userId            String

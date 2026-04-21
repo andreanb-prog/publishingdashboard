@@ -10,7 +10,7 @@ async function getApiKey(userId: string): Promise<string | null> {
     where: { id: userId },
     select: { mailerLiteKey: true },
   })
-  return user?.mailerLiteKey || process.env.MAILERLITE_API_KEY || null
+  return user?.mailerLiteKey || null
 }
 
 // GET — fetch groups from MailerLite API (for the add-list picker)

@@ -9,13 +9,9 @@ import { fetchMailerLiteStats } from '@/lib/mailerlite'
 
 export async function GET(req: NextRequest) {
   console.log('[mailerlite] handler called')
-  console.log('[mailerlite] env key exists:', !!process.env.MAILERLITE_API_KEY)
-  console.log('[mailerlite] env key prefix:', process.env.MAILERLITE_API_KEY?.slice(0, 8))
-
   const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Try: header → user's saved key → env var fallback
   let apiKey = req.headers.get('x-mailerlite-key') || null
 
   if (!apiKey) {
@@ -26,11 +22,9 @@ export async function GET(req: NextRequest) {
     apiKey = user?.mailerLiteKey || null
   }
 
-  if (!apiKey) apiKey = process.env.MAILERLITE_API_KEY || null
+  if (!apiKey) return NextResponse.json({ error: 'not_connected' }, { status: 400 })
 
-  if (!apiKey) return NextResponse.json({ error: 'No MailerLite API key' }, { status: 400 })
-
-  console.log('[MailerLite route] key source:', apiKey === process.env.MAILERLITE_API_KEY ? 'env' : 'user-db')
+  console.log('[MailerLite route] using user DB key')
 
   try {
     const data = await fetchMailerLiteStats(apiKey)
