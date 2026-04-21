@@ -265,10 +265,10 @@ const DIR_STYLE = {
 }
 
 function WhatHappenedCard({ current, previous, actionPlan }: { current: Analysis; previous: Analysis; actionPlan?: any[] }) {
-  const [open, setOpen] = useState(() => {
-    if (typeof window === 'undefined') return true
-    return localStorage.getItem('what-happened-seen') !== current.month
-  })
+  const [open, setOpen] = useState(true)
+  useEffect(() => {
+    setOpen(localStorage.getItem('what-happened-seen') !== current.month)
+  }, [current.month])
   const changes = buildChanges(current, previous)
   const topActions = (actionPlan ?? []).slice(0, 3)
 
@@ -508,14 +508,18 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
   const animKenp  = useCountUp(_kenpTarget,  isFresh && !!analysis?.kdp)
   const animCtr   = useCountUp(_ctrTarget,   isFresh && !!analysis?.meta?.bestAd)
 
-  const [dateRange, setDateRange] = useState<{ from: string; to: string }>(() => {
-    if (typeof window === 'undefined') return getDefaultDateRange()
+  const [dateRange, setDateRange] = useState<{ from: string; to: string }>(getDefaultDateRange)
+  useEffect(() => {
     try {
       const stored = localStorage.getItem('authordash_date_range')
-      if (stored) return JSON.parse(stored)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        const def = getDefaultDateRange()
+        setDateRange(parsed)
+        if (parsed.from !== def.from || parsed.to !== def.to) setRefreshKey(k => k + 1)
+      }
     } catch {}
-    return getDefaultDateRange()
-  })
+  }, [])
 
   const [refreshKey,   setRefreshKey]   = useState(0)
   const [liveML,       setLiveML]       = useState<import('@/types').MailerLiteData | null>(initialData?.mailerLiteData ?? null)
@@ -605,14 +609,6 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
     return () => window.removeEventListener('date-range-change', onDateRangeChange)
   }, [])
 
-  // On mount: if a custom date range is stored, trigger a fresh fetch to respect it
-  useEffect(() => {
-    const def = getDefaultDateRange()
-    if (dateRange.from !== def.from || dateRange.to !== def.to) {
-      setRefreshKey(k => k + 1)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   // ── Optimistic UI: if the user lands here right after uploading, show their
   //    parsed numbers immediately while the AI analysis finishes in the background.
