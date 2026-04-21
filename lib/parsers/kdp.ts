@@ -28,7 +28,7 @@ export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
   }
 
   // Legacy multi-sheet XLSX
-  if (sheetNames.some(n => n === 'Orders Processed' || n === 'KENP Read')) {
+  if (sheetNames.some(n => n === 'Orders Processed' || n === 'KENP Read' || n === 'KENP')) {
     console.log('[KDP parser] Detected: Legacy multi-sheet XLSX format')
     return parseMultiSheetFormat(workbook)
   }
@@ -315,8 +315,8 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   const paperbackSheet = workbook.Sheets['Paperback Royalty']
   const paperbackData  = paperbackSheet ? sheetToRows(paperbackSheet) : []
 
-  // ── KENP Read sheet ───────────────────────────────────────────────────────
-  const kenpSheet = workbook.Sheets['KENP Read']
+  // ── KENP Read sheet (also handles "KENP" variant from some KDP exports) ──
+  const kenpSheet = workbook.Sheets['KENP Read'] ?? workbook.Sheets['KENP']
   const kenpData  = kenpSheet ? sheetToRows(kenpSheet) : []
 
   console.log(`[KDP parser] Sheet row counts — Combined Sales: ${combinedData.length}, Paperback Royalty: ${paperbackData.length}, KENP Read: ${kenpData.length}`)
@@ -398,7 +398,7 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
 
   let totalKENP = 0
   for (const row of kenpData) {
-    const rawAsin = str(pick(row, 'ASIN', 'Asin'))
+    const rawAsin = str(pick(row, 'ASIN', 'Asin', 'eBook ASIN'))
     const asin = rawAsin.trim().toUpperCase()
     const title = str(pick(row, 'Title', 'title')).toLowerCase().trim()
     const kenp = num(pick(row,
@@ -573,7 +573,7 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
   if (ordersRoyaltiesUSD > 0) totalRoyaltiesUSD = ordersRoyaltiesUSD
 
   for (const row of kenpData) {
-    const asin = str(pick(row, 'ASIN', 'Asin', 'asin'))
+    const asin = str(pick(row, 'ASIN', 'Asin', 'asin', 'eBook ASIN'))
     const kenp = num(pick(row,
       'Kindle Edition Normalized Page (KENP) Read',
       'KENP Read', 'KENP Pages Read', 'KU Pages Read', 'Pages Read', 'KENP',
@@ -649,8 +649,8 @@ function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
   const combinedData = combinedResult.rows
   const combinedMeta = combinedResult.meta
 
-  // KENP Read sheet
-  const kenpSheet = workbook.Sheets['KENP Read']
+  // KENP Read sheet (also handles "KENP" variant from some KDP exports)
+  const kenpSheet = workbook.Sheets['KENP Read'] ?? workbook.Sheets['KENP']
   const kenpData  = kenpSheet ? sheetToRows(kenpSheet) : []
 
   console.log(`[KDP parser] Royalties Estimator — Combined Sales: ${combinedData.length}, KENP Read: ${kenpData.length}`)
@@ -698,7 +698,7 @@ function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
 
   let totalKENP = 0
   for (const row of kenpData) {
-    const rawAsin = str(pick(row, 'ASIN', 'Asin'))
+    const rawAsin = str(pick(row, 'ASIN', 'Asin', 'eBook ASIN'))
     const asin    = rawAsin.trim().toUpperCase()
     const title   = str(pick(row, 'Title', 'title')).toLowerCase().trim()
     const kenp    = num(pick(row,
