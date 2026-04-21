@@ -316,6 +316,22 @@
     text-decoration: none;
     font-weight: 700;
   }
+
+  .intro-card {
+    background: white;
+    border: 0.5px solid rgba(30,45,61,0.12);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .intro-body p {
+    font-size: 13px;
+    color: rgba(30,45,61,0.65);
+    line-height: 1.7;
+    margin-bottom: 10px;
+  }
+  .intro-body p:last-child { margin-bottom: 0; }
+  .intro-body strong { color: var(--navy); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -340,6 +356,14 @@
 
 <!-- Main -->
 <div class="main">
+
+  <div class="intro-card">
+    <div class="intro-body">
+      <p>Want to improve your craft? This is how Claude or ChatGPT can help you identify exactly where your chapters are working — and where they're not.</p>
+      <p>Use these prompts as a starting point, then make them yours. Add dimensions that matter for your genre. Remove ones that don't. The sharper you customize, the sharper the diagnostic.</p>
+      <p><strong>One recommendation:</strong> once you run a prompt and get output you like, save the customized version in the Claude Project or chat thread for that book. That way you can run it again on the next draft without starting over — and without coming back here (though you're always welcome).</p>
+    </div>
+  </div>
 
   <div class="selector-row">
     <div class="toggle-group" id="genre-group">
