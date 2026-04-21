@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
 
     const books = Array.from(bookMap.values())
       .sort((a, b) => b.units - a.units)
-      .map(b => ({ ...b, shortTitle: b.title.length > 35 ? b.title.substring(0, 35) + '...' : b.title }))
+      .map(b => ({ ...b, shortTitle: b.title.length > 35 ? b.title.substring(0, 35) + '...' : b.title, format: b.format as 'ebook' | 'paperback' | undefined }))
 
     const dailyUnits = Array.from(dailyUnitsMap.entries())
       .map(([date, value]) => ({ date, value }))
