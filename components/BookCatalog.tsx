@@ -375,6 +375,26 @@ function BookModal({
       if (res.ok) {
         if (data.title && !form.title.trim()) set('title', data.title)
         if (data.pubDate && !form.pubDate) set('pubDate', data.pubDate)
+        if (data.seriesName && !form.seriesName) set('seriesName', data.seriesName)
+        setLookupStatus('done')
+      } else {
+        setLookupStatus('error')
+      }
+    } catch {
+      setLookupStatus('error')
+    }
+  }
+
+  async function handleManualAsinBlur(asin: string) {
+    if (!/^[A-Z0-9]{10}$/.test(asin)) return
+    setLookupStatus('loading')
+    try {
+      const res = await fetch(`/api/books/lookup?asin=${asin}`)
+      const data = await res.json()
+      if (res.ok) {
+        if (data.title && !form.title.trim()) set('title', data.title)
+        if (data.pubDate && !form.pubDate) set('pubDate', data.pubDate)
+        if (data.seriesName && !form.seriesName) set('seriesName', data.seriesName)
         setLookupStatus('done')
       } else {
         setLookupStatus('error')
@@ -540,7 +560,8 @@ function BookModal({
                   <input
                     type="text"
                     value={form.asin}
-                    onChange={e => set('asin', e.target.value.toUpperCase())}
+                    onChange={e => { set('asin', e.target.value.toUpperCase()); setLookupStatus('idle') }}
+                    onBlur={e => handleManualAsinBlur(e.target.value.toUpperCase())}
                     placeholder="e.g. B0GSC2RTF8"
                     className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
                   />
@@ -549,9 +570,19 @@ function BookModal({
                       ASINs are 10 characters — letters and numbers only
                     </span>
                   )}
-                  {(!form.asin || /^[A-Z0-9]{10}$/.test(form.asin)) && (
+                  {(!form.asin || /^[A-Z0-9]{10}$/.test(form.asin)) && lookupStatus === 'idle' && (
                     <span className="block mt-1 text-[11px] text-stone-400">
                       10-character code from your Amazon book page URL
+                    </span>
+                  )}
+                  {lookupStatus === 'loading' && /^[A-Z0-9]{10}$/.test(form.asin) && (
+                    <span className="block mt-1 text-[11px]" style={{ color: '#9CA3AF' }}>
+                      Looking up book details…
+                    </span>
+                  )}
+                  {lookupStatus === 'done' && /^[A-Z0-9]{10}$/.test(form.asin) && (
+                    <span className="block mt-1 text-[11px]" style={{ color: '#6EBF8B' }}>
+                      ✓ Details filled in from Amazon
                     </span>
                   )}
                   <div className="mt-1.5">
