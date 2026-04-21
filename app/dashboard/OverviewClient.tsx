@@ -1,6 +1,6 @@
 'use client'
 // app/dashboard/OverviewClient.tsx
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { Analysis, RankLog, RoasLog, ChannelScore, CoachingInsight, CrossChannelPlan } from '@/types'
 import type { DashboardData } from '@/lib/dashboard-data'
@@ -595,6 +595,61 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
     } catch { /* ignore */ }
     setSyncingML(false)
   }
+
+  // Trigger a fresh Claude analysis after upload clears AI-generated fields.
+  // Called when analysis has channel data but no actionPlan (happens after KDP upload
+  // because parse-kdp clears stale coaching copy from the record).
+  const hasTriggeredReanalysis = useRef(false)
+  async function triggerReanalysis(currentAnalysis: any) {
+    if (!currentAnalysis?.month) return
+    setGenerating(true)
+    try {
+      const body = {
+        kdp:        currentAnalysis.kdp        ?? undefined,
+        meta:       currentAnalysis.meta       ?? undefined,
+        mailerLite: currentAnalysis.mailerLite ?? undefined,
+        pinterest:  currentAnalysis.pinterest  ?? undefined,
+        month:      currentAnalysis.month,
+      }
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!response.ok || !response.body) return
+      const reader  = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const event = JSON.parse(line.slice(6))
+            if (event.type === 'complete' && event.analysis) setAnalysis(event.analysis)
+          } catch { /* ignore partial SSE chunks */ }
+        }
+      }
+    } catch { /* ignore */ }
+    finally { setGenerating(false) }
+  }
+
+  // Auto-trigger reanalysis when analysis has channel data but no Claude output —
+  // this is the state the record is in immediately after a KDP upload clears stale fields.
+  useEffect(() => {
+    if (!analysis) return
+    if (analysis.actionPlan?.length) { hasTriggeredReanalysis.current = false; return }
+    const hasChannelData = !!(analysis.kdp || analysis.meta || analysis.mailerLite)
+    if (!hasChannelData) return
+    if (hasTriggeredReanalysis.current) return
+    hasTriggeredReanalysis.current = true
+    triggerReanalysis(analysis)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis])
 
   // Re-fetch when an upload completes (fired by UploadModal on any page)
   useEffect(() => {

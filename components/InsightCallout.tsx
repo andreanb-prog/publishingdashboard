@@ -49,11 +49,14 @@ function detectInsights(analysis: Analysis): Insight[] {
     })
   }
 
-  if (ml && ml.unsubscribes > 50) {
+  // Only alert when the unsubscribe RATE exceeds 0.5% of the list — a raw count is
+  // misleading because MailerLite's "unsubscribed" status includes list cleans (addresses
+  // removed for bounces/inactivity), which are not user-initiated churn.
+  if (ml && ml.listSize > 0 && (ml.unsubscribes / ml.listSize) > 0.005) {
     insights.push({
       mode: 'alarm',
       source: 'mailerlite',
-      text: `You've had **${ml.unsubscribes} unsubscribes** recently — that's higher than usual. Go to MailerLite, pull your last 3 campaigns, and check which send had the unsubscribe spike — a subject line mismatch or back-to-back sends in the same week is usually the culprit. Fix the send cadence before your next campaign goes out.`,
+      text: `Your unsubscribe count is **${ml.unsubscribes}** (${((ml.unsubscribes / ml.listSize) * 100).toFixed(1)}% of your ${ml.listSize.toLocaleString()}-person list) — above the 0.5% watch threshold. Note: MailerLite includes list cleans in this count, so some of these may be inactive addresses removed automatically rather than reader-initiated unsubscribes. Go to MailerLite, review your last 3 campaigns for an unsubscribe spike, and check send cadence before your next campaign.`,
     })
   }
 

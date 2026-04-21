@@ -322,8 +322,11 @@ All ads: ${meta.ads.map(a => `${a.name}: $${a.spend}, ${a.clicks} clicks, ${a.ct
   }
 
   if (mailerLite) {
+    const unsubRate = mailerLite.listSize > 0
+      ? ((mailerLite.unsubscribes / mailerLite.listSize) * 100).toFixed(2)
+      : '0.00'
     parts.push(`## Email Data
-List: ${mailerLite.listSize} subscribers | Open rate: ${mailerLite.openRate}% | Click rate: ${mailerLite.clickRate}% | Unsubscribes: ${mailerLite.unsubscribes}`)
+List: ${mailerLite.listSize} subscribers | Open rate: ${mailerLite.openRate}% | Click rate: ${mailerLite.clickRate}% | Unsubscribes: ${mailerLite.unsubscribes} (${unsubRate}% of list — NOTE: MailerLite's unsubscribed count includes list cleans/automated removals, not only user-initiated unsubscribes. Only flag unsubscribes as an issue if the rate clearly exceeds 0.5% AND other signals like a campaign spike confirm it is reader churn, not a list clean.)`)
   }
 
   if (pinterest) {

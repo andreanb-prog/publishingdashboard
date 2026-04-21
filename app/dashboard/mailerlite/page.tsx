@@ -54,8 +54,8 @@ function buildEmailCoach(
       ? new Date(flaggedCampaign.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : 'recently'
     s3 = `"${flaggedCampaign.name}" triggered an unsubscribe spike on ${dateStr} (${flaggedCampaign.unsubscribeRate}% unsub rate). Subject: "${flaggedCampaign.subject}". Reduce send frequency or tighten audience targeting before your next send.`
-  } else if (ml.unsubscribes > 50) {
-    s3 = `You've had ${ml.unsubscribes} unsubscribes recently — higher than normal. Check send frequency or tighten your subject line relevance before your next campaign.`
+  } else if (ml.listSize > 0 && (ml.unsubscribes / ml.listSize) > 0.005) {
+    s3 = `Your unsubscribe count is ${ml.unsubscribes} (${((ml.unsubscribes / ml.listSize) * 100).toFixed(1)}% of your list) — above the 0.5% watch threshold. Note: MailerLite's unsubscribed count includes list cleans, so some of these may be automated removals rather than reader opt-outs. Check send frequency and subject line relevance before your next campaign.`
   } else if (ml.clickRate >= 4) {
     const best = topCampaigns?.sort((a, b) => b.clickRate - a.clickRate)[0]
     s3 = `Your ${ml.clickRate}% click rate is exceptional. ${

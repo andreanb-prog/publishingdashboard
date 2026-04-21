@@ -153,9 +153,19 @@ export async function POST(req: NextRequest) {
       })
       if (existing) {
         const existingData = (existing.data as Record<string, unknown>) ?? {}
+        // Spread new KDP data and clear AI-generated fields so the dashboard
+        // never shows coaching copy that contradicts the freshly uploaded numbers.
+        // The next analyze POST (triggered by OverviewClient) will regenerate them.
+        const {
+          storySentence: _ss, actionPlan: _ap, channelScores: _cs,
+          insights: _ins, fingerprint: _fp, kdpCoach: _kc,
+          metaCoach: _mc, emailCoach: _ec, pinterestCoach: _pc,
+          swapsCoach: _sc, overallVerdict: _ov, confidenceNote: _cn,
+          ...preservedData
+        } = existingData
         await db.analysis.update({
           where: { id: existing.id },
-          data: { data: { ...existingData, kdp: accumulatedData } as object },
+          data: { data: { ...preservedData, kdp: accumulatedData } as object },
         })
       } else {
         await db.analysis.create({
