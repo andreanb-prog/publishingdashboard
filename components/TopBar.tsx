@@ -158,32 +158,41 @@ export function TopBar({ user }: TopBarProps) {
   const [uploadMessage, setUploadMessage] = useState('')
 
   async function handleDirectFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
+    const files = Array.from(e.target.files ?? [])
     e.target.value = ''
-    if (!file) return
+    if (!files.length) return
 
     setUploadStatus('loading')
     setUploadMessage('')
 
-    try {
-      const form = new FormData()
-      form.append('file', file)
-      const res = await fetch('/api/parse-kdp', { method: 'POST', body: form })
-      const json = await res.json()
+    let totalRows = 0
+    let errorMsg = ''
 
-      if (!res.ok) {
-        setUploadStatus('error')
-        setUploadMessage(json.error || 'Upload failed. Please try again.')
-      } else {
-        const rows = json.rowCount ?? json.data?.books?.length ?? 0
-        setUploadStatus('success')
-        setUploadMessage(`✓ Uploaded — ${rows} row${rows !== 1 ? 's' : ''} imported`)
-        try { window.dispatchEvent(new CustomEvent('dashboard-data-refresh')) } catch {}
-        setTimeout(() => setUploadStatus('idle'), 5000)
+    for (const file of files) {
+      try {
+        const form = new FormData()
+        form.append('file', file)
+        const res = await fetch('/api/parse-kdp', { method: 'POST', body: form })
+        const json = await res.json()
+
+        if (!res.ok) {
+          errorMsg = json.error || 'Upload failed. Please try again.'
+        } else {
+          totalRows += json.rowCount ?? json.data?.books?.length ?? 0
+        }
+      } catch {
+        errorMsg = 'Upload failed. Check your connection and try again.'
       }
-    } catch {
+    }
+
+    if (errorMsg && totalRows === 0) {
       setUploadStatus('error')
-      setUploadMessage('Upload failed. Check your connection and try again.')
+      setUploadMessage(errorMsg)
+    } else {
+      setUploadStatus('success')
+      setUploadMessage(`✓ Uploaded — ${totalRows} row${totalRows !== 1 ? 's' : ''} imported`)
+      try { window.dispatchEvent(new CustomEvent('dashboard-data-refresh')) } catch {}
+      setTimeout(() => setUploadStatus('idle'), 5000)
     }
   }
 
@@ -340,6 +349,7 @@ export function TopBar({ user }: TopBarProps) {
           <input
             ref={uploadInputRef}
             type="file"
+            multiple
             accept=".csv,.xlsx"
             style={{ display: 'none', position: 'absolute', left: '-9999px' }}
             onChange={handleDirectFileChange}
