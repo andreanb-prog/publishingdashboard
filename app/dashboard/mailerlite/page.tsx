@@ -13,6 +13,7 @@ import { fmtPct } from '@/lib/utils'
 import { InsightCallouts } from '@/components/InsightCallout'
 import type { Analysis, MailerLiteAutomation, MailerLiteData } from '@/types'
 import type { LiveCampaign, FlaggedCampaign } from '@/app/api/mailerlite/campaigns/route'
+import type { UnsubAnalysis } from '@/app/api/mailerlite/unsub-analysis/route'
 
 // ── Build a live coach insight from real MailerLite numbers ───────────────────
 // Always derived from live data so stale cached emailCoach never shows.
@@ -20,6 +21,7 @@ function buildEmailCoach(
   ml: MailerLiteData,
   topCampaigns?: { subject: string; openRate: number; clickRate: number }[],
   flaggedCampaign?: FlaggedCampaign | null,
+  unsubAnalysis?: UnsubAnalysis | null,
 ): string {
   const s1 = `Your list has ${ml.listSize.toLocaleString()} active subscribers with a ${ml.openRate}% open rate and ${ml.clickRate}% click rate.`
 
@@ -54,6 +56,8 @@ function buildEmailCoach(
       ? new Date(flaggedCampaign.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : 'recently'
     s3 = `"${flaggedCampaign.name}" triggered an unsubscribe spike on ${dateStr} (${flaggedCampaign.unsubscribeRate}% unsub rate). Subject: "${flaggedCampaign.subject}". Reduce send frequency or tighten audience targeting before your next send.`
+  } else if (unsubAnalysis?.type === 'list_clean' || unsubAnalysis?.type === 'mixed') {
+    // UnsubNote component handles the display; no duplicate alert in coach copy
   } else if (ml.listSize > 0 && (ml.unsubscribes / ml.listSize) > 0.005) {
     s3 = `Your unsubscribe count is ${ml.unsubscribes} (${((ml.unsubscribes / ml.listSize) * 100).toFixed(1)}% of your list) — above the 0.5% watch threshold. Note: MailerLite's unsubscribed count includes list cleans, so some of these may be automated removals rather than reader opt-outs. Check send frequency and subject line relevance before your next campaign.`
   } else if (ml.clickRate >= 4) {
@@ -171,7 +175,7 @@ function CampaignSkeleton() {
       <table className="w-full border-collapse" style={{ minWidth: 520 }}>
         <thead>
           <tr style={{ background: '#F5F5F4' }}>
-            {['Subject', 'Sent', 'Open Rate', 'Click Rate', 'Unsubs', 'Date'].map(h => (
+            {['Subject', 'Open Rate', 'Click Rate', 'Unsubs', 'Date'].map(h => (
               <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
                 style={{ color: '#6B7280' }}>{h}</th>
             ))}
@@ -180,7 +184,7 @@ function CampaignSkeleton() {
         <tbody>
           {[0, 1, 2].map(i => (
             <tr key={i} className="border-t" style={{ borderColor: 'rgba(0,0,0,0.06)', background: i % 2 === 1 ? '#FFF8F0' : 'white' }}>
-              {[200, 60, 60, 60, 50, 60].map((w, j) => (
+              {[200, 60, 60, 50, 60].map((w, j) => (
                 <td key={j} className="px-4 py-3">
                   <div className="h-3 rounded animate-pulse" style={{ width: w, background: '#E5E7EB' }} />
                 </td>
@@ -286,7 +290,7 @@ function CampaignPerformanceSection({
           <table className="w-full border-collapse text-[12px]" style={{ minWidth: 520 }}>
             <thead>
               <tr style={{ background: '#F5F5F4' }}>
-                {['Subject', 'Sent', 'Open Rate', 'Click Rate', 'Unsubs', 'Date'].map(h => (
+                {['Subject', 'Open Rate', 'Click Rate', 'Unsubs', 'Date'].map(h => (
                   <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
                     style={{ color: '#6B7280' }}>{h}</th>
                 ))}
@@ -304,9 +308,6 @@ function CampaignPerformanceSection({
                     >
                       {c.subject.length > 50 ? c.subject.slice(0, 50) + '…' : c.subject}
                     </span>
-                  </td>
-                  <td className="px-4 py-2.5 font-mono text-[11px]" style={{ color: '#6B7280' }}>
-                    {c.sent > 0 ? c.sent.toLocaleString() : '—'}
                   </td>
                   <td className="px-4 py-2.5 font-mono font-semibold" style={{ color: openColor(c.openRate) }}>
                     {c.openRate}%
@@ -333,6 +334,46 @@ function CampaignPerformanceSection({
   )
 }
 
+// ── Unsubscribe analysis note ─────────────────────────────────────────────────
+function UnsubNote({ analysis }: { analysis: UnsubAnalysis | null }) {
+  if (!analysis || analysis.type === 'genuine_churn' || analysis.type === 'normal') return null
+
+  if (analysis.type === 'list_clean') {
+    return (
+      <div className="rounded-xl px-5 py-3.5 mb-4 flex items-start gap-2.5"
+        style={{ background: 'rgba(96,165,250,0.10)', border: '1px solid rgba(96,165,250,0.28)' }}>
+        <span className="text-[14px] mt-0.5">ℹ️</span>
+        <span className="text-[12.5px]" style={{ color: '#1E2D3D' }}>
+          <span className="font-semibold" style={{ color: '#60A5FA' }}>
+            {analysis.totalUnsubs.toLocaleString()} unsubscribes detected
+          </span>
+          {' '}— {analysis.peakPct}% occurred{analysis.peakDate ? ` on ${analysis.peakDate}` : ' in a 48-hour window'},
+          consistent with a list clean. Not counted as churn.
+        </span>
+      </div>
+    )
+  }
+
+  if (analysis.type === 'mixed') {
+    const organic = analysis.organicUnsubs ?? 0
+    const rate = analysis.organicRate ?? 0
+    return (
+      <div className="rounded-xl px-5 py-3.5 mb-4 flex items-start gap-2.5"
+        style={{ background: 'rgba(110,191,139,0.10)', border: '1px solid rgba(110,191,139,0.28)' }}>
+        <span className="text-[14px] mt-0.5">ℹ️</span>
+        <span className="text-[12.5px]" style={{ color: '#1E2D3D' }}>
+          <span className="font-semibold">{analysis.totalUnsubs.toLocaleString()} total unsubscribes</span>
+          {' '}— {analysis.peakPct}% from a list clean{analysis.peakDate ? ` on ${analysis.peakDate}` : ''}.{' '}
+          <span style={{ color: '#F97B6B' }} className="font-semibold">{organic.toLocaleString()} organic unsubscribes</span>
+          {rate > 0 ? ` (${rate}% of list)` : ''}.
+        </span>
+      </div>
+    )
+  }
+
+  return null
+}
+
 interface MLList { id: string; mailerliteId: string; name: string; activeCount: number; unsubCount: number; lastSyncedAt: string | null }
 
 export default function MailerLitePage() {
@@ -347,6 +388,7 @@ export default function MailerLitePage() {
   const [flaggedCampaign, setFlaggedCampaign] = useState<FlaggedCampaign | null>(null)
   const [campaignsLoading, setCampaignsLoading] = useState(true)
   const [campaignsError, setCampaignsError] = useState(false)
+  const [unsubAnalysis, setUnsubAnalysis] = useState<UnsubAnalysis | null>(null)
 
   // Multi-list state
   const [mlLists, setMlLists] = useState<MLList[]>([])
@@ -393,6 +435,15 @@ export default function MailerLitePage() {
       .catch(() => { setCampaignsError(true) })
       .finally(() => setCampaignsLoading(false))
   }, [])
+
+  // Fetch unsub analysis after liveml is available (non-blocking, client-side)
+  useEffect(() => {
+    if (!liveml) return
+    fetch(`/api/mailerlite/unsub-analysis?listSize=${liveml.listSize}`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => { if (d.analysis) setUnsubAnalysis(d.analysis as UnsubAnalysis) })
+      .catch(() => {})
+  }, [liveml])
 
   // Prefer live data from API; fall back to stored analysis snapshot
   const ml = liveml ?? analysis?.mailerLite ?? null
@@ -540,7 +591,8 @@ export default function MailerLitePage() {
           ]} />
 
           {analysis && <InsightCallouts analysis={{ ...analysis, meta: undefined, kdp: undefined, pinterest: undefined }} page="mailerlite" />}
-          {ml && <DarkCoachBox color="#34d399" title={coachTitle}>{buildEmailCoach(ml, topCampaigns, flaggedCampaign)}</DarkCoachBox>}
+          <UnsubNote analysis={unsubAnalysis} />
+          {ml && <DarkCoachBox color="#34d399" title={coachTitle}>{buildEmailCoach(ml, topCampaigns, flaggedCampaign, unsubAnalysis)}</DarkCoachBox>}
 
           {/* Email Health Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
