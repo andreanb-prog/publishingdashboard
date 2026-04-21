@@ -7,9 +7,9 @@ const LS_KEY = 'onboarding-banner-dismissed'
 type StepStatus = 'done' | 'current' | 'upcoming'
 
 const STEPS = [
-  { number: 1, label: 'Add your books', link: '/dashboard/settings?tab=books', linkLabel: 'Go to Settings →' },
+  { number: 1, label: 'Add your books', link: '/dashboard/settings#my-books', linkLabel: 'Go to My Books →' },
   { number: 2, label: 'Upload your KDP report', link: '/dashboard?upload=1', linkLabel: 'Upload now →' },
-  { number: 3, label: 'Connect MailerLite', link: '/dashboard/settings?tab=connections', linkLabel: 'Connect →' },
+  { number: 3, label: 'Connect MailerLite', link: '/dashboard/settings#connections', linkLabel: 'Connect →' },
 ]
 
 const STATUS_COLORS: Record<StepStatus, { bg: string; text: string; numBg: string; numText: string }> = {
