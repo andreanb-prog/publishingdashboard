@@ -33,19 +33,14 @@ export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
     return parseMultiSheetFormat(workbook)
   }
 
-  // Wrong format: Prior Month Royalties — A1 = "Sales Period"
+  // Prior Month Royalties CSV/XLSX — A1 = "Sales Period", row 2 is the real header
   const firstSheet = workbook.Sheets[sheetNames[0]]
   if (firstSheet) {
     const a1 = firstSheet['A1']?.v
     const a1str = typeof a1 === 'string' ? a1.toLowerCase().trim() : ''
     if (a1str === 'sales period') {
-      const b1 = firstSheet['B1']?.v ?? ''
-      throw new Error(
-        `This looks like a Prior Month Royalties report (${b1}). AuthorDash needs the KDP Sales Dashboard XLSX instead. Here's how to get it:\n` +
-        `1. Go to KDP → Reports → Sales Dashboard\n` +
-        `2. Click 'Download Report' in the top right\n` +
-        `3. Select your date range and download the XLSX`
-      )
+      console.log('[KDP parser] Detected: Prior Month Royalties format')
+      return parsePriorMonthRoyaltiesFormat(workbook)
     }
   }
 
@@ -885,4 +880,113 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
     rowCount,
     diagnostics,
   }
+}
+
+// ── Prior Month Royalties format ──────────────────────────────────────────────
+// Row 1: "Sales Period, September 2025, ..." (metadata — skip)
+// Row 2: "Title, Author, ASIN, Marketplace, Units Sold, Units Refunded,
+//          Net Units Sold, Royalty Type, Transaction Type, Currency,
+//          Avg. List Price without tax, Avg. Offer Price without tax,
+//          Avg. File Size (MB), Avg. Delivery Cost, Royalty"
+// Row 3+: data rows
+function parsePriorMonthRoyaltiesFormat(workbook: XLSX.WorkBook): KDPData {
+  const sheetName = workbook.SheetNames[0]
+  const sheet = workbook.Sheets[sheetName]
+
+  // Extract "Sales Period" value from B1 (e.g. "September 2025")
+  const salesPeriodRaw = str(sheet['B1']?.v ?? '')
+  const month = parseSalesPeriodMonth(salesPeriodRaw) ?? new Date().toISOString().substring(0, 7)
+  console.log(`[KDP parser] Prior Month Royalties — Sales Period: "${salesPeriodRaw}" → month: ${month}`)
+
+  // sheetToRows auto-detects the banner row and promotes row 2 to headers
+  const rows = sheetToRows(sheet)
+  console.log(`[KDP parser] Prior Month Royalties — ${rows.length} data rows`)
+  if (rows.length > 0) console.log('[KDP parser] Prior Month Royalties headers:', Object.keys(rows[0]))
+
+  // Pre-resolve the exact 'Royalty' column key to avoid fuzzy-matching 'Royalty Type'
+  const firstRowKeys = rows.length > 0 ? Object.keys(rows[0]) : []
+  const exactRoyaltyKey = firstRowKeys.find(k => k.trim().toLowerCase() === 'royalty') ?? null
+
+  const bookMap = new Map<string, BookData>()
+  let totalRoyaltiesUSD = 0
+  let paidUnits = 0
+  let rowCount = 0
+
+  for (const row of rows) {
+    const asin  = str(pick(row, 'ASIN', 'Asin', 'asin'))
+    const title = str(pick(row, 'Title', 'title'))
+    if (!asin && !title) continue
+
+    const units   = num(pick(row, 'Net Units Sold', 'Units Sold', 'Units'))
+    const royalty = exactRoyaltyKey !== null
+      ? num(row[exactRoyaltyKey])
+      : num(pick(row, 'Royalties (USD)', 'Net Royalty', 'Est. Royalty'))
+    const currency = str(pick(row, 'Currency', 'currency')).toUpperCase().trim()
+    const isUSD    = currency === 'USD' || currency === ''
+
+    const key = asin || title
+    if (!bookMap.has(key)) {
+      bookMap.set(key, {
+        title, asin,
+        shortTitle: title.length > 35 ? title.substring(0, 35) + '...' : title,
+        units: 0, kenp: 0, royalties: 0,
+      })
+    }
+    const book = bookMap.get(key)!
+    book.units     += units
+    book.royalties += isUSD ? royalty : 0
+
+    if (isUSD) totalRoyaltiesUSD += royalty
+    paidUnits += units
+    rowCount++
+  }
+
+  if (rowCount === 0) {
+    throw new Error(
+      `No sales data found in this Prior Month Royalties report (${salesPeriodRaw || 'unknown period'}). ` +
+      'Make sure the file has data rows below the header.'
+    )
+  }
+
+  const books      = deduplicateBooks(Array.from(bookMap.values()))
+  const totalUnits = books.reduce((sum, b) => sum + b.units, 0)
+
+  const diagnostics: ParseDiagnostics = {
+    rowCount,
+    sheetsFound:     workbook.SheetNames,
+    sheetUsed:       sheetName,
+    columnsDetected: firstRowKeys,
+    skippedRows:     rows.length - rowCount,
+    skipReasons:     rows.length - rowCount > 0 ? ['Missing ASIN and title'] : [],
+    firstParsedRow:  rows[0] ? { ...rows[0] } as Record<string, unknown> : null,
+    error:           null,
+    strategyUsed:    'Prior-Month-Royalties | exact-key-royalty',
+  }
+
+  return {
+    month, totalRoyaltiesUSD, totalUnits, totalKENP: 0,
+    books, dailyUnits: [], dailyKENP: [],
+    summary: { paidUnits, freeUnits: 0, paperbackUnits: 0 },
+    rowCount,
+    diagnostics,
+  }
+}
+
+// Convert "September 2025" → "2025-09", "January 2024" → "2024-01", etc.
+function parseSalesPeriodMonth(raw: string): string | null {
+  const MONTHS: Record<string, string> = {
+    january: '01', february: '02', march: '03', april: '04',
+    may: '05', june: '06', july: '07', august: '08',
+    september: '09', october: '10', november: '11', december: '12',
+  }
+  const parts = raw.trim().split(/\s+/)
+  if (parts.length >= 2) {
+    const monthName = parts[0].toLowerCase()
+    const year = parts[parts.length - 1]
+    const monthNum = MONTHS[monthName]
+    if (monthNum && /^\d{4}$/.test(year)) return `${year}-${monthNum}`
+  }
+  // Already YYYY-MM
+  if (/^\d{4}-\d{2}$/.test(raw.trim())) return raw.trim()
+  return null
 }
