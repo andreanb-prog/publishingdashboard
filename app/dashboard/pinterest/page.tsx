@@ -32,7 +32,8 @@ const BENCHMARKS = [
 ]
 
 export default function PinterestPage() {
-  const [coachTitle] = useState(() => getCoachTitle())
+  const [coachTitle, setCoachTitle] = useState('Your marketing coach says')
+  useEffect(() => { setCoachTitle(getCoachTitle()) }, [])
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [logForm, setLogForm] = useState({ weekEnding: '', impressions: '', saves: '', clicks: '', pinCount: '' })
   const [logs, setLogs] = useState<any[]>([])

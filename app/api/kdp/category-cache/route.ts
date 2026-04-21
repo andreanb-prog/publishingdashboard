@@ -17,12 +17,9 @@ export async function GET(req: NextRequest) {
   }
 
   const asin = req.nextUrl.searchParams.get('asin')
-  if (!asin) {
-    return NextResponse.json({ error: 'Missing asin' }, { status: 400 })
-  }
 
   const rows = await db.categoryCache.findMany({
-    where: { userId: session.user.id, asin },
+    where: asin ? { userId: session.user.id, asin } : { userId: session.user.id },
     orderBy: { rank: 'asc' },
   })
 

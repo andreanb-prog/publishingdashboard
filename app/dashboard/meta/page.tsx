@@ -592,7 +592,8 @@ function buildMetaCoach(meta: NonNullable<Analysis['meta']>): string {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function MetaPage() {
-  const [coachTitle]               = useState(() => getCoachTitle())
+  const [coachTitle, setCoachTitle] = useState('Your marketing coach says')
+  useEffect(() => { setCoachTitle(getCoachTitle()) }, [])
   const [analysis,   setAnalysis]  = useState<Analysis | null>(null)
   const [goals,      setGoals]     = useState<Record<string, number>>({})
   const [activeCols, setActiveCols] = useState<Set<ColKey>>(DEFAULT_COLS)

@@ -725,7 +725,8 @@ function EmailVsSalesChart({
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function KDPPage() {
-  const [coachTitle]  = useState(() => getCoachTitle())
+  const [coachTitle, setCoachTitle] = useState('Your marketing coach says')
+  useEffect(() => { setCoachTitle(getCoachTitle()) }, [])
   const [allAnalyses, setAllAnalyses] = useState<Analysis[]>([])
   const [roasLogs,    setRoasLogs]    = useState<RoasLog[]>([])
   const [mlCampaigns, setMlCampaigns] = useState<MailerLiteCampaign[]>([])

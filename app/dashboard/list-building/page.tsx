@@ -160,7 +160,8 @@ export default function ListBuildingPage() {
     }
   }, [session, status, router])
 
-  const [coachTitle] = useState(() => getCoachTitle())
+  const [coachTitle, setCoachTitle] = useState('Your marketing coach says')
+  useEffect(() => { setCoachTitle(getCoachTitle()) }, [])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [subValue, setSubValue] = useState<number>(1.0)
   const [subValueInput, setSubValueInput] = useState('1.00')

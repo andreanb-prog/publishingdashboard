@@ -336,7 +336,8 @@ function CampaignPerformanceSection({
 interface MLList { id: string; mailerliteId: string; name: string; activeCount: number; unsubCount: number; lastSyncedAt: string | null }
 
 export default function MailerLitePage() {
-  const [coachTitle] = useState(() => getCoachTitle())
+  const [coachTitle, setCoachTitle] = useState('Your marketing coach says')
+  useEffect(() => { setCoachTitle(getCoachTitle()) }, [])
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [prevAnalysis, setPrevAnalysis] = useState<Analysis | null>(null)
   const [liveml, setLiveml] = useState<MailerLiteData | null>(null)
