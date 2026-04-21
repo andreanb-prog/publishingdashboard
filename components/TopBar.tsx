@@ -42,21 +42,27 @@ function getGreeting(): string {
 }
 
 export function TopBar({ user }: TopBarProps) {
-  const now = new Date()
-  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
-  const shortDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-
   const pathname = usePathname()
 
+  // Client-only time-derived values (avoid server/client timezone mismatch)
+  const [greeting, setGreeting] = useState('')
+  const [dateStr, setDateStr] = useState('')
+  const [shortDate, setShortDate] = useState('')
+  useEffect(() => {
+    const now = new Date()
+    setGreeting(getGreeting())
+    setDateStr(now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }))
+    setShortDate(now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }))
+  }, [])
+
   // Date range state — only used on /dashboard
-  const [dateFrom, setDateFrom] = useState(() => {
-    if (typeof window === 'undefined') return getDefaultDateRange().from
-    return loadStoredDateRange().from
-  })
-  const [dateTo, setDateTo] = useState(() => {
-    if (typeof window === 'undefined') return getDefaultDateRange().to
-    return loadStoredDateRange().to
-  })
+  const [dateFrom, setDateFrom] = useState(() => getDefaultDateRange().from)
+  const [dateTo, setDateTo] = useState(() => getDefaultDateRange().to)
+  useEffect(() => {
+    const stored = loadStoredDateRange()
+    setDateFrom(stored.from)
+    setDateTo(stored.to)
+  }, [])
 
   function handleApplyDateRange() {
     const range = { from: dateFrom, to: dateTo }
@@ -188,7 +194,7 @@ export function TopBar({ user }: TopBarProps) {
         {/* Left zone: greeting */}
         <div className="flex-1">
           <div className="text-[16px] font-medium leading-none" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            {getGreeting()}{(user.preferredGreetingName ?? user.name) ? `, ${user.preferredGreetingName ?? user.name!.split(' ')[0]}` : ''}
+            {greeting}{greeting && (user.preferredGreetingName ?? user.name) ? `, ${user.preferredGreetingName ?? user.name!.split(' ')[0]}` : ''}
           </div>
           <div className="text-[11px] mt-1" style={{ color: '#6B7280' }}>
             {dateStr}

@@ -75,10 +75,10 @@ export function GoalSection({
 
   const [goals, setGoals]         = useState<Goals>({})
   const [draft, setDraft]         = useState<Record<string, string>>({})
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === 'undefined') return true
-    return localStorage.getItem(storageKey) !== 'open'
-  })
+  const [collapsed, setCollapsed] = useState(true)
+  useEffect(() => {
+    setCollapsed(localStorage.getItem(storageKey) !== 'open')
+  }, [storageKey])
   const [saving, setSaving]       = useState(false)
   const [saved,  setSaved]        = useState(false)
 
