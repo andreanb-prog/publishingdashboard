@@ -1135,9 +1135,9 @@ export default function KDPPage() {
                 }}>
                 All Books
               </button>
-              {kdp.books.filter(isBookVisible).map((b) => {
+              {kdp.books.filter(isBookVisible).map((b, visibleIdx) => {
                 const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
-                const colorIdx = bookColorMap[b.asin?.trim().toUpperCase() ?? ''] ?? kdp.books.indexOf(b)
+                const colorIdx = bookColorMap[b.asin?.trim().toUpperCase() ?? ''] ?? visibleIdx
                 const c = BOOK_COLORS[colorIdx] || '#6B7280'
                 const isSelected = selectedBooks.has(b.asin)
                 const isPB = (b as any).format === 'paperback'
@@ -1183,8 +1183,8 @@ export default function KDPPage() {
                 <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   <h3 className="text-[14px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>{title}</h3>
                   <div className="space-y-3">
-                    {books.map((b) => {
-                      const colorIdx = bookColorMap[b.asin?.trim().toUpperCase() ?? ''] ?? kdp!.books.indexOf(b)
+                    {books.map((b, visibleIdx) => {
+                      const colorIdx = bookColorMap[b.asin?.trim().toUpperCase() ?? ''] ?? visibleIdx
                       const color = BOOK_COLORS[colorIdx] || '#6B7280'
                       const val = b[metric]
                       return (
