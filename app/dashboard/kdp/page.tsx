@@ -865,11 +865,16 @@ export default function KDPPage() {
   const filteredTotalUnits = useMemo(() => sumValues(filteredUnits), [filteredUnits])
   const filteredTotalKENP  = useMemo(() => sumValues(filteredKENP),  [filteredKENP])
 
-  // When no daily data exists (flat-format upload or date-column mismatch in KDP report),
-  // fall back to the monthly aggregate so all KPI cards show data consistently.
-  const noDailyData = allDailyUnits.length === 0 && allDailyKENP.length === 0
-  const displayUnits = noDailyData ? (allAnalyses[0]?.kdp?.totalUnits ?? filteredTotalUnits) : filteredTotalUnits
-  const displayKENP  = noDailyData ? (allAnalyses[0]?.kdp?.totalKENP  ?? filteredTotalKENP)  : filteredTotalKENP
+  // Fall back to monthly aggregate independently for units and KENP.
+  // Royalties Estimator format has daily units (Combined Sales has dates) but no
+  // daily KENP breakdown (KENP sheet is a monthly summary with no Date column).
+  // Using && meant KENP never fell back when units had daily data — fix: split them.
+  const displayUnits = allDailyUnits.length === 0
+    ? (allAnalyses[0]?.kdp?.totalUnits ?? filteredTotalUnits)
+    : filteredTotalUnits
+  const displayKENP = allDailyKENP.length === 0
+    ? (allAnalyses[0]?.kdp?.totalKENP ?? filteredTotalKENP)
+    : filteredTotalKENP
 
   // Email send dates for Chart 4 and heatmap — prefer live MailerLite fetch, fall back to stored analysis
   const analysis = allAnalyses[0] ?? null
