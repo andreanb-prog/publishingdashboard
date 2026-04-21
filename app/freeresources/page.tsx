@@ -146,7 +146,7 @@ export default function FreeResourcesPage() {
                 Step-by-Step Guide
               </p>
               <p style={{ fontSize: 14, fontWeight: 700, color: '#1E2D3D', marginBottom: 4, letterSpacing: '-0.01em' }}>
-                From Book to Content
+                The Reader You&apos;re Writing For
               </p>
               <p style={{ fontSize: 12, color: 'rgba(30,45,61,0.55)', lineHeight: 1.55, marginBottom: 8 }}>
                 10 steps to build a content strategy that finds your readers — without ever feeling like you&apos;re selling.

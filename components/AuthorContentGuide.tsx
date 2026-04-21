@@ -466,8 +466,8 @@ export default function AuthorContentGuide() {
         a { color: inherit; }
       `}</style>
       <div style={{ background: C.navy, padding: "24px 20px 20px" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: C.amber, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>A Guide by Elle Wilder</div>
-        <div style={{ fontFamily: "'Playfair Display', serif", color: "white", fontSize: 26, lineHeight: 1.2, marginBottom: 8 }}>From Book to Content</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: C.amber, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>A Guide by Andrea Bonilla · AuthorDash</div>
+        <div style={{ fontFamily: "'Playfair Display', serif", color: "white", fontSize: 26, lineHeight: 1.2, marginBottom: 8 }}>The Reader You&apos;re Writing For</div>
         <div style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", lineHeight: 1.6, maxWidth: 480 }}>You are not here to sell your book. You&apos;re here to find your people — and make them feel seen before they ever open a page.</div>
         <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
           <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, padding: "4px 12px", fontSize: 12, color: "rgba(255,255,255,0.6)" }}>10 steps</div>
@@ -476,10 +476,28 @@ export default function AuthorContentGuide() {
         </div>
       </div>
       <div style={{ padding: "16px 16px 40px", maxWidth: 600, margin: "0 auto" }}>
+        <div style={{
+          background: "white",
+          borderRadius: 12,
+          padding: "16px 18px",
+          marginBottom: 14,
+          border: "1px solid rgba(30,45,61,0.07)",
+          borderLeft: "3px solid #E9A020",
+        }}>
+          <p style={{
+            fontSize: 14,
+            color: "rgba(30,45,61,0.7)",
+            lineHeight: 1.75,
+            margin: 0,
+            fontStyle: "italic",
+          }}>
+            The work you do in these 10 steps doesn&apos;t just build a content strategy. It gives you the foundation for every email you write, every social post, every newsletter, every piece of copy — because it all starts with knowing exactly who you&apos;re writing for.
+          </p>
+        </div>
         {STEPS.map((step, i) => <Step key={i} step={step} />)}
       </div>
       <div style={{ textAlign: "center", padding: "20px 20px 40px", fontSize: 12, color: "rgba(30,45,61,0.35)", lineHeight: 1.8 }}>
-        Created for the Mastermind by Elle Wilder · April 2026<br />
+        A guide by Andrea Bonilla · AuthorDash · April 2026<br />
         Built with <a href="https://authordash.io" target="_blank" style={{ color: C.amber, textDecoration: "none", fontWeight: 600 }}>AuthorDash</a>
       </div>
     </div>
