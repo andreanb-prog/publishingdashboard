@@ -744,10 +744,18 @@ export default function KDPPage() {
   // My Books list sorted by sortOrder — used for stable ASIN-based color assignment
   const [myBooksList,  setMyBooksList]  = useState<any[]>([])
   const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(null)
+  const [kdpSalesData, setKdpSalesData] = useState<{
+    dailyUnits:     { date: string; value: number }[]
+    dailyKENP:      { date: string; value: number }[]
+    books:          { asin: string; title: string; shortTitle: string; units: number; kenp: number; royalties: number; format?: string }[]
+    totalUnits:     number
+    totalKENP:      number
+    totalRoyalties: number
+  } | null>(null)
 
   const fetchData = useCallback(() => {
     setLoading(true)
-    // Build query params from the current date preset so the server can filter by month range
+    // Build query params — passed to /api/kdp/sales for direct KdpSale filtering
     const r = preset === 'custom'
       ? { start: customStart, end: customEnd }
       : getPresetRange(preset)
@@ -755,16 +763,18 @@ export default function KDPPage() {
       ? '?' + new URLSearchParams({ start: r.start, end: r.end }).toString()
       : ''
     Promise.all([
-      fetch(`/api/analyze${qp}`).then(r => r.json()).catch(() => ({})),
+      fetch('/api/analyze').then(r => r.json()).catch(() => ({})),
+      fetch(`/api/kdp/sales${qp}`).then(r => r.json()).catch(() => null),
       fetch('/api/roas').then(r => r.json()).catch(() => ({ logs: [] })),
       fetch('/api/mailerlite').then(r => r.json()).catch(() => ({ data: null })),
       fetch('/api/books').then(r => r.json()).catch(() => ({ books: [] })),
       fetch('/api/prefs').then(r => r.json()).catch(() => ({})),
-    ]).then(([analyzeData, roasData, mlData, booksData, prefsData]) => {
+    ]).then(([analyzeData, salesData, roasData, mlData, booksData, prefsData]) => {
       const analyses: Analysis[] = (analyzeData.analyses ?? []).map(
         (a: any) => a.data ?? a
       )
       setAllAnalyses(analyses)
+      if (salesData && !salesData.error) setKdpSalesData(salesData)
       if (analyzeData.kdpLastUploadedAt) setKdpLastUploadedAt(analyzeData.kdpLastUploadedAt)
       setRoasLogs((roasData.logs ?? []).map((r: any) => ({
         ...r,
@@ -805,40 +815,16 @@ export default function KDPPage() {
     return () => window.removeEventListener('dashboard-data-refresh', fetchData)
   }, [fetchData])
 
-  const allDailyUnits = useMemo(() => {
-    const merged: DailyData[] = []
-    allAnalyses.forEach(a => { if (a.kdp?.dailyUnits) merged.push(...a.kdp.dailyUnits) })
-    return merged
-      .map(d => ({ ...d, date: normalizeDate(d.date) }))
-      .filter(d => d.date)
-      .sort((a, b) => a.date.localeCompare(b.date))
-  }, [allAnalyses])
-
-  const allDailyKENP = useMemo(() => {
-    const merged: DailyData[] = []
-    allAnalyses.forEach(a => { if (a.kdp?.dailyKENP) merged.push(...a.kdp.dailyKENP) })
-    return merged
-      .map(d => ({ ...d, date: normalizeDate(d.date) }))
-      .filter(d => d.date)
-      .sort((a, b) => a.date.localeCompare(b.date))
-  }, [allAnalyses])
+  // Daily data comes directly from KdpSale via /api/kdp/sales — accurate for any date range.
+  // We no longer read dailyUnits/dailyKENP from Analysis records, which were monthly snapshots
+  // that could miss dates outside the stored month or return stale cached values.
+  const filteredUnits: DailyData[] = kdpSalesData?.dailyUnits ?? []
+  const filteredKENP:  DailyData[] = kdpSalesData?.dailyKENP  ?? []
 
   const range = useMemo((): { start: string; end: string } => {
     if (preset === 'custom') return { start: customStart, end: customEnd }
     return getPresetRange(preset)
   }, [preset, customStart, customEnd])
-
-  const filteredUnits = useMemo(() =>
-    range.start && range.end
-      ? allDailyUnits.filter(d => d.date >= range.start && d.date <= range.end)
-      : allDailyUnits,
-  [allDailyUnits, range])
-
-  const filteredKENP = useMemo(() =>
-    range.start && range.end
-      ? allDailyKENP.filter(d => d.date >= range.start && d.date <= range.end)
-      : allDailyKENP,
-  [allDailyKENP, range])
 
   const filteredRoas = useMemo(() => {
     const sorted = [...roasLogs].sort((a, b) => a.date.localeCompare(b.date))
@@ -852,29 +838,12 @@ export default function KDPPage() {
     return getPreviousPeriod(range.start, range.end)
   }, [range])
 
-  const compareUnits = useMemo(() => {
-    if (!compareMode || !prevPeriod) return undefined
-    return allDailyUnits.filter(d => d.date >= prevPeriod.start && d.date <= prevPeriod.end)
-  }, [compareMode, allDailyUnits, prevPeriod])
+  const filteredTotalUnits = kdpSalesData?.totalUnits ?? 0
+  const filteredTotalKENP  = kdpSalesData?.totalKENP  ?? 0
 
-  const compareKENP = useMemo(() => {
-    if (!compareMode || !prevPeriod) return undefined
-    return allDailyKENP.filter(d => d.date >= prevPeriod.start && d.date <= prevPeriod.end)
-  }, [compareMode, allDailyKENP, prevPeriod])
-
-  const filteredTotalUnits = useMemo(() => sumValues(filteredUnits), [filteredUnits])
-  const filteredTotalKENP  = useMemo(() => sumValues(filteredKENP),  [filteredKENP])
-
-  // Fall back to monthly aggregate independently for units and KENP.
-  // Royalties Estimator format has daily units (Combined Sales has dates) but no
-  // daily KENP breakdown (KENP sheet is a monthly summary with no Date column).
-  // Using && meant KENP never fell back when units had daily data — fix: split them.
-  const displayUnits = allDailyUnits.length === 0
-    ? (allAnalyses[0]?.kdp?.totalUnits ?? filteredTotalUnits)
-    : filteredTotalUnits
-  const displayKENP = allDailyKENP.length === 0
-    ? (allAnalyses[0]?.kdp?.totalKENP ?? filteredTotalKENP)
-    : filteredTotalKENP
+  // Use totals directly from the KdpSale query — no fallback needed since the source is authoritative.
+  const displayUnits = filteredTotalUnits
+  const displayKENP  = filteredTotalKENP
 
   // Email send dates for Chart 4 and heatmap — prefer live MailerLite fetch, fall back to stored analysis
   const analysis = allAnalyses[0] ?? null
@@ -890,8 +859,17 @@ export default function KDPPage() {
     return map
   }, [mlCampaigns, analysis])
 
-  const kdp   = analysis?.kdp
+  // Use analysis KDP snapshot for coach text. For metrics, kdpSalesData takes precedence.
+  const kdp   = analysis?.kdp ?? (kdpSalesData?.totalUnits ? { totalRoyaltiesUSD: kdpSalesData.totalRoyalties, books: kdpSalesData.books } as any : null)
   const coach = (analysis as any)?.kdpCoach
+
+  // Royalties: prefer kdpSalesData (accurate for date range) over monthly Analysis snapshot.
+  const displayRoyalties: number = kdpSalesData?.totalRoyalties ?? kdp?.totalRoyaltiesUSD ?? 0
+
+  // Books for per-title breakdown: use kdpSalesData (filtered to current date range) if available,
+  // fall back to analysis snapshot (which covers the full uploaded month).
+  const displayBooks: { asin: string; title: string; shortTitle: string; units: number; kenp: number; royalties: number; format?: string }[] =
+    kdpSalesData?.books ?? kdp?.books ?? []
 
   // Map ASIN → color index based on My Books sort order (B1=0, B2=1, …).
   // This ensures color assignment is stable and tied to ASIN, not array position.
@@ -916,13 +894,13 @@ export default function KDPPage() {
 
   // Books present in KDP data but not yet added to My Books catalog
   const unmatchedBooks = useMemo(() => {
-    if (!kdp?.books || knownAsins.size === 0) return []
-    return kdp.books.filter(b => {
+    if (displayBooks.length === 0 || knownAsins.size === 0) return []
+    return displayBooks.filter(b => {
       const asinUpper = b.asin?.trim().toUpperCase() ?? ''
       if (excludedAsins.has(asinUpper)) return false
       return asinUpper && !knownAsins.has(asinUpper)
     })
-  }, [kdp, knownAsins, excludedAsins])
+  }, [displayBooks, knownAsins, excludedAsins])
 
   const handlePreset = (p: Preset) => {
     setPreset(p)
@@ -1018,7 +996,7 @@ export default function KDPPage() {
           </p>
         </div>
       )}
-      {!kdp ? (
+      {!kdp && !kdpSalesData ? (
         <div className="text-center py-16" style={{ color: '#6B7280' }}>
           <div className="text-4xl mb-4">📚</div>
           <div className="text-xl font-semibold mb-2" style={{ color: '#1E2D3D' }}>No KDP data yet</div>
@@ -1035,7 +1013,7 @@ export default function KDPPage() {
             currentValues={{
               kdp_units:     displayUnits,
               kdp_kenp:      displayKENP,
-              kdp_royalties: kdp.totalRoyaltiesUSD,
+              kdp_royalties: displayRoyalties,
             }}
           />
 
@@ -1045,7 +1023,7 @@ export default function KDPPage() {
             // always includes the full-period royalties regardless of the date filter.
             // displayUnits / displayKENP fall back to monthly aggregate when no daily data.
             const estKu = Math.round(displayKENP * 0.0045 * 100) / 100
-            const totalEstRevenue = Math.round((kdp.totalRoyaltiesUSD + estKu) * 100) / 100
+            const totalEstRevenue = Math.round((displayRoyalties + estKu) * 100) / 100
             const prev = allAnalyses[1]?.kdp
             const unitsDelta = prev ? displayUnits - prev.totalUnits : null
             const kenpDelta  = prev ? displayKENP  - prev.totalKENP  : null
@@ -1121,7 +1099,7 @@ export default function KDPPage() {
           {coach && <DarkCoachBox color="#fbbf24" title={coachTitle}>{coach}</DarkCoachBox>}
 
           {/* Book Title Picker — excludes books marked as hidden in Settings > My Books */}
-          {kdp.books.filter(isBookVisible).length > 1 && (
+          {displayBooks.filter(isBookVisible).length > 1 && (
             <div className="flex items-center gap-2 mb-4 flex-wrap">
               <span className="text-[11px] font-medium uppercase" style={{ color: '#6B7280', letterSpacing: '0.3px' }}>Filter:</span>
               <button
@@ -1135,7 +1113,7 @@ export default function KDPPage() {
                 }}>
                 All Books
               </button>
-              {kdp.books.filter(isBookVisible).map((b, visibleIdx) => {
+              {displayBooks.filter(isBookVisible).map((b, visibleIdx) => {
                 const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
                 const colorIdx = bookColorMap[b.asin?.trim().toUpperCase() ?? ''] ?? visibleIdx
                 const c = BOOK_COLORS[colorIdx] || '#6B7280'
@@ -1172,7 +1150,7 @@ export default function KDPPage() {
           {/* Book Performance Charts */}
           {(() => {
             const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
-            const dashboardBooks = kdp.books.filter(isBookVisible)
+            const dashboardBooks = displayBooks.filter(isBookVisible)
             const visibleBooks = selectedBooks.size > 0
               ? dashboardBooks.filter(b => selectedBooks.has(b.asin))
               : dashboardBooks
