@@ -908,6 +908,16 @@ export default function KDPPage() {
     return true
   }
 
+  // Books present in KDP data but not yet added to My Books catalog
+  const unmatchedBooks = useMemo(() => {
+    if (!kdp?.books || knownAsins.size === 0) return []
+    return kdp.books.filter(b => {
+      const asinUpper = b.asin?.trim().toUpperCase() ?? ''
+      if (excludedAsins.has(asinUpper)) return false
+      return asinUpper && !knownAsins.has(asinUpper)
+    })
+  }, [kdp, knownAsins, excludedAsins])
+
   const handlePreset = (p: Preset) => {
     setPreset(p)
     if (p !== 'custom') {
@@ -990,6 +1000,18 @@ export default function KDPPage() {
       }>
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <LastUploadBadge channel="kdp" />
+      {unmatchedBooks.length > 0 && (
+        <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl"
+          style={{ background: 'rgba(233,160,32,0.08)', border: '1px solid rgba(233,160,32,0.25)' }}>
+          <span>📚</span>
+          <p className="text-[13px] m-0" style={{ color: '#92400E' }}>
+            We found data for <strong>{unmatchedBooks.length} title{unmatchedBooks.length !== 1 ? 's' : ''}</strong> not in your catalog.{' '}
+            <a href="/dashboard/settings" style={{ color: '#E9A020', textDecoration: 'underline', fontWeight: 600 }}>
+              Add them to see full insights →
+            </a>
+          </p>
+        </div>
+      )}
       {!kdp ? (
         <div className="text-center py-16" style={{ color: '#6B7280' }}>
           <div className="text-4xl mb-4">📚</div>
@@ -1186,6 +1208,39 @@ export default function KDPPage() {
               </div>
             )
           })()}
+
+          {/* Unmatched books — present in KDP data but not in My Books catalog */}
+          {unmatchedBooks.length > 0 && (
+            <div className="mb-6 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(233,160,32,0.25)' }}>
+              <div className="px-5 py-3" style={{ background: 'rgba(233,160,32,0.06)', borderBottom: '1px solid rgba(233,160,32,0.15)' }}>
+                <span className="text-[12px] font-semibold" style={{ color: '#92400E' }}>
+                  Titles not in your catalog — data saved, not yet matched
+                </span>
+              </div>
+              <div className="divide-y divide-[#EEEBE6]" style={{ background: 'white' }}>
+                {unmatchedBooks.map(b => (
+                  <div key={b.asin || b.shortTitle} className="flex items-center justify-between px-5 py-3">
+                    <div>
+                      <div className="text-[13px] font-medium" style={{ color: '#1E2D3D' }}>{b.title || b.shortTitle}</div>
+                      {b.asin && (
+                        <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>ASIN: {b.asin}</div>
+                      )}
+                      <div className="text-[12px] mt-0.5" style={{ color: '#6B7280' }}>
+                        {b.units.toLocaleString()} units · {b.kenp.toLocaleString()} KENP
+                      </div>
+                    </div>
+                    <a
+                      href="/dashboard/settings"
+                      className="text-[11px] font-semibold whitespace-nowrap ml-4"
+                      style={{ color: '#E9A020', textDecoration: 'none' }}
+                    >
+                      Add to catalog →
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Viewing bar */}
           {range.start && range.end && (
