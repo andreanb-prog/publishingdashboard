@@ -4,37 +4,33 @@ import { useEffect, useState } from 'react'
 
 const LS_KEY = 'onboarding-banner-dismissed'
 
-type Step = {
-  number: number
-  label: string
-  link: string
-  linkLabel: string
-  onClick?: () => void
-}
+type StepStatus = 'done' | 'current' | 'upcoming'
 
-const STEPS: Step[] = [
+const STEPS = [
   { number: 1, label: 'Add your books', link: '/dashboard/settings?tab=books', linkLabel: 'Go to Settings →' },
-  { number: 2, label: 'Upload your KDP report', link: '#upload', linkLabel: 'Upload now →' },
+  { number: 2, label: 'Upload your KDP report', link: '/dashboard?upload=1', linkLabel: 'Upload now →' },
   { number: 3, label: 'Connect MailerLite', link: '/dashboard/settings?tab=connections', linkLabel: 'Connect →' },
 ]
 
-type StepStatus = 'done' | 'current' | 'upcoming'
+const STATUS_COLORS: Record<StepStatus, { bg: string; text: string; numBg: string; numText: string }> = {
+  done:     { bg: '#F0FAF4', text: '#2D6A4F', numBg: '#6EBF8B', numText: '#fff' },
+  current:  { bg: '#FFFBF0', text: '#92400E', numBg: '#E9A020', numText: '#fff' },
+  upcoming: { bg: '#F9F9F9', text: '#9CA3AF', numBg: '#E5E7EB', numText: '#6B7280' },
+}
 
 interface Props {
   bookCount: number
   hasKdpData: boolean
   hasMailerLiteKey: boolean
-  onUploadClick?: () => void
 }
 
-export function OnboardingBanner({ bookCount, hasKdpData, hasMailerLiteKey, onUploadClick }: Props) {
+export function OnboardingBanner({ bookCount, hasKdpData, hasMailerLiteKey }: Props) {
   const [dismissed, setDismissed] = useState(true)
   const [fading, setFading] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (localStorage.getItem(LS_KEY)) return
-    // Only show if not fully set up
     if (bookCount > 0 && hasKdpData && hasMailerLiteKey) return
     setDismissed(false)
   }, [bookCount, hasKdpData, hasMailerLiteKey])
@@ -49,28 +45,17 @@ export function OnboardingBanner({ bookCount, hasKdpData, hasMailerLiteKey, onUp
 
   if (dismissed) return null
 
-  function getStatus(stepNumber: number): StepStatus {
-    if (stepNumber === 1) {
-      if (bookCount > 0) return 'done'
-      return 'current'
-    }
-    if (stepNumber === 2) {
+  function getStatus(n: number): StepStatus {
+    if (n === 1) return bookCount > 0 ? 'done' : 'current'
+    if (n === 2) {
       if (hasKdpData) return 'done'
-      if (bookCount > 0) return 'current'
-      return 'upcoming'
+      return bookCount > 0 ? 'current' : 'upcoming'
     }
-    if (stepNumber === 3) {
+    if (n === 3) {
       if (hasMailerLiteKey) return 'done'
-      if (hasKdpData) return 'current'
-      return 'upcoming'
+      return hasKdpData ? 'current' : 'upcoming'
     }
     return 'upcoming'
-  }
-
-  const STATUS_COLORS: Record<StepStatus, { bg: string; text: string; numBg: string; numText: string }> = {
-    done:     { bg: '#F0FAF4', text: '#2D6A4F', numBg: '#6EBF8B', numText: '#fff' },
-    current:  { bg: '#FFFBF0', text: '#92400E', numBg: '#E9A020', numText: '#fff' },
-    upcoming: { bg: '#F9F9F9', text: '#9CA3AF', numBg: '#E5E7EB', numText: '#6B7280' },
   }
 
   return (
@@ -84,11 +69,9 @@ export function OnboardingBanner({ bookCount, hasKdpData, hasMailerLiteKey, onUp
         transition: 'opacity 0.3s ease',
       }}
     >
-      {/* Amber top bar */}
       <div style={{ height: 3, background: '#E9A020' }} />
 
       <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
-        {/* Left: label */}
         <div className="flex-shrink-0">
           <p className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
             Get set up in 3 steps
@@ -98,14 +81,10 @@ export function OnboardingBanner({ bookCount, hasKdpData, hasMailerLiteKey, onUp
           </p>
         </div>
 
-        {/* Steps strip */}
         <div className="flex-1 flex flex-col sm:flex-row gap-2">
           {STEPS.map((step) => {
             const status = getStatus(step.number)
             const colors = STATUS_COLORS[status]
-            const href = step.number === 2 ? undefined : step.link
-            const handleClick = step.number === 2 ? (onUploadClick ?? undefined) : undefined
-
             return (
               <div
                 key={step.number}
@@ -127,26 +106,13 @@ export function OnboardingBanner({ bookCount, hasKdpData, hasMailerLiteKey, onUp
                     {step.label}
                   </p>
                   {status !== 'done' && (
-                    href ? (
-                      <a
-                        href={href}
-                        className="text-[11px] font-semibold hover:underline"
-                        style={{ color: status === 'current' ? '#E9A020' : '#D1D5DB' }}
-                      >
-                        {step.linkLabel}
-                      </a>
-                    ) : (
-                      <button
-                        onClick={handleClick}
-                        className="text-[11px] font-semibold hover:underline"
-                        style={{
-                          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                          color: status === 'current' ? '#E9A020' : '#D1D5DB',
-                        }}
-                      >
-                        {step.linkLabel}
-                      </button>
-                    )
+                    <a
+                      href={step.link}
+                      className="text-[11px] font-semibold hover:underline"
+                      style={{ color: status === 'current' ? '#E9A020' : '#D1D5DB' }}
+                    >
+                      {step.linkLabel}
+                    </a>
                   )}
                 </div>
               </div>
@@ -154,7 +120,6 @@ export function OnboardingBanner({ bookCount, hasKdpData, hasMailerLiteKey, onUp
           })}
         </div>
 
-        {/* Dismiss */}
         <button
           onClick={dismiss}
           className="self-start sm:self-center flex-shrink-0 text-[12px] font-semibold rounded-lg px-3 py-1.5 transition-opacity hover:opacity-70"
