@@ -20,14 +20,22 @@ export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
   const _a1raw = _firstSheet0?.['A1']?.v
   console.log('[KDP parser] A1 raw value:', JSON.stringify(_a1raw))
 
-  // Distinguish KDP Sales Dashboard (has "Paperback Royalty") from
-  // KDP Royalties Estimator (has "Combined Sales" + "Orders Processed" but no "Paperback Royalty")
+  // Distinguish KDP Sales Dashboard (has "Paperback Royalty" with data rows) from
+  // KDP Royalties Estimator (has "Combined Sales" — "Paperback Royalty" absent or empty)
   if (sheetNames.includes('Combined Sales')) {
     if (sheetNames.includes('Paperback Royalty')) {
-      console.log('[KDP parser] Detected: KDP Sales Dashboard XLSX format')
-      return parseDashboardFormat(workbook)
+      const pbSheet = workbook.Sheets['Paperback Royalty']
+      const pbRows = pbSheet
+        ? (XLSX.utils.sheet_to_json(pbSheet, { defval: '' }) as unknown[])
+        : []
+      if (pbRows.length > 0) {
+        console.log('[KDP parser] Detected: KDP Sales Dashboard XLSX format')
+        return parseDashboardFormat(workbook)
+      }
+      console.log('[KDP parser] Detected: KDP Royalties Estimator XLSX format (Paperback Royalty sheet exists but is empty)')
+    } else {
+      console.log('[KDP parser] Detected: KDP Royalties Estimator XLSX format')
     }
-    console.log('[KDP parser] Detected: KDP Royalties Estimator XLSX format')
     return parseRoyaltiesEstimatorFormat(workbook)
   }
 
@@ -784,7 +792,7 @@ function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
 
   let totalKENP = 0
   for (const row of kenpData) {
-    const rawAsin = str(pick(row, 'ASIN', 'Asin', 'eBook ASIN'))
+    const rawAsin = str(pick(row, 'eBook ASIN', 'ASIN', 'Asin'))
     const asin    = rawAsin.trim().toUpperCase()
     const title   = str(pick(row, 'Title', 'title')).toLowerCase().trim()
     const kenp    = num(pick(row,
@@ -848,7 +856,7 @@ function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
   }
 
   for (const row of kenpData) {
-    const rawAsin = str(pick(row, 'ASIN', 'Asin', 'eBook ASIN'))
+    const rawAsin = str(pick(row, 'eBook ASIN', 'ASIN', 'Asin'))
     const title = str(pick(row, 'Title', 'title'))
     const kenp = num(pick(row, 'Kindle Edition Normalized Page (KENP) Read', 'KENP Read', 'KENP Pages Read', 'Pages Read', 'KENP'))
     const date = toISODate(pick(row, 'Date'))
