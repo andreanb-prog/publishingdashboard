@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KU Pacing Audit · AuthorDash</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream: #FFF8F0;
+    --navy: #1E2D3D;
+    --amber: #E9A020;
+    --coral: #F97B6B;
+    --sage: #6EBF8B;
+    --peach: #F4A261;
+    --plum: #8B5CF6;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    background: var(--cream);
+    color: var(--navy);
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: var(--navy);
+    padding: 20px 24px 18px;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+  .logo-mark {
+    width: 28px;
+    height: 28px;
+    background: var(--amber);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+    letter-spacing: -0.02em;
+    flex-shrink: 0;
+  }
+  .logo-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.01em;
+  }
+  .free-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--amber);
+    background: rgba(233,160,32,0.15);
+    border: 1px solid rgba(233,160,32,0.3);
+    border-radius: 20px;
+    padding: 3px 10px;
+  }
+  .header-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .header-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.5;
+  }
+  .header-pills {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .header-pill {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 3px 10px;
+  }
+
+  /* Main content */
+  .main {
+    padding: 20px 20px 48px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  /* Selector row */
+  .selector-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .toggle-group {
+    display: flex;
+    background: rgba(30,45,61,0.08);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .toggle-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(30,45,61,0.45);
+    transition: all 0.15s;
+    white-space: nowrap;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .toggle-btn.active {
+    background: white;
+    color: var(--navy);
+    box-shadow: 0 1px 4px rgba(30,45,61,0.12);
+  }
+
+  .ai-group {
+    display: flex;
+    background: rgba(30,45,61,0.08);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .ai-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(30,45,61,0.45);
+    transition: all 0.15s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .ai-btn.active {
+    background: white;
+    color: var(--navy);
+    box-shadow: 0 1px 4px rgba(30,45,61,0.12);
+  }
+  .ai-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .dot-claude { background: #d97757; }
+  .dot-chatgpt { background: #19c37d; }
+
+  .divider {
+    width: 1px;
+    height: 28px;
+    background: rgba(30,45,61,0.12);
+    flex-shrink: 0;
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .badge-1 { background: rgba(96,165,250,0.15); color: #1d4ed8; }
+  .badge-2 { background: rgba(110,191,139,0.2); color: #166534; }
+
+  /* Mode desc card */
+  .mode-desc {
+    font-size: 13px;
+    color: rgba(30,45,61,0.65);
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    background: white;
+    border-radius: 10px;
+    border: 0.5px solid rgba(30,45,61,0.12);
+    line-height: 1.65;
+  }
+  .mode-desc strong { color: var(--navy); font-weight: 700; }
+
+  /* AI note */
+  .ai-note {
+    font-size: 12px;
+    color: #7c5c3a;
+    background: #FFF8F0;
+    border: 0.5px solid rgba(233,160,32,0.4);
+    border-left: 3px solid var(--amber);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    line-height: 1.6;
+    display: none;
+  }
+  .ai-note strong { font-weight: 700; color: var(--navy); }
+  .ai-note.visible { display: block; }
+
+  /* Prompt container */
+  .prompt-container {
+    background: white;
+    border: 0.5px solid rgba(30,45,61,0.12);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .prompt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(30,45,61,0.07);
+    background: var(--cream);
+  }
+  .prompt-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(30,45,61,0.4);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    background: var(--amber);
+    color: var(--navy);
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.15s;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .copy-btn:hover { background: #d4901a; }
+  .copy-btn.copied {
+    background: var(--sage);
+    color: white;
+  }
+  .prompt-text {
+    padding: 16px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: rgba(30,45,61,0.85);
+    white-space: pre-wrap;
+    font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+    max-height: 420px;
+    overflow-y: auto;
+  }
+  .prompt-text::-webkit-scrollbar { width: 4px; }
+  .prompt-text::-webkit-scrollbar-track { background: transparent; }
+  .prompt-text::-webkit-scrollbar-thumb { background: rgba(30,45,61,0.15); border-radius: 2px; }
+
+  /* Tip */
+  .tip {
+    margin-top: 12px;
+    font-size: 12px;
+    color: rgba(30,45,61,0.5);
+    line-height: 1.65;
+    padding: 10px 12px;
+    border-left: 3px solid var(--amber);
+    background: white;
+    border-radius: 0 8px 8px 0;
+    border-top: 0.5px solid rgba(30,45,61,0.08);
+    border-right: 0.5px solid rgba(30,45,61,0.08);
+    border-bottom: 0.5px solid rgba(30,45,61,0.08);
+  }
+  .tip strong { color: var(--navy); font-weight: 700; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 24px 20px 40px;
+    font-size: 11px;
+    color: rgba(30,45,61,0.3);
+    line-height: 1.9;
+  }
+  .footer a {
+    color: var(--amber);
+    text-decoration: none;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <a href="https://authordash.io" class="logo" target="_blank">
+      <div class="logo-mark">A</div>
+      <span class="logo-text">AuthorDash</span>
+    </a>
+    <div class="free-badge">Free Resource</div>
+  </div>
+  <div class="header-title">KU Pacing Audit Prompts</div>
+  <div class="header-sub">Pick your genre. Pick your mode. Copy and paste into any AI.</div>
+  <div class="header-pills">
+    <div class="header-pill">2 modes</div>
+    <div class="header-pill">3 genres</div>
+    <div class="header-pill">Claude + ChatGPT</div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <div class="selector-row">
+    <div class="toggle-group" id="genre-group">
+      <button class="toggle-btn active" data-genre="romance">Contemporary Romance</button>
+      <button class="toggle-btn" data-genre="cozy">Cozy Mystery</button>
+      <button class="toggle-btn" data-genre="mafia">Mafia Romance</button>
+    </div>
+    <div class="divider"></div>
+    <div class="toggle-group" id="mode-group">
+      <button class="toggle-btn active" data-mode="scan">Mode 1 <span class="badge badge-1">Full Book</span></button>
+      <button class="toggle-btn" data-mode="dive">Mode 2 <span class="badge badge-2">Deep Dive</span></button>
+    </div>
+    <div class="divider"></div>
+    <div class="ai-group" id="ai-group">
+      <button class="ai-btn active" data-ai="claude"><span class="ai-dot dot-claude"></span> Claude</button>
+      <button class="ai-btn" data-ai="chatgpt"><span class="ai-dot dot-chatgpt"></span> ChatGPT</button>
+    </div>
+  </div>
+
+  <div class="mode-desc" id="mode-desc"></div>
+  <div class="ai-note" id="ai-note"><strong>ChatGPT note:</strong> This version includes a stricter formatting constraint at the top. If ChatGPT still adds unsolicited commentary, reply with: "Follow the format exactly. Return only what was asked." Use GPT-4o for best results — GPT-3.5 may struggle with longer manuscripts in Mode 1.</div>
+
+  <div class="prompt-container">
+    <div class="prompt-header">
+      <span class="prompt-label" id="prompt-label">Prompt</span>
+      <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 11V3a1 1 0 0 1 1-1h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Copy prompt
+      </button>
+    </div>
+    <div class="prompt-text" id="prompt-text"></div>
+  </div>
+
+  <p class="tip" id="tip-text"></p>
+
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  A free resource from <a href="https://authordash.io" target="_blank">AuthorDash</a> · Created for the Mastermind by Elle Wilder · April 2026
+</div>
+
+<script>
+const cgHeader = "STRICT FORMAT INSTRUCTIONS: Return only what is explicitly requested below. Do not add commentary, encouragement, preamble, or unsolicited feedback outside the specified format. If you find yourself adding extra text, stop and delete it.\n\n";
+
+const base = {
+  romance: {
+    scan: `You are a KU pacing analyst specializing in contemporary romance. Audit this manuscript and return ONLY a heat map table — no prose feedback, no commentary, no encouragement. Just the table and a 3-line summary.
+
+For each chapter evaluate:
+1. Chapter # and approx word count
+2. POV emotional shift — did the POV character end in a different emotional state than they started? ✅ yes / ❌ no
+3. Heat engine — is romantic tension / push-pull actively moving? ✅ firing / ⚠️ weak / ❌ flat
+4. Proximity intentionality — are leads together or apart, and does it serve tension? ✅ intentional / ⚠️ unclear / ❌ no
+5. Sensory awareness beat — did the POV character notice something physical about the other person? ✅ present / ❌ missing
+6. Emotional wound proximity — did the chapter approach either character's core wound? ✅ yes / ⚠️ glancing / ❌ no
+7. Exit hook type — label exactly: Cliffhanger / Unanswered question / Revelation / Emotional gut-punch / Weak / None
+8. Skip test — Essential / Probably skippable / Skippable
+9. Series plant — ✅ yes / ❌ no / ➖ N/A
+10. 🚨 Flag — if 2+ dimensions score ⚠️ or ❌: Pacing risk / Heat drop / Consider cutting / Strong
+
+Return a clean table with all chapters. Then add exactly 3 lines:
+— Where the book's weakest pacing cluster is (which chapters)
+— What the dominant exit hook pattern is
+— One structural observation
+
+Nothing else.
+
+MANUSCRIPT:
+[paste full manuscript here]`,
+
+    dive: `You are a KU pacing analyst specializing in contemporary romance. Audit this single chapter and return a structured diagnostic. Use this exact format:
+
+---
+
+CHAPTER SUMMARY
+[3 sentences max — confirm you understood what happened]
+
+SCORED AUDIT CARD
+Dimension | Score | Notes (1 line max)
+POV emotional shift | ✅/⚠️/❌ |
+Heat engine (romantic tension moving) | ✅/⚠️/❌ |
+Proximity intentionality | ✅/⚠️/❌ |
+Sensory awareness beat | ✅/❌ |
+Emotional wound proximity | ✅/⚠️/❌ |
+Dialogue ratio (flag if >70% prose) | ✅/⚠️ |
+Exit hook type | [name it] |
+Skip test | Essential / Probably skippable / Skippable |
+Series plant | ✅/❌/➖ |
+
+THE ONE THING TO FIX
+[The single highest-leverage change. One paragraph only, no bullet points. Be specific — name the scene, moment, and character. Tell me what to do, not just what's wrong.]
+
+OPTIONAL REWRITE TRIGGER
+If you want a revision suggestion for the weakest element, paste the relevant passage and say: "Fix this — [dimension name]"
+
+---
+
+CHAPTER:
+[paste chapter here]`
+  },
+
+  cozy: {
+    scan: `You are a KU pacing analyst specializing in cozy mystery. Audit this manuscript and return ONLY a heat map table — no prose feedback, no commentary, no encouragement. Just the table and a 3-line summary.
+
+For each chapter evaluate:
+1. Chapter # and approx word count
+2. POV emotional shift — did the POV character end in a different emotional state than they started? ✅ yes / ❌ no
+3. Mystery engine — did a clue get planted, revealed, or misdirected? ✅ yes / ⚠️ weak / ❌ no
+4. Suspect list movement — did the reader's mental suspect list change (add, remove, or reorder)? ✅ yes / ❌ no
+5. Amateur sleuth agency — did the protagonist actively do something to advance the investigation (not just react)? ✅ yes / ⚠️ partial / ❌ no
+6. Cozy comfort beat — was warmth/community/setting delivered? ✅ yes / ❌ missing
+7. Cozy contract — did the world feel safe despite the murder? ✅ held / ❌ broken
+8. Exit hook type — label exactly: Cliffhanger / Unanswered question / Revelation / Emotional gut-punch / Weak / None
+9. Skip test — Essential / Probably skippable / Skippable
+10. Series plant — ✅ yes / ❌ no / ➖ N/A
+11. 🚨 Flag — if 2+ dimensions score ⚠️ or ❌: Mystery stall / Comfort drop / Passive protagonist / Consider cutting / Strong
+
+Return a clean table with all chapters. Then add exactly 3 lines:
+— Where the mystery engine stalls (which chapter cluster)
+— Whether the comfort contract holds throughout or has breaks
+— One structural observation about the investigation pacing
+
+Nothing else.
+
+MANUSCRIPT:
+[paste full manuscript here]`,
+
+    dive: `You are a KU pacing analyst specializing in cozy mystery. Audit this single chapter and return a structured diagnostic. Use this exact format:
+
+---
+
+CHAPTER SUMMARY
+[3 sentences max — confirm you understood what happened]
+
+SCORED AUDIT CARD
+Dimension | Score | Notes (1 line max)
+POV emotional shift | ✅/⚠️/❌ |
+Mystery engine (clue/misdirect/reveal) | ✅/⚠️/❌ |
+Suspect list movement | ✅/❌ |
+Amateur sleuth agency | ✅/⚠️/❌ |
+Cozy comfort beat | ✅/❌ |
+Cozy contract (world feels safe) | ✅/❌ |
+Dialogue ratio (flag if >70% prose) | ✅/⚠️ |
+Exit hook type | [name it] |
+Skip test | Essential / Probably skippable / Skippable |
+Series plant | ✅/❌/➖ |
+
+THE ONE THING TO FIX
+[The single highest-leverage change. One paragraph only, no bullet points. Be specific — name the scene, moment, and character. Tell me what to do, not just what's wrong.]
+
+OPTIONAL REWRITE TRIGGER
+If you want a revision suggestion for the weakest element, paste the relevant passage and say: "Fix this — [dimension name]"
+
+---
+
+CHAPTER:
+[paste chapter here]`
+  },
+
+  mafia: {
+    scan: `You are a KU pacing analyst specializing in dark/mafia romance. Audit this manuscript and return ONLY a heat map table — no prose feedback, no commentary, no encouragement. Just the table and a 3-line summary.
+
+For each chapter evaluate:
+1. Chapter # and approx word count
+2. POV emotional shift — did the POV character end in a different emotional state than they started? ✅ yes / ❌ no
+3. Danger dial — did external threat level escalate, hold, or drop? ↑ escalating / → holding / ↓ dropping
+4. Power dynamic shift — who has leverage at chapter open vs close? Did it move? ✅ shifted / ❌ static
+5. Morality line — did the hero do or reveal something that makes him more dangerous or morally complex? ✅ yes / ⚠️ soft / ❌ no
+6. Heroine agency — is she choosing to stay in proximity to him, or just being held? ✅ choosing / ⚠️ unclear / ❌ passive
+7. Forbidden pull — did her resistance crack or harden this chapter? ✅ moved / ❌ static
+8. Exit hook type — label exactly: Cliffhanger / Threat escalation / Revelation / Power shift / Emotional gut-punch / Weak / None
+9. Skip test — Essential / Probably skippable / Skippable
+10. Series plant — ✅ yes / ❌ no / ➖ N/A
+11. 🚨 Flag — if 2+ dimensions score ⚠️ or ❌: Danger drop / Power stall / Hero too clean / Passive heroine / Consider cutting / Strong
+
+Return a clean table with all chapters. Then add exactly 3 lines:
+— Where the danger arc plateaus or drops (chapter cluster)
+— Whether heroine agency holds or collapses mid-book
+— One structural observation about the power dynamic arc
+
+Nothing else.
+
+MANUSCRIPT:
+[paste full manuscript here]`,
+
+    dive: `You are a KU pacing analyst specializing in dark/mafia romance. Audit this single chapter and return a structured diagnostic. Use this exact format:
+
+---
+
+CHAPTER SUMMARY
+[3 sentences max — confirm you understood what happened]
+
+SCORED AUDIT CARD
+Dimension | Score | Notes (1 line max)
+POV emotional shift | ✅/⚠️/❌ |
+Danger dial | ↑ escalating / → holding / ↓ dropping |
+Power dynamic shift | ✅/❌ |
+Morality line (hero complexity) | ✅/⚠️/❌ |
+Heroine agency | ✅/⚠️/❌ |
+Forbidden pull movement | ✅/❌ |
+Dialogue ratio (flag if >70% prose) | ✅/⚠️ |
+Exit hook type | [name it] |
+Skip test | Essential / Probably skippable / Skippable |
+Series plant | ✅/❌/➖ |
+
+THE ONE THING TO FIX
+[The single highest-leverage change. One paragraph only, no bullet points. Be specific — name the scene, moment, and character. Tell me what to do, not just what's wrong.]
+
+OPTIONAL REWRITE TRIGGER
+If you want a revision suggestion for the weakest element, paste the relevant passage and say: "Fix this — [dimension name]"
+
+---
+
+CHAPTER:
+[paste chapter here]`
+  }
+};
+
+function makeChatGPT(text, isScan) {
+  const extra = isScan
+    ? text.replace("Nothing else.", "Stop after those 3 lines. Return nothing else.")
+    : text.replace("---\n\nCHAPTER:", "Stop after the OPTIONAL REWRITE TRIGGER line. Do not add closing remarks.\n\n---\n\nCHAPTER:");
+  return cgHeader + extra;
+}
+
+const prompts = {};
+for (const genre of ['romance','cozy','mafia']) {
+  prompts[genre] = {};
+  for (const mode of ['scan','dive']) {
+    prompts[genre][mode] = {
+      claude: base[genre][mode],
+      chatgpt: makeChatGPT(base[genre][mode], mode === 'scan')
+    };
+  }
+}
+
+const modeDescs = {
+  scan: '<strong>Mode 1 — Full-Book Pattern Scan.</strong> Paste your entire manuscript. Returns a scored heat map table for every chapter — one page, your whole book\'s rhythm visible at a glance. Dead chapters, sagging middles, and hook patterns all show up immediately. <strong>Run this first.</strong>',
+  dive: '<strong>Mode 2 — Chapter Deep Dive.</strong> Paste a single flagged chapter. Returns a scored audit card, a 3-sentence summary to confirm comprehension, the one highest-leverage fix, and an optional rewrite trigger. <strong>Run this on chapters the heat map flagged.</strong>'
+};
+
+const tips = {
+  romance: {
+    scan: 'Include chapter headings (e.g. "Chapter 1", "Chapter 2") so the AI can parse chapter boundaries cleanly.',
+    dive: 'After getting "The One Thing to Fix," use the rewrite trigger on that specific passage. One fix at a time compounds faster than ten at once.'
+  },
+  cozy: {
+    scan: 'The Suspect List Movement column is your fastest diagnostic — three consecutive ❌ means your mystery engine has stalled regardless of how good the prose is.',
+    dive: 'If Cozy Contract scores ❌, prioritize that fix first. Readers will forgive a slow chapter but not one that breaks the warmth of the world.'
+  },
+  mafia: {
+    scan: 'Watch the Danger Dial column as a sequence — one ↓ is fine for a breath chapter, but two consecutive ↓ is a reader-bail risk.',
+    dive: 'Heroine Agency is the dimension most authors underestimate. Two ❌ passive chapters in a row and readers start resenting her, which kills the fantasy.'
+  }
+};
+
+const labels = {
+  romance: { scan: 'Contemporary Romance · Mode 1: Full-Book Scan', dive: 'Contemporary Romance · Mode 2: Chapter Deep Dive' },
+  cozy: { scan: 'Cozy Mystery · Mode 1: Full-Book Scan', dive: 'Cozy Mystery · Mode 2: Chapter Deep Dive' },
+  mafia: { scan: 'Mafia Romance · Mode 1: Full-Book Scan', dive: 'Mafia Romance · Mode 2: Chapter Deep Dive' }
+};
+
+let g = 'romance', m = 'scan', a = 'claude';
+
+function render() {
+  document.getElementById('prompt-text').textContent = prompts[g][m][a];
+  document.getElementById('mode-desc').innerHTML = modeDescs[m];
+  document.getElementById('prompt-label').textContent = labels[g][m] + ' · ' + (a === 'claude' ? 'Claude' : 'ChatGPT');
+  document.getElementById('tip-text').innerHTML = '<strong>Note:</strong> ' + tips[g][m];
+  document.getElementById('ai-note').classList.toggle('visible', a === 'chatgpt');
+  const btn = document.getElementById('copy-btn');
+  btn.classList.remove('copied');
+  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 11V3a1 1 0 0 1 1-1h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Copy prompt';
+}
+
+document.getElementById('genre-group').addEventListener('click', e => {
+  const btn = e.target.closest('[data-genre]'); if (!btn) return;
+  g = btn.dataset.genre;
+  document.querySelectorAll('#genre-group .toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); render();
+});
+
+document.getElementById('mode-group').addEventListener('click', e => {
+  const btn = e.target.closest('[data-mode]'); if (!btn) return;
+  m = btn.dataset.mode;
+  document.querySelectorAll('#mode-group .toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); render();
+});
+
+document.getElementById('ai-group').addEventListener('click', e => {
+  const btn = e.target.closest('[data-ai]'); if (!btn) return;
+  a = btn.dataset.ai;
+  document.querySelectorAll('#ai-group .ai-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); render();
+});
+
+function copyPrompt() {
+  navigator.clipboard.writeText(prompts[g][m][a]).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.classList.add('copied');
+    btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Copied';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 11V3a1 1 0 0 1 1-1h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Copy prompt';
+    }, 2000);
+  });
+}
+
+render();
+</script>
+</body>
+</html>
