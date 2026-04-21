@@ -144,6 +144,32 @@ export async function POST(req: NextRequest) {
 
     console.log(`KDP upload: accumulated totals — ${totalUnits} units, ${totalKENP} KENP, $${totalRoyaltiesUSD.toFixed(2)} royalties`)
 
+    // ── Refresh the Analysis record's KDP data so the dashboard reflects this upload ──
+    // The dashboard reads from db.analysis, not from kdpSale. Without this, re-uploads
+    // update the raw rows but the displayed numbers stay stuck on the previous analysis.
+    try {
+      const existing = await db.analysis.findFirst({
+        where: { userId: session.user.id, month },
+      })
+      if (existing) {
+        const existingData = (existing.data as Record<string, unknown>) ?? {}
+        await db.analysis.update({
+          where: { id: existing.id },
+          data: { data: { ...existingData, kdp: accumulatedData } as object },
+        })
+      } else {
+        await db.analysis.create({
+          data: {
+            userId: session.user.id,
+            month,
+            data: { month, kdp: accumulatedData } as object,
+          },
+        })
+      }
+    } catch (dbErr) {
+      console.error('KDP upload: failed to refresh analysis record:', dbErr)
+    }
+
     if (session.user.adminImpersonating && session.user.adminRealEmail) {
       logAdminAction(session.user.adminRealEmail, session.user.adminImpersonating, 'upload', {
         filename: file.name,
