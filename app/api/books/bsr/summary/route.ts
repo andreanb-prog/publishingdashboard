@@ -29,8 +29,23 @@ export async function GET() {
     }),
   ])
 
-  // Today's total spend (sum across all books including LM)
-  const totalSpend = last7.reduce((s, r) => s + (r.adSpend ?? 0), 0) || null
+  // Today's total spend (sum across all books logged today)
+  let totalSpend = todayLogs.reduce((s, r) => s + (r.adSpend ?? 0), 0)
+  // If no BsrLog entries exist for today, fall back to MetaAdStat / MetaAdData directly
+  if (totalSpend === 0) {
+    const metaStats = await db.metaAdStat.findMany({
+      where: { userId, date: { gte: todayStart, lt: todayEnd } },
+    })
+    if (metaStats.length > 0) {
+      totalSpend = metaStats.reduce((s, r) => s + r.spend, 0)
+    } else {
+      const metaAdRows = await db.metaAdData.findMany({
+        where: { userId, date: { gte: todayStart, lt: todayEnd } },
+      })
+      totalSpend = metaAdRows.reduce((s, r) => s + r.spend, 0)
+    }
+  }
+  const totalSpendOrNull = totalSpend > 0 ? totalSpend : null
 
   // Best BSR today: lowest rank logged today
   const todayWithRank = todayLogs.filter((r): r is typeof r & { rank: number } => r.rank != null)
@@ -53,7 +68,7 @@ export async function GET() {
   const costPerSub = lmSubs > 0 ? lmSpend / lmSubs : null
 
   return NextResponse.json({
-    totalSpend: totalSpend !== null ? parseFloat(totalSpend.toFixed(2)) : null,
+    totalSpend: totalSpendOrNull !== null ? parseFloat(totalSpendOrNull.toFixed(2)) : null,
     bestBsr,
     bestBsrTitle,
     overallRoas: overallRoas !== null ? parseFloat(overallRoas.toFixed(2)) : null,

@@ -98,17 +98,18 @@ function fmtBsr(v: number | null | undefined): string {
 
 // ── Summary Strip ─────────────────────────────────────────────────────────────
 
-function SummaryStrip() {
+function SummaryStrip({ refreshKey }: { refreshKey: number }) {
   const [data, setData] = useState<SummaryData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    setLoading(true)
     fetch('/api/books/bsr/summary')
       .then(r => r.json())
       .then(d => setData(d))
       .catch(() => setData(null))
       .finally(() => setLoading(false))
-  }, [])
+  }, [refreshKey])
 
   const tiles: { label: string; value: string | null; sublabel?: string | null }[] = [
     { label: "Today's Total Spend", value: data?.totalSpend != null ? `$${data.totalSpend.toFixed(2)}` : null },
@@ -682,13 +683,14 @@ function TrendChart({ rows }: { rows: RoasRow[] }) {
 
 // ── Book Tab ──────────────────────────────────────────────────────────────────
 
-function BookTab({ book }: { book: BookRecord }) {
+function BookTab({ book, onLogSuccess }: { book: BookRecord; onLogSuccess?: () => void }) {
   const [rows, setRows] = useState<RoasRow[]>([])
   const [loading, setLoading] = useState(false)
   const [bsrInput, setBsrInput] = useState('')
   const [lastFetchedAt, setLastFetchedAt] = useState<string | null>(null)
   const [logLoading, setLogLoading] = useState(false)
   const [logConfirmed, setLogConfirmed] = useState(false)
+  const [logError, setLogError] = useState(false)
 
   const loadHistory = useCallback(async () => {
     if (!book.asin) return
@@ -711,18 +713,27 @@ function BookTab({ book }: { book: BookRecord }) {
     const rankNum = parseInt(bsrInput)
     if (isNaN(rankNum) || rankNum < 1) return
     setLogLoading(true)
+    setLogError(false)
     try {
       const r = await fetch('/api/books/bsr/log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ asin: book.asin, bookTitle: book.title, rank: rankNum }),
       })
-      if ((await r.json()).success) {
+      const d = await r.json()
+      if (d.success) {
         setLogConfirmed(true)
         setTimeout(() => setLogConfirmed(false), 3000)
         setBsrInput('')
         loadHistory()
+        onLogSuccess?.()
+      } else {
+        setLogError(true)
+        setTimeout(() => setLogError(false), 4000)
       }
+    } catch {
+      setLogError(true)
+      setTimeout(() => setLogError(false), 4000)
     } finally {
       setLogLoading(false)
     }
@@ -793,6 +804,12 @@ function BookTab({ book }: { book: BookRecord }) {
               <span className="text-[12px] font-semibold px-3 py-1.5 rounded-lg"
                 style={{ background: '#eaf7f1', color: '#0f6b46' }}>
                 Rank logged ✓
+              </span>
+            )}
+            {logError && (
+              <span className="text-[12px] font-semibold px-3 py-1.5 rounded-lg"
+                style={{ background: '#fff1f0', color: '#b91c1c' }}>
+                ⚠ Save failed — try again
               </span>
             )}
             <span className="text-[12px] ml-auto" style={{ color: '#9CA3AF' }}>
@@ -916,6 +933,9 @@ export default function RoasHubPage() {
   const { books, loading } = useBooks()
   const [activeTab, setActiveTab] = useState<TabId>(0)
   const [exporting, setExporting] = useState(false)
+  const [summaryKey, setSummaryKey] = useState(0)
+
+  const refreshSummary = () => setSummaryKey(k => k + 1)
 
   async function handleExport() {
     setExporting(true)
@@ -1001,7 +1021,7 @@ export default function RoasHubPage() {
       </div>
 
       {/* ── Summary Strip ── */}
-      <SummaryStrip />
+      <SummaryStrip refreshKey={summaryKey} />
 
       {/* ── Tabs ── */}
       <div className="flex gap-1 mb-5 border-b" style={{ borderColor: '#EEEBE6' }}>
@@ -1036,7 +1056,7 @@ export default function RoasHubPage() {
 
       {/* ── Tab Content ── */}
       {activeTab < 3 && bookTabs[activeTab] ? (
-        <BookTab key={bookTabs[activeTab].id} book={bookTabs[activeTab]} />
+        <BookTab key={bookTabs[activeTab].id} book={bookTabs[activeTab]} onLogSuccess={refreshSummary} />
       ) : activeTab < 3 && !bookTabs[activeTab] ? (
         <div className="rounded-lg p-6 text-center text-[13px]"
           style={{ border: '1px dashed #D1CBC2', color: '#9CA3AF' }}>

@@ -49,6 +49,11 @@ export async function GET() {
 
     console.log('[GET /api/books] userId:', session.user.id, '| books found:', existing.length)
 
+    // Never auto-seed default books into an impersonated user's account
+    if (existing.length === 0 && session.user.adminImpersonating) {
+      return NextResponse.json({ books: [] })
+    }
+
     if (existing.length > 0) {
       // One-time fix: ensure canonical books are at the right sortOrder positions.
       const fixes: Promise<unknown>[] = []
