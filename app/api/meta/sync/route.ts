@@ -39,7 +39,6 @@ export async function POST(req: NextRequest) {
     const user = rows[0]
 
     console.log('Token exists:', !!user?.metaAccessToken)
-    console.log('Token first 20 chars:', user?.metaAccessToken?.slice(0, 20) ?? 'none')
     console.log('Stored metaAdAccountId:', user?.metaAdAccountId ?? 'none')
 
     const token = user?.metaAccessToken
