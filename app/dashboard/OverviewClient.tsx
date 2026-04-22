@@ -2,6 +2,13 @@
 // app/dashboard/OverviewClient.tsx
 import { Suspense, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import ReactMarkdown from 'react-markdown'
+import DOMPurify from 'dompurify'
+
+function SafeMarkdown({ content }: { content: string }) {
+  const safe = typeof window !== 'undefined' ? DOMPurify.sanitize(content) : content
+  return <ReactMarkdown>{safe}</ReactMarkdown>
+}
 import type { Analysis, RankLog, RoasLog, ChannelScore, CoachingInsight, CrossChannelPlan } from '@/types'
 import type { DashboardData } from '@/lib/dashboard-data'
 import { getCoachTitle } from '@/lib/coachTitle'
@@ -1118,7 +1125,7 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
               {analysis.executiveSummary.whatsWorking.map((item: string, i: number) => (
                 <div key={i} className="flex items-start gap-2.5 text-[13px] leading-snug" style={{ color: '#374151' }}>
                   <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: '#6EBF8B' }} />
-                  <span dangerouslySetInnerHTML={{ __html: item.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#1E2D3D">$1</strong>') }} />
+                  <SafeMarkdown content={item} />
                 </div>
               ))}
             </div>
@@ -1131,7 +1138,7 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
               {analysis.executiveSummary.whereToStrengthen.map((item: string, i: number) => (
                 <div key={i} className="flex items-start gap-2.5 text-[13px] leading-snug" style={{ color: '#374151' }}>
                   <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: '#F97B6B' }} />
-                  <span dangerouslySetInnerHTML={{ __html: item.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#1E2D3D">$1</strong>') }} />
+                  <SafeMarkdown content={item} />
                 </div>
               ))}
             </div>
@@ -1421,7 +1428,7 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
                     {col.items.map((item: string, i: number) => (
                       <li key={i} className="text-[12.5px] leading-relaxed" style={{ color: '#374151' }}>
                         <span className="mr-1.5" style={{ color: col.color }}>•</span>
-                        <span dangerouslySetInnerHTML={{ __html: item.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                        <SafeMarkdown content={item} />
                       </li>
                     ))}
                   </ul>
