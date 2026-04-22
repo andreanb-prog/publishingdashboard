@@ -4,7 +4,7 @@ import { DashboardErrorBoundary } from '@/components/DashboardErrorBoundary'
 // Central page for "Is my ad spend working?" — tabbed BSR + ad tracker with LM cost-per-sub
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine,
 } from 'recharts'
 import { useBooks, type BookRecord } from '@/hooks/useBooks'
 import NoBooksEmptyState from '@/components/NoBooksEmptyState'
@@ -700,6 +700,103 @@ function TrendChart({ rows }: { rows: RoasRow[] }) {
   )
 }
 
+// ── BSR Sparkline ─────────────────────────────────────────────────────────────
+
+function BsrSparkline({ rows }: { rows: RoasRow[] }) {
+  const sortedRows = rows
+    .filter(r => r.rank != null)
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  const chartData = sortedRows.map(r => ({
+    date: fmtDate(r.date),
+    rank: r.rank as number,
+  }))
+
+  const hasEnoughData = chartData.length >= 3
+
+  return (
+    <div>
+      <ResponsiveContainer width="100%" height={160}>
+        <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 11, fill: '#9CA3AF' }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            reversed
+            tick={{ fontSize: 11, fill: '#9CA3AF' }}
+            tickLine={false}
+            axisLine={false}
+            width={72}
+            tickFormatter={(v: number) => v.toLocaleString()}
+          />
+          <Tooltip
+            contentStyle={{ background: 'white', border: '0.5px solid #EEEBE6', borderRadius: 8, fontSize: 12 }}
+            formatter={(value: unknown) => {
+              if (typeof value !== 'number') return ['—', 'BSR']
+              return [`#${value.toLocaleString()}`, 'BSR']
+            }}
+          />
+          {!hasEnoughData && chartData.length > 0 && (
+            <ReferenceLine
+              y={chartData[0].rank}
+              stroke="#E9A020"
+              strokeDasharray="4 4"
+              strokeOpacity={0.3}
+              label={{ value: 'Track more days to see your trend', position: 'insideTopRight', fill: '#9CA3AF', fontSize: 11 }}
+            />
+          )}
+          <Line
+            type="monotone"
+            dataKey="rank"
+            stroke="#E9A020"
+            strokeWidth={2}
+            dot={{ r: 3, fill: '#E9A020', stroke: '#E9A020' }}
+            connectNulls
+          />
+        </LineChart>
+      </ResponsiveContainer>
+
+      <details className="mt-3">
+        <summary
+          className="text-[12px] cursor-pointer select-none"
+          style={{ color: '#9CA3AF' }}
+        >
+          View full rank history
+        </summary>
+        <div className="mt-2 overflow-x-auto rounded-lg" style={{ border: '0.5px solid #EEEBE6' }}>
+          <table className="w-full">
+            <thead>
+              <tr style={{ borderBottom: '0.5px solid #EEEBE6' }}>
+                <th className="px-3 py-2 text-left text-[11px] font-semibold" style={{ color: '#9CA3AF', background: 'white' }}>DATE</th>
+                <th className="px-3 py-2 text-left text-[11px] font-semibold" style={{ color: '#9CA3AF', background: 'white' }}>RANK</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedRows.length === 0 ? (
+                <tr>
+                  <td colSpan={2} className="px-3 py-4 text-center text-[12px]" style={{ color: '#9CA3AF' }}>
+                    No rank data yet.
+                  </td>
+                </tr>
+              ) : (
+                sortedRows.slice().reverse().map((row, i) => (
+                  <tr key={row.date} style={{ background: i % 2 === 0 ? 'white' : ROW_STRIPE, borderBottom: '0.5px solid #F3F0EB' }}>
+                    <td className="px-3 py-1.5 text-[12px]" style={{ color: '#1E2D3D' }}>{fmtDate(row.date)}</td>
+                    <td className="px-3 py-1.5 text-[12px] font-medium" style={{ color: '#1E2D3D' }}>#{fmtBsr(row.rank)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+  )
+}
+
 // ── Book Tab ──────────────────────────────────────────────────────────────────
 
 function BookTab({ book, onLogSuccess }: { book: BookRecord; onLogSuccess?: () => void }) {
@@ -840,6 +937,21 @@ function BookTab({ book, onLogSuccess }: { book: BookRecord; onLogSuccess?: () =
           {SHOW_DAILY_TABLE && (
             <RoasTable rows={rows} loading={loading} asin={book.asin} onSave={handleCellSave} />
           )}
+
+          {/* Sales Rank Tracker */}
+          <div className="rounded-lg p-4 mb-4" style={{ background: 'white', border: '0.5px solid #EEEBE6' }}>
+            <div className="text-[13px] font-semibold mb-3" style={{ color: '#1E2D3D' }}>
+              Sales Rank Tracker
+            </div>
+            {rows.some(r => r.rank != null) ? (
+              <BsrSparkline rows={rows} />
+            ) : (
+              <div className="flex items-center justify-center py-8 rounded-lg"
+                style={{ border: '1px dashed #D1CBC2', color: '#9CA3AF', fontSize: 12 }}>
+                No rank history yet. Log your first BSR above.
+              </div>
+            )}
+          </div>
 
           {/* Correlation chart */}
           <div className="rounded-lg p-4" style={{ background: 'white', border: '0.5px solid #EEEBE6' }}>
