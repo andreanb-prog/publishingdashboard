@@ -785,7 +785,7 @@ export default function MailerLitePage() {
                   <table className="w-full border-collapse text-[12px]">
                     <thead>
                       <tr style={{ background: '#F5F5F4' }}>
-                        {['Automation', 'Status', 'Subscribers', 'Open Rate', 'Click Rate', 'Health'].map(h => (
+                        {['Automation', 'Status', 'Subscribers', 'Open Rate', 'Click Rate', 'Health', ''].map(h => (
                           <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
                             style={{ color: '#6B7280' }}>{h}</th>
                         ))}
@@ -815,6 +815,20 @@ export default function MailerLitePage() {
                                 style={{ background: `${healthColors[auto.health]}20`, color: healthColors[auto.health] }}>
                                 {healthLabels[auto.health]}
                               </span>
+                            </td>
+                            <td className="px-4 py-2.5">
+                              {auto.health !== 'green' && auto.id && (
+                                <a
+                                  href={`https://dashboard.mailerlite.com/automations/${auto.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ color: '#E9A020', fontSize: 12, textDecoration: 'none' }}
+                                  onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
+                                  onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}
+                                >
+                                  Fix in MailerLite →
+                                </a>
+                              )}
                             </td>
                           </tr>
                         )

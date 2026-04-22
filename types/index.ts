@@ -85,6 +85,7 @@ export interface MetaData {
 }
 
 export interface MailerLiteAutomation {
+  id?: string
   name: string
   status: 'active' | 'paused'
   subscriberCount: number

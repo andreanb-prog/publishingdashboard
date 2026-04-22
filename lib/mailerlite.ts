@@ -127,7 +127,7 @@ export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteDa
         if (status === 'paused' || subscriberCount === 0) health = 'red'
         else if (clickRate < 1) health = 'amber'
 
-        return { name: a.name || 'Untitled', status, subscriberCount, openRate, clickRate, health }
+        return { id: a.id, name: a.name || 'Untitled', status, subscriberCount, openRate, clickRate, health }
       })
     }
   } catch {
