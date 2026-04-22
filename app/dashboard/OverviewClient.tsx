@@ -879,8 +879,6 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
         </div>
       )}
 
-      {/* What Happened card */}
-      {analyses.length >= 2 && <WhatHappenedCard current={analyses[0]} previous={analyses[1]} actionPlan={analysis?.actionPlan} />}
 
       {/* Hero numbers strip — centered grid */}
       <div className="rounded-xl mb-4 py-6 px-4 sm:px-6"
@@ -1400,6 +1398,9 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
           </div>
         </div>
       )}
+
+      {/* ══════ COACHING NARRATIVE ════════════════════════════════ */}
+      {analyses.length >= 2 && <WhatHappenedCard current={analyses[0]} previous={analyses[1]} actionPlan={analysis?.actionPlan} />}
 
       {/* ══════ SECTION 6 — CROSS-CHANNEL ACTION PLAN ═════════════ */}
       <div className="mb-7">
