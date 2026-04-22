@@ -232,14 +232,14 @@ function PepTalkCard({ analysis }: { analysis: Analysis }) {
   return (
     <div style={{
       background: '#FFF8F0',
-      borderLeft: '3px solid #E9A020',
+      borderLeft: '4px solid #E9A020',
       borderRadius: '0.75rem',
-      padding: '14px 18px',
+      padding: '16px 20px',
     }}>
-      <p style={{ margin: 0, fontSize: 15, fontStyle: 'italic', color: '#1E2D3D', lineHeight: 1.65 }}>
+      <p style={{ margin: 0, fontSize: 17, fontStyle: 'italic', fontFamily: 'Georgia, serif', color: '#1E2D3D', lineHeight: 1.65 }}>
         &ldquo;{entry.quote}&rdquo;
       </p>
-      <p style={{ margin: '6px 0 0', fontSize: 12, color: '#9CA3AF' }}>
+      <p style={{ margin: '8px 0 0', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(30,45,61,0.4)', fontStyle: 'normal' }}>
         — {entry.source}
       </p>
     </div>
