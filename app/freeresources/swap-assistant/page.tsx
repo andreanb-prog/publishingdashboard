@@ -95,7 +95,7 @@ export default function FreeResourcesPage() {
             Every morning, type one sentence. Claude tells you exactly which swaps you need to send today — and drafts them for you.
           </p>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>
-            Shared by Andrea Bonilla · Happy Easter 🐣
+            Shared by Andrea Bonilla
           </p>
         </div>
       </section>
@@ -318,18 +318,29 @@ export default function FreeResourcesPage() {
             Get the skill from Google Drive
           </a>
 
-          {/* White outlined — Open in Claude */}
+          {/* White outlined — Download skill file */}
           <a
-            href={claudeUrl}
+            href="/downloads/bookclicker-triage.skill"
+            download
+            className="flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-semibold text-sm transition-colors hover:bg-gray-50"
+            style={{ background: '#ffffff', border: '0.5px solid #1E2D3D', color: '#1E2D3D' }}
+          >
+            Download the skill file →
+          </a>
+
+          <p className="text-center text-xs" style={{ color: 'rgba(30,45,61,0.5)' }}>
+            First download and install the skill, then open Claude.
+          </p>
+
+          {/* Amber — Open in Claude */}
+          <a
+            href="https://claude.ai/new?q=I%20just%20installed%20the%20BookClicker%20triage%20skill.%20Please%20confirm%20you%20have%20it%20loaded%20and%20walk%20me%20through%20any%20remaining%20setup%20so%20I%20can%20run%20my%20first%20morning%20triage."
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-semibold text-sm transition-colors hover:bg-gray-50"
-            style={{ background: '#ffffff', border: '1.5px solid #1E2D3D', color: '#1E2D3D' }}
+            className="flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+            style={{ background: '#E9A020', color: '#1E2D3D' }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            </svg>
-            Open in Claude — skill pre-loaded
+            Open in Claude →
           </a>
 
         </div>
