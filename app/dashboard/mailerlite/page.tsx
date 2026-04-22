@@ -1,5 +1,6 @@
 'use client'
 // app/(dashboard)/mailerlite/page.tsx
+import { DashboardErrorBoundary } from '@/components/DashboardErrorBoundary'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import ChartJS from 'chart.js/auto'
 import { ChartLegend } from '@/components/ChartLegend'
@@ -478,6 +479,7 @@ export default function MailerLitePage() {
   }
 
   return (
+    <DashboardErrorBoundary>
     <DarkPage title="📧 MailerLite — Email Marketing" subtitle="Open rates · List health · Subscriber trends">
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {!ml ? (
@@ -847,5 +849,6 @@ export default function MailerLitePage() {
         </>
       )}
     </DarkPage>
+    </DashboardErrorBoundary>
   )
 }

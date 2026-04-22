@@ -1,5 +1,6 @@
 'use client'
 // app/dashboard/rank/page.tsx — ROAS Hub
+import { DashboardErrorBoundary } from '@/components/DashboardErrorBoundary'
 // Central page for "Is my ad spend working?" — tabbed BSR + ad tracker with LM cost-per-sub
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
@@ -994,6 +995,7 @@ export default function RoasHubPage() {
   }
 
   return (
+    <DashboardErrorBoundary>
     <div className="p-4 sm:p-8 pb-8 max-w-[1240px]">
       {/* ── Page header ── */}
       <div className="flex items-start justify-between mb-5">
@@ -1069,5 +1071,6 @@ export default function RoasHubPage() {
         <LeadMagnetTab />
       )}
     </div>
+    </DashboardErrorBoundary>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 // app/dashboard/kdp/page.tsx
+import { DashboardErrorBoundary } from '@/components/DashboardErrorBoundary'
 import { Suspense, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import ChartJS from 'chart.js/auto'
 import Link from 'next/link'
@@ -1165,6 +1166,7 @@ export default function KDPPage() {
   }
 
   return (
+    <DashboardErrorBoundary>
     <DarkPage title="KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties"
       headerRight={
         <div>
@@ -1581,5 +1583,6 @@ export default function KDPPage() {
         </>
       )}
     </DarkPage>
+    </DashboardErrorBoundary>
   )
 }

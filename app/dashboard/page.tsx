@@ -3,6 +3,7 @@ import { getAugmentedSession } from '@/lib/getSession'
 import { redirect } from 'next/navigation'
 import { OverviewClient } from './OverviewClient'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { DashboardErrorBoundary } from '@/components/DashboardErrorBoundary'
 import { fetchDashboardData } from '@/lib/dashboard-data'
 
 export default async function DashboardPage() {
@@ -25,7 +26,9 @@ export default async function DashboardPage() {
 
   return (
     <ErrorBoundary fallbackTitle="Dashboard couldn't load">
-      <OverviewClient userName={greetingName} initialData={initialData} />
+      <DashboardErrorBoundary>
+        <OverviewClient userName={greetingName} initialData={initialData} />
+      </DashboardErrorBoundary>
     </ErrorBoundary>
   )
 }

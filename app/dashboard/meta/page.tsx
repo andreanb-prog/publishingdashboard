@@ -1,5 +1,6 @@
 'use client'
 // app/dashboard/meta/page.tsx
+import { DashboardErrorBoundary } from '@/components/DashboardErrorBoundary'
 import { Suspense, useEffect, useRef, useState, useCallback } from 'react'
 import { DayPicker } from 'react-day-picker'
 import type { DateRange } from 'react-day-picker'
@@ -826,6 +827,7 @@ export default function MetaPage() {
   }
 
   return (
+    <DashboardErrorBoundary>
     <DarkPage title="Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <LastUploadBadge channel="meta" dateRange={activeRange.start ? activeRange : undefined} />
@@ -1205,5 +1207,6 @@ export default function MetaPage() {
         </>
       )}
     </DarkPage>
+    </DashboardErrorBoundary>
   )
 }
