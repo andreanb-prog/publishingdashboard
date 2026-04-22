@@ -17,6 +17,15 @@ export async function POST(req: NextRequest) {
   })
   if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 })
 
+  let styleStr = typeof midjourneyStyleString === 'string' ? midjourneyStyleString.trim() : ''
+  if (!styleStr) {
+    const profile = await db.contentProfile.findFirst({
+      where: { userId: session.user.id, bookId: post.bookId },
+      select: { midjourneyStyle: true },
+    })
+    styleStr = profile?.midjourneyStyle?.trim() ?? ''
+  }
+
   const message = await anthropic.messages.create({
     model: CLAUDE_MODEL,
     max_tokens: 500,
@@ -28,7 +37,6 @@ export async function POST(req: NextRequest) {
   })
 
   const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
-  const styleStr = typeof midjourneyStyleString === 'string' ? midjourneyStyleString.trim() : ''
   const midjourneyPrompt = styleStr ? `${raw} ${styleStr}` : raw
 
   await db.contentPost.update({
