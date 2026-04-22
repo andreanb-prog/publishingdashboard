@@ -14,6 +14,7 @@ interface Props {
   onResult: (rank: number) => void
   onError?: (error: FetchError) => void
   size?: 'sm' | 'md'
+  loggedLabel?: string
 }
 
 function fmtNextAllowed(iso: string | null): string {
@@ -23,7 +24,7 @@ function fmtNextAllowed(iso: string | null): string {
   return `in ~${mins}m`
 }
 
-export default function BsrFetchButton({ asin, onResult, onError, size = 'md' }: Props) {
+export default function BsrFetchButton({ asin, onResult, onError, size = 'md', loggedLabel }: Props) {
   const [state, setState] = useState<State>('idle')
   const [fetchedRank, setFetchedRank] = useState<number | null>(null)
   const [nextAllowed, setNextAllowed] = useState<string | null>(null)
@@ -103,6 +104,7 @@ export default function BsrFetchButton({ asin, onResult, onError, size = 'md' }:
   }
 
   // ── md variant ──────────────────────────────────────────────────────────────
+  const showLogged = !!loggedLabel && state !== 'loading'
   return (
     <span className="inline-flex flex-col gap-1">
       <button
@@ -110,7 +112,7 @@ export default function BsrFetchButton({ asin, onResult, onError, size = 'md' }:
         disabled={state === 'loading' || !asin}
         className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-bold transition-all disabled:opacity-40"
         style={{
-          background: state === 'success' ? '#6EBF8B' : '#E9A020',
+          background: showLogged || state === 'success' ? '#6EBF8B' : '#E9A020',
           color: '#1E2D3D',
           border: 'none',
           cursor: state === 'loading' || !asin ? 'not-allowed' : 'pointer',
@@ -126,6 +128,8 @@ export default function BsrFetchButton({ asin, onResult, onError, size = 'md' }:
             />
             Fetching…
           </>
+        ) : showLogged ? (
+          loggedLabel
         ) : state === 'success' && fetchedRank != null ? (
           <>✓ #{fetchedRank.toLocaleString()}</>
         ) : (

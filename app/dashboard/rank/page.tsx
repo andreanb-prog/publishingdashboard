@@ -807,6 +807,8 @@ function BookTab({ book, onLogSuccess }: { book: BookRecord; onLogSuccess?: () =
   const [logLoading, setLogLoading] = useState(false)
   const [logConfirmed, setLogConfirmed] = useState(false)
   const [logError, setLogError] = useState(false)
+  const [showManual, setShowManual] = useState(false)
+  const [autoLogLabel, setAutoLogLabel] = useState<string | null>(null)
 
   const loadHistory = useCallback(async () => {
     if (!book.asin) return
@@ -824,10 +826,11 @@ function BookTab({ book, onLogSuccess }: { book: BookRecord; onLogSuccess?: () =
 
   useEffect(() => { loadHistory() }, [loadHistory])
 
-  async function handleLog() {
+  async function handleLog(rankOverride?: number) {
     if (!book.asin) return
-    const rankNum = parseInt(bsrInput)
+    const rankNum = rankOverride ?? parseInt(bsrInput)
     if (isNaN(rankNum) || rankNum < 1) return
+    const isAuto = rankOverride !== undefined
     setLogLoading(true)
     setLogError(false)
     try {
@@ -838,9 +841,14 @@ function BookTab({ book, onLogSuccess }: { book: BookRecord; onLogSuccess?: () =
       })
       const d = await r.json()
       if (d.success) {
-        setLogConfirmed(true)
-        setTimeout(() => setLogConfirmed(false), 3000)
-        setBsrInput('')
+        if (isAuto) {
+          setAutoLogLabel('Logged ✓')
+          setTimeout(() => setAutoLogLabel(null), 2000)
+        } else {
+          setLogConfirmed(true)
+          setTimeout(() => setLogConfirmed(false), 3000)
+          setBsrInput('')
+        }
         loadHistory()
         onLogSuccess?.()
       } else {
@@ -893,35 +901,57 @@ function BookTab({ book, onLogSuccess }: { book: BookRecord; onLogSuccess?: () =
       ) : (
         <>
           {/* BSR Input Row */}
-          <div className="flex flex-wrap items-center gap-3 mb-5">
-            <BsrFetchButton
-              asin={book.asin}
-              onResult={rank => { setBsrInput(String(rank)); setLastFetchedAt(new Date().toISOString()) }}
-              onError={() => {}}
-              size="md"
-            />
-            <input
-              type="number" min="1" placeholder="e.g. 45,000"
-              value={bsrInput}
-              onChange={e => setBsrInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLog()}
-              className="rounded-lg px-3 py-2 text-[13px] w-36"
-              style={{ border: '0.5px solid #D1CBC2', background: 'white', color: '#1E2D3D', outline: 'none' }}
-            />
-            <button
-              onClick={handleLog}
-              disabled={logLoading || !bsrInput}
-              className="px-3.5 py-2 rounded-lg text-[12.5px] font-bold transition-all disabled:opacity-40"
-              style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              {logLoading ? '…' : 'Log Today →'}
-            </button>
-            {logConfirmed && (
-              <span className="text-[12px] font-semibold px-3 py-1.5 rounded-lg"
-                style={{ background: '#eaf7f1', color: '#0f6b46' }}>
-                Rank logged ✓
-              </span>
+          <div className="flex flex-wrap items-start gap-3 mb-5">
+            <div className="flex flex-col gap-0.5">
+              <BsrFetchButton
+                asin={book.asin}
+                onResult={rank => {
+                  setBsrInput(String(rank))
+                  setLastFetchedAt(new Date().toISOString())
+                  handleLog(rank)
+                }}
+                onError={() => {}}
+                size="md"
+                loggedLabel={autoLogLabel ?? undefined}
+              />
+              {!showManual && (
+                <button
+                  onClick={() => setShowManual(true)}
+                  className="text-[11px] text-left"
+                  style={{ color: '#9CA3AF', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  Enter manually
+                </button>
+              )}
+            </div>
+
+            {showManual && (
+              <>
+                <input
+                  type="number" min="1" placeholder="e.g. 45,000"
+                  value={bsrInput}
+                  onChange={e => setBsrInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleLog()}
+                  className="rounded-lg px-3 py-2 text-[13px] w-36"
+                  style={{ border: '0.5px solid #D1CBC2', background: 'white', color: '#1E2D3D', outline: 'none' }}
+                />
+                <button
+                  onClick={() => handleLog()}
+                  disabled={logLoading || !bsrInput}
+                  className="px-3.5 py-2 rounded-lg text-[12.5px] font-bold transition-all disabled:opacity-40"
+                  style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  {logLoading ? '…' : 'Log Today →'}
+                </button>
+                {logConfirmed && (
+                  <span className="text-[12px] font-semibold px-3 py-1.5 rounded-lg"
+                    style={{ background: '#eaf7f1', color: '#0f6b46' }}>
+                    Rank logged ✓
+                  </span>
+                )}
+              </>
             )}
+
             {logError && (
               <span className="text-[12px] font-semibold px-3 py-1.5 rounded-lg"
                 style={{ background: '#fff1f0', color: '#b91c1c' }}>
