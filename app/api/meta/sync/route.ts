@@ -2,6 +2,7 @@
 // API version: v21.0 (minimum required for current Insights API)
 import { NextRequest, NextResponse } from 'next/server'
 import { getAugmentedSession } from '@/lib/getSession'
+import { metaSyncLimiter, checkRateLimit, RATE_LIMIT_RESPONSE } from '@/lib/ratelimit'
 import { db } from '@/lib/db'
 import type { MetaAd, MetaData } from '@/types'
 
@@ -26,6 +27,9 @@ const INSIGHTS_FIELDS = [
 export async function POST(req: NextRequest) {
   const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { limited } = await checkRateLimit(metaSyncLimiter, `meta-sync:${session.user.id}`)
+  if (limited) return RATE_LIMIT_RESPONSE
 
   await req.json().catch(() => {}) // consume body
 
