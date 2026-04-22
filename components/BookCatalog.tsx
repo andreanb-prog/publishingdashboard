@@ -125,17 +125,26 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 
 // ── Cover image display ───────────────────────────────────────────────────────
 
-// Navy placeholder shown when a book has no cover yet
+// Placeholder shown when a book has no cover yet
 function CoverPlaceholder({ color, width = 40, height = 60 }: { color: string; width?: number; height?: number }) {
+  void color
   return (
     <div className="flex flex-col items-center shrink-0" style={{ width }}>
       <div
         className="rounded flex items-center justify-center"
-        style={{ width, height, background: '#1E2D3D' }}
+        style={{
+          width,
+          height,
+          background: '#FFF8F0',
+          border: '1.5px dashed rgba(30,45,61,0.2)',
+        }}
       >
-        <div className="rounded-full" style={{ width: 9, height: 9, background: color }} />
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2v11Z" stroke="rgba(30,45,61,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle cx="12" cy="13" r="4" stroke="rgba(30,45,61,0.3)" strokeWidth="1.5"/>
+        </svg>
       </div>
-      <span className="mt-1 text-[10px] text-stone-400 leading-none">Add cover</span>
+      <span className="mt-1 leading-none" style={{ fontSize: 11, color: 'rgba(30,45,61,0.4)' }}>Add cover</span>
     </div>
   )
 }
