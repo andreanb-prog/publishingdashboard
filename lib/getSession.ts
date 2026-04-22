@@ -6,7 +6,7 @@ import { cookies } from 'next/headers'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 
-export const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
+export const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '').split(',').map(e => e.trim()).filter(Boolean)
 export const IMPERSONATE_COOKIE = 'authordash_impersonate'
 
 export async function getAugmentedSession() {
