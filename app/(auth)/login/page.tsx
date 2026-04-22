@@ -43,8 +43,11 @@ export default function LoginPage() {
           <div className="text-[42px] leading-tight mb-4" style={{ color: '#4A7290', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 }}>
             Author<span style={{ color: '#E9A020' }}>Dash</span>
           </div>
-          <p className="text-[17px] leading-relaxed mb-6" style={{ color: '#374151' }}>
-            Your marketing data, your coaching insights, your decisions.
+          <p className="text-[17px] leading-relaxed mb-3" style={{ color: '#374151' }}>
+            See exactly which book, ad, and email is making you money — in under 5 minutes.
+          </p>
+          <p className="text-[14px] leading-relaxed mb-6" style={{ color: '#6B7280' }}>
+            AuthorDash connects your KDP sales, Meta ads, and MailerLite list into one daily action plan. No spreadsheets. No guessing.
           </p>
           <div className="space-y-3">
             {[
