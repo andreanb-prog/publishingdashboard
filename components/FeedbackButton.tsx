@@ -173,23 +173,51 @@ export function FeedbackButton() {
         </div>
       </div>
 
-      {/* Floating trigger button */}
-      <button
-        onClick={handleOpen}
-        className="group flex items-center gap-1.5 rounded-full text-[12px] font-semibold
-                   shadow-lg transition-all duration-200 hover:scale-105 active:scale-95"
-        style={{
-          background: 'rgba(233,160,32,0.9)',
-          color: '#0d1f35',
-          padding: '8px 14px',
-          backdropFilter: 'blur(8px)',
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#0d1f35" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        Something feel off?
-      </button>
+      {/* Floating trigger button — icon only with CSS tooltip */}
+      <div style={{ position: 'relative', display: 'inline-block' }}>
+        <style>{`
+          .ad-fb-wrap:hover .ad-fb-tip { opacity: 1 !important; }
+        `}</style>
+        <div className="ad-fb-wrap" style={{ position: 'relative', display: 'inline-block' }}>
+          <span className="ad-fb-tip" style={{
+            position: 'absolute',
+            bottom: 'calc(100% + 8px)',
+            right: 0,
+            background: '#1E2D3D',
+            color: 'white',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '11.5px',
+            whiteSpace: 'nowrap',
+            opacity: 0,
+            pointerEvents: 'none',
+            transition: 'opacity 0.15s',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+          }}>
+            Something feel off?
+          </span>
+          <button
+            onClick={handleOpen}
+            className="shadow-lg transition-all duration-200 hover:scale-105 active:scale-95"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: 'white',
+              border: '0.5px solid rgba(30,45,61,0.15)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#1E2D3D" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
