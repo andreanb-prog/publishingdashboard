@@ -46,20 +46,16 @@ Reader Avatar: ${readerAvatar ?? ''}
 Core Feelings: ${Array.isArray(coreFeelings) ? coreFeelings.join(', ') : coreFeelings ?? ''}
 Voice Profile: ${voiceProfile ?? ''}
 Visual Brief: ${typeof visualBrief === 'object' ? JSON.stringify(visualBrief) : visualBrief ?? ''}
-Midjourney Style String: ${midjourneyStyle ?? ''}
 
-Return a JSON array of exactly 30 posts. Each post:
+Return a JSON array of exactly 30 post objects. Each object must have ONLY these fields:
 {
   "day": number (1-30),
   "week": number (1-4),
   "phase": "awareness" | "connection" | "engagement" | "conversion",
   "pillar": "Emotional Experience" | "Reader Identity" | "World Mood Board" | "Book Mention",
+  "platform": "pinterest" | "instagram",
   "hook": string (scroll-stopping first line, max 15 words),
-  "caption": string (full caption, 50-150 words, no hashtags),
-  "imagePrompt": string (scene description only, no style),
-  "midjourneyPrompt": string (imagePrompt + the Midjourney style string combined, ready to paste),
-  "freepikPrompt": string (simplified 1-2 sentence version for Freepik),
-  "platform": "pinterest" | "instagram"
+  "caption": string (full caption, 50-150 words, no hashtags)
 }
 
 Distribution rules:
@@ -70,11 +66,11 @@ Distribution rules:
 - Never lead with the book title in non-Book-Mention posts
 - Make the reader feel seen before you mention the book
 
-Return ONLY the JSON array, no markdown wrapper, no explanation.`
+Return ONLY a raw JSON array. No markdown fences, no backticks, no explanation. Start with [ and end with ].`
 
   const message = await anthropic.messages.create({
     model: CLAUDE_MODEL,
-    max_tokens: 8192,
+    max_tokens: 8000,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
   })
@@ -83,9 +79,13 @@ Return ONLY the JSON array, no markdown wrapper, no explanation.`
 
   let rawPosts: Record<string, unknown>[]
   try {
-    rawPosts = JSON.parse(raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim())
+    const start = raw.indexOf('[')
+    const end = raw.lastIndexOf(']')
+    if (start === -1 || end === -1) throw new Error('No JSON array found in response')
+    rawPosts = JSON.parse(raw.slice(start, end + 1))
     if (!Array.isArray(rawPosts)) throw new Error('Not an array')
-  } catch {
+  } catch (e) {
+    console.error('[generate-campaign] parse error', e, 'raw:', raw.slice(0, 500))
     return NextResponse.json({ error: 'Failed to parse campaign from Claude' }, { status: 500 })
   }
 
