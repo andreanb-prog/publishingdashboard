@@ -123,6 +123,24 @@ function SummaryStrip({ refreshKey }: { refreshKey: number }) {
     { label: 'Cost Per Subscriber', value: data?.costPerSub  != null ? `$${data.costPerSub.toFixed(2)}` : null },
   ]
 
+  const isEmptyState = !loading && tiles.every(t => t.value == null)
+
+  if (isEmptyState) {
+    return (
+      <div className="mb-6">
+        <div className="rounded-lg p-6" style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+          <div className="rounded-lg p-5" style={{ background: '#FFF8F0', border: '1px dashed #D1CBC2' }}>
+            <div className="font-semibold mb-2" style={{ fontSize: 16, color: '#1E2D3D' }}>No rank data yet</div>
+            <p className="text-[14px] mb-3" style={{ color: 'rgba(30,45,61,0.6)', maxWidth: 320 }}>
+              Select a book tab and click Refresh Rank to start tracking your BSR.
+            </p>
+            <span className="text-[20px]" style={{ color: '#E9A020' }}>→</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-wrap gap-3 mb-6">
       {tiles.map((tile, i) => (
