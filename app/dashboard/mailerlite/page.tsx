@@ -646,7 +646,11 @@ export default function MailerLitePage() {
                   {benchmarks.map((row, i) => {
                     const isGood = row.good(row.yours)
                     return (
-                      <tr key={i} className="border-t" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+                      <tr key={i} className="border-t" style={{
+                        borderColor: 'rgba(0,0,0,0.06)',
+                        borderLeft: !isGood ? '3px solid #F97B6B' : undefined,
+                        background: !isGood ? 'rgba(249,123,107,0.04)' : undefined,
+                      }}>
                         <td className="px-4 py-3" style={{ color: '#1E2D3D' }}>{row.metric}</td>
                         <td className="px-4 py-3 font-mono font-bold"
                           style={{ color: isGood ? '#34d399' : '#fb7185' }}>
