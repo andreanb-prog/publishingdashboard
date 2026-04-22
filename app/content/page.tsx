@@ -272,6 +272,11 @@ export default function ContentPlannerPage() {
   const [scheduleLoading, setScheduleLoading] = useState(false)
   const [scheduleResults, setScheduleResults] = useState<Record<string, boolean>>({})
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
+  const [generatingPromptId, setGeneratingPromptId] = useState<string | null>(null)
+
+  // Edit-phase flow
+  const [returnToPhase, setReturnToPhase] = useState<1 | 2 | 3 | 4 | null>(null)
+  const [editWarningDismissed, setEditWarningDismissed] = useState(false)
 
   // Load books
   useEffect(() => {
@@ -399,8 +404,12 @@ export default function ContentPlannerPage() {
 
   const handlePhase1Complete = () => {
     if (!selectedBook) return
-    completePhase(1)
-    saveSession(2)
+    setCompletedPhases(prev => Array.from(new Set([...prev, 1])))
+    const next: 1 | 2 | 3 | 4 = returnToPhase ?? 2
+    setActivePhase(next)
+    setReturnToPhase(null)
+    setEditWarningDismissed(false)
+    saveSession(next)
   }
 
   // ── Phase 2: Brand Voice ──────────────────────────────────────────────────
@@ -442,8 +451,12 @@ export default function ContentPlannerPage() {
 
   const handlePhase2Complete = () => {
     if (!profile) return
-    completePhase(2)
-    saveSession(3)
+    setCompletedPhases(prev => Array.from(new Set([...prev, 2])))
+    const next: 1 | 2 | 3 | 4 = returnToPhase ?? 3
+    setActivePhase(next)
+    setReturnToPhase(null)
+    setEditWarningDismissed(false)
+    saveSession(next)
   }
 
   const handleExtractBrandVoice = async () => {
@@ -575,28 +588,48 @@ export default function ContentPlannerPage() {
     if (!selectedBook || !profile) return
     setRegeneratingId(post.id)
     try {
-      const res = await fetch('/api/content/generate-campaign', {
+      const res = await fetch('/api/content/regenerate-post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          postId: post.id,
           bookId: selectedBook.id,
+          phase: post.phase,
+          pillar: post.pillar,
+          platform: post.platform,
+          day: post.day,
           readerAvatar: profile.readerAvatar,
-          coreFeelings: profile.coreFeelings,
           voiceProfile: profile.voiceProfile,
-          visualBrief: editingBrief,
-          midjourneyStyle: editingBrief?.midjourneyStyleString ?? '',
-          regenerateDay: post.day,
+          coreFeelings: profile.coreFeelings,
         }),
       })
-      const { posts: p } = await res.json()
-      if (p?.length > 0) {
-        const match = p.find((x: ContentPost) => x.day === post.day)
-        if (match) {
-          setPosts(prev => prev.map(x => x.id === post.id ? { ...match, id: post.id } : x))
-        }
-      }
+      const { hook, caption, error } = await res.json()
+      if (error) { alert(error); return }
+      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, hook, caption, midjourneyPrompt: '' } : p))
     } finally {
       setRegeneratingId(null)
+    }
+  }
+
+  const generatePrompt = async (post: ContentPost) => {
+    setGeneratingPromptId(post.id)
+    try {
+      const res = await fetch('/api/content/generate-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId: post.id,
+          hook: post.hook,
+          pillar: post.pillar,
+          phase: post.phase,
+          midjourneyStyleString: editingBrief?.midjourneyStyleString ?? '',
+        }),
+      })
+      const { midjourneyPrompt, error } = await res.json()
+      if (error) { alert(error); return }
+      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, midjourneyPrompt } : p))
+    } finally {
+      setGeneratingPromptId(null)
     }
   }
 
@@ -693,6 +726,24 @@ export default function ContentPlannerPage() {
         </div>
       )}
 
+      {/* Edit-phase warning banner */}
+      {returnToPhase !== null && posts.length > 0 && !editWarningDismissed && (
+        <div className="max-w-4xl mx-auto px-6 mb-1">
+          <div
+            className="px-4 py-2.5 rounded-lg text-[13px] flex items-center justify-between"
+            style={{ background: 'rgba(233,160,32,0.10)', border: '1px solid rgba(233,160,32,0.3)', color: '#1E2D3D' }}
+          >
+            <span>Editing this won&apos;t update your existing campaign posts. Generate a new campaign to apply changes.</span>
+            <button
+              onClick={() => setEditWarningDismissed(true)}
+              style={{ background: 'none', border: 'none', color: '#1E2D3D', cursor: 'pointer', fontSize: '16px', lineHeight: 1, padding: '0 0 0 12px', flexShrink: 0 }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto px-6 py-4 space-y-4">
 
         {/* ─── PHASE 1 ────────────────────────────────────────────────────── */}
@@ -703,7 +754,7 @@ export default function ContentPlannerPage() {
             subtitle={completedPhases.includes(1) ? `${selectedBook?.title} · Visual brief locked` : 'Select your book and share your Pinterest aesthetic'}
             isActive={activePhase === 1}
             isCompleted={completedPhases.includes(1)}
-            onEdit={() => { setActivePhase(1); setCompletedPhases(prev => prev.filter(n => n !== 1)) }}
+            onEdit={() => { setReturnToPhase(activePhase); setEditWarningDismissed(false); setActivePhase(1) }}
           />
 
           {activePhase === 1 && (
@@ -863,7 +914,7 @@ export default function ContentPlannerPage() {
             subtitle={completedPhases.includes(2) && profile ? `Reader: ${profile.readerAvatar.slice(0, 60)}…` : 'A short conversation to lock your reader and voice'}
             isActive={activePhase === 2}
             isCompleted={completedPhases.includes(2)}
-            onEdit={() => { setActivePhase(2); setCompletedPhases(prev => prev.filter(n => n !== 2)) }}
+            onEdit={() => { setReturnToPhase(activePhase); setEditWarningDismissed(false); setActivePhase(2) }}
           />
 
           {activePhase === 2 && (
@@ -1244,14 +1295,25 @@ export default function ContentPlannerPage() {
                         <div>
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#6B7280' }}>Midjourney Prompt</span>
-                            <CopyButton text={post.midjourneyPrompt} />
+                            {post.midjourneyPrompt && <CopyButton text={post.midjourneyPrompt} />}
                           </div>
-                          <pre
-                            className="text-[10px] p-2 rounded overflow-x-auto"
-                            style={{ background: '#1E2D3D', color: '#E9A020', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: '80px' }}
-                          >
-                            {post.midjourneyPrompt}
-                          </pre>
+                          {post.midjourneyPrompt ? (
+                            <pre
+                              className="text-[10px] p-2 rounded overflow-x-auto"
+                              style={{ background: '#1E2D3D', color: '#E9A020', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: '80px' }}
+                            >
+                              {post.midjourneyPrompt}
+                            </pre>
+                          ) : (
+                            <button
+                              onClick={() => generatePrompt(post)}
+                              disabled={generatingPromptId === post.id}
+                              className="w-full py-1.5 rounded text-[11px] font-semibold transition-all disabled:opacity-50"
+                              style={{ background: 'rgba(233,160,32,0.12)', border: '1px solid rgba(233,160,32,0.3)', color: '#E9A020', cursor: 'pointer' }}
+                            >
+                              {generatingPromptId === post.id ? 'Generating…' : '✦ Generate Prompt'}
+                            </button>
+                          )}
                         </div>
                       </div>
 

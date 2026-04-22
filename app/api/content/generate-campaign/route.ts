@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { bookId, readerAvatar, coreFeelings, voiceProfile, visualBrief, midjourneyStyle } = await req.json()
+  const { bookId, readerAvatar, coreFeelings, voiceProfile, visualBrief } = await req.json()
   if (!bookId) return NextResponse.json({ error: 'bookId required' }, { status: 400 })
 
   const book = await db.book.findFirst({
@@ -117,66 +117,5 @@ Return ONLY a raw JSON array. No markdown fences, no backticks, no explanation. 
     orderBy: { day: 'asc' },
   })
 
-  // Second pass: generate Midjourney prompts for each post
-  const midjourneyStyleString = typeof midjourneyStyle === 'string' ? midjourneyStyle : ''
-  const postSummaries = created.map((p) => ({
-    day: p.day,
-    pillar: p.pillar,
-    phase: p.phase,
-    hook: p.hook,
-  }))
-
-  const mjUserPrompt = `You are a Midjourney prompt expert for indie romance book marketing on Pinterest and Instagram.
-
-Given these 30 social media posts, generate one Midjourney image prompt per post that would produce a stunning, atmospheric image for that post. Each prompt should:
-- Match the emotional tone and pillar of the post
-- Reference the visual mood (${midjourneyStyleString || 'cinematic, warm, romantic, atmospheric'})
-- Be specific enough to generate a consistent aesthetic across all 30 posts
-- Be 20-50 words
-- Include technical Midjourney parameters at the end (e.g. --ar 4:5 --style raw --v 6)
-
-Posts:
-${JSON.stringify(postSummaries)}
-
-Return ONLY a raw JSON array of exactly 30 objects with this shape: { "day": number, "midjourneyPrompt": string }
-No markdown fences, no backticks, no explanation. Start with [ and end with ].`
-
-  const mjMessage = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: 6000,
-    messages: [{ role: 'user', content: mjUserPrompt }],
-  })
-
-  const mjRaw = mjMessage.content[0].type === 'text' ? mjMessage.content[0].text : ''
-
-  let mjPrompts: { day: number; midjourneyPrompt: string }[] = []
-  try {
-    const start = mjRaw.indexOf('[')
-    const end = mjRaw.lastIndexOf(']')
-    if (start === -1 || end === -1) throw new Error('No JSON array found')
-    const parsed = JSON.parse(mjRaw.slice(start, end + 1))
-    if (!Array.isArray(parsed)) throw new Error('Not an array')
-    mjPrompts = parsed
-  } catch (e) {
-    console.error('[generate-campaign] midjourney parse error', e, 'raw:', mjRaw.slice(0, 500))
-    // Non-fatal: return posts without prompts
-    return NextResponse.json({ posts: created, campaignId, count: posts.count })
-  }
-
-  // Update each post with its Midjourney prompt
-  await Promise.all(
-    mjPrompts.map((mj) =>
-      db.contentPost.updateMany({
-        where: { userId: session.user.id, campaignId, day: mj.day },
-        data: { midjourneyPrompt: String(mj.midjourneyPrompt ?? '') },
-      })
-    )
-  )
-
-  const finalPosts = await db.contentPost.findMany({
-    where: { userId: session.user.id, campaignId },
-    orderBy: { day: 'asc' },
-  })
-
-  return NextResponse.json({ posts: finalPosts, campaignId, count: posts.count })
+  return NextResponse.json({ posts: created, campaignId, count: posts.count })
 }
