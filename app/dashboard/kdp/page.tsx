@@ -371,12 +371,14 @@ function DailyAreaChart({
   lineColor,
   avgColor,
   peakDotColor,
+  fillColor,
   isKenp = false,
 }: {
   data: DailyData[]
   lineColor: string
   avgColor: string
   peakDotColor: string
+  fillColor?: string
   isKenp?: boolean
 }) {
   const canvasRef    = useRef<HTMLCanvasElement>(null)
@@ -404,10 +406,11 @@ function DailyAreaChart({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       backgroundColor: (context: any) => {
         const { ctx: cCtx, chartArea } = context.chart
-        if (!chartArea) return lineColor + '40'
+        const gradColor = fillColor || lineColor
+        if (!chartArea) return gradColor + '66'
         const g = cCtx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
-        g.addColorStop(0, lineColor + '3F')
-        g.addColorStop(1, lineColor + '05')
+        g.addColorStop(0, gradColor + '66')
+        g.addColorStop(1, gradColor + '00')
         return g
       },
       pointHoverRadius: 4,
@@ -493,7 +496,7 @@ function DailyAreaChart({
     })
 
     return () => { chartRef.current?.destroy() }
-  }, [data, lineColor, avgColor, peakDotColor, isKenp])
+  }, [data, lineColor, fillColor, avgColor, peakDotColor, isKenp])
 
   if (data.length < 5) {
     return (
@@ -1505,6 +1508,7 @@ export default function KDPPage() {
                 <DailyAreaChart
                   data={filteredUnits}
                   lineColor={CHART_COLORS.coral}
+                  fillColor={CHART_COLORS.amber}
                   avgColor={CHART_COLORS.amber}
                   peakDotColor={CHART_COLORS.amber}
                 />
