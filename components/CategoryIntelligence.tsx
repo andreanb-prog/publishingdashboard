@@ -10,7 +10,7 @@ interface CategoryEntry {
   fetchedAt: string
 }
 
-export default function CategoryIntelligence({ bookAsin }: { bookAsin?: string }) {
+export default function CategoryIntelligence({ bookAsin, bookTitle }: { bookAsin?: string; bookTitle?: string }) {
   const [entries, setEntries] = useState<CategoryEntry[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -29,6 +29,11 @@ export default function CategoryIntelligence({ bookAsin }: { bookAsin?: string }
 
   return (
     <div className="rounded-xl p-5 mb-5" style={{ background: '#1c1917', border: '1px solid #292524' }}>
+      {bookTitle && (
+        <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1" style={{ color: '#E9A020' }}>
+          {bookTitle}
+        </p>
+      )}
       <h3 className="text-[13.5px] font-semibold mb-3" style={{ color: '#d6d3d1' }}>
         Category Intelligence
       </h3>

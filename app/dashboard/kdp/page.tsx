@@ -1572,7 +1572,14 @@ export default function KDPPage() {
             className="mb-5"
             subtitle="See every Amazon category your book is in and how you rank"
           >
-            <CategoryIntelligence />
+            {(() => {
+              const booksForCat = selectedBooks.size > 0
+                ? displayBooks.filter(isBookVisible).filter(b => b.asin && selectedBooks.has(b.asin))
+                : displayBooks.filter(isBookVisible).filter(b => b.asin)
+              return booksForCat.map(b => (
+                <CategoryIntelligence key={b.asin} bookAsin={b.asin} bookTitle={b.title} />
+              ))
+            })()}
           </CollapsibleSection>
 
           {/* ── Sales Rank Tracker ── */}
