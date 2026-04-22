@@ -261,7 +261,7 @@ export async function POST(req: NextRequest) {
           console.error('[chat] STREAM ERROR:', err?.message)
           console.error('[chat] STREAM ERROR status:', err?.status)
           console.error('[chat] STREAM ERROR stack:', err?.stack?.slice(0, 500))
-          controller.enqueue(encoder.encode(`\n\n[ERROR:stream_failed] ${err?.message || 'unknown'}`))
+          controller.enqueue(encoder.encode('\n\n[ERROR:stream_failed]'))
           controller.close()
         }
       },

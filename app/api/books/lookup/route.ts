@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     html = await res.text()
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Fetch failed' },
+      { error: 'Internal server error' },
       { status: 502 },
     )
   }

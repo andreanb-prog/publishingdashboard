@@ -46,6 +46,6 @@ export async function GET() {
 
     return NextResponse.json(result)
   } catch (e: any) {
-    return NextResponse.json({ ...result, fetchError: e?.message ?? String(e) }, { status: 500 })
+    return NextResponse.json({ ...result, fetchError: 'Internal server error' }, { status: 500 })
   }
 }

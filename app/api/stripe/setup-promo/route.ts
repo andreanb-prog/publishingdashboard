@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       results.coupon = { status: 'created', id: couponId }
     }
   } catch (err: any) {
-    return NextResponse.json({ error: 'Failed to create coupon', detail: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 
   // ── 2. Create or confirm the DEVACCESS2026 promotion code ───────────────────
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       results.promotionCode = { status: 'created', id: promoCode.id, code: promoCode.code }
     }
   } catch (err: any) {
-    return NextResponse.json({ error: 'Failed to create promotion code', detail: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 
   // ── 3. Verify FPA2026 coupon still exists ───────────────────────────────────

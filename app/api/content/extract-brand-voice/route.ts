@@ -56,8 +56,7 @@ export async function POST(req: NextRequest) {
     try {
       text = await extractTextFromFile(file)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to read file'
-      return NextResponse.json({ error: msg }, { status: 400 })
+      return NextResponse.json({ error: 'Internal server error' }, { status: 400 })
     }
   } else {
     const body = await req.json()

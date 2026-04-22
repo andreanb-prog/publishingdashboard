@@ -38,7 +38,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (code === 'P2002') {
       return NextResponse.json({ error: 'A book with this ASIN already exists in your catalog.' }, { status: 409 })
     }
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -65,6 +65,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error('[DELETE /api/books/[id]] error:', err)
-    return NextResponse.json({ error: 'Failed to delete book', detail: String(err) }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

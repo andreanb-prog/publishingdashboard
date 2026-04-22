@@ -284,9 +284,8 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
       console.log('=== saved ===')
       await send({ type: 'complete', analysis, success: true })
     } catch (error) {
-      const errMsg = error instanceof Error ? error.message : String(error)
-      console.error('Analysis error (SSE):', errMsg, error)
-      await send({ type: 'error', message: errMsg })
+      console.error('Analysis error (SSE):', error)
+      await send({ type: 'error', message: 'Internal server error' })
     } finally {
       try { writer.close() } catch { /* already closed */ }
     }

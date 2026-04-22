@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         )
         return NextResponse.json({ error: 'Token expired — please reconnect Meta Ads' }, { status: 401 })
       }
-      return NextResponse.json({ error: meData.error.message || 'Token invalid' }, { status: 401 })
+      return NextResponse.json({ error: 'Token invalid' }, { status: 401 })
     }
 
     // ── Step 2: Verify stored account access (if one is saved) ───────────────
