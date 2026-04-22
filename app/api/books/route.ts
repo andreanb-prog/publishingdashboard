@@ -1,8 +1,19 @@
 // app/api/books/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import { logAdminAction } from '@/lib/adminAudit'
+
+const BookSchema = z.object({
+  title: z.string().min(1),
+  asin: z.string().optional().nullable(),
+  seriesName: z.string().optional().nullable(),
+  seriesOrder: z.number().optional().nullable(),
+  isLeadMagnet: z.boolean().optional(),
+  coverUrl: z.string().optional().nullable(),
+  pubDate: z.string().optional().nullable(),
+})
 
 // Default books to pre-populate when a user has none
 const DEFAULT_BOOKS = [
@@ -97,7 +108,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const count = await db.book.count({ where: { userId: session.user.id } })
-    const body = await req.json()
+    const rawBody = await req.json()
+    const parsed = BookSchema.safeParse(rawBody)
+    if (!parsed.success) return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    const body = parsed.data
 
     console.log('[POST /api/books] userId:', session.user.id)
     console.log('[POST /api/books] attempting create with data:', JSON.stringify(body, null, 2))

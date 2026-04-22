@@ -1,13 +1,24 @@
 // app/api/profile/route.ts — Save author profile (pen name, genre, referral)
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
+
+const ProfileSchema = z.object({
+  penName: z.string().optional().nullable(),
+  genreCategory: z.string().optional().nullable(),
+  genreSubgenre: z.string().optional().nullable(),
+  referralSource: z.string().optional().nullable(),
+})
 
 export async function POST(req: NextRequest) {
   const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { penName, genreCategory, genreSubgenre, referralSource } = await req.json()
+  const rawBody = await req.json()
+  const parsed = ProfileSchema.safeParse(rawBody)
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+  const { penName, genreCategory, genreSubgenre, referralSource } = parsed.data
 
   try {
     await db.$executeRawUnsafe(

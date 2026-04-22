@@ -1,5 +1,6 @@
 // app/api/analyze/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getAugmentedSession } from '@/lib/getSession'
 import { anthropic, CLAUDE_MODEL, COACHING_SYSTEM_PROMPT } from '@/lib/anthropic'
 import { db } from '@/lib/db'
@@ -37,13 +38,26 @@ function makeFingerprint(kdp?: KDPData, meta?: MetaData, pinterest?: PinterestDa
   return parts.filter(Boolean).join('|')
 }
 
+const AnalyzeSchema = z.object({
+  month: z.string().min(1),
+  kdp: z.record(z.string(), z.unknown()).optional(),
+  meta: z.record(z.string(), z.unknown()).optional(),
+  mailerLite: z.record(z.string(), z.unknown()).optional(),
+  pinterest: z.record(z.string(), z.unknown()).optional(),
+})
+
 export async function POST(req: NextRequest) {
   const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   // Parse body eagerly so it's available inside the async stream worker
   let body: { kdp?: KDPData; meta?: MetaData; mailerLite?: MailerLiteData; pinterest?: PinterestData; month: string }
-  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid body' }, { status: 400 }) }
+  try {
+    const raw = await req.json()
+    const parsed = AnalyzeSchema.safeParse(raw)
+    if (!parsed.success) return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    body = parsed.data as typeof body
+  } catch { return NextResponse.json({ error: 'Invalid request' }, { status: 400 }) }
   const { kdp, meta, mailerLite, pinterest, month } = body
 
   // ── SSE stream setup ──────────────────────────────────────────────────────
