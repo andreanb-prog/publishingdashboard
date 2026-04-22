@@ -34,18 +34,65 @@ export async function POST(req: NextRequest) {
   console.log('[generate-prompt] styleString from DB:', profile?.midjourneyStyle?.slice(0, 80) || 'NOT FOUND')
   console.log('[generate-prompt] final styleString:', styleString?.slice(0, 80) || 'EMPTY — FALLBACK USED')
 
+  const pillarTemplate: Record<string, string> = {
+    'Emotional Experience': 'lone woman in open landscape, back to camera, warm golden backlight, linen or cream clothing',
+    'Reader Identity': 'intimate detail shot — hands holding a book, wine glass on wooden railing, bare feet on warm wood',
+    'World Mood Board': 'wide establishing landscape shot at golden hour — vineyard rows, lakeside dock, or small town main street',
+    'Book Mention': 'woman reading in warm light, soft golden hour, cozy intimate setting, book as a detail not a focal point',
+  }
+
+  const baseTemplate = pillarTemplate[pillar] ?? pillarTemplate['Emotional Experience']
+
+  const userPromptText = `Generate one Midjourney image prompt for this social media post.
+
+Pillar: ${pillar}
+Phase: ${phase}
+Post hook: ${hook}
+
+Start from this visual template: ${baseTemplate}
+
+Then add 2-3 specific visual details that connect to the emotional theme of the hook. Keep it warm, grounded, and hopeful.
+
+The style string will be appended separately — do not include --ar, --v, or --style parameters.
+Do not include --no parameters — those will be appended separately.
+
+Return ONLY the descriptive image content (subject, light, mood, style). No parameters. No explanation. No markdown.`
+
   const message = await anthropic.messages.create({
     model: CLAUDE_MODEL,
     max_tokens: 500,
-    system: 'You are a visual creative director for fiction authors. Generate a single Midjourney image prompt for a social media post.',
+    system: `You are a visual creative director specializing in romance fiction author branding. You generate Midjourney image prompts that are warm, grounded, and romantic — never dark, moody, or cinematic.
+
+VISUAL RULES — these apply to every single prompt you generate, no exceptions:
+- Light: always warm — golden hour, soft morning light, dappled sunlight. Never overcast, dramatic, or cold.
+- Mood: hopeful, intimate, grounded. Never melancholic, broken, fragmented, or introspective-dark.
+- Color: warm earth tones — cream, amber, honey, terracotta, dusty sage. Never muted gray, cold blue, or desaturated.
+- Figures: backs to camera, faces turned away, or hands/details only. Never direct eye contact, never posed.
+- Settings: open landscapes, vineyards, lakesides, rustic interiors, small town streets at golden hour. Never urban grit, abandoned spaces, or dramatic architecture.
+- NEVER include: broken objects, mirrors, dramatic shadows, cold lighting, moody atmosphere, fragmented imagery, emotional vulnerability as darkness.
+
+PILLAR VISUAL TEMPLATES — use these as your starting point:
+- Emotional Experience: lone woman in open landscape, back to camera, warm golden backlight, linen or cream clothing
+- Reader Identity: intimate detail shot — hands holding a book, wine glass on a railing, bare feet on warm wood, steaming mug on a porch
+- World Mood Board: wide establishing shot — vineyard rows at dusk, lakeside dock at sunrise, small town main street at golden hour, rustic outdoor dining
+- Book Mention: same warm aesthetic, subtle book or reading element, never a book cover close-up
+
+NEGATIVE PROMPTS — always end every prompt with:
+--no dark backgrounds, moody lighting, cold tones, broken objects, mirrors, dramatic shadows, cinematic darkness, stock photo feel, urban grit, abandoned spaces, sad expressions`,
     messages: [{
       role: 'user',
-      content: `Generate one Midjourney image prompt for this post. Hook: ${hook}. Pillar: ${pillar}. Phase: ${phase}. Return ONLY the prompt text, no explanation, no markdown.`,
+      content: userPromptText,
     }],
   })
 
   const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
-  const midjourneyPrompt = styleString ? `${raw} ${styleString}` : raw
+
+  const NEGATIVE_PARAMS = '--no dark backgrounds, moody lighting, cold tones, broken objects, mirrors, dramatic shadows, cinematic darkness, stock photo feel, urban grit, abandoned spaces, sad expressions'
+  const STYLE_PARAMS = '--ar 4:5 --style raw --v 6'
+
+  const midjourneyPrompt = styleString
+    ? `${raw}, ${styleString} ${NEGATIVE_PARAMS} ${STYLE_PARAMS}`
+    : `${raw} ${NEGATIVE_PARAMS} ${STYLE_PARAMS}`
 
   await db.contentPost.update({
     where: { id: postId },
