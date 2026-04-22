@@ -65,11 +65,8 @@ export default function LoginPage() {
           </div>
           <div className="mt-10 flex items-center gap-2">
             <span className="inline-block text-[9px] font-bold tracking-[1.5px] uppercase px-2 py-0.5 rounded"
-              style={{ background: 'rgba(233,160,32,0.15)', color: '#e9a020' }}>
-              BETA
-            </span>
-            <span className="text-[12px]" style={{ color: '#6B7280' }}>
-              Free during beta period
+              style={{ background: '#E9A020', color: '#1E2D3D' }}>
+              Founding Member Access
             </span>
           </div>
         </div>

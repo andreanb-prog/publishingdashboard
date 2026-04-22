@@ -98,8 +98,8 @@ export function Sidebar() {
           <span style={{ color: '#E9A020', fontWeight: 700, fontSize: '18px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Dash</span>
         </div>
         <span className="inline-block mt-1 text-[10px] font-semibold tracking-[0.05em]"
-          style={{ background: '#FFF4E0', color: '#E9A020', padding: '2px 8px', borderRadius: 20 }}>
-          BETA
+          style={{ background: '#E9A020', color: '#1E2D3D', padding: '2px 8px', borderRadius: 20 }}>
+          Founding Member Access
         </span>
       </Link>
 
