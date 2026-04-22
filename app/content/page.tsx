@@ -1396,19 +1396,35 @@ export default function ContentPlannerPage() {
               Paste or upload your brand guide and we&apos;ll extract your reader avatar, core feelings, and voice profile automatically.
             </p>
 
+            {/* Upload nudge card */}
+            <div className="flex items-center justify-between gap-3 mb-4 px-4 py-3 rounded-[10px]" style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+              <div>
+                <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>📄 Already have a brand guide?</div>
+                <div className="text-[12px]" style={{ color: 'rgba(30,45,61,0.5)' }}>Upload it and we&apos;ll extract everything for you.</div>
+              </div>
+              <button
+                onClick={() => { setBrandGuideTab('upload'); brandGuideFileRef.current?.click() }}
+                className="shrink-0 px-3 py-2 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-all"
+                style={{ background: '#E9A020', color: '#fff', border: 'none', cursor: 'pointer' }}
+              >
+                Upload your brand guide →
+              </button>
+            </div>
+
             {/* Tab switcher */}
             <div className="flex gap-1 p-1 rounded-lg mb-4" style={{ background: '#FFF8F0', border: '0.5px solid #E8E0D8' }}>
               {(['paste', 'upload'] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setBrandGuideTab(tab)}
-                  className="flex-1 py-2 rounded-md text-[13px] font-semibold transition-all"
+                  className="flex-1 py-2 rounded-md text-[13px] transition-all"
                   style={{
-                    background: brandGuideTab === tab ? 'white' : 'transparent',
-                    color: brandGuideTab === tab ? '#1E2D3D' : '#6B7280',
-                    border: brandGuideTab === tab ? '0.5px solid #E8E0D8' : 'none',
+                    background: brandGuideTab === tab ? (tab === 'upload' ? '#E9A020' : 'white') : 'transparent',
+                    color: brandGuideTab === tab ? (tab === 'upload' ? '#fff' : '#1E2D3D') : '#6B7280',
+                    fontWeight: brandGuideTab === tab ? 600 : 400,
+                    border: brandGuideTab === tab && tab !== 'upload' ? '0.5px solid #E8E0D8' : 'none',
                     cursor: 'pointer',
-                    boxShadow: brandGuideTab === tab ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                    boxShadow: brandGuideTab === tab && tab !== 'upload' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
                   }}
                 >
                   {tab === 'paste' ? 'Paste text' : 'Upload file'}
@@ -1446,7 +1462,8 @@ export default function ContentPlannerPage() {
                   ) : (
                     <>
                       <div className="text-2xl mb-2">📄</div>
-                      <div>Click to upload a .txt or .pdf brand guide</div>
+                      <div className="font-medium">Drop your brand guide here — .txt, .pdf, or .docx</div>
+                      <div className="text-[12px] mt-1" style={{ color: '#9CA3AF' }}>Works with any brand doc, style guide, or author bio</div>
                     </>
                   )}
                 </button>
