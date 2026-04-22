@@ -759,3 +759,51 @@ model AdminAuditLog {
   @@index([adminEmail])
   @@index([timestamp])
 }
+
+model ContentProfile {
+  id              String   @id @default(cuid())
+  userId          String
+  bookId          String
+  readerAvatar    String   @db.Text
+  coreFeelings    Json
+  voiceProfile    String   @db.Text
+  visualBrief     Json
+  midjourneyStyle String   @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, bookId])
+}
+
+model ContentPost {
+  id               String   @id @default(cuid())
+  userId           String
+  bookId           String
+  campaignId       String
+  day              Int
+  week             Int
+  phase            String
+  pillar           String
+  hook             String   @db.Text
+  caption          String   @db.Text
+  imagePrompt      String   @db.Text
+  midjourneyPrompt String   @db.Text
+  freepikPrompt    String   @db.Text
+  platform         String
+  scheduledDate    DateTime
+  status           String   @default("draft")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId, campaignId])
+  @@index([userId, bookId])
+}
+
+model TailwindConnection {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  encryptedApiKey String   @db.Text
+  accountId       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

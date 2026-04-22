@@ -7,7 +7,7 @@ import {
   LayoutDashboard, BookOpen, TrendingUp, Mail, ArrowLeftRight, Pin,
   BarChart2, ArrowUpRight, DollarSign, Users, GraduationCap,
   Settings2, Database, LogOut, Rocket, Palette, PenTool, Search,
-  ListChecks,
+  ListChecks, CalendarDays,
 } from '@/components/icons'
 import type { LucideIcon } from 'lucide-react'
 
@@ -17,6 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'My Dashboard', href: '/dashboard', Icon: LayoutDashboard },
   { label: 'Task Center', href: '/dashboard/tasks', Icon: ListChecks },
   { label: 'Launch Planner', href: '/dashboard/launch', Icon: Rocket },
+  { label: 'Content Planner', href: '/content', Icon: CalendarDays },
   // HIDDEN — re-enable when ready:
   // { label: 'Creative Hub', href: '/dashboard/creative', Icon: Palette },
   // { label: 'Writing Notebook', href: '/dashboard/writing-notebook', Icon: PenTool },

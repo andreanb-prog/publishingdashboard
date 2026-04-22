@@ -45,6 +45,14 @@ export {
   Plus,
   Search,
   ListChecks,
+  CalendarDays,
+  Mic,
+  RefreshCw,
+  CheckCheck,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  X,
 } from 'lucide-react'
 
 // Custom SVG icons (kept for legacy use)
