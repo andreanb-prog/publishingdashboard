@@ -807,3 +807,17 @@ model TailwindConnection {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+model ContentSession {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  bookId                String?
+  currentPhase          Int      @default(1)
+  pinterestUrl          String?
+  visualBrief           Json?
+  midjourneyStyleString String?
+  profileId             String?
+  campaignId            String?
+  updatedAt             DateTime @updatedAt
+  createdAt             DateTime @default(now())
+}

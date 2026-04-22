@@ -56,6 +56,21 @@ interface ContentPost {
   status: string
 }
 
+interface StoredSession {
+  bookId: string | null
+  currentPhase: number
+  pinterestUrl: string | null
+  visualBrief: VisualBrief | null
+  midjourneyStyleString: string | null
+  profileId: string | null
+  campaignId: string | null
+  contentProfile: {
+    readerAvatar: string
+    coreFeelings: string[]
+    voiceProfile: string
+  } | null
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const QUESTIONS = [
@@ -242,6 +257,11 @@ export default function ContentPlannerPage() {
   const [campaignLoading, setCampaignLoading] = useState(false)
   const [campaignId, setCampaignId] = useState<string | null>(null)
 
+  // Session restore
+  const [sessionCheckDone, setSessionCheckDone] = useState(false)
+  const [savedSession, setSavedSession] = useState<StoredSession | null>(null)
+  const [showRestoreBanner, setShowRestoreBanner] = useState(false)
+
   // Phase 4
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set())
   const [expandedCaptions, setExpandedCaptions] = useState<Set<string>>(new Set())
@@ -263,6 +283,48 @@ export default function ContentPlannerPage() {
       })
       .catch(() => setBooksLoading(false))
   }, [])
+
+  // Load saved session on mount
+  useEffect(() => {
+    fetch('/api/content/session')
+      .then(r => r.json())
+      .then(({ session }) => {
+        setSavedSession(session ?? null)
+        setSessionCheckDone(true)
+      })
+      .catch(() => setSessionCheckDone(true))
+  }, [])
+
+  // Apply session restore once books and session are both ready
+  useEffect(() => {
+    if (!sessionCheckDone || booksLoading || !savedSession) return
+
+    const book = savedSession.bookId ? books.find(b => b.id === savedSession.bookId) ?? null : null
+    if (book) setSelectedBook(book)
+    if (savedSession.pinterestUrl) setPinterestUrl(savedSession.pinterestUrl)
+    if (savedSession.visualBrief) {
+      setVisualBrief(savedSession.visualBrief)
+      setEditingBrief(savedSession.visualBrief)
+    }
+
+    const phase = Math.min(4, Math.max(1, savedSession.currentPhase)) as 1 | 2 | 3 | 4
+    const completed: number[] = []
+    if (phase >= 2) completed.push(1)
+    if (phase >= 3) { completed.push(2); if (savedSession.contentProfile) setProfile(savedSession.contentProfile) }
+    if (phase >= 4) completed.push(3)
+    if (completed.length > 0) setCompletedPhases(completed)
+    setActivePhase(phase)
+
+    setShowRestoreBanner(true)
+    setSavedSession(null)
+  }, [sessionCheckDone, booksLoading, savedSession, books])
+
+  // Auto-dismiss restore banner after 3 seconds
+  useEffect(() => {
+    if (!showRestoreBanner) return
+    const t = setTimeout(() => setShowRestoreBanner(false), 3000)
+    return () => clearTimeout(t)
+  }, [showRestoreBanner])
 
   // Check Tailwind connection
   useEffect(() => {
@@ -295,6 +357,21 @@ export default function ContentPlannerPage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [answers, currentQ])
 
+  const saveSession = (nextPhase: number, overrideCampaignId?: string) => {
+    fetch('/api/content/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bookId: selectedBook?.id ?? null,
+        currentPhase: nextPhase,
+        pinterestUrl: pinterestUrl || null,
+        visualBrief: editingBrief,
+        midjourneyStyleString: editingBrief?.midjourneyStyleString ?? null,
+        campaignId: overrideCampaignId ?? campaignId,
+      }),
+    }).catch(() => {})
+  }
+
   const completePhase = (n: number) => {
     setCompletedPhases(prev => Array.from(new Set([...prev, n])))
     setActivePhase((n + 1) as 1 | 2 | 3 | 4)
@@ -323,6 +400,7 @@ export default function ContentPlannerPage() {
   const handlePhase1Complete = () => {
     if (!selectedBook) return
     completePhase(1)
+    saveSession(2)
   }
 
   // ── Phase 2: Brand Voice ──────────────────────────────────────────────────
@@ -365,6 +443,7 @@ export default function ContentPlannerPage() {
   const handlePhase2Complete = () => {
     if (!profile) return
     completePhase(2)
+    saveSession(3)
   }
 
   const handleExtractBrandVoice = async () => {
@@ -417,6 +496,7 @@ export default function ContentPlannerPage() {
       setExtractedProfile(null)
       setEditingExtracted(null)
       completePhase(2)
+      saveSession(3)
     } finally {
       setProfileLoading(false)
     }
@@ -445,6 +525,7 @@ export default function ContentPlannerPage() {
       setPosts(p ?? [])
       setCampaignId(cid)
       completePhase(3)
+      saveSession(4, cid)
     } finally {
       setCampaignLoading(false)
     }
@@ -589,6 +670,28 @@ export default function ContentPlannerPage() {
           </button>
         </div>
       </div>
+
+      {/* Restore banner */}
+      {showRestoreBanner && (
+        <div className="max-w-4xl mx-auto px-6 mb-1">
+          <div
+            className="px-4 py-2.5 rounded-lg text-[13px] font-medium flex items-center justify-between"
+            style={{
+              background: 'rgba(233,160,32,0.10)',
+              border: '1px solid rgba(233,160,32,0.3)',
+              color: '#E9A020',
+            }}
+          >
+            <span>Welcome back — your campaign is right where you left it.</span>
+            <button
+              onClick={() => setShowRestoreBanner(false)}
+              style={{ background: 'none', border: 'none', color: '#E9A020', cursor: 'pointer', fontSize: '16px', lineHeight: 1, padding: '0 0 0 12px' }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-4xl mx-auto px-6 py-4 space-y-4">
 
