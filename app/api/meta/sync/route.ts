@@ -42,21 +42,15 @@ export async function POST(req: NextRequest) {
     console.log('Token first 20 chars:', user?.metaAccessToken?.slice(0, 20) ?? 'none')
     console.log('Stored metaAdAccountId:', user?.metaAdAccountId ?? 'none')
 
-    // Use OAuth token from DB, fall back to env var for direct access token
-    const token = user?.metaAccessToken || process.env.META_ACCESS_TOKEN
+    const token = user?.metaAccessToken
 
     if (!token) {
-      console.log('[Meta Sync] No token found (checked DB and META_ACCESS_TOKEN env) — aborting')
-      return NextResponse.json({ error: 'Meta not connected' }, { status: 400 })
+      return NextResponse.json({ error: 'Meta account not connected. Please reconnect in Settings.' }, { status: 401 })
     }
 
-    if (user?.metaAccessToken && user.metaTokenExpires && new Date(user.metaTokenExpires) < new Date()) {
+    if (user.metaTokenExpires && new Date(user.metaTokenExpires) < new Date()) {
       console.log('[Meta Sync] Token expired at', user.metaTokenExpires)
       return NextResponse.json({ error: 'Meta token expired — reconnect in Settings' }, { status: 401 })
-    }
-
-    if (!user?.metaAccessToken && process.env.META_ACCESS_TOKEN) {
-      console.log('[Meta Sync] Using META_ACCESS_TOKEN env var fallback')
     }
 
     // ── Step 1: Validate token ──────────────────────────────────────────────────
