@@ -397,19 +397,16 @@ export default function ContentPlannerPage() {
 
   const handleUseExtractedProfile = async () => {
     if (!editingExtracted || !selectedBook) return
-    const profileData = {
-      readerAvatar: editingExtracted.readerAvatar,
-      coreFeelings: editingExtracted.coreFeelings,
-      voiceProfile: editingExtracted.voiceProfile,
-    }
     setProfileLoading(true)
     try {
-      const res = await fetch('/api/content/profile', {
+      const res = await fetch('/api/content/save-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookId: selectedBook.id,
-          prebuiltProfile: profileData,
+          readerAvatar: editingExtracted.readerAvatar,
+          coreFeelings: editingExtracted.coreFeelings,
+          voiceProfile: editingExtracted.voiceProfile,
           visualBrief: editingBrief,
           midjourneyStyle: editingBrief?.midjourneyStyleString ?? '',
         }),
@@ -419,6 +416,7 @@ export default function ContentPlannerPage() {
       setProfile(p)
       setExtractedProfile(null)
       setEditingExtracted(null)
+      completePhase(2)
     } finally {
       setProfileLoading(false)
     }
@@ -795,6 +793,7 @@ export default function ContentPlannerPage() {
                         <input
                           key={i}
                           value={f}
+                          size={Math.max(f.length + 2, 12)}
                           onChange={e => setEditingExtracted(prev => {
                             if (!prev) return prev
                             const feelings = [...prev.coreFeelings]
@@ -802,7 +801,7 @@ export default function ContentPlannerPage() {
                             return { ...prev, coreFeelings: feelings }
                           })}
                           className="px-3 py-1.5 rounded-full text-[12px] font-medium outline-none text-center"
-                          style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020', border: '1px solid rgba(233,160,32,0.3)', minWidth: '110px' }}
+                          style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020', border: '1px solid rgba(233,160,32,0.3)' }}
                         />
                       ))}
                     </div>
