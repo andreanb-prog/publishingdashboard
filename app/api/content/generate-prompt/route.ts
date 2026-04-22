@@ -9,7 +9,8 @@ export async function POST(req: NextRequest) {
   const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { postId, hook, pillar, phase, midjourneyStyleString } = await req.json()
+  const body = await req.json()
+  const { postId, hook, pillar, phase, midjourneyStyleString } = body
   if (!postId) return NextResponse.json({ error: 'postId required' }, { status: 400 })
 
   const post = await db.contentPost.findFirst({
@@ -17,14 +18,21 @@ export async function POST(req: NextRequest) {
   })
   if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 })
 
-  let styleStr = typeof midjourneyStyleString === 'string' ? midjourneyStyleString.trim() : ''
-  if (!styleStr) {
-    const profile = await db.contentProfile.findFirst({
-      where: { userId: session.user.id, bookId: post.bookId },
+  const bookId = post.bookId
+  let profile: { midjourneyStyle: string | null } | null = null
+  let styleString = typeof midjourneyStyleString === 'string' ? midjourneyStyleString.trim() : ''
+  if (!styleString) {
+    profile = await db.contentProfile.findFirst({
+      where: { userId: session.user.id, bookId },
       select: { midjourneyStyle: true },
     })
-    styleStr = profile?.midjourneyStyle?.trim() ?? ''
+    styleString = profile?.midjourneyStyle?.trim() ?? ''
   }
+
+  console.log('[generate-prompt] bookId:', bookId)
+  console.log('[generate-prompt] styleString from body:', body.midjourneyStyleString?.slice(0, 80) || 'EMPTY')
+  console.log('[generate-prompt] styleString from DB:', profile?.midjourneyStyle?.slice(0, 80) || 'NOT FOUND')
+  console.log('[generate-prompt] final styleString:', styleString?.slice(0, 80) || 'EMPTY — FALLBACK USED')
 
   const message = await anthropic.messages.create({
     model: CLAUDE_MODEL,
@@ -37,7 +45,7 @@ export async function POST(req: NextRequest) {
   })
 
   const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
-  const midjourneyPrompt = styleStr ? `${raw} ${styleStr}` : raw
+  const midjourneyPrompt = styleString ? `${raw} ${styleString}` : raw
 
   await db.contentPost.update({
     where: { id: postId },
