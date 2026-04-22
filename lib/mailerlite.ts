@@ -41,16 +41,17 @@ async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; dat
 // /subscribers/stats does NOT have counts — it has rates/engagement.
 // /subscribers?limit=0 returns { total } for active subs (default filter).
 // /subscribers?limit=0&filter[status]=unsubscribed returns unsub count.
-export async function getMailerLiteStats(apiKey: string) {
+export async function getMailerLiteStats(apiKey: string, groupId?: string) {
   const headers = {
     'Authorization': `Bearer ${apiKey}`,
     'Accept': 'application/json',
   }
   const opts = { headers, cache: 'no-store' as const }
+  const groupFilter = groupId ? `&filters[group_id]=${encodeURIComponent(groupId)}` : ''
 
   const [activeRes, unsubRes] = await Promise.all([
-    fetch('https://connect.mailerlite.com/api/subscribers?limit=0', opts),
-    fetch('https://connect.mailerlite.com/api/subscribers?limit=0&filter[status]=unsubscribed', opts),
+    fetch(`https://connect.mailerlite.com/api/subscribers?limit=0${groupFilter}`, opts),
+    fetch(`https://connect.mailerlite.com/api/subscribers?limit=0&filter[status]=unsubscribed${groupFilter}`, opts),
   ])
 
   console.log('[mailerlite] active status:', activeRes.status, '| unsub status:', unsubRes.status)
@@ -65,9 +66,9 @@ export async function getMailerLiteStats(apiKey: string) {
   }
 }
 
-export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteData> {
+export async function fetchMailerLiteStats(apiKey: string, groupId?: string): Promise<MailerLiteData> {
   // ── Subscriber counts (simple endpoint) ────────────────────────
-  const { listSize, unsubscribes: totalUnsubscribes } = await getMailerLiteStats(apiKey)
+  const { listSize, unsubscribes: totalUnsubscribes } = await getMailerLiteStats(apiKey, groupId)
   console.log('[MailerLite] listSize:', listSize, '| unsubscribed:', totalUnsubscribes)
 
   // ── Group stats (open/click rates) ────────────────────────────
@@ -75,7 +76,8 @@ export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteDa
   let openRate = 0, clickRate = 0, sentCount = 0, bouncedCount = 0
   const groupList: any[] = groupsResult.ok ? (groupsResult.data?.data ?? []) : []
   if (groupList.length > 0) {
-    const primary = [...groupList].sort(
+    const target = groupId ? groupList.find((g: any) => String(g.id) === groupId) : null
+    const primary = target ?? [...groupList].sort(
       (a, b) => Number(b.active_count ?? 0) - Number(a.active_count ?? 0)
     )[0]
     const rawOpen  = primary.open_rate?.float  ?? primary.open_rate  ?? 0
@@ -88,7 +90,12 @@ export async function fetchMailerLiteStats(apiKey: string): Promise<MailerLiteDa
   console.log('[MailerLite] openRate:', openRate, '| clickRate:', clickRate)
 
   // ── Campaigns ──────────────────────────────────────────────────
-  const campResult = await mlFetch('/campaigns?limit=100&filter[status]=sent&sort=-sent_at', apiKey)
+  // Note: campaign filtering by group_id requires MailerLite paid plan;
+  // the filter may be silently ignored on free plans — all campaigns shown in that case
+  const campPath = groupId
+    ? `/campaigns?limit=100&filter[status]=sent&sort=-sent_at&filters[group_id]=${encodeURIComponent(groupId)}`
+    : `/campaigns?limit=100&filter[status]=sent&sort=-sent_at`
+  const campResult = await mlFetch(campPath, apiKey)
   console.log('[MailerLite] campaigns response ok:', campResult.ok, '| raw count:', campResult.data?.data?.length ?? 0)
   const campaigns = campResult.ok ? (campResult.data?.data ?? []) : []
 

@@ -26,8 +26,10 @@ export async function GET(req: NextRequest) {
 
   console.log('[MailerLite route] using user DB key')
 
+  const groupId = req.nextUrl.searchParams.get('groupId') || undefined
+
   try {
-    const data = await fetchMailerLiteStats(apiKey)
+    const data = await fetchMailerLiteStats(apiKey, groupId)
     return NextResponse.json({ success: true, data })
   } catch (error) {
     console.error('MailerLite error:', error)

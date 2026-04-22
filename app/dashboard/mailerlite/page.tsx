@@ -376,6 +376,7 @@ function UnsubNote({ analysis }: { analysis: UnsubAnalysis | null }) {
 }
 
 interface MLList { id: string; mailerliteId: string; name: string; activeCount: number; unsubCount: number; lastSyncedAt: string | null }
+interface Group { id: string; name: string; active_subscribers_count: number }
 
 export default function MailerLitePage() {
   const [coachTitle, setCoachTitle] = useState('Your marketing coach says')
@@ -395,6 +396,10 @@ export default function MailerLitePage() {
   const [mlLists, setMlLists] = useState<MLList[]>([])
   const [activeListId, setActiveListId] = useState<string | null>(null)
 
+  // Group selector state
+  const [groups, setGroups] = useState<Group[]>([])
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
+
   useEffect(() => {
     Promise.all([
       fetch('/api/analyze')
@@ -406,13 +411,6 @@ export default function MailerLitePage() {
           }
         })
         .catch(() => {}),
-      fetch('/api/mailerlite')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(d => {
-          console.log('[MailerLite page] live data:', d)
-          if (d.data) setLiveml(d.data as MailerLiteData)
-        })
-        .catch((err) => { console.warn('[MailerLite page] live fetch failed:', err) }),
       fetch('/api/prefs')
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(d => { if (d.goals) setGoals(d.goals) })
@@ -423,6 +421,17 @@ export default function MailerLitePage() {
           const lists: MLList[] = d.lists ?? []
           setMlLists(lists)
           if (lists.length > 0) setActiveListId(lists[0].id)
+        })
+        .catch(() => {}),
+      fetch('/api/mailerlite/groups')
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(d => {
+          const loadedGroups: Group[] = d.groups ?? []
+          setGroups(loadedGroups)
+          const stored = localStorage.getItem('mailerlite-selected-group')
+          if (stored && loadedGroups.find(g => g.id === stored)) {
+            setSelectedGroupId(stored)
+          }
         })
         .catch(() => {}),
     ]).finally(() => setLoading(false))
@@ -436,6 +445,19 @@ export default function MailerLitePage() {
       .catch(() => { setCampaignsError(true) })
       .finally(() => setCampaignsLoading(false))
   }, [])
+
+  // Stats fetch — reruns when selected group changes
+  useEffect(() => {
+    let cancelled = false
+    const url = selectedGroupId
+      ? `/api/mailerlite?groupId=${encodeURIComponent(selectedGroupId)}`
+      : '/api/mailerlite'
+    fetch(url)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => { if (!cancelled && d.data) setLiveml(d.data as MailerLiteData) })
+      .catch(err => { if (!cancelled) console.warn('[MailerLite page] live fetch failed:', err) })
+    return () => { cancelled = true }
+  }, [selectedGroupId])
 
   // Fetch unsub analysis after liveml is available (non-blocking, client-side)
   useEffect(() => {
@@ -469,6 +491,16 @@ export default function MailerLitePage() {
     { metric: 'List Size',  yours: ml?.listSize  ?? 0, avg: null, unit: '', good: () => true },
     { metric: 'Unsubscribes (recent)', yours: ml?.unsubscribes ?? 0, avg: null, unit: '', good: (v: number) => v < 30 },
   ]
+
+  function handleGroupChange(value: string) {
+    const newId = value || null
+    setSelectedGroupId(newId)
+    if (newId) {
+      localStorage.setItem('mailerlite-selected-group', newId)
+    } else {
+      localStorage.removeItem('mailerlite-selected-group')
+    }
+  }
 
   if (loading) {
     return (
@@ -583,6 +615,35 @@ export default function MailerLitePage() {
               Data pulled fresh from MailerLite API on every load
             </span>
           </div>
+
+          {/* ── Group selector (shown only when 2+ groups exist) ─────── */}
+          {groups.length >= 2 && (
+            <div className="flex items-center gap-2 mb-3">
+              <span style={{ color: 'rgba(30,45,61,0.5)', fontSize: 12, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Viewing:</span>
+              <select
+                value={selectedGroupId ?? ''}
+                onChange={e => handleGroupChange(e.target.value)}
+                style={{
+                  background: 'white',
+                  border: '0.5px solid rgba(30,45,61,0.2)',
+                  borderRadius: 8,
+                  padding: '8px 12px',
+                  fontSize: 13,
+                  color: '#1E2D3D',
+                  fontFamily: 'inherit',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="">All Lists</option>
+                {groups.map(g => (
+                  <option key={g.id} value={g.id}>
+                    {g.name} — {g.active_subscribers_count.toLocaleString()} subs
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <DarkKPIStrip cols={5} items={[
             { label: 'Open Rate',    value: fmtPct(ml.openRate),                                   sub: openSub,  color: ml.openRate  >= openTarget  ? '#34d399' : '#fbbf24' },
