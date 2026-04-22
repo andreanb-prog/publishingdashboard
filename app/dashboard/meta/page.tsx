@@ -562,6 +562,53 @@ function MetaPerformanceChart({ ads }: { ads: import('@/types').MetaAd[] }) {
   )
 }
 
+// ── Single-ad status card (shown when only 1 campaign exists) ────────────────
+function SingleAdStatusCard({ ad }: { ad: import('@/types').MetaAd }) {
+  const isRunning = ad.status !== 'CUT' && ad.status !== 'DELETE'
+  return (
+    <div className="rounded-xl p-6 mb-6" style={{
+      background: 'white',
+      border: '0.5px solid rgba(30,45,61,0.1)',
+    }}>
+      <div className="text-[16px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>
+        {ad.name}
+      </div>
+      <div className="text-[48px] font-semibold leading-none mb-1" style={{ color: '#E9A020' }}>
+        {ad.ctr.toFixed(2)}%
+      </div>
+      <div className="text-[13px] mb-4" style={{ color: 'rgba(30,45,61,0.5)' }}>
+        Click-through rate
+      </div>
+      <div className="mb-5">
+        <span className="text-[11px] font-bold px-3 py-1.5 rounded-full"
+          style={{
+            background: isRunning ? 'rgba(110,191,139,0.15)' : 'rgba(249,123,107,0.15)',
+            color: isRunning ? '#6EBF8B' : '#F97B6B',
+          }}>
+          {isRunning ? 'Active' : 'Paused'}
+        </span>
+      </div>
+      <div className="flex gap-2">
+        <button
+          className="px-4 py-2 rounded-lg text-[13px] font-semibold"
+          style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer' }}
+        >
+          Scale It →
+        </button>
+        <a
+          href="https://adsmanager.facebook.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-2 rounded-lg text-[13px] font-semibold no-underline"
+          style={{ background: 'white', color: '#1E2D3D', border: '1px solid rgba(30,45,61,0.2)' }}
+        >
+          View in Meta →
+        </a>
+      </div>
+    </div>
+  )
+}
+
 // ── Build a live insight from real Meta numbers ───────────────────────────────
 // Always derived from live data so stale cached metaCoach never shows.
 function buildMetaCoach(meta: NonNullable<Analysis['meta']>): string {
@@ -994,7 +1041,9 @@ export default function MetaPage() {
           </div>
 
           {/* Spend vs CTR chart — barDataset + line overlay from lib/chartConfig */}
-          {meta.ads.length > 0 && <MetaPerformanceChart ads={sortedAds.length > 0 ? sortedAds : meta.ads} />}
+          {meta.ads.length === 1
+            ? <SingleAdStatusCard ad={meta.ads[0]} />
+            : meta.ads.length >= 2 && <MetaPerformanceChart ads={sortedAds.length > 0 ? sortedAds : meta.ads} />}
 
           {analysis && <InsightCallouts analysis={{ ...analysis, mailerLite: undefined, pinterest: undefined }} page="meta" />}
           {meta && (meta.totalSpend ?? 0) > 0 && (
