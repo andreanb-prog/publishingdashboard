@@ -17,37 +17,49 @@ export async function POST(req: NextRequest) {
   const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { bookId, answers, visualBrief, midjourneyStyle } = await req.json()
-  if (!bookId || !answers?.length) {
-    return NextResponse.json({ error: 'bookId and answers required' }, { status: 400 })
+  const { bookId, answers, visualBrief, midjourneyStyle, prebuiltProfile } = await req.json()
+  if (!bookId) {
+    return NextResponse.json({ error: 'bookId required' }, { status: 400 })
+  }
+  if (!prebuiltProfile && !answers?.length) {
+    return NextResponse.json({ error: 'answers or prebuiltProfile required' }, { status: 400 })
   }
 
-  const qa = QUESTIONS.map((q, i) => `Q: ${q}\nA: ${answers[i] ?? ''}`).join('\n\n')
+  let profile
+  if (prebuiltProfile) {
+    // Brand guide autofill path — skip Claude, use extracted profile directly
+    profile = {
+      readerAvatar: prebuiltProfile.readerAvatar ?? '',
+      coreFeelings: prebuiltProfile.coreFeelings ?? [],
+      voiceProfile: prebuiltProfile.voiceProfile ?? '',
+    }
+  } else {
+    const qa = QUESTIONS.map((q: string, i: number) => `Q: ${q}\nA: ${answers[i] ?? ''}`).join('\n\n')
 
-  const message = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: 1024,
-    system: `You are a brand voice specialist for indie fiction authors. Based on the author's interview answers, generate a reader profile and brand voice. Return JSON with:
+    const message = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 1024,
+      system: `You are a brand voice specialist for indie fiction authors. Based on the author's interview answers, generate a reader profile and brand voice. Return JSON with:
 - readerAvatar: string (3-4 sentences describing the ideal reader — her name, life, desires, reading habits)
 - coreFeelings: string[] (exactly 5 core feelings/emotions the book delivers — short phrases like "safe to hope", "seen in my longing", "breathless with tension")
 - voiceProfile: string (2-3 sentences describing the author's brand voice — how it sounds, what it prioritizes, what it avoids)
 
 Return ONLY valid JSON, no markdown, no explanation.`,
-    messages: [
-      {
-        role: 'user',
-        content: `Author interview:\n\n${qa}`,
-      },
-    ],
-  })
+      messages: [
+        {
+          role: 'user',
+          content: `Author interview:\n\n${qa}`,
+        },
+      ],
+    })
 
-  const raw = message.content[0].type === 'text' ? message.content[0].text : ''
+    const raw = message.content[0].type === 'text' ? message.content[0].text : ''
 
-  let profile
-  try {
-    profile = JSON.parse(raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim())
-  } catch {
-    return NextResponse.json({ error: 'Failed to parse profile from Claude' }, { status: 500 })
+    try {
+      profile = JSON.parse(raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim())
+    } catch {
+      return NextResponse.json({ error: 'Failed to parse profile from Claude' }, { status: 500 })
+    }
   }
 
   // Upsert ContentProfile (one per userId+bookId)

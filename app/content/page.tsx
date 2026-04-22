@@ -32,6 +32,14 @@ interface BrandProfile {
   voiceProfile: string
 }
 
+interface ExtractedProfile {
+  readerAvatar: string
+  coreFeelings: string[]
+  voiceProfile: string
+  readerName: string
+  confidence: 'high' | 'medium' | 'low'
+}
+
 interface ContentPost {
   id: string
   day: number
@@ -218,6 +226,17 @@ export default function ContentPlannerPage() {
   const [profileLoading, setProfileLoading] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
+  // Brand guide autofill
+  const [brandGuideModal, setBrandGuideModal] = useState(false)
+  const [brandGuideTab, setBrandGuideTab] = useState<'paste' | 'upload'>('paste')
+  const [brandGuideText, setBrandGuideText] = useState('')
+  const [brandGuideFile, setBrandGuideFile] = useState<File | null>(null)
+  const [extractLoading, setExtractLoading] = useState(false)
+  const [extractError, setExtractError] = useState<string | null>(null)
+  const [extractedProfile, setExtractedProfile] = useState<ExtractedProfile | null>(null)
+  const [editingExtracted, setEditingExtracted] = useState<ExtractedProfile | null>(null)
+  const brandGuideFileRef = useRef<HTMLInputElement>(null)
+
   // Phase 3
   const [posts, setPosts] = useState<ContentPost[]>([])
   const [campaignLoading, setCampaignLoading] = useState(false)
@@ -346,6 +365,63 @@ export default function ContentPlannerPage() {
   const handlePhase2Complete = () => {
     if (!profile) return
     completePhase(2)
+  }
+
+  const handleExtractBrandVoice = async () => {
+    setExtractLoading(true)
+    setExtractError(null)
+    try {
+      let res: Response
+      if (brandGuideTab === 'upload' && brandGuideFile) {
+        const formData = new FormData()
+        formData.append('file', brandGuideFile)
+        res = await fetch('/api/content/extract-brand-voice', { method: 'POST', body: formData })
+      } else {
+        res = await fetch('/api/content/extract-brand-voice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: brandGuideText }),
+        })
+      }
+      const { profile: p, error } = await res.json()
+      if (error) { setExtractError(error); return }
+      setExtractedProfile(p)
+      setEditingExtracted(p)
+      setBrandGuideModal(false)
+    } catch {
+      setExtractError("Couldn't extract enough — try the interview instead.")
+    } finally {
+      setExtractLoading(false)
+    }
+  }
+
+  const handleUseExtractedProfile = async () => {
+    if (!editingExtracted || !selectedBook) return
+    const profileData = {
+      readerAvatar: editingExtracted.readerAvatar,
+      coreFeelings: editingExtracted.coreFeelings,
+      voiceProfile: editingExtracted.voiceProfile,
+    }
+    setProfileLoading(true)
+    try {
+      const res = await fetch('/api/content/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookId: selectedBook.id,
+          prebuiltProfile: profileData,
+          visualBrief: editingBrief,
+          midjourneyStyle: editingBrief?.midjourneyStyleString ?? '',
+        }),
+      })
+      const { profile: p, error } = await res.json()
+      if (error) { alert(error); return }
+      setProfile(p)
+      setExtractedProfile(null)
+      setEditingExtracted(null)
+    } finally {
+      setProfileLoading(false)
+    }
   }
 
   // ── Phase 3: Generate Campaign ────────────────────────────────────────────
@@ -691,100 +767,203 @@ export default function ContentPlannerPage() {
 
           {activePhase === 2 && (
             <div className="mt-6">
-              {/* Chat UI */}
-              <div
-                className="rounded-xl p-4 mb-4 space-y-3 overflow-y-auto"
-                style={{ background: '#FFF8F0', border: '0.5px solid #E8E0D8', maxHeight: '360px' }}
-              >
-                {/* Intro */}
-                <div className="flex gap-3">
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[13px]" style={{ background: '#E9A020', color: '#fff', fontWeight: 700 }}>C</div>
-                  <div className="rounded-2xl rounded-tl-none px-4 py-2.5 text-[13px] max-w-[85%]" style={{ background: 'white', color: '#1E2D3D', border: '0.5px solid #EEEBE6' }}>
-                    I have five questions to help me understand your reader and your voice. There are no wrong answers — write like you'd talk to a trusted author friend.
+
+              {/* ── Extracted profile results card ────────────────────────── */}
+              {extractedProfile && editingExtracted && !profileLoading && (
+                <div className="rounded-xl p-5 mb-4 space-y-4" style={{ background: '#FFF8F0', border: '0.5px solid #E8E0D8' }}>
+                  <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Here's what we pulled from your brand guide:</div>
+
+                  {/* Reader Avatar */}
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider mb-1.5" style={{ color: '#E9A020' }}>
+                      Reader Avatar{editingExtracted.readerName ? ` — ${editingExtracted.readerName}` : ''}
+                    </div>
+                    <textarea
+                      value={editingExtracted.readerAvatar}
+                      onChange={e => setEditingExtracted(prev => prev ? { ...prev, readerAvatar: e.target.value } : prev)}
+                      rows={4}
+                      className="w-full px-3 py-2 rounded-lg text-[13px] outline-none resize-none"
+                      style={{ border: '1px solid #E8E0D8', background: 'white', color: '#1E2D3D' }}
+                    />
+                  </div>
+
+                  {/* Core Feelings */}
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: '#E9A020' }}>5 Core Feelings</div>
+                    <div className="flex flex-wrap gap-2">
+                      {editingExtracted.coreFeelings.map((f, i) => (
+                        <input
+                          key={i}
+                          value={f}
+                          onChange={e => setEditingExtracted(prev => {
+                            if (!prev) return prev
+                            const feelings = [...prev.coreFeelings]
+                            feelings[i] = e.target.value
+                            return { ...prev, coreFeelings: feelings }
+                          })}
+                          className="px-3 py-1.5 rounded-full text-[12px] font-medium outline-none text-center"
+                          style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020', border: '1px solid rgba(233,160,32,0.3)', minWidth: '110px' }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Voice Profile */}
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider mb-1.5" style={{ color: '#E9A020' }}>Voice Profile</div>
+                    <textarea
+                      value={editingExtracted.voiceProfile}
+                      onChange={e => setEditingExtracted(prev => prev ? { ...prev, voiceProfile: e.target.value } : prev)}
+                      rows={3}
+                      className="w-full px-3 py-2 rounded-lg text-[13px] outline-none resize-none"
+                      style={{ border: '1px solid #E8E0D8', background: 'white', color: '#1E2D3D' }}
+                    />
+                  </div>
+
+                  {/* Low confidence warning */}
+                  {editingExtracted.confidence === 'low' && (
+                    <p className="text-[12px]" style={{ color: '#F97B6B' }}>
+                      Low confidence — the guide may not have had complete brand information. Review the fields above before continuing.
+                    </p>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex flex-col gap-2 pt-1">
+                    <button
+                      onClick={handleUseExtractedProfile}
+                      className="w-full py-3 rounded-xl text-[14px] font-bold transition-all"
+                      style={{ background: '#E9A020', color: '#fff', border: 'none', cursor: 'pointer' }}
+                    >
+                      Looks good — use this
+                    </button>
+                    <button
+                      onClick={() => { setExtractedProfile(null); setEditingExtracted(null) }}
+                      className="w-full text-center text-[13px] py-1.5"
+                      style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      Edit answers instead
+                    </button>
                   </div>
                 </div>
+              )}
 
-                {/* Questions and answers */}
-                {QUESTIONS.slice(0, answers.length + (profileLoading || profile ? 0 : 1)).map((q, i) => (
-                  <div key={i} className="space-y-2">
-                    {/* Claude question */}
+              {/* Loading skeleton while saving extracted profile */}
+              {profileLoading && extractedProfile && (
+                <div className="p-4 rounded-xl mb-4" style={{ background: '#FFF8F0', border: '0.5px solid #E8E0D8' }}>
+                  <LoadingSkeleton lines={4} />
+                  <p className="text-[12px] text-center animate-pulse mt-3" style={{ color: '#6B7280' }}>Saving your brand voice…</p>
+                </div>
+              )}
+
+              {/* ── Chat interview UI (shown when no extracted profile active) ── */}
+              {!extractedProfile && (
+                <>
+                  {/* Autofill link */}
+                  {!profile && !profileLoading && (
+                    <div className="flex justify-end mb-3">
+                      <button
+                        onClick={() => { setBrandGuideModal(true); setExtractError(null) }}
+                        style={{ background: 'none', border: 'none', color: '#E9A020', cursor: 'pointer', fontSize: '13px', fontWeight: 500, padding: 0 }}
+                      >
+                        Already have a brand guide? Skip the interview →
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Chat UI */}
+                  <div
+                    className="rounded-xl p-4 mb-4 space-y-3 overflow-y-auto"
+                    style={{ background: '#FFF8F0', border: '0.5px solid #E8E0D8', maxHeight: '360px' }}
+                  >
+                    {/* Intro */}
                     <div className="flex gap-3">
                       <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[13px]" style={{ background: '#E9A020', color: '#fff', fontWeight: 700 }}>C</div>
                       <div className="rounded-2xl rounded-tl-none px-4 py-2.5 text-[13px] max-w-[85%]" style={{ background: 'white', color: '#1E2D3D', border: '0.5px solid #EEEBE6' }}>
-                        {q}
+                        I have five questions to help me understand your reader and your voice. There are no wrong answers — write like you'd talk to a trusted author friend.
                       </div>
                     </div>
-                    {/* User answer */}
-                    {answers[i] && (
-                      <div className="flex gap-3 justify-end">
-                        <div className="rounded-2xl rounded-tr-none px-4 py-2.5 text-[13px] max-w-[85%]" style={{ background: '#1E2D3D', color: '#fff' }}>
-                          {answers[i]}
+
+                    {/* Questions and answers */}
+                    {QUESTIONS.slice(0, answers.length + (profileLoading || profile ? 0 : 1)).map((q, i) => (
+                      <div key={i} className="space-y-2">
+                        <div className="flex gap-3">
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[13px]" style={{ background: '#E9A020', color: '#fff', fontWeight: 700 }}>C</div>
+                          <div className="rounded-2xl rounded-tl-none px-4 py-2.5 text-[13px] max-w-[85%]" style={{ background: 'white', color: '#1E2D3D', border: '0.5px solid #EEEBE6' }}>
+                            {q}
+                          </div>
+                        </div>
+                        {answers[i] && (
+                          <div className="flex gap-3 justify-end">
+                            <div className="rounded-2xl rounded-tr-none px-4 py-2.5 text-[13px] max-w-[85%]" style={{ background: '#1E2D3D', color: '#fff' }}>
+                              {answers[i]}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Profile loading (interview flow) */}
+                    {profileLoading && !extractedProfile && (
+                      <div className="flex gap-3">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[13px]" style={{ background: '#E9A020', color: '#fff', fontWeight: 700 }}>C</div>
+                        <div className="rounded-2xl rounded-tl-none px-4 py-2.5 text-[13px] max-w-[85%]" style={{ background: 'white', color: '#1E2D3D', border: '0.5px solid #EEEBE6' }}>
+                          <span className="animate-pulse">Crafting your reader profile…</span>
                         </div>
                       </div>
                     )}
-                  </div>
-                ))}
 
-                {/* Profile loading */}
-                {profileLoading && (
-                  <div className="flex gap-3">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[13px]" style={{ background: '#E9A020', color: '#fff', fontWeight: 700 }}>C</div>
-                    <div className="rounded-2xl rounded-tl-none px-4 py-2.5 text-[13px] max-w-[85%]" style={{ background: 'white', color: '#1E2D3D', border: '0.5px solid #EEEBE6' }}>
-                      <span className="animate-pulse">Crafting your reader profile…</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Generated profile */}
-                {profile && !profileLoading && (
-                  <div className="flex gap-3">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[13px]" style={{ background: '#E9A020', color: '#fff', fontWeight: 700 }}>C</div>
-                    <div className="rounded-2xl rounded-tl-none px-4 py-3 text-[13px] max-w-[90%] space-y-3" style={{ background: 'white', color: '#1E2D3D', border: '0.5px solid #EEEBE6' }}>
-                      <div>
-                        <div className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: '#E9A020' }}>Reader Avatar</div>
-                        <p>{profile.readerAvatar}</p>
-                      </div>
-                      <div>
-                        <div className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: '#E9A020' }}>5 Core Feelings</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {profile.coreFeelings.map((f, i) => (
-                            <span key={i} className="px-2.5 py-1 rounded-full text-[11px] font-medium" style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>{f}</span>
-                          ))}
+                    {/* Generated profile */}
+                    {profile && !profileLoading && (
+                      <div className="flex gap-3">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[13px]" style={{ background: '#E9A020', color: '#fff', fontWeight: 700 }}>C</div>
+                        <div className="rounded-2xl rounded-tl-none px-4 py-3 text-[13px] max-w-[90%] space-y-3" style={{ background: 'white', color: '#1E2D3D', border: '0.5px solid #EEEBE6' }}>
+                          <div>
+                            <div className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: '#E9A020' }}>Reader Avatar</div>
+                            <p>{profile.readerAvatar}</p>
+                          </div>
+                          <div>
+                            <div className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: '#E9A020' }}>5 Core Feelings</div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {profile.coreFeelings.map((f, i) => (
+                                <span key={i} className="px-2.5 py-1 rounded-full text-[11px] font-medium" style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>{f}</span>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: '#E9A020' }}>Voice Profile</div>
+                            <p>{profile.voiceProfile}</p>
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <div className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: '#E9A020' }}>Voice Profile</div>
-                        <p>{profile.voiceProfile}</p>
-                      </div>
-                    </div>
+                    )}
+
+                    <div ref={chatEndRef} />
                   </div>
-                )}
 
-                <div ref={chatEndRef} />
-              </div>
-
-              {/* Input row */}
-              {answers.length < QUESTIONS.length && !profileLoading && !profile && (
-                <div className="flex gap-2 items-end">
-                  <textarea
-                    value={currentAnswer}
-                    onChange={e => setCurrentAnswer(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    rows={2}
-                    placeholder="Type your answer… (Enter to send)"
-                    className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none resize-none"
-                    style={{ border: '1px solid #E8E0D8', background: 'white', color: '#1E2D3D' }}
-                  />
-                  <MicButton onResult={text => setCurrentAnswer(prev => prev ? `${prev} ${text}` : text)} />
-                  <button
-                    onClick={submitAnswer}
-                    disabled={!currentAnswer.trim()}
-                    className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-all disabled:opacity-40"
-                    style={{ background: '#E9A020', color: '#fff', border: 'none', cursor: 'pointer' }}
-                  >
-                    Send
-                  </button>
-                </div>
+                  {/* Input row */}
+                  {answers.length < QUESTIONS.length && !profileLoading && !profile && (
+                    <div className="flex gap-2 items-end">
+                      <textarea
+                        value={currentAnswer}
+                        onChange={e => setCurrentAnswer(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        rows={2}
+                        placeholder="Type your answer… (Enter to send)"
+                        className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none resize-none"
+                        style={{ border: '1px solid #E8E0D8', background: 'white', color: '#1E2D3D' }}
+                      />
+                      <MicButton onResult={text => setCurrentAnswer(prev => prev ? `${prev} ${text}` : text)} />
+                      <button
+                        onClick={submitAnswer}
+                        disabled={!currentAnswer.trim()}
+                        className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-all disabled:opacity-40"
+                        style={{ background: '#E9A020', color: '#fff', border: 'none', cursor: 'pointer' }}
+                      >
+                        Send
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Phase 2 CTA */}
@@ -1025,6 +1204,135 @@ export default function ContentPlannerPage() {
           )}
         </div>
       </div>
+
+      {/* Hidden file input — always in DOM */}
+      <input
+        ref={brandGuideFileRef}
+        type="file"
+        accept=".txt,.pdf"
+        style={{ display: 'none' }}
+        onChange={e => {
+          setBrandGuideFile(e.target.files?.[0] ?? null)
+          e.target.value = ''
+        }}
+      />
+
+      {/* ─── Brand Guide Autofill Modal ─────────────────────────────────────── */}
+      {brandGuideModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(30,45,61,0.5)' }}
+          onClick={e => { if (e.target === e.currentTarget) setBrandGuideModal(false) }}
+        >
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+            <h2 className="text-[20px] font-bold mb-1" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              Let&apos;s skip the small talk.
+            </h2>
+            <p className="text-[13px] mb-5" style={{ color: '#6B7280' }}>
+              Paste or upload your brand guide and we&apos;ll extract your reader avatar, core feelings, and voice profile automatically.
+            </p>
+
+            {/* Tab switcher */}
+            <div className="flex gap-1 p-1 rounded-lg mb-4" style={{ background: '#FFF8F0', border: '0.5px solid #E8E0D8' }}>
+              {(['paste', 'upload'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setBrandGuideTab(tab)}
+                  className="flex-1 py-2 rounded-md text-[13px] font-semibold transition-all"
+                  style={{
+                    background: brandGuideTab === tab ? 'white' : 'transparent',
+                    color: brandGuideTab === tab ? '#1E2D3D' : '#6B7280',
+                    border: brandGuideTab === tab ? '0.5px solid #E8E0D8' : 'none',
+                    cursor: 'pointer',
+                    boxShadow: brandGuideTab === tab ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                  }}
+                >
+                  {tab === 'paste' ? 'Paste text' : 'Upload file'}
+                </button>
+              ))}
+            </div>
+
+            {/* Paste tab */}
+            {brandGuideTab === 'paste' && (
+              <textarea
+                value={brandGuideText}
+                onChange={e => setBrandGuideText(e.target.value)}
+                rows={8}
+                placeholder="Paste your brand guide here…"
+                className="w-full px-3 py-2.5 rounded-lg text-[13px] outline-none resize-none mb-4"
+                style={{ border: '1px solid #E8E0D8', background: '#FFF8F0', color: '#1E2D3D' }}
+              />
+            )}
+
+            {/* Upload tab */}
+            {brandGuideTab === 'upload' && (
+              <div className="mb-4">
+                <button
+                  onClick={() => brandGuideFileRef.current?.click()}
+                  className="w-full py-8 rounded-xl text-[13px] transition-all"
+                  style={{
+                    background: '#FFF8F0',
+                    border: `2px dashed ${brandGuideFile ? '#E9A020' : '#E8E0D8'}`,
+                    color: brandGuideFile ? '#E9A020' : '#6B7280',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {brandGuideFile ? (
+                    <span className="font-semibold">{brandGuideFile.name}</span>
+                  ) : (
+                    <>
+                      <div className="text-2xl mb-2">📄</div>
+                      <div>Click to upload a .txt or .pdf brand guide</div>
+                    </>
+                  )}
+                </button>
+                {brandGuideFile && (
+                  <button
+                    onClick={() => setBrandGuideFile(null)}
+                    className="text-[12px] mt-2 w-full text-center"
+                    style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer' }}
+                  >
+                    Remove file
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Loading skeleton */}
+            {extractLoading && (
+              <div className="mb-4 p-3 rounded-lg" style={{ background: '#FFF8F0', border: '0.5px solid #E8E0D8' }}>
+                <LoadingSkeleton lines={3} />
+                <p className="text-[12px] text-center animate-pulse mt-2" style={{ color: '#6B7280' }}>Extracting your brand voice…</p>
+              </div>
+            )}
+
+            {/* Error state */}
+            {extractError && !extractLoading && (
+              <p className="text-[13px] mb-4 px-3 py-2 rounded-lg" style={{ color: '#F97B6B', background: 'rgba(249,123,107,0.08)', border: '0.5px solid rgba(249,123,107,0.3)' }}>
+                {extractError}
+              </p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleExtractBrandVoice}
+                disabled={extractLoading || (brandGuideTab === 'paste' ? !brandGuideText.trim() : !brandGuideFile)}
+                className="flex-1 py-3 rounded-xl text-[14px] font-bold transition-all disabled:opacity-50"
+                style={{ background: '#E9A020', color: '#fff', border: 'none', cursor: 'pointer' }}
+              >
+                {extractLoading ? 'Extracting…' : 'Extract My Brand Voice'}
+              </button>
+              <button
+                onClick={() => setBrandGuideModal(false)}
+                className="px-5 py-3 rounded-xl text-[14px] font-medium transition-all"
+                style={{ background: 'white', border: '1px solid #E8E0D8', color: '#6B7280', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Tailwind Modal ─────────────────────────────────────────────────── */}
       {tailwindModal && (
