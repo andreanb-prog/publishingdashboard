@@ -68,13 +68,23 @@ export async function POST(req: NextRequest) {
   const message = await anthropic.messages.create({
     model: CLAUDE_MODEL,
     max_tokens: 1024,
-    system: `You are a visual creative director specializing in fiction author branding. Analyze the following Pinterest board data and extract a precise visual brief. Return JSON with these fields:
-- lightQuality: string (e.g. 'warm golden hour backlight')
-- colorPalette: string (e.g. 'amber, dusty sage, terracotta, cream')
-- setting: string (e.g. 'California wine country, vineyard rows, rustic outdoor dining')
-- mood: string (e.g. 'romantic but grounded, intimate not posed')
-- coupleEnergy: string (e.g. 'casual elegance, backs to camera, linen')
-- midjourneyStyleString: string (a complete locked Midjourney style string ready to append to any prompt)
+    system: `You are a visual creative director specializing in romance fiction author branding. Analyze the Pinterest board data and extract a precise visual brief for generating warm, romantic social media imagery.
+
+CRITICAL CONSTRAINTS — regardless of what the board data shows, the output must be appropriate for romance fiction marketing:
+- lightQuality must describe WARM light (golden hour, soft morning, dappled sunlight). If board data is thin, default to "warm golden hour backlight, soft natural light"
+- colorPalette must be warm tones (ambers, creams, terracotta, sage, honey). Never cold or desaturated.
+- mood must be romantic and hopeful, never dark or melancholic
+- midjourneyStyleString must always end with: --ar 4:5 --style raw --v 6
+
+If the board data is thin or unavailable, use romance fiction visual defaults rather than guessing from limited data.
+
+Return JSON with these exact fields:
+- lightQuality: string (e.g. "warm golden hour backlight, soft natural light filtering through")
+- colorPalette: string (e.g. "amber, cream, dusty sage, terracotta, honey tones")
+- setting: string (e.g. "California wine country, vineyard rows, rustic outdoor spaces")
+- mood: string (e.g. "romantic and grounded, intimate not posed, hopeful warmth")
+- coupleEnergy: string (e.g. "casual elegance, backs to camera, linen and natural fabrics")
+- midjourneyStyleString: string (complete locked style string ready to append)
 - summary: string (2-3 sentence visual brief in plain English)
 
 Return ONLY valid JSON, no markdown, no explanation.`,
