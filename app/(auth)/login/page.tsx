@@ -38,15 +38,15 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       {/* Left side — branding */}
       <div className="hidden md:flex md:w-1/2 flex-col justify-center px-16"
-        style={{ background: '#FFF8F0' }}>
+        style={{ background: 'var(--paper)', borderRight: '1px solid var(--line)' }}>
         <div className="max-w-md">
-          <div className="text-[42px] leading-tight mb-4" style={{ color: '#4A7290', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 }}>
-            Author<span style={{ color: '#E9A020' }}>Dash</span>
+          <div className="mb-4" style={{ fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 600, color: 'var(--ink)' }}>
+            AuthorDash
           </div>
-          <p className="text-[17px] leading-relaxed mb-3" style={{ color: '#374151' }}>
+          <p className="text-[17px] leading-relaxed mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'rgba(20,17,15,0.6)' }}>
             See exactly which book, ad, and email is making you money — in under 5 minutes.
           </p>
-          <p className="text-[14px] leading-relaxed mb-6" style={{ color: '#6B7280' }}>
+          <p className="text-[14px] leading-relaxed mb-6" style={{ color: 'rgba(20,17,15,0.5)' }}>
             AuthorDash connects your KDP sales, Meta ads, and MailerLite list into one daily action plan. No spreadsheets. No guessing.
           </p>
           <div className="space-y-3">
@@ -58,14 +58,23 @@ export default function LoginPage() {
               'Pinterest growth monitoring',
             ].map(feature => (
               <div key={feature} className="flex items-start gap-2.5">
-                <span className="text-[14px] mt-0.5" style={{ color: '#e9a020' }}>&#10003;</span>
-                <span className="text-[14px]" style={{ color: '#6B7280' }}>{feature}</span>
+                <span className="text-[14px] mt-0.5" style={{ color: 'var(--green)' }}>&#10003;</span>
+                <span className="text-[14px]" style={{ color: 'rgba(20,17,15,0.5)' }}>{feature}</span>
               </div>
             ))}
           </div>
           <div className="mt-10 flex items-center gap-2">
-            <span className="inline-block text-[9px] font-bold tracking-[1.5px] uppercase px-2 py-0.5 rounded"
-              style={{ background: '#E9A020', color: '#1E2D3D' }}>
+            <span className="inline-block uppercase"
+              style={{
+                background: '#E9A020',
+                color: 'var(--ink)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '10px',
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                padding: '4px 10px',
+                borderRadius: '20px',
+              }}>
               Founding Member Access
             </span>
           </div>
@@ -78,8 +87,8 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Mobile-only logo */}
           <div className="md:hidden text-center mb-8">
-            <div className="text-[28px]" style={{ color: '#4A7290', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 }}>
-              Author<span style={{ color: '#E9A020' }}>Dash</span>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 600, color: 'var(--ink)' }}>
+              AuthorDash
             </div>
             <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
               Your indie author marketing coach
