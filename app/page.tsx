@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 }
 
 // TODO: wire to DB count of founding member conversions
-const SPOTS_REMAINING = 47
+const SPOTS_REMAINING = 32
 const SPOTS_TOTAL = 100
 
 export default function LandingPage() {
@@ -392,7 +392,7 @@ export default function LandingPage() {
             {
               n: '3',
               title: 'You make the call',
-              body: 'AI is only as good as the brain behind it. We keep you in the process — you drive, AuthorDash navigates. You\'re still the one running your business. Now you\'re just not doing it alone.',
+              body: 'AI is only as good as the human mind behind it. We keep you in the process — you drive, AuthorDash navigates. You\'re still the one running your business. Now you\'re just not doing it alone.',
             },
           ].map((step) => (
             <div
