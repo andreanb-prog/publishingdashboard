@@ -118,7 +118,10 @@ export function BoutiqueChannelCardsRow({
 }
 
 export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; userName?: string | null }) {
-  const { analysis, analyses, liveML, animRev, animUnits, animKenp, animCtr, _netVal, greeting } = dashboard
+  const { analysis, analyses, liveML, animRev, animUnits, animKenp, animCtr, _netVal, greeting, kdpLastUploadedAt } = dashboard
+  const uploadLabel = kdpLastUploadedAt
+    ? new Date(kdpLastUploadedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : 'Uploaded'
 
   return (
     <>
@@ -174,7 +177,7 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
       <div className="mb-4" style={{ background: 'white', border: '1px solid var(--line, #d8cfbd)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', padding: '28px 28px 22px' }}>
         <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--green-text, #245c3f)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green-text, #245c3f)', display: 'inline-block', flexShrink: 0 }} />
-          Est. Revenue · MTD · Live
+          Est. Revenue · MTD · {uploadLabel}
         </div>
 
         {analysis?.kdp ? (
