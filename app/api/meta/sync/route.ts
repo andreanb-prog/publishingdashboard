@@ -36,11 +36,10 @@ export async function POST(req: NextRequest) {
   console.log('=== META SYNC START ===')
 
   try {
-    const rows = await db.$queryRawUnsafe<any[]>(
-      `SELECT "metaAccessToken", "metaAdAccountId", "metaTokenExpires" FROM "User" WHERE "id" = $1 LIMIT 1`,
-      session.user.id
-    )
-    const user = rows[0]
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { metaAccessToken: true, metaAdAccountId: true, metaTokenExpires: true },
+    })
 
     console.log('Token exists:', !!user?.metaAccessToken)
     console.log('Stored metaAdAccountId:', user?.metaAdAccountId ?? 'none')
@@ -67,10 +66,10 @@ export async function POST(req: NextRequest) {
       console.error('[Meta Sync] Token invalid. Code:', code, '| Message:', meData.error.message)
       if (code === 190) {
         // Expired/invalid token — clear it so the UI shows "reconnect"
-        await db.$executeRawUnsafe(
-          `UPDATE "User" SET "metaAccessToken" = NULL, "metaTokenExpires" = NULL WHERE "id" = $1`,
-          session.user.id
-        )
+        await db.user.update({
+          where: { id: session.user.id },
+          data: { metaAccessToken: null, metaTokenExpires: null },
+        })
         return NextResponse.json({ error: 'Token expired — please reconnect Meta Ads' }, { status: 401 })
       }
       return NextResponse.json({ error: 'Token invalid' }, { status: 401 })
@@ -140,11 +139,7 @@ export async function POST(req: NextRequest) {
 
     // Update stored ad account to the one with the most spend
     if (bestAccountId) {
-      await db.$executeRawUnsafe(
-        `UPDATE "User" SET "metaAdAccountId" = $1 WHERE "id" = $2`,
-        bestAccountId,
-        session.user.id
-      )
+      await db.user.update({ where: { id: session.user.id }, data: { metaAdAccountId: bestAccountId } })
       console.log(`[Meta Sync] Updated metaAdAccountId to ${bestAccountId}`)
     }
 
@@ -192,10 +187,7 @@ export async function POST(req: NextRequest) {
       console.log(`[Meta Sync] Created new analysis for ${currentMonth} with ${allAds.length} ads`)
     }
 
-    await db.$executeRawUnsafe(
-      `UPDATE "User" SET "metaLastSync" = NOW() WHERE "id" = $1`,
-      session.user.id
-    )
+    await db.user.update({ where: { id: session.user.id }, data: { metaLastSync: new Date() } })
 
     console.log('=== META SYNC COMPLETE ===')
     return NextResponse.json({ success: true, data })

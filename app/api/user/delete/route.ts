@@ -19,25 +19,25 @@ export async function POST(req: Request) {
   try {
     // Cancel Stripe subscription if exists
     try {
-      const rows = await db.$queryRawUnsafe<any[]>(
-        `SELECT "stripeSubscriptionId", "stripeCustomerId" FROM "User" WHERE "id" = $1`,
-        userId
-      )
-      if (rows[0]?.stripeSubscriptionId) {
+      const stripeRow = await db.user.findUnique({
+        where: { id: userId },
+        select: { stripeSubscriptionId: true, stripeCustomerId: true },
+      })
+      if (stripeRow?.stripeSubscriptionId) {
         const { getStripe } = await import('@/lib/stripe')
         const stripe = getStripe()
-        await stripe.subscriptions.cancel(rows[0].stripeSubscriptionId).catch(() => {})
+        await stripe.subscriptions.cancel(stripeRow.stripeSubscriptionId).catch(() => {})
         console.log('[User Delete] Stripe subscription canceled')
       }
-    } catch { /* Stripe columns may not exist */ }
+    } catch { /* ignore */ }
 
     // Clear Meta and MailerLite tokens
     try {
-      await db.$executeRawUnsafe(
-        `UPDATE "User" SET "metaAccessToken" = NULL, "metaAdAccountId" = NULL, "mailerLiteKey" = NULL WHERE "id" = $1`,
-        userId
-      )
-    } catch { /* columns may not exist */ }
+      await db.user.update({
+        where: { id: userId },
+        data: { metaAccessToken: null, metaAdAccountId: null, mailerLiteKey: null },
+      })
+    } catch { /* ignore */ }
 
     // Delete all related data
     await db.feedback.deleteMany({ where: { userId } })

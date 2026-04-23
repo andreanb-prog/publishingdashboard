@@ -23,19 +23,19 @@ export async function GET() {
     },
   })
 
-  // Check Meta connection via raw SQL (columns may not exist)
+  // Check Meta connection
   let metaConnected = false
   let metaLastSync: string | null = null
   try {
-    const rows = await db.$queryRawUnsafe<any[]>(
-      `SELECT "metaAccessToken", "metaLastSync" FROM "User" WHERE "id" = $1 LIMIT 1`,
-      session.user.id
-    )
-    if (rows[0]?.metaAccessToken) {
+    const metaRow = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { metaAccessToken: true, metaLastSync: true },
+    })
+    if (metaRow?.metaAccessToken) {
       metaConnected = true
-      metaLastSync = rows[0].metaLastSync ? new Date(rows[0].metaLastSync).toISOString() : null
+      metaLastSync = metaRow.metaLastSync ? metaRow.metaLastSync.toISOString() : null
     }
-  } catch { /* columns may not exist */ }
+  } catch { /* ignore */ }
 
   // MailerLite subscriber count (fast group-only fetch)
   let mlSubscribers: number | null = null
@@ -97,10 +97,10 @@ export async function POST(req: NextRequest) {
 
   // Disconnect Meta Ads
   if (body.action === 'disconnect-meta') {
-    await db.$executeRawUnsafe(
-      `UPDATE "User" SET "metaAccessToken" = NULL, "metaAdAccountId" = NULL, "metaTokenExpires" = NULL, "metaLastSync" = NULL WHERE "id" = $1`,
-      session.user.id
-    )
+    await db.user.update({
+      where: { id: session.user.id },
+      data: { metaAccessToken: null, metaAdAccountId: null, metaTokenExpires: null, metaLastSync: null },
+    })
     return NextResponse.json({ success: true })
   }
 

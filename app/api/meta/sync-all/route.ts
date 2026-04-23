@@ -12,9 +12,10 @@ export async function GET() {
 
   try {
     // Find all users with Meta connected
-    const users = await db.$queryRawUnsafe<any[]>(
-      `SELECT "id", "metaAccessToken", "metaAdAccountId", "metaTokenExpires" FROM "User" WHERE "metaAccessToken" IS NOT NULL AND "metaAdAccountId" IS NOT NULL`
-    )
+    const users = await db.user.findMany({
+      where: { metaAccessToken: { not: null }, metaAdAccountId: { not: null } },
+      select: { id: true, metaAccessToken: true, metaAdAccountId: true, metaTokenExpires: true },
+    })
 
     console.log('[Meta Sync-All] Found', users.length, 'connected users')
 
@@ -46,10 +47,7 @@ export async function GET() {
         }
 
         // Update last sync time
-        await db.$executeRawUnsafe(
-          `UPDATE "User" SET "metaLastSync" = NOW() WHERE "id" = $1`,
-          user.id
-        )
+        await db.user.update({ where: { id: user.id }, data: { metaLastSync: new Date() } })
 
         synced++
         console.log('[Meta Sync-All] Synced user:', user.id, 'campaigns:', json.data?.length || 0)

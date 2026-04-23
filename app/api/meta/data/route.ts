@@ -113,11 +113,10 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const rows = await db.$queryRawUnsafe<any[]>(
-      `SELECT "metaAccessToken", "metaAdAccountId", "metaTokenExpires" FROM "User" WHERE "id" = $1 LIMIT 1`,
-      session.user.id
-    )
-    const user = rows[0]
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { metaAccessToken: true, metaAdAccountId: true, metaTokenExpires: true },
+    })
 
     // If no Meta token or token expired, fall back to uploaded data in MetaAdData DB
     const hasLiveToken = user?.metaAccessToken &&
@@ -127,7 +126,7 @@ export async function GET(req: NextRequest) {
       return respondFromDB(session.user.id, startDate, endDate)
     }
 
-    const token = user.metaAccessToken
+    const token = user!.metaAccessToken as string
     const HARDCODED_ACCOUNT_ID = 'act_940232825191906'
 
     const allAds: MetaAd[] = []

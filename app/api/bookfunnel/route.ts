@@ -16,22 +16,18 @@ export async function GET() {
   // Fetch (or generate) webhook secret
   let secret: string | null = null
   try {
-    const rows = await db.$queryRawUnsafe<Array<{ bookfunnelWebhookSecret: string | null }>>(
-      `SELECT "bookfunnelWebhookSecret" FROM "User" WHERE id = $1 LIMIT 1`,
-      userId,
-    )
-    secret = rows[0]?.bookfunnelWebhookSecret ?? null
-  } catch { /* column may not exist yet pre-migration */ }
+    const userRow = await db.user.findUnique({
+      where: { id: userId },
+      select: { bookfunnelWebhookSecret: true },
+    })
+    secret = userRow?.bookfunnelWebhookSecret ?? null
+  } catch { /* ignore */ }
 
   // Auto-generate on first visit
   if (!secret) {
     secret = crypto.randomUUID()
     try {
-      await db.$executeRawUnsafe(
-        `UPDATE "User" SET "bookfunnelWebhookSecret" = $1 WHERE id = $2`,
-        secret,
-        userId,
-      )
+      await db.user.update({ where: { id: userId }, data: { bookfunnelWebhookSecret: secret } })
     } catch { secret = null }
   }
 
@@ -93,11 +89,7 @@ export async function POST(req: NextRequest) {
 
   if (action === 'regenerate-secret') {
     const secret = crypto.randomUUID()
-    await db.$executeRawUnsafe(
-      `UPDATE "User" SET "bookfunnelWebhookSecret" = $1 WHERE id = $2`,
-      secret,
-      session.user.id,
-    )
+    await db.user.update({ where: { id: session.user.id }, data: { bookfunnelWebhookSecret: secret } })
     return NextResponse.json({ secret })
   }
 

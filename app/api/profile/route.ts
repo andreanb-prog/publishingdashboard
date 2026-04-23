@@ -21,10 +21,16 @@ export async function POST(req: NextRequest) {
   const { penName, genreCategory, genreSubgenre, referralSource } = parsed.data
 
   try {
-    await db.$executeRawUnsafe(
-      `UPDATE "User" SET "penName" = $1, "genreCategory" = $2, "genreSubgenre" = $3, "referralSource" = $4, "name" = COALESCE($1, "name") WHERE "id" = $5`,
-      penName || null, genreCategory || null, genreSubgenre || null, referralSource || null, session.user.id
-    )
+    await db.user.update({
+      where: { id: session.user.id },
+      data: {
+        penName: penName || null,
+        genreCategory: genreCategory || null,
+        genreSubgenre: genreSubgenre || null,
+        referralSource: referralSource || null,
+        ...(penName ? { name: penName } : {}),
+      },
+    })
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error('[Profile] Save failed:', err)
@@ -37,11 +43,11 @@ export async function GET() {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const rows = await db.$queryRawUnsafe<any[]>(
-      `SELECT "penName", "genreCategory", "genreSubgenre", "referralSource" FROM "User" WHERE "id" = $1 LIMIT 1`,
-      session.user.id
-    )
-    return NextResponse.json(rows[0] ?? {})
+    const userRow = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { penName: true, genreCategory: true, genreSubgenre: true, referralSource: true },
+    })
+    return NextResponse.json(userRow ?? {})
   } catch {
     return NextResponse.json({})
   }

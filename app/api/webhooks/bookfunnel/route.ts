@@ -18,13 +18,10 @@ export async function POST(req: NextRequest) {
   // Look up the user and their stored webhook secret
   let user: { id: string; books: unknown; bookfunnelWebhookSecret: string | null } | null = null
   try {
-    const rows = await db.$queryRawUnsafe<
-      Array<{ id: string; books: unknown; bookfunnelWebhookSecret: string | null }>
-    >(
-      `SELECT id, books, "bookfunnelWebhookSecret" FROM "User" WHERE id = $1 LIMIT 1`,
-      uid,
-    )
-    user = rows[0] ?? null
+    user = await db.user.findUnique({
+      where: { id: uid },
+      select: { id: true, books: true, bookfunnelWebhookSecret: true },
+    })
   } catch {
     return NextResponse.json({ error: 'User lookup failed' }, { status: 500 })
   }

@@ -12,11 +12,11 @@ export async function GET() {
   const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const rows = await db.$queryRawUnsafe<any[]>(
-    `SELECT "metaAccessToken" FROM "User" WHERE "id" = $1 LIMIT 1`,
-    session.user.id
-  )
-  const token = rows[0]?.metaAccessToken
+  const userRow = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { metaAccessToken: true },
+  })
+  const token = userRow?.metaAccessToken
   if (!token) return NextResponse.json({ error: 'Meta not connected' }, { status: 400 })
 
   try {

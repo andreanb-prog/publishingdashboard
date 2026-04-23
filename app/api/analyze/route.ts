@@ -397,10 +397,10 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
       take: 12,
     }),
-    db.$queryRawUnsafe<{ metaLastSync: Date | null }[]>(
-      `SELECT "metaLastSync" FROM "User" WHERE "id" = $1 LIMIT 1`,
-      session.user.id
-    ).then(rows => rows[0] ?? null),
+    db.user.findUnique({
+      where: { id: session.user.id },
+      select: { metaLastSync: true },
+    }),
   ])
 
   // First 6 for history charts/tables
