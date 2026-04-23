@@ -2,7 +2,7 @@
 // app/dashboard/launch/LaunchClient.tsx
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Pencil } from 'lucide-react'
-import { BoutiqueChannelPageLayout, BoutiquePageHeader } from '@/components/boutique'
+import { BoutiqueChannelPageLayout, BoutiquePageHeader, BoutiqueStatusChip } from '@/components/boutique'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface LaunchTask {
@@ -383,14 +383,17 @@ function TaskRow({
           {task.name}
         </span>
 
-        {/* Phase offset */}
-        <PhaseLabel dueDate={task.dueDate} launchDate={launchDate} />
-
-        {/* Channel pill */}
-        <ChannelPill channel={task.channel} />
-
-        {/* Due date */}
-        <span className="text-[11px] text-gray-400 hidden sm:block">{formatShort(task.dueDate)}</span>
+        {/* Meta line: channel · due date · action type */}
+        <span style={{
+          fontFamily: 'var(--font-serif)',
+          fontStyle: 'italic',
+          fontSize: 12,
+          color: '#9CA3AF',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}>
+          {task.channel} · {formatShort(task.dueDate)}{task.actionType ? ` · ${task.actionType}` : ''}
+        </span>
 
         {/* Action button */}
         {task.actionType && task.actionPrompt && !isDone && (
@@ -597,9 +600,11 @@ function WeekStrip({ tasks }: { tasks: LaunchTask[] }) {
           <div key={i} className="flex-1 flex flex-col items-center gap-1">
             <span className="text-[10px] text-gray-400">{DAY_LABELS[i]}</span>
             <div
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold transition-all
-                ${isToday ? 'text-white' : 'text-gray-600'}`}
-              style={isToday ? { background: '#1E2D3D' } : {}}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold transition-all"
+              style={isToday ? {
+                border: '2px solid #D97706',
+                color: '#D97706',
+              } : { color: '#6B7280' }}
             >
               {day.getDate()}
             </div>
@@ -632,8 +637,13 @@ function StreakWidget({ streak, events }: { streak: StreakData; events: StreakEv
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-4 mt-4">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-xl">🔥</span>
-        <span className="text-lg font-bold" style={{ color: '#E9A020' }}>
+        <span style={{
+          fontFamily: 'var(--font-serif)',
+          fontSize: 22,
+          fontWeight: 600,
+          color: '#D97706',
+          lineHeight: 1,
+        }}>
           {streak.currentStreak}
         </span>
         <span className="text-sm font-semibold text-gray-500">day streak</span>
@@ -642,25 +652,33 @@ function StreakWidget({ streak, events }: { streak: StreakData; events: StreakEv
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 mb-3">
+      <div className="flex items-center gap-2 mb-3">
         {weekDays.map((day, i) => {
           const dStr = fmt(day)
           const hasEvent = eventDates.has(dStr)
           const isToday = dStr === todayStr
-          const isPast = day < today && !isToday
           return (
-            <div
-              key={i}
-              className={`flex-1 h-5 rounded-full transition-all
-                ${hasEvent
-                  ? ''
-                  : isToday
-                  ? 'border-2 border-dashed border-amber-300'
-                  : isPast ? 'bg-gray-100' : 'bg-gray-50 border border-gray-200'
-                }`}
-              style={hasEvent ? { background: '#E9A020' } : {}}
-              title={`${DAY_LABELS[i]} ${day.getDate()}`}
-            />
+            <div key={i} className="flex flex-col items-center gap-1">
+              <span style={{ fontSize: 9, color: '#9CA3AF', fontFamily: 'var(--font-mono)' }}>
+                {DAY_LABELS[i]}
+              </span>
+              <div
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  background: hasEvent ? '#D97706' : 'transparent',
+                  border: hasEvent
+                    ? 'none'
+                    : isToday
+                    ? '2px solid #D97706'
+                    : '1.5px solid #E8E1D3',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                }}
+                title={`${DAY_LABELS[i]} ${day.getDate()}`}
+              />
+            </div>
           )
         })}
       </div>
@@ -819,14 +837,14 @@ function InlinePhaseSelect({
       </select>
     )
   }
+  const tone = value === 'Launch Week' ? 'green' : value === 'Evergreen' ? 'plum' : value === 'Pre-order' ? 'amber' : 'coral'
   return (
     <span
-      className="inline-flex items-center gap-0.5 group/iphase cursor-pointer text-[10px] font-bold px-2 py-0.5 rounded-full"
-      style={{ background: pc.bg, color: pc.color }}
+      className="inline-flex items-center gap-1 group/iphase cursor-pointer"
       onClick={() => setEditing(true)}
     >
-      {value}
-      <Pencil size={8} className="opacity-0 group-hover/iphase:opacity-60 transition-opacity shrink-0" />
+      <BoutiqueStatusChip tone={tone as 'green' | 'amber' | 'plum' | 'coral'} label={value} />
+      <Pencil size={8} className="opacity-0 group-hover/iphase:opacity-60 transition-opacity shrink-0" style={{ color: '#9CA3AF' }} />
     </span>
   )
 }
@@ -969,9 +987,10 @@ function LaunchesPanel({ initialLaunches, activeLaunch, onActiveLaunchTitleChang
                   style={{ color: '#1E2D3D' }}
                 />
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: pc.bg, color: pc.color }}>
-                {phase}
-              </span>
+              <BoutiqueStatusChip
+                tone={phase === 'Launch Week' ? 'green' : phase === 'Post-Launch' ? 'coral' : 'amber'}
+                label={phase}
+              />
               <InlineDateField
                 value={activeLaunch.launchDate}
                 onSave={async date => { await onActiveLaunchDateChange?.(date) }}
@@ -1468,13 +1487,18 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
         {/* Progress bar */}
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-500 whitespace-nowrap">{doneCount} of {totalVisible} tasks complete</span>
-          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="flex-1 h-1.5 overflow-hidden" style={{ background: '#F3EDE3' }}>
             <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${progressPct}%`, background: '#E9A020' }}
+              className="h-full transition-all duration-500"
+              style={{ width: `${progressPct}%`, background: '#D97706' }}
             />
           </div>
-          <span className="text-xs font-semibold text-gray-400">{progressPct}%</span>
+          <span style={{
+            fontFamily: 'var(--font-serif)',
+            fontStyle: 'italic',
+            fontSize: 12,
+            color: '#9CA3AF',
+          }}>{progressPct}%</span>
         </div>
 
         {/* Task list */}

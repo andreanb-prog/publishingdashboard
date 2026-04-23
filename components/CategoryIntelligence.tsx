@@ -28,22 +28,58 @@ export default function CategoryIntelligence({ bookAsin }: { bookAsin?: string }
   if (loading || entries.length === 0) return null
 
   return (
-    <div className="rounded-xl p-5 mb-5" style={{ background: '#1c1917', border: '1px solid #292524' }}>
-      <h3 className="text-[13.5px] font-semibold mb-3" style={{ color: '#d6d3d1' }}>
-        Category Intelligence
-      </h3>
-      <div className="space-y-2">
-        {entries.map(e => (
-          <div key={e.id} className="flex items-center justify-between text-[12px]" style={{ color: '#a8a29e' }}>
-            <span className="truncate flex-1 mr-3" style={{ color: '#d6d3d1' }}>{e.category}</span>
-            {e.rank != null && (
-              <span className="font-semibold tabular-nums" style={{ color: '#e9a020' }}>
-                #{e.rank.toLocaleString()}
-              </span>
-            )}
-          </div>
-        ))}
+    <div style={{
+      background: '#FFFFFF',
+      border: '1px solid #E8E1D3',
+      marginBottom: 20,
+    }}>
+      <div style={{
+        fontFamily: 'var(--font-mono)',
+        fontSize: 10,
+        textTransform: 'uppercase',
+        letterSpacing: '0.12em',
+        color: '#6B7280',
+        padding: '12px 16px 8px',
+      }}>
+        Category Rankings
       </div>
+      {entries.map((e, i) => (
+        <div
+          key={e.id}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 16px',
+            borderTop: i === 0 ? '1px solid #E8E1D3' : '1px solid #EEEBE6',
+          }}
+        >
+          <span style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: 13,
+            color: '#1E2D3D',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            flex: 1,
+            marginRight: 12,
+          }}>
+            {e.category}
+          </span>
+          {e.rank != null && (
+            <span style={{
+              fontFamily: 'var(--font-serif)',
+              fontSize: 16,
+              fontWeight: 600,
+              color: '#D97706',
+              flexShrink: 0,
+              tabularNums: true,
+            } as React.CSSProperties}>
+              #{e.rank.toLocaleString()}
+            </span>
+          )}
+        </div>
+      ))}
     </div>
   )
 }
