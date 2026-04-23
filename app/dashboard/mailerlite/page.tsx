@@ -5,7 +5,6 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import ChartJS from 'chart.js/auto'
 import { ChartLegend } from '@/components/ChartLegend'
 import { CHART_COLORS, BASE_CHART_OPTIONS, barDataset } from '@/lib/chartConfig'
-import { PageSkeleton } from '@/components/DarkPage'
 import {
   BoutiqueChannelPageLayout,
   BoutiquePageHeader,
@@ -14,6 +13,7 @@ import {
   BoutiqueMetricCard,
   BoutiqueEmptyState,
   BoutiqueCoachBox,
+  BoutiquePageSkeleton,
 } from '@/components/boutique'
 import { FreshBanner } from '@/components/FreshBanner'
 import { GoalSection } from '@/components/GoalSection'
@@ -515,7 +515,7 @@ export default function MailerLitePage() {
     return (
       <BoutiqueChannelPageLayout>
         <BoutiquePageHeader title="MailerLite" subtitle="Open rates · List health · Subscriber trends" badge="LIVE" badgeColor="#5BBFB5" />
-        <PageSkeleton cols={4} />
+        <BoutiquePageSkeleton cols={4} />
       </BoutiqueChannelPageLayout>
     )
   }

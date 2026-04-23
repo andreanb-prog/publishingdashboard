@@ -8,7 +8,6 @@ import 'react-day-picker/style.css'
 import ChartJS from 'chart.js/auto'
 import { ChartLegend } from '@/components/ChartLegend'
 import { CHART_COLORS, BASE_CHART_OPTIONS, barDataset } from '@/lib/chartConfig'
-import { PageSkeleton } from '@/components/DarkPage'
 import {
   BoutiqueChannelPageLayout,
   BoutiquePageHeader,
@@ -17,6 +16,7 @@ import {
   BoutiqueMetricCard,
   BoutiqueEmptyState,
   BoutiqueCoachBox,
+  BoutiquePageSkeleton,
 } from '@/components/boutique'
 import { FreshBanner } from '@/components/FreshBanner'
 import { InsightCallouts } from '@/components/InsightCallout'
@@ -878,7 +878,7 @@ export default function MetaPage() {
     return (
       <BoutiqueChannelPageLayout>
         <BoutiquePageHeader title="Meta" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan" badge="LIVE" badgeColor="#F4A261" />
-        <PageSkeleton cols={4} rows={3} />
+        <BoutiquePageSkeleton cols={4} rows={3} />
       </BoutiqueChannelPageLayout>
     )
   }

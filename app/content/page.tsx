@@ -191,25 +191,40 @@ function PhaseStepHeader({
   onEdit?: () => void
 }) {
   return (
-    <div className="flex items-center gap-4">
-      <div
-        className="w-9 h-9 rounded-full flex items-center justify-center text-[14px] font-bold flex-shrink-0"
-        style={{
-          background: isCompleted ? '#6EBF8B' : isActive ? '#E9A020' : '#E8E0D8',
-          color: isCompleted || isActive ? '#fff' : '#6B7280',
-        }}
-      >
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{
+        width: 28,
+        height: 28,
+        borderRadius: '50%',
+        border: isCompleted ? 'none' : `2px solid ${isActive ? '#D97706' : '#E8E1D3'}`,
+        background: isCompleted ? '#D97706' : 'transparent',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        fontFamily: 'var(--font-serif)',
+        fontSize: 13,
+        fontWeight: 600,
+        color: isCompleted ? '#fff' : isActive ? '#D97706' : '#9CA3AF',
+      }}>
         {isCompleted ? '✓' : number}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold text-[15px]" style={{ color: '#1E2D3D' }}>{title}</div>
-        <div className="text-[12px]" style={{ color: '#6B7280' }}>{subtitle}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 15, color: '#1E2D3D' }}>{title}</div>
+        <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12, color: '#6B7280', marginTop: 2 }}>{subtitle}</div>
       </div>
       {isCompleted && onEdit && (
         <button
           onClick={onEdit}
-          className="px-3 py-1 rounded text-[12px] font-medium transition-all"
-          style={{ background: 'transparent', border: '1px solid #E8E0D8', color: '#6B7280', cursor: 'pointer' }}
+          style={{
+            background: 'transparent',
+            border: '1px solid #E8E1D3',
+            color: '#6B7280',
+            cursor: 'pointer',
+            padding: '4px 12px',
+            fontSize: 12,
+            fontFamily: 'var(--font-sans)',
+          }}
         >
           Edit
         </button>
@@ -775,21 +790,26 @@ export default function ContentPlannerPage() {
                       <button
                         key={book.id}
                         onClick={() => setSelectedBook(book)}
-                        className="flex items-center gap-3 p-3 rounded-lg text-left transition-all w-full"
                         style={{
-                          background: selectedBook?.id === book.id ? 'rgba(233,160,32,0.08)' : 'white',
-                          border: `1.5px solid ${selectedBook?.id === book.id ? '#E9A020' : '#EEEBE6'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          padding: 12,
+                          textAlign: 'left',
+                          width: '100%',
                           cursor: 'pointer',
+                          background: selectedBook?.id === book.id ? 'rgba(217,119,6,0.06)' : 'white',
+                          border: `1.5px solid ${selectedBook?.id === book.id ? '#D97706' : '#EEEBE6'}`,
                         }}
                       >
                         {book.coverUrl ? (
-                          <img src={book.coverUrl} alt={book.title} className="w-10 h-14 object-cover rounded" />
+                          <img src={book.coverUrl} alt={book.title} style={{ width: 40, height: 56, objectFit: 'cover' }} />
                         ) : (
-                          <div className="w-10 h-14 rounded flex items-center justify-center text-[18px]" style={{ background: '#FFF8F0' }}>📚</div>
+                          <div style={{ width: 40, height: 56, background: '#FFF8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>📚</div>
                         )}
                         <div>
-                          <div className="text-[14px] font-semibold" style={{ color: '#1E2D3D' }}>{book.title}</div>
-                          {book.genre && <div className="text-[12px]" style={{ color: '#6B7280' }}>{book.genre}{book.seriesName ? ` · ${book.seriesName}` : ''}</div>}
+                          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 600, color: '#1E2D3D' }}>{book.title}</div>
+                          {book.genre && <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12, color: '#6B7280', marginTop: 2 }}>{book.genre}{book.seriesName ? ` · ${book.seriesName}` : ''}</div>}
                         </div>
                       </button>
                     ))}

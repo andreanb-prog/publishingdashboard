@@ -4,7 +4,6 @@ import { DashboardErrorBoundary } from '@/components/DashboardErrorBoundary'
 import { Suspense, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import ChartJS from 'chart.js/auto'
 import Link from 'next/link'
-import { PageSkeleton } from '@/components/DarkPage'
 import {
   BoutiqueChannelPageLayout,
   BoutiquePageHeader,
@@ -13,6 +12,7 @@ import {
   BoutiqueMetricCard,
   BoutiqueEmptyState,
   BoutiqueCoachBox,
+  BoutiquePageSkeleton,
 } from '@/components/boutique'
 import { CollapsibleSection } from '@/components/CollapsibleSection'
 import { FreshBanner } from '@/components/FreshBanner'
@@ -1171,7 +1171,7 @@ export default function KDPPage() {
     return (
       <BoutiqueChannelPageLayout>
         <BoutiquePageHeader title="KDP" subtitle="Amazon royalties" badge="LIVE" />
-        <PageSkeleton cols={5} />
+        <BoutiquePageSkeleton cols={5} />
       </BoutiqueChannelPageLayout>
     )
   }

@@ -1,7 +1,7 @@
 'use client'
 // app/dashboard/data-vault/page.tsx
 import { useEffect, useState } from 'react'
-import { DarkPage } from '@/components/DarkPage'
+import { BoutiqueChannelPageLayout, BoutiquePageHeader, BoutiqueStatusChip } from '@/components/boutique'
 import type { Analysis } from '@/types'
 
 interface AnalysisRecord {
@@ -109,37 +109,42 @@ export default function DataVaultPage() {
   const active = records[0] ?? null
 
   return (
-    <DarkPage title="🔐 Your Data" subtitle="Everything you've uploaded — you're in full control. Delete anything at any time.">
+    <BoutiqueChannelPageLayout>
+      <BoutiquePageHeader
+        title="Your Data"
+        subtitle="Everything you've uploaded — you're in full control. Delete anything at any time."
+        badge="Data Vault"
+        badgeColor="#6D3FD4"
+      />
 
       {/* Currently Active */}
       {active && (
-        <div className="rounded-xl p-5 mb-6" style={{ background: 'white', border: '2px solid #E9A020' }}>
-          <div className="flex items-start justify-between gap-4">
+        <div style={{ background: 'white', border: '2px solid #D97706', padding: 20, marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
             <div>
-              <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2" style={{ color: '#E9A020' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#D97706', marginBottom: 8 }}>
                 Currently Powering Your Dashboard
               </div>
-              <div className="font-sans text-[20px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 600, color: '#1E2D3D', marginBottom: 4 }}>
                 {formatMonth(active.month)}
               </div>
-              <div className="text-[12.5px] mb-3" style={{ color: '#6B7280' }}>
+              <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
                 Analyzed {formatDate(active.createdAt)} at {formatTime(active.createdAt)}
               </div>
-              <div className="flex flex-wrap gap-3">
-                <div className="rounded-lg px-3 py-2" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
-                  <div className="text-[10px] font-bold uppercase tracking-[0.8px] mb-0.5" style={{ color: '#6B7280' }}>Files used</div>
-                  <div className="text-[12.5px] font-semibold" style={{ color: '#1E2D3D' }}>{getFilesUsed(active.data)}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                <div style={{ background: '#FFF8F0', border: '1px solid #EEEBE6', padding: '8px 12px' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6B7280', marginBottom: 2 }}>Files used</div>
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600, color: '#1E2D3D' }}>{getFilesUsed(active.data)}</div>
                 </div>
-                <div className="rounded-lg px-3 py-2" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
-                  <div className="text-[10px] font-bold uppercase tracking-[0.8px] mb-0.5" style={{ color: '#6B7280' }}>Records parsed</div>
-                  <div className="text-[12.5px] font-semibold" style={{ color: '#1E2D3D' }}>{getRecordsSummary(active.data)}</div>
+                <div style={{ background: '#FFF8F0', border: '1px solid #EEEBE6', padding: '8px 12px' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6B7280', marginBottom: 2 }}>Records parsed</div>
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600, color: '#1E2D3D' }}>{getRecordsSummary(active.data)}</div>
                 </div>
               </div>
             </div>
             <a
               href="/dashboard?upload=1"
-              className="flex-shrink-0 px-4 py-2.5 rounded-lg text-[13px] font-bold no-underline transition-all"
-              style={{ background: '#E9A020', color: '#0d1f35' }}
+              style={{ flexShrink: 0, padding: '10px 16px', background: '#D97706', color: '#fff', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
             >
               Re-run analysis →
             </a>
@@ -148,23 +153,22 @@ export default function DataVaultPage() {
       )}
 
       {/* Upload History Table */}
-      <div className="rounded-xl overflow-hidden mb-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-        <div className="px-5 py-3.5 font-semibold text-[13px]" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
+      <div style={{ background: 'white', border: '1px solid #EEEBE6', marginBottom: 24 }}>
+        <div style={{ padding: '14px 20px', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
           Upload History
         </div>
         {loading ? (
-          <div className="px-5 py-10 text-center text-[13px]" style={{ color: '#6B7280' }}>Loading…</div>
+          <div style={{ padding: '40px 20px', textAlign: 'center', fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 13, color: '#6B7280' }}>Loading…</div>
         ) : records.length === 0 ? (
-          <div className="px-5 py-10 text-center text-[13px]" style={{ color: '#6B7280' }}>
+          <div style={{ padding: '40px 20px', textAlign: 'center', fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 13, color: '#6B7280' }}>
             No analyses saved yet. Upload your first data set to get started.
           </div>
         ) : (
-          <table className="w-full border-collapse text-[12.5px]">
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
             <thead>
-              <tr style={{ background: '#F5F5F4' }}>
+              <tr style={{ background: '#F7F1E6' }}>
                 {['Date Uploaded', 'Month', 'Files Included', 'Records', 'Status', 'Actions'].map(h => (
-                  <th key={h} className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.8px]"
-                    style={{ color: '#6B7280' }}>{h}</th>
+                  <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontFamily: 'var(--font-mono)', fontSize: 9, fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6B7280', fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -173,58 +177,49 @@ export default function DataVaultPage() {
                 const isActive = i === 0
                 const isConfirmingDelete = deletingId === `confirm-${rec.id}`
                 return (
-                  <tr key={rec.id} className="border-t" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-                    <td className="px-4 py-3" style={{ color: '#6B7280' }}>
+                  <tr key={rec.id} style={{ borderTop: '1px solid #EEEBE6' }}>
+                    <td style={{ padding: '12px 16px', fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12, color: '#6B7280' }}>
                       {formatDate(rec.createdAt)}
                     </td>
-                    <td className="px-4 py-3 font-semibold" style={{ color: '#1E2D3D' }}>
+                    <td style={{ padding: '12px 16px', fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: 14, color: '#1E2D3D' }}>
                       {formatMonth(rec.month)}
                     </td>
-                    <td className="px-4 py-3" style={{ color: '#374151' }}>
+                    <td style={{ padding: '12px 16px', fontFamily: 'var(--font-sans)', fontSize: 12, color: '#374151' }}>
                       {getFilesUsed(rec.data)}
                     </td>
-                    <td className="px-4 py-3 font-mono text-[11.5px]" style={{ color: '#6B7280' }}>
+                    <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)', fontSize: 11.5, color: '#6B7280' }}>
                       {getRecordsSummary(rec.data)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td style={{ padding: '12px 16px' }}>
                       {isActive ? (
-                        <span className="text-[10.5px] font-bold px-2.5 py-1 rounded-full"
-                          style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>
-                          ● Active
-                        </span>
+                        <BoutiqueStatusChip tone="amber" label="Active" />
                       ) : (
-                        <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full"
-                          style={{ background: '#F5F5F4', color: '#6B7280' }}>
-                          Archived
-                        </span>
+                        <BoutiqueStatusChip tone="coral" label="Archived" />
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td style={{ padding: '12px 16px' }}>
                       {isConfirmingDelete ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px]" style={{ color: '#6B7280' }}>Delete?</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 11, color: '#6B7280', fontFamily: 'var(--font-sans)' }}>Delete?</span>
                           <button
                             onClick={() => handleDelete(rec.id)}
-                            className="text-[11px] font-bold px-2 py-0.5 rounded"
-                            style={{ background: 'rgba(251,113,133,0.12)', color: '#fb7185' }}
+                            style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', background: 'rgba(249,123,107,0.12)', color: '#F97B6B', border: 'none', cursor: 'pointer' }}
                           >
                             Yes
                           </button>
                           <button
                             onClick={() => setDeletingId(null)}
-                            className="text-[11px] px-2 py-0.5 rounded"
-                            style={{ background: '#F5F5F4', color: '#6B7280' }}
+                            style={{ fontSize: 11, padding: '2px 8px', background: '#F5F5F4', color: '#6B7280', border: 'none', cursor: 'pointer' }}
                           >
                             No
                           </button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           {!isActive && (
                             <button
                               onClick={() => handleRestore(rec)}
-                              className="text-[11.5px] font-semibold px-2.5 py-1 rounded-lg transition-all"
-                              style={{ background: '#F5F5F4', color: '#374151', border: '1px solid #E7E5E4' }}
+                              style={{ fontSize: 11.5, fontWeight: 600, padding: '4px 10px', background: '#F5F5F4', color: '#374151', border: '1px solid #E8E1D3', cursor: 'pointer' }}
                             >
                               Restore
                             </button>
@@ -232,8 +227,7 @@ export default function DataVaultPage() {
                           <button
                             onClick={() => setDeletingId(`confirm-${rec.id}`)}
                             disabled={deletingId === rec.id}
-                            className="text-[11.5px] font-semibold px-2.5 py-1 rounded-lg transition-all disabled:opacity-40"
-                            style={{ background: 'rgba(251,113,133,0.08)', color: '#fb7185', border: '1px solid rgba(251,113,133,0.2)' }}
+                            style={{ fontSize: 11.5, fontWeight: 600, padding: '4px 10px', background: 'rgba(249,123,107,0.08)', color: '#F97B6B', border: '1px solid rgba(249,123,107,0.2)', cursor: 'pointer', opacity: deletingId === rec.id ? 0.4 : 1 }}
                           >
                             Delete
                           </button>
@@ -249,19 +243,19 @@ export default function DataVaultPage() {
       </div>
 
       {/* What does AuthorDash store? */}
-      <div className="rounded-xl overflow-hidden mb-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div style={{ background: 'white', border: '1px solid #EEEBE6', marginBottom: 24 }}>
         <button
           onClick={() => setWhatWeStore(v => !v)}
-          className="w-full px-5 py-4 flex items-center justify-between text-left"
+          style={{ width: '100%', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
         >
-          <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: '#1E2D3D' }}>
             What does AuthorDash store?
           </span>
-          <span className="text-[16px]" style={{ color: '#6B7280' }}>{whatWeStore ? '▲' : '▼'}</span>
+          <span style={{ fontSize: 12, color: '#6B7280' }}>{whatWeStore ? '▲' : '▼'}</span>
         </button>
         {whatWeStore && (
-          <div className="px-5 pb-5" style={{ borderTop: '1px solid #EEEBE6' }}>
-            <div className="space-y-2.5 mt-4">
+          <div style={{ padding: '0 20px 20px', borderTop: '1px solid #EEEBE6' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
               {[
                 { icon: '📚', text: 'Your KDP report: we store total units, daily breakdown, and royalties per book' },
                 { icon: '📣', text: 'Your Meta Ads: we store ad names, spend, clicks, CTR, and CPC' },
@@ -270,9 +264,9 @@ export default function DataVaultPage() {
                 { icon: '🚫', text: 'We never store your raw Excel or CSV files' },
                 { icon: '🗑️', text: 'You can delete all your data at any time from this page' },
               ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="text-base flex-shrink-0 mt-0.5">{item.icon}</span>
-                  <p className="text-[12.5px] leading-relaxed m-0" style={{ color: '#374151' }}>{item.text}</p>
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <span style={{ flexShrink: 0, marginTop: 2 }}>{item.icon}</span>
+                  <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12.5, lineHeight: 1.6, margin: 0, color: '#374151' }}>{item.text}</p>
                 </div>
               ))}
             </div>
@@ -281,63 +275,58 @@ export default function DataVaultPage() {
       </div>
 
       {/* Export Your Data */}
-      <div className="rounded-xl p-5 mb-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-        <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2" style={{ color: '#6B7280' }}>
+      <div style={{ background: 'white', border: '1px solid #EEEBE6', padding: 20, marginBottom: 24 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6B7280', marginBottom: 8 }}>
           Export Your Data
         </div>
-        <p className="text-[12.5px] mb-4 m-0" style={{ color: '#374151' }}>
+        <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12.5, color: '#374151', margin: '0 0 16px' }}>
           Download a complete copy of everything AuthorDash holds about you.
         </p>
         <a
           href="/api/user/data-export"
           download
-          className="inline-block text-[11px] font-bold tracking-[0.08em] uppercase no-underline transition-all"
-          style={{ color: '#E9A020' }}
+          style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#D97706', textDecoration: 'none' }}
         >
           Download my data →
         </a>
       </div>
 
       {/* Delete All */}
-      <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid rgba(251,113,133,0.25)' }}>
-        <div className="text-[13px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>Delete all my data</div>
-        <p className="text-[12px] mb-4 m-0" style={{ color: '#6B7280' }}>
+      <div style={{ background: 'white', border: '1px solid rgba(249,123,107,0.25)', padding: 20 }}>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: '#1E2D3D', marginBottom: 4 }}>Delete all my data</div>
+        <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12, color: '#6B7280', margin: '0 0 16px' }}>
           This permanently removes all your analyses and upload history. Your account will remain active but your dashboard will be empty.
         </p>
         {!confirmDeleteAll ? (
           <button
             onClick={() => setConfirmDeleteAll(true)}
-            className="px-4 py-2 rounded-lg text-[13px] font-bold transition-all"
-            style={{ background: 'rgba(251,113,133,0.1)', color: '#fb7185', border: '1px solid rgba(251,113,133,0.25)' }}
+            style={{ padding: '8px 16px', background: 'rgba(249,123,107,0.1)', color: '#F97B6B', border: '1px solid rgba(249,123,107,0.25)', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
           >
             Delete all my data
           </button>
         ) : (
           <div>
-            <p className="text-[12.5px] font-semibold mb-3" style={{ color: '#fb7185' }}>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 600, color: '#F97B6B', marginBottom: 12 }}>
               Type DELETE to confirm:
             </p>
-            <div className="flex items-center gap-3">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <input
                 type="text"
                 value={deleteAllInput}
                 onChange={e => setDeleteAllInput(e.target.value)}
                 placeholder="DELETE"
-                className="rounded-lg px-3 py-2 text-[13px] font-mono outline-none w-36"
-                style={{ background: 'white', border: '1.5px solid #fb7185', color: '#1E2D3D' }}
+                style={{ background: 'white', border: '1.5px solid #F97B6B', color: '#1E2D3D', padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: 13, outline: 'none', width: 144 }}
               />
               <button
                 onClick={handleDeleteAll}
                 disabled={deleteAllInput !== 'DELETE' || deletingAll}
-                className="px-4 py-2 rounded-lg text-[13px] font-bold transition-all disabled:opacity-40"
-                style={{ background: '#fb7185', color: 'white', border: 'none' }}
+                style={{ padding: '8px 16px', background: '#F97B6B', color: 'white', border: 'none', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: (deleteAllInput !== 'DELETE' || deletingAll) ? 0.4 : 1 }}
               >
                 {deletingAll ? 'Deleting…' : 'Confirm delete all'}
               </button>
               <button
                 onClick={() => { setConfirmDeleteAll(false); setDeleteAllInput('') }}
-                className="px-4 py-2 rounded-lg text-[13px] font-semibold"
-                style={{ background: '#F5F5F4', color: '#6B7280' }}
+                style={{ padding: '8px 16px', background: '#F5F5F4', color: '#6B7280', border: 'none', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -345,6 +334,6 @@ export default function DataVaultPage() {
           </div>
         )}
       </div>
-    </DarkPage>
+    </BoutiqueChannelPageLayout>
   )
 }

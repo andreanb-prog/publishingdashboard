@@ -1,7 +1,6 @@
 'use client'
 // app/(dashboard)/pinterest/page.tsx
 import { Suspense, useEffect, useState } from 'react'
-import { PageSkeleton } from '@/components/DarkPage'
 import {
   BoutiqueChannelPageLayout,
   BoutiquePageHeader,
@@ -9,6 +8,7 @@ import {
   BoutiqueDataGrid,
   BoutiqueMetricCard,
   BoutiqueCoachBox,
+  BoutiquePageSkeleton,
 } from '@/components/boutique'
 import { FreshBanner } from '@/components/FreshBanner'
 import { getCoachTitle } from '@/lib/coachTitle'
@@ -97,7 +97,7 @@ export default function PinterestPage() {
     return (
       <BoutiqueChannelPageLayout>
         <BoutiquePageHeader title="Pinterest" subtitle="Building from zero · Your 30-day plan" badge="BUILDING" badgeColor="#F472B6" />
-        <PageSkeleton cols={3} rows={3} />
+        <BoutiquePageSkeleton cols={3} rows={3} />
       </BoutiqueChannelPageLayout>
     )
   }
