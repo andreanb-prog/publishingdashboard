@@ -31,10 +31,10 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
     }),
 
     // 2. User meta sync timestamp
-    db.$queryRawUnsafe<{ metaLastSync: Date | null; mailerLiteKey: string | null }[]>(
-      `SELECT "metaLastSync", "mailerLiteKey" FROM "User" WHERE "id" = $1 LIMIT 1`,
-      userId
-    ).then(rows => rows[0] ?? null),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { metaLastSync: true, mailerLiteKey: true },
+    }),
 
     // 3. Rank logs (replaces /api/rank GET)
     db.rankLog.findMany({

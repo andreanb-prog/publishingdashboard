@@ -8,7 +8,10 @@ let redis: Redis | null = null
 if (url && token) {
   redis = new Redis({ url, token })
 } else {
-  console.warn('[ratelimit] UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN not set — rate limiting disabled')
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production')
+  }
+  console.warn('[ratelimit] Upstash env vars missing — rate limiting disabled (dev mode)')
 }
 
 function makeLimiter(requests: number, windowSeconds: number): Ratelimit | null {

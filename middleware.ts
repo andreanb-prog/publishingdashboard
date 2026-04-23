@@ -6,7 +6,17 @@ import { NextRequest, NextResponse } from 'next/server'
 const IMPERSONATE_COOKIE = 'authordash_impersonate'
 const THIRTY_MINUTES = 30 * 60 // seconds
 
+const WEBHOOK_PATHS = [
+  '/api/stripe/webhook',
+  '/api/bookfunnel/webhook',
+  '/api/email/inbound',
+]
+
 export function middleware(req: NextRequest) {
+  if (WEBHOOK_PATHS.some(path => req.nextUrl.pathname.startsWith(path))) {
+    return NextResponse.next()
+  }
+
   const impersonating = req.cookies.get(IMPERSONATE_COOKIE)?.value
   if (!impersonating) return NextResponse.next()
 
