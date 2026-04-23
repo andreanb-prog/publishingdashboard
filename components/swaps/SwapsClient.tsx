@@ -317,6 +317,82 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
         }
       />
 
+      {/* Coming Soon Banner */}
+      <div
+        style={{
+          background: 'var(--paper)',
+          border: '1px solid var(--line)',
+          borderRadius: 10,
+          padding: '20px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 24,
+          marginBottom: 20,
+        }}
+      >
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#E9A020', flexShrink: 0 }} />
+            <span
+              style={{
+                fontFamily: 'var(--font-jetbrains-mono)',
+                fontSize: 10,
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase' as const,
+                color: '#E9A020',
+                fontWeight: 600,
+              }}
+            >
+              Coming Soon
+            </span>
+          </div>
+          <p
+            style={{
+              fontFamily: 'var(--font-fraunces)',
+              fontSize: 18,
+              fontWeight: 600,
+              color: '#1E2D3D',
+              margin: '0 0 6px',
+              lineHeight: 1.3,
+            }}
+          >
+            Newsletter swap tracking is on its way.
+          </p>
+          <p
+            style={{
+              fontFamily: 'var(--font-plus-jakarta)',
+              fontSize: 13,
+              color: '#6B7280',
+              margin: 0,
+              lineHeight: 1.5,
+            }}
+          >
+            Track your BookClicker swaps, monitor ARM performance, and see which partners drive the most readers — all in one place.
+          </p>
+        </div>
+        <a
+          href="/freeresources"
+          style={{
+            flexShrink: 0,
+            fontFamily: 'var(--font-plus-jakarta)',
+            fontSize: 13,
+            fontWeight: 600,
+            color: '#1E2D3D',
+            background: '#E9A020',
+            border: 'none',
+            borderRadius: 999,
+            padding: '10px 20px',
+            textDecoration: 'none',
+            whiteSpace: 'nowrap' as const,
+            display: 'none',
+          }}
+          className="swaps-cta-btn"
+        >
+          Use the free swap tracker →
+        </a>
+      </div>
+
       {/* Metrics Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
         <div style={{ background: '#f9fafb', borderRadius: 10, padding: '14px 16px' }}>

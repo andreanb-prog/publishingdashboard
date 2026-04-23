@@ -282,3 +282,8 @@
   margin: 0.5em 0; color: #6B7280; font-style: italic;
 }
 .wn-prose hr { border: none; border-top: 1px solid #EEEBE6; margin: 0.75em 0; }
+
+/* Swaps coming soon banner — CTA button visible on desktop only */
+@media (min-width: 768px) {
+  .swaps-cta-btn { display: inline-block !important; }
+}
