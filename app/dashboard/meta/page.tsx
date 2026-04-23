@@ -877,7 +877,7 @@ export default function MetaPage() {
   if (loading) {
     return (
       <BoutiqueChannelPageLayout>
-        <BoutiquePageHeader title="Meta" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan" badge="LIVE" badgeColor="#F4A261" />
+        <BoutiquePageHeader title="Meta" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan" />
         <BoutiquePageSkeleton cols={4} rows={3} />
       </BoutiqueChannelPageLayout>
     )
@@ -886,7 +886,7 @@ export default function MetaPage() {
   return (
     <DashboardErrorBoundary>
     <BoutiqueChannelPageLayout>
-      <BoutiquePageHeader title="Meta" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan" badge="LIVE" badgeColor="#F4A261" />
+      <BoutiquePageHeader title="Meta" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan" />
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <LastUploadBadge channel="meta" dateRange={activeRange.start ? activeRange : undefined} />
 

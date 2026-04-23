@@ -514,7 +514,7 @@ export default function MailerLitePage() {
   if (loading) {
     return (
       <BoutiqueChannelPageLayout>
-        <BoutiquePageHeader title="MailerLite" subtitle="Open rates · List health · Subscriber trends" badge="LIVE" badgeColor="#5BBFB5" />
+        <BoutiquePageHeader title="MailerLite" subtitle="Open rates · List health · Subscriber trends" />
         <BoutiquePageSkeleton cols={4} />
       </BoutiqueChannelPageLayout>
     )
@@ -523,7 +523,7 @@ export default function MailerLitePage() {
   return (
     <DashboardErrorBoundary>
     <BoutiqueChannelPageLayout>
-      <BoutiquePageHeader title="MailerLite" subtitle="Open rates · List health · Subscriber trends" badge="LIVE" badgeColor="#5BBFB5" />
+      <BoutiquePageHeader title="MailerLite" subtitle="Open rates · List health · Subscriber trends" />
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {!ml ? (
         <BoutiqueEmptyState

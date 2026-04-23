@@ -1170,7 +1170,7 @@ export default function KDPPage() {
   if (loading) {
     return (
       <BoutiqueChannelPageLayout>
-        <BoutiquePageHeader title="KDP" subtitle="Amazon royalties" badge="LIVE" />
+        <BoutiquePageHeader title="KDP" subtitle="Amazon royalties" />
         <BoutiquePageSkeleton cols={5} />
       </BoutiqueChannelPageLayout>
     )
@@ -1182,7 +1182,6 @@ export default function KDPPage() {
       <BoutiquePageHeader
         title="KDP"
         subtitle="Amazon royalties"
-        badge="LIVE"
         actions={
           <div>
             <DateRangePicker preset={preset} onPreset={handlePreset}
