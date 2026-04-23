@@ -8,7 +8,7 @@ import 'react-day-picker/style.css'
 import ChartJS from 'chart.js/auto'
 import { ChartLegend } from '@/components/ChartLegend'
 import { CHART_COLORS, BASE_CHART_OPTIONS, barDataset } from '@/lib/chartConfig'
-import { DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
+import { PageSkeleton } from '@/components/DarkPage'
 import {
   BoutiqueChannelPageLayout,
   BoutiquePageHeader,
@@ -16,6 +16,7 @@ import {
   BoutiqueDataGrid,
   BoutiqueMetricCard,
   BoutiqueEmptyState,
+  BoutiqueCoachBox,
 } from '@/components/boutique'
 import { FreshBanner } from '@/components/FreshBanner'
 import { InsightCallouts } from '@/components/InsightCallout'
@@ -1001,9 +1002,9 @@ export default function MetaPage() {
 
           {analysis && <InsightCallouts analysis={{ ...analysis, mailerLite: undefined, pinterest: undefined }} page="meta" />}
           {meta && (meta.totalSpend ?? 0) > 0 && (
-            <DarkCoachBox color="#fb7185" title={coachTitle}>
+            <BoutiqueCoachBox>
               {buildMetaCoach(meta)}
-            </DarkCoachBox>
+            </BoutiqueCoachBox>
           )}
 
 

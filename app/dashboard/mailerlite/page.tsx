@@ -5,7 +5,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import ChartJS from 'chart.js/auto'
 import { ChartLegend } from '@/components/ChartLegend'
 import { CHART_COLORS, BASE_CHART_OPTIONS, barDataset } from '@/lib/chartConfig'
-import { DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
+import { PageSkeleton } from '@/components/DarkPage'
 import {
   BoutiqueChannelPageLayout,
   BoutiquePageHeader,
@@ -13,6 +13,7 @@ import {
   BoutiqueDataGrid,
   BoutiqueMetricCard,
   BoutiqueEmptyState,
+  BoutiqueCoachBox,
 } from '@/components/boutique'
 import { FreshBanner } from '@/components/FreshBanner'
 import { GoalSection } from '@/components/GoalSection'
@@ -670,7 +671,7 @@ export default function MailerLitePage() {
 
           {analysis && <InsightCallouts analysis={{ ...analysis, meta: undefined, kdp: undefined, pinterest: undefined }} page="mailerlite" />}
           <UnsubNote analysis={unsubAnalysis} />
-          {ml && <DarkCoachBox color="#34d399" title={coachTitle}>{buildEmailCoach(ml, topCampaigns, flaggedCampaign, unsubAnalysis)}</DarkCoachBox>}
+          {ml && <BoutiqueCoachBox>{buildEmailCoach(ml, topCampaigns, flaggedCampaign, unsubAnalysis)}</BoutiqueCoachBox>}
 
           {/* Email Health Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">

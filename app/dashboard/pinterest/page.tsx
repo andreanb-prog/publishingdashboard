@@ -1,13 +1,14 @@
 'use client'
 // app/(dashboard)/pinterest/page.tsx
 import { Suspense, useEffect, useState } from 'react'
-import { DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
+import { PageSkeleton } from '@/components/DarkPage'
 import {
   BoutiqueChannelPageLayout,
   BoutiquePageHeader,
   BoutiqueSectionLabel,
   BoutiqueDataGrid,
   BoutiqueMetricCard,
+  BoutiqueCoachBox,
 } from '@/components/boutique'
 import { FreshBanner } from '@/components/FreshBanner'
 import { getCoachTitle } from '@/lib/coachTitle'
@@ -116,9 +117,9 @@ export default function PinterestPage() {
       </div>
 
       {/* Coach box */}
-      <DarkCoachBox color="#f472b6" title={coachTitle}>
+      <BoutiqueCoachBox>
         {coach || `Pinterest is one of the most powerful long-term channels for romance authors because pins keep working for months and years. A pin you create today about your tropes could still be driving readers to your book years from now. Upload your Pinterest CSV or log your weekly numbers below to get personalized coaching. Start posting consistently — that's the only thing that matters early on.`}
-      </DarkCoachBox>
+      </BoutiqueCoachBox>
 
       {/* 30-day roadmap */}
       <div className="mb-6">

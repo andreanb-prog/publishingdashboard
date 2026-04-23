@@ -4,7 +4,7 @@ import { DashboardErrorBoundary } from '@/components/DashboardErrorBoundary'
 import { Suspense, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import ChartJS from 'chart.js/auto'
 import Link from 'next/link'
-import { DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
+import { PageSkeleton } from '@/components/DarkPage'
 import {
   BoutiqueChannelPageLayout,
   BoutiquePageHeader,
@@ -12,13 +12,13 @@ import {
   BoutiqueDataGrid,
   BoutiqueMetricCard,
   BoutiqueEmptyState,
+  BoutiqueCoachBox,
 } from '@/components/boutique'
 import { CollapsibleSection } from '@/components/CollapsibleSection'
 import { FreshBanner } from '@/components/FreshBanner'
 import { InsightCallouts } from '@/components/InsightCallout'
 import { ViewingBar } from '@/components/ViewingBar'
 import { GoalSection } from '@/components/GoalSection'
-import { BarChart } from '@/components/ui'
 import { ChartLegend } from '@/components/ChartLegend'
 import { getCoachTitle } from '@/lib/coachTitle'
 import { fmtCurrency } from '@/lib/utils'
@@ -1284,7 +1284,7 @@ export default function KDPPage() {
               </div>
             </>
           )}
-          {coach && <DarkCoachBox color="#fbbf24" title={coachTitle}>{coach}</DarkCoachBox>}
+          {coach && <BoutiqueCoachBox>{coach}</BoutiqueCoachBox>}
 
           {/* Book Title Picker — excludes books marked as hidden in Settings > My Books */}
           {displayBooks.filter(isBookVisible).length > 1 && (
