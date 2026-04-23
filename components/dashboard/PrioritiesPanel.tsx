@@ -17,7 +17,7 @@ function SafeMarkdown({ content }: { content: string }) {
 function OtherObservations({ items }: { items: CoachingInsight[] }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="mt-3 rounded-xl overflow-hidden" style={{ background: 'white', border: '0.5px solid #EEEBE6' }}>
+    <div className="mt-3" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-4 py-3 text-left bg-transparent border-none cursor-pointer">
         <span className="text-[12px] font-semibold" style={{ color: '#6B7280' }}>Other observations ({items.length})</span>
         <span className="text-[11px] transition-transform duration-200" style={{ color: '#6B7280', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
@@ -122,7 +122,7 @@ export function PrioritiesPanel({ dashboard }: { dashboard: DashboardState }) {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <Link href={href} style={{ display: 'inline-block', textDecoration: 'none', background: 'var(--navy, #1E2D3D)', color: 'var(--paper, #f7f1e5)', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '7px 14px' }}>Full report →</Link>
-                            <button onClick={() => toggleDone(i)} style={{ background: 'none', border: '1px solid var(--line, #d8cfbd)', cursor: 'pointer', padding: '7px 14px', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--green-text, #245c3f)' }}>✓ Mark done</button>
+                            <button onClick={() => toggleDone(i)} style={{ background: 'none', border: '1px solid var(--line, #d8cfbd)', cursor: 'pointer', padding: '7px 14px', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontStyle: 'italic', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--green-text, #245c3f)' }}>Mark done</button>
                           </div>
                         </div>
                       </div>

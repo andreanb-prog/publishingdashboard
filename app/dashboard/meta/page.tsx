@@ -123,12 +123,17 @@ function DateRangePicker({
           <button
             key={p.key}
             onClick={() => handlePill(p.key)}
-            className="flex-shrink-0 px-3 py-1.5 rounded-full text-[12px] transition-all duration-150 whitespace-nowrap"
             style={{
-              background:  preset === p.key ? '#E9A020' : 'white',
-              color:       '#1E2D3D',
-              border:      `0.5px solid ${preset === p.key ? '#E9A020' : 'rgba(30,45,61,0.2)'}`,
-              fontWeight:  preset === p.key ? 600 : 500,
+              flexShrink: 0,
+              padding: '5px 12px',
+              fontFamily: 'var(--font-sans)',
+              fontSize: 12,
+              fontWeight: preset === p.key ? 600 : 500,
+              whiteSpace: 'nowrap',
+              background: preset === p.key ? '#1E2D3D' : 'white',
+              color: preset === p.key ? 'white' : 'rgba(30,45,61,0.6)',
+              border: `1px solid ${preset === p.key ? '#1E2D3D' : '#E8E1D3'}`,
+              cursor: 'pointer',
             }}
           >
             {p.label}
@@ -140,8 +145,8 @@ function DateRangePicker({
       {calOpen && (
         <div
           ref={popoverRef}
-          className="absolute left-0 z-30 mt-2 rounded-xl shadow-2xl p-4"
-          style={{ background: 'white', border: '1px solid #EEEBE6', maxWidth: '100vw' }}
+          className="absolute left-0 z-30 mt-2 p-4"
+          style={{ background: 'white', border: '1px solid #E8E1D3', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', maxWidth: '100vw' }}
         >
           <DayPicker
             mode="range"
@@ -163,13 +168,15 @@ function DateRangePicker({
             <button
               onClick={handleApply}
               disabled={!pendingRange?.from}
-              className="px-4 py-1.5 rounded-lg text-[12.5px] font-semibold"
               style={{
-                background: pendingRange?.from ? '#E9A020' : 'rgba(233,160,32,0.3)',
-                color:      pendingRange?.from ? '#1E2D3D' : 'rgba(30,45,61,0.4)',
+                padding: '6px 16px',
+                background: pendingRange?.from ? '#1E2D3D' : 'rgba(30,45,61,0.1)',
+                color:      pendingRange?.from ? 'white' : 'rgba(30,45,61,0.4)',
                 border:     'none',
                 cursor:     pendingRange?.from ? 'pointer' : 'not-allowed',
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                fontFamily: 'var(--font-sans)',
+                fontSize: 12.5,
+                fontWeight: 600,
               }}
             >
               Apply
@@ -269,44 +276,41 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
   ]
 
   return (
-    <div className="rounded-xl p-5 mt-4" style={{
-      background: 'rgba(251,113,133,0.04)',
-      border: '1px solid rgba(251,113,133,0.18)',
-    }}>
-      <div className="flex items-start gap-3 mb-5">
-        <span className="text-xl flex-shrink-0 mt-0.5">💛</span>
+    <div style={{ borderLeft: '3px solid #F97B6B', paddingLeft: 16, marginTop: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
         <div>
-          <div className="font-semibold text-[13.5px] mb-1.5" style={{ color: '#1E2D3D' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13.5, color: '#1E2D3D', marginBottom: 6 }}>
             {ad.name} isn&apos;t getting traction yet — that&apos;s fixable
           </div>
-          <p className="text-[12.5px] leading-relaxed m-0" style={{ color: '#6B7280' }}>
+          <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12.5, lineHeight: 1.6, color: '#6B7280', margin: 0 }}>
             This ad has {problemText}. That&apos;s not a failure — it&apos;s data.
             Readers scroll fast. Most ads need 2–3 creative iterations to find their hook.
-            Here&apos;s a clear path forward.
           </p>
         </div>
       </div>
 
-      <div className="mb-5">
-        <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6B7280', marginBottom: 12 }}>
           Guided next steps
         </div>
-        <div className="space-y-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {steps.map(step => (
-            <div key={step.num} className="flex gap-3">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold mt-0.5"
-                style={{ background: 'rgba(233,160,32,0.15)', color: '#e9a020' }}>
+            <div key={step.num} style={{ display: 'flex', gap: 12 }}>
+              <div style={{
+                flexShrink: 0, width: 22, height: 22, borderRadius: '50%',
+                border: '2px solid #D97706', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: 'var(--font-serif)', fontSize: 11, fontWeight: 600, color: '#D97706', marginTop: 2,
+              }}>
                 {step.num}
               </div>
-              <div className="flex-1">
-                <div className="text-[12.5px] font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>{step.title}</div>
-                <p className="text-[12px] leading-relaxed m-0 mb-1.5" style={{ color: '#6B7280' }}>{step.body}</p>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 600, color: '#1E2D3D', marginBottom: 2 }}>{step.title}</div>
+                <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12, lineHeight: 1.6, color: '#6B7280', margin: '0 0 6px' }}>{step.body}</p>
                 {step.link && (
                   <a href={step.link.href}
                     target={step.link.href.startsWith('http') ? '_blank' : undefined}
                     rel={step.link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                    className="text-[11.5px] font-semibold no-underline hover:underline"
-                    style={{ color: '#e9a020' }}>
+                    style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#D97706', textDecoration: 'none' }}>
                     {step.link.label}
                   </a>
                 )}
@@ -316,14 +320,14 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
         </div>
       </div>
 
-      <div className="rounded-lg px-4 py-3" style={{ background: '#F9F9F9', border: '1px solid #EEEBE6' }}>
-        <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-2" style={{ color: '#6B7280' }}>
+      <div style={{ background: '#F7F1E6', border: '1px solid #E8E1D3', padding: '12px 16px' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6B7280', marginBottom: 8 }}>
           Still stuck? Real humans who can help
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px' }}>
           {resources.map(r => (
             <a key={r.href} href={r.href} target="_blank" rel="noopener noreferrer"
-              className="text-[11.5px] no-underline hover:underline" style={{ color: '#6B7280' }}>
+              style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 11.5, color: '#6B7280', textDecoration: 'none' }}>
               {r.label} ↗
             </a>
           ))}
@@ -338,14 +342,12 @@ function CTRBar({ ctr, maxCTR }: { ctr: number; maxCTR: number }) {
   const barColor = ctr >= 15 ? '#34d399' : ctr >= 8 ? '#fbbf24' : '#fb7185'
   const pct      = maxCTR > 0 ? (ctr / maxCTR) * 100 : 0
   return (
-    <div className="flex items-center gap-2">
-      <div>
-        <div className="font-mono font-bold text-[16px] leading-none" style={{ color: barColor }}>
-          {ctr.toFixed(1)}%
-        </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ fontFamily: 'var(--font-serif)', fontWeight: 700, fontSize: 15, lineHeight: 1, color: barColor }}>
+        {ctr.toFixed(1)}%
       </div>
-      <div className="h-1.5 rounded-full overflow-hidden flex-1 min-w-[48px]" style={{ background: '#EEEBE6' }}>
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
+      <div style={{ height: 3, flex: 1, minWidth: 48, background: '#EEEBE6', position: 'relative' }}>
+        <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${pct}%`, background: barColor }} />
       </div>
     </div>
   )
@@ -396,7 +398,7 @@ function SortHeader({
       style={{ color: active ? '#1E2D3D' : '#6B7280', padding: 0 }}
     >
       {label}
-      <span className="text-[9px] leading-none" style={{ color: active ? '#e9a020' : '#D6D3D1' }}>
+      <span style={{ fontSize: 9, lineHeight: 1, color: active ? '#D97706' : '#D6D3D1' }}>
         {active ? (dir === 'asc' ? '▲' : '▼') : '↕'}
       </span>
     </button>
@@ -417,46 +419,36 @@ function ColumnPicker({
 }) {
   return (
     <div
-      className="absolute right-0 top-9 z-20 rounded-xl p-4 shadow-2xl"
       style={{
-        background: 'white',
-        border: '1px solid #E7E5E4',
-        minWidth: 210,
+        position: 'absolute', right: 0, top: 36, zIndex: 20,
+        background: 'white', border: '1px solid #E8E1D3',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.1)', minWidth: 210, padding: 16,
       }}
     >
-      <div className="text-[10px] font-bold uppercase tracking-[1.2px] mb-3" style={{ color: '#6B7280' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6B7280', marginBottom: 12 }}>
         Show columns
       </div>
       {ALL_COLUMNS.map(col => {
         const isActive = activeCols.has(col.key)
         return (
-          <label key={col.key} className="flex items-center gap-2.5 py-1.5 cursor-pointer">
+          <label key={col.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={isActive}
               onChange={() => onToggle(col.key)}
-              className="w-3.5 h-3.5 rounded"
-              style={{ accentColor: '#e9a020' }}
+              style={{ accentColor: '#D97706', width: 14, height: 14 }}
             />
-            <span className="text-[12.5px]" style={{ color: isActive ? '#1E2D3D' : '#6B7280' }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, color: isActive ? '#1E2D3D' : '#6B7280' }}>
               {col.label}
             </span>
           </label>
         )
       })}
-      <div className="mt-3 pt-3 flex justify-between items-center" style={{ borderTop: '1px solid #EEEBE6' }}>
-        <button
-          onClick={onReset}
-          className="text-[11px] px-2.5 py-1 rounded-md"
-          style={{ background: '#F5F5F4', color: '#6B7280' }}
-        >
+      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #EEEBE6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button onClick={onReset} style={{ fontFamily: 'var(--font-sans)', fontSize: 11, padding: '4px 10px', background: '#F7F1E6', color: '#6B7280', border: 'none', cursor: 'pointer' }}>
           Reset defaults
         </button>
-        <button
-          onClick={onClose}
-          className="text-[11px] px-2.5 py-1 rounded-md"
-          style={{ background: 'rgba(233,160,32,0.1)', color: '#e9a020' }}
-        >
+        <button onClick={onClose} style={{ fontFamily: 'var(--font-sans)', fontSize: 11, padding: '4px 10px', background: '#1E2D3D', color: 'white', border: 'none', cursor: 'pointer' }}>
           Done
         </button>
       </div>
@@ -558,8 +550,8 @@ function MetaPerformanceChart({ ads }: { ads: import('@/types').MetaAd[] }) {
   if (ads.length === 0) return null
 
   return (
-    <div className="rounded-xl p-5 mb-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-      <h3 className="text-[13.5px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>Ad Performance Overview</h3>
+    <div style={{ background: 'white', border: '1px solid #EEEBE6', padding: 20, marginBottom: 24 }}>
+      <h3 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 16, color: '#1E2D3D', marginBottom: 16 }}>Ad Performance Overview</h3>
       <div style={{ minHeight: 220, position: 'relative' }}>
         <canvas ref={canvasRef} />
       </div>
@@ -575,42 +567,32 @@ function MetaPerformanceChart({ ads }: { ads: import('@/types').MetaAd[] }) {
 function SingleAdStatusCard({ ad }: { ad: import('@/types').MetaAd }) {
   const isRunning = ad.status !== 'CUT' && ad.status !== 'DELETE'
   return (
-    <div className="rounded-xl p-6 mb-6" style={{
-      background: 'white',
-      border: '0.5px solid rgba(30,45,61,0.1)',
-    }}>
-      <div className="text-[16px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>
+    <div style={{ background: 'white', border: '1px solid #EEEBE6', padding: 24, marginBottom: 24 }}>
+      <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: '#1E2D3D', marginBottom: 12 }}>
         {ad.name}
       </div>
-      <div className="text-[48px] font-semibold leading-none mb-1" style={{ color: '#E9A020' }}>
+      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 48, fontWeight: 600, lineHeight: 1, color: '#D97706', marginBottom: 4 }}>
         {ad.ctr.toFixed(2)}%
       </div>
-      <div className="text-[13px] mb-4" style={{ color: 'rgba(30,45,61,0.5)' }}>
+      <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 13, color: 'rgba(30,45,61,0.5)', marginBottom: 16 }}>
         Click-through rate
       </div>
-      <div className="mb-5">
-        <span className="text-[11px] font-bold px-3 py-1.5 rounded-full"
-          style={{
-            background: isRunning ? 'rgba(110,191,139,0.15)' : 'rgba(249,123,107,0.15)',
-            color: isRunning ? '#6EBF8B' : '#F97B6B',
-          }}>
+      <div style={{ marginBottom: 20 }}>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: 9, fontStyle: 'italic',
+          textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 8px',
+          background: isRunning ? 'rgba(110,191,139,0.15)' : 'rgba(249,123,107,0.15)',
+          color: isRunning ? '#6EBF8B' : '#F97B6B',
+        }}>
           {isRunning ? 'Active' : 'Paused'}
         </span>
       </div>
-      <div className="flex gap-2">
-        <button
-          className="px-4 py-2 rounded-lg text-[13px] font-semibold"
-          style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer' }}
-        >
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button style={{ padding: '8px 16px', background: '#1E2D3D', color: 'white', border: 'none', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           Scale It →
         </button>
-        <a
-          href="https://adsmanager.facebook.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-4 py-2 rounded-lg text-[13px] font-semibold no-underline"
-          style={{ background: 'white', color: '#1E2D3D', border: '1px solid rgba(30,45,61,0.2)' }}
-        >
+        <a href="https://adsmanager.facebook.com" target="_blank" rel="noopener noreferrer"
+          style={{ padding: '8px 16px', background: 'white', color: '#1E2D3D', border: '1px solid #E8E1D3', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
           View in Meta →
         </a>
       </div>
@@ -863,8 +845,7 @@ export default function MetaPage() {
       case 'status': {
         const s = STATUS_STYLE[ad.status]
         return (
-          <span className="text-[11px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap"
-            style={{ background: s.bg, color: s.text }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '3px 8px', whiteSpace: 'nowrap', background: s.bg, color: s.text }}>
             {s.label}
           </span>
         )
@@ -931,8 +912,9 @@ export default function MetaPage() {
             <button
               onClick={handleSync}
               disabled={syncing}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold transition-all"
+              className="flex items-center gap-1.5"
               style={{
+                padding: '4px 10px', fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600,
                 background: syncing ? 'rgba(96,165,250,0.08)' : 'rgba(96,165,250,0.12)',
                 border: '1px solid rgba(96,165,250,0.3)',
                 color: '#60A5FA',
@@ -952,7 +934,7 @@ export default function MetaPage() {
 
           {/* Permission denied warning */}
           {permissionError && (
-            <div className="rounded-xl p-5 mb-5" style={{ background: '#FFFBEB', border: '1.5px solid #E9A020' }}>
+            <div style={{ background: '#FFFBEB', border: '2px solid #D97706', padding: 20, marginBottom: 20 }}>
               <div className="font-semibold text-[14px] mb-1" style={{ color: '#1E2D3D' }}>
                 Meta needs permission to read your ads.
               </div>
@@ -971,8 +953,7 @@ export default function MetaPage() {
               </ol>
               <button
                 onClick={handleDisconnectAndReconnect}
-                className="px-4 py-2 rounded-lg text-[12.5px] font-semibold"
-                style={{ background: '#E9A020', color: 'white', border: 'none', cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: '#1E2D3D', color: 'white', border: 'none', fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
               >
                 Disconnect &amp; Reconnect →
               </button>
@@ -1020,16 +1001,19 @@ export default function MetaPage() {
                     <div className="relative mb-5" ref={pickerRef}>
             {/* Header row: label + customize button */}
             <div className="flex items-center justify-between mb-2.5">
-              <div className="text-[11px] font-bold uppercase tracking-[1.2px]" style={{ color: '#6B7280' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6B7280' }}>
                 Ad Performance
               </div>
               <button
                 onClick={() => setPickerOpen(p => !p)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all"
                 style={{
-                  background: pickerOpen ? 'rgba(233,160,32,0.1)' : '#F5F5F4',
-                  border:     `1px solid ${pickerOpen ? 'rgba(233,160,32,0.4)' : '#E7E5E4'}`,
-                  color:      pickerOpen ? '#e9a020' : '#6B7280',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '5px 10px',
+                  fontFamily: 'var(--font-sans)', fontSize: 11.5, fontWeight: 600,
+                  background: pickerOpen ? 'rgba(217,119,6,0.08)' : '#F7F1E6',
+                  border: `1px solid ${pickerOpen ? '#D97706' : '#E8E1D3'}`,
+                  color: pickerOpen ? '#D97706' : '#6B7280',
+                  cursor: 'pointer',
                 }}
               >
                 ⊞ Customize columns
@@ -1047,11 +1031,10 @@ export default function MetaPage() {
             )}
 
             {/* Table */}
-            <div className="rounded-xl overflow-x-auto"
-              style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+            <div style={{ overflowX: 'auto', background: 'white', border: '1px solid #EEEBE6' }}>
               <table className="w-full border-collapse" style={{ minWidth: 640 }}>
                 <thead>
-                  <tr style={{ background: '#F5F5F4' }}>
+                  <tr style={{ background: '#F7F1E6' }}>
                     <th className="text-left px-5 py-3">
                       <SortHeader
                         label="Ad Name"
@@ -1077,12 +1060,7 @@ export default function MetaPage() {
                       <button
                         onClick={() => setPickerOpen(p => !p)}
                         title="Add column"
-                        className="w-6 h-6 rounded-md inline-flex items-center justify-center text-[14px] font-bold"
-                        style={{
-                          background: '#F5F5F4',
-                          color:      '#6B7280',
-                          border:     '1px solid #E7E5E4',
-                        }}
+                        style={{ width: 24, height: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#F7F1E6', color: '#6B7280', border: '1px solid #E8E1D3', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
                       >
                         +
                       </button>
@@ -1113,8 +1091,7 @@ export default function MetaPage() {
                               {ad.name}
                             </span>
                             {needsRescue && (
-                              <span className="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded"
-                                style={{ background: 'rgba(251,113,133,0.15)', color: '#fb7185' }}>
+                              <span style={{ display: 'inline-block', marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9, fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '2px 6px', background: 'rgba(249,123,107,0.12)', color: '#F97B6B' }}>
                                 needs rescue
                               </span>
                             )}
@@ -1141,7 +1118,7 @@ export default function MetaPage() {
                     {/* Rescue panels */}
                     {rescueAds.length > 0 && (
                       <div className="mb-5">
-                        <div className="text-[11px] font-bold uppercase tracking-[1.5px] mb-3" style={{ color: '#6B7280' }}>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6B7280', marginBottom: 12 }}>
                           Ads needing attention ({rescueAds.length})
                         </div>
                         <div className="space-y-4">
@@ -1192,13 +1169,11 @@ export default function MetaPage() {
                         ],
                       },
                     ].map(card => (
-                      <div key={card.type} className="rounded-xl p-4"
-                        style={{ background: card.bg, border: `1px solid ${card.border}` }}>
-                        <h3 className="text-[11px] font-bold uppercase tracking-[1px] mb-3"
-                          style={{ color: card.color }}>{card.title}</h3>
-                        <ul className="list-none p-0 space-y-1.5">
+                      <div key={card.type} style={{ padding: 16, background: card.bg, border: `1px solid ${card.border}` }}>
+                        <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '0.12em', color: card.color, marginBottom: 12 }}>{card.title}</h3>
+                        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {card.items.map((item, j) => (
-                            <li key={j} className="text-[12px] leading-snug" style={{ color: '#374151' }}>{item}</li>
+                            <li key={j} style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12, lineHeight: 1.5, color: '#374151' }}>{item}</li>
                           ))}
                         </ul>
                       </div>

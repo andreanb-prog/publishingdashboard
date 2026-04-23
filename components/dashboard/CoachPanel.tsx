@@ -37,7 +37,7 @@ function CoachPromotedPanel({ analysis }: { analysis: any }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <span style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--amber-text, #a56b13)' }}>Coach</span>
-          <span style={{ background: 'var(--amber-soft, #f5deaa)', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--amber-text, #a56b13)', padding: '2px 7px', borderRadius: 20 }}>New</span>
+          <span style={{ background: 'var(--amber-soft, #f5deaa)', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--amber-text, #a56b13)', padding: '2px 7px' }}>New</span>
         </div>
         <p style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(15px, 2vw, 22px)', fontStyle: 'italic', fontWeight: 400, color: 'var(--ink, #14110f)', lineHeight: 1.45, marginBottom: 16, marginTop: 0 }}>
           {titleParts.map((part, j) =>
@@ -82,8 +82,8 @@ export function CoachCopyStrip({ dashboard }: { dashboard: DashboardState }) {
         <div className="flex items-center gap-4 flex-shrink-0">
           <button
             onClick={handleCopy} disabled={copying}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-[13px] font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98]"
-            style={{ background: '#e9a020', color: '#0d1f35' }}
+            className="inline-flex items-center gap-2 px-5 py-2 text-[13px] font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98]"
+            style={{ background: '#1E2D3D', color: '#f7f1e5' }}
           >
             {copying ? 'Copying…' : copied ? '✓ Copied' : 'Copy summary'}
           </button>

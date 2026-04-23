@@ -178,16 +178,16 @@ function CampaignOpenRateChart({ campaigns, target }: { campaigns: import('@/typ
 // ── Campaign skeleton ─────────────────────────────────────────────────────────
 function CampaignSkeleton() {
   return (
-    <div className="rounded-xl overflow-hidden mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-      <div className="px-5 py-3.5 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
+    <div className="mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div className="px-5 py-3.5" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600 }}>
         Recent Campaigns
       </div>
       <table className="w-full border-collapse" style={{ minWidth: 520 }}>
         <thead>
-          <tr style={{ background: '#F5F5F4' }}>
+          <tr style={{ background: '#F7F1E6' }}>
             {['Subject', 'Open Rate', 'Click Rate', 'Unsubs', 'Date'].map(h => (
-              <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
-                style={{ color: '#6B7280' }}>{h}</th>
+              <th key={h} className="text-left px-4 py-2"
+                style={{ fontFamily: 'var(--font-mono)', fontStyle: 'italic', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6B7280', fontWeight: 500 }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -196,7 +196,7 @@ function CampaignSkeleton() {
             <tr key={i} className="border-t" style={{ borderColor: 'rgba(0,0,0,0.06)', background: i % 2 === 1 ? '#FFF8F0' : 'white' }}>
               {[200, 60, 60, 50, 60].map((w, j) => (
                 <td key={j} className="px-4 py-3">
-                  <div className="h-3 rounded animate-pulse" style={{ width: w, background: '#E5E7EB' }} />
+                  <div className="h-3 animate-pulse" style={{ width: w, background: '#E5E7EB' }} />
                 </td>
               ))}
             </tr>
@@ -223,7 +223,7 @@ function CampaignPerformanceSection({
 
   if (error) {
     return (
-      <div className="rounded-xl mb-5 px-5 py-8 text-center" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div className="mb-5 px-5 py-8 text-center" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         <p className="text-[12px]" style={{ color: '#6B7280' }}>
           Couldn't load campaign data. Check your MailerLite connection in Settings.
         </p>
@@ -233,7 +233,7 @@ function CampaignPerformanceSection({
 
   if (campaigns.length === 0) {
     return (
-      <div className="rounded-xl mb-5 px-5 py-8 text-center" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div className="mb-5 px-5 py-8 text-center" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         <p className="text-[12px]" style={{ color: '#6B7280' }}>
           No campaigns sent yet. Your campaign performance will appear here after your first send.
         </p>
@@ -245,21 +245,20 @@ function CampaignPerformanceSection({
 
   function openColor(rate: number) {
     if (rate >= 30) return '#6EBF8B'
-    if (rate >= 20) return '#E9A020'
+    if (rate >= 20) return '#D97706'
     return '#F97B6B'
   }
   function clickColor(rate: number) {
     if (rate >= 4) return '#6EBF8B'
-    if (rate >= 2) return '#E9A020'
+    if (rate >= 2) return '#D97706'
     return '#F97B6B'
   }
 
   return (
     <div className="mb-5">
       {/* Best performer callout */}
-      <div className="rounded-xl px-5 py-3.5 mb-3 flex items-center gap-2.5"
-        style={{ background: 'rgba(110,191,139,0.10)', border: '1px solid rgba(110,191,139,0.25)' }}>
-        <span className="text-[13px]">🏆</span>
+      <div className="px-5 py-3.5 mb-3 flex items-center gap-2.5"
+        style={{ borderLeft: '3px solid #6EBF8B', background: 'rgba(110,191,139,0.06)' }}>
         <span className="text-[12.5px]" style={{ color: '#1E2D3D' }}>
           <span className="font-semibold">Best performer: </span>
           <span className="italic" title={best.subject}>
@@ -274,12 +273,11 @@ function CampaignPerformanceSection({
 
       {/* Unsubscribe spike alert */}
       {flaggedCampaign && (
-        <div className="rounded-xl px-5 py-3.5 mb-3 flex items-start gap-2.5"
-          style={{ background: 'rgba(233,160,32,0.10)', border: '1px solid rgba(233,160,32,0.30)' }}>
-          <span className="text-[14px] mt-0.5">⚠️</span>
+        <div className="px-5 py-3.5 mb-3 flex items-start gap-2.5"
+          style={{ background: 'rgba(217,119,6,0.06)', borderLeft: '3px solid #D97706' }}>
           <span className="text-[12.5px]" style={{ color: '#1E2D3D' }}>
             <span className="font-semibold">{flaggedCampaign.name}</span> triggered an unsubscribe spike
-            {' '}— <span className="font-semibold" style={{ color: '#E9A020' }}>{flaggedCampaign.unsubscribeRate}% unsub rate</span>
+            {' '}— <span className="font-semibold" style={{ color: '#D97706' }}>{flaggedCampaign.unsubscribeRate}% unsub rate</span>
             {flaggedCampaign.sentAt ? ` on ${new Date(flaggedCampaign.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}.
             {' '}Subject: "<em>{flaggedCampaign.subject}</em>". Check send frequency or audience targeting.
           </span>
@@ -291,7 +289,7 @@ function CampaignPerformanceSection({
         title="Recent Campaigns"
         storageKey="ml-section-campaigns"
         badge={
-          <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.06)', color: '#6B7280' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontStyle: 'italic', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6B7280' }}>
             Live · last 10 sent
           </span>
         }
@@ -299,10 +297,10 @@ function CampaignPerformanceSection({
         <div style={{ overflowX: 'auto' }}>
           <table className="w-full border-collapse text-[12px]" style={{ minWidth: 520 }}>
             <thead>
-              <tr style={{ background: '#F5F5F4' }}>
+              <tr style={{ background: '#F7F1E6' }}>
                 {['Subject', 'Open Rate', 'Click Rate', 'Unsubs', 'Date'].map(h => (
-                  <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
-                    style={{ color: '#6B7280' }}>{h}</th>
+                  <th key={h} className="text-left px-4 py-2"
+                    style={{ fontFamily: 'var(--font-mono)', fontStyle: 'italic', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6B7280', fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -350,9 +348,8 @@ function UnsubNote({ analysis }: { analysis: UnsubAnalysis | null }) {
 
   if (analysis.type === 'list_clean') {
     return (
-      <div className="rounded-xl px-5 py-3.5 mb-4 flex items-start gap-2.5"
-        style={{ background: 'rgba(96,165,250,0.10)', border: '1px solid rgba(96,165,250,0.28)' }}>
-        <span className="text-[14px] mt-0.5">ℹ️</span>
+      <div className="px-5 py-3.5 mb-4"
+        style={{ background: 'rgba(96,165,250,0.06)', borderLeft: '3px solid #60A5FA' }}>
         <span className="text-[12.5px]" style={{ color: '#1E2D3D' }}>
           <span className="font-semibold" style={{ color: '#60A5FA' }}>
             {analysis.totalUnsubs.toLocaleString()} unsubscribes detected
@@ -368,9 +365,8 @@ function UnsubNote({ analysis }: { analysis: UnsubAnalysis | null }) {
     const organic = analysis.organicUnsubs ?? 0
     const rate = analysis.organicRate ?? 0
     return (
-      <div className="rounded-xl px-5 py-3.5 mb-4 flex items-start gap-2.5"
-        style={{ background: 'rgba(110,191,139,0.10)', border: '1px solid rgba(110,191,139,0.28)' }}>
-        <span className="text-[14px] mt-0.5">ℹ️</span>
+      <div className="px-5 py-3.5 mb-4"
+        style={{ background: 'rgba(110,191,139,0.06)', borderLeft: '3px solid #6EBF8B' }}>
         <span className="text-[12.5px]" style={{ color: '#1E2D3D' }}>
           <span className="font-semibold">{analysis.totalUnsubs.toLocaleString()} total unsubscribes</span>
           {' '}— {analysis.peakPct}% from a list clean{analysis.peakDate ? ` on ${analysis.peakDate}` : ''}.{' '}
@@ -545,8 +541,8 @@ export default function MailerLitePage() {
           {mlLists.length >= 2 && (
             <div className="mb-4">
               {/* Combined totals */}
-              <div className="rounded-xl px-5 py-3 mb-3 flex items-center gap-6"
-                style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+              <div className="px-5 py-3 mb-3 flex items-center gap-6"
+                style={{ background: 'white', border: '1px solid #EEEBE6' }}>
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: '#9CA3AF' }}>Total active (all lists)</div>
                   <div className="text-[22px] font-semibold" style={{ color: '#1E2D3D' }}>
@@ -570,11 +566,11 @@ export default function MailerLitePage() {
                   <button
                     key={list.id}
                     onClick={() => setActiveListId(list.id)}
-                    className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border-none cursor-pointer transition-all"
+                    className="text-[11px] font-semibold px-3 py-1.5 border-none cursor-pointer transition-all"
                     style={{
                       background: activeListId === list.id ? '#1E2D3D' : 'white',
                       color: activeListId === list.id ? 'white' : '#6B7280',
-                      border: activeListId === list.id ? 'none' : '0.5px solid rgba(30,45,61,0.15)',
+                      border: activeListId === list.id ? '1px solid #1E2D3D' : '1px solid #E8E1D3',
                     }}
                   >
                     {list.name}
@@ -592,10 +588,9 @@ export default function MailerLitePage() {
                   ? new Date(active.lastSyncedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
                   : 'Never synced'
                 return (
-                  <div className="mt-3 rounded-xl px-5 py-3 flex items-center gap-6"
-                    style={{ background: '#FFF8F0', border: '0.5px solid rgba(30,45,61,0.08)' }}>
-                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
-                      style={{ background: '#1E2D3D', color: 'white' }}>
+                  <div className="mt-3 px-5 py-3 flex items-center gap-6"
+                    style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontStyle: 'italic', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#1E2D3D', fontWeight: 600 }}>
                       {active.name}
                     </span>
                     <div>
@@ -615,6 +610,16 @@ export default function MailerLitePage() {
             </div>
           )}
 
+          <div className="flex items-center gap-2 mb-2">
+            <span style={{ fontFamily: 'var(--font-mono)', fontStyle: 'italic', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#34d399' }}>
+              Live
+            </span>
+            <span className="text-[11px]" style={{ color: '#6B7280' }}>
+              Data pulled fresh from MailerLite API on every load
+            </span>
+          </div>
+
+
           {/* ── Group selector (shown only when 2+ groups exist) ─────── */}
           {groups.length >= 2 && (
             <div className="flex items-center gap-2 mb-3">
@@ -624,8 +629,8 @@ export default function MailerLitePage() {
                 onChange={e => handleGroupChange(e.target.value)}
                 style={{
                   background: 'white',
-                  border: '0.5px solid rgba(30,45,61,0.2)',
-                  borderRadius: 8,
+                  border: '1px solid #E8E1D3',
+                  borderRadius: 0,
                   padding: '8px 12px',
                   fontSize: 13,
                   color: '#1E2D3D',
@@ -674,10 +679,10 @@ export default function MailerLitePage() {
               const metrics = [
                 { label: 'Total Sent', value: totalSent.toLocaleString(), sub: `${ml.campaigns.length} campaigns tracked`, color: '#38bdf8' },
                 { label: 'Avg Unsubs / Campaign', value: String(avgUnsubs), sub: avgUnsubs > 5 ? 'Higher than ideal' : 'Healthy range', color: avgUnsubs > 5 ? '#F97B6B' : '#6EBF8B' },
-                { label: 'Best Open Rate', value: topCampaign ? fmtPct(topCampaign.openRate) : '—', sub: topCampaign ? topCampaign.name : 'No campaigns', color: '#E9A020' },
+                { label: 'Best Open Rate', value: topCampaign ? fmtPct(topCampaign.openRate) : '—', sub: topCampaign ? topCampaign.name : 'No campaigns', color: '#D97706' },
               ]
               return metrics.map((m, i) => (
-                <div key={i} className="rounded-xl p-4" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+                <div key={i} className="p-4" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
                   <div className="text-[10px] font-bold tracking-[1px] uppercase mb-1.5" style={{ color: '#6B7280' }}>{m.label}</div>
                   <div className="text-[24px] font-semibold tracking-tight leading-none mb-1" style={{ color: m.color }}>{m.value}</div>
                   <div className="text-[11px]" style={{ color: '#6B7280' }}>{m.sub}</div>
@@ -692,20 +697,20 @@ export default function MailerLitePage() {
             storageKey="ml-section-benchmarked"
             className="mb-5"
             badge={
-              <span className="text-[11px] px-2 py-0.5 rounded-full cursor-default"
+              <span className="cursor-default"
                 title="Based on email marketing data for indie authors and fiction publishers. Your genre may vary."
-                style={{ background: 'rgba(0,0,0,0.06)', color: '#6B7280' }}>
-                ⓘ Author benchmarks
+                style={{ fontFamily: 'var(--font-mono)', fontStyle: 'italic', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6B7280' }}>
+                Author benchmarks
               </span>
             }
           >
             <div style={{ overflowX: 'auto' }}>
               <table className="w-full border-collapse text-[12.5px]">
                 <thead>
-                  <tr style={{ background: '#F5F5F4' }}>
+                  <tr style={{ background: '#F7F1E6' }}>
                     {['Metric', 'Your Number', 'Author Average', 'Status'].map(h => (
-                      <th key={h} className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.8px]"
-                        style={{ color: '#6B7280' }}>{h}</th>
+                      <th key={h} className="text-left px-4 py-2.5"
+                        style={{ fontFamily: 'var(--font-mono)', fontStyle: 'italic', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6B7280', fontWeight: 500 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -727,12 +732,15 @@ export default function MailerLitePage() {
                           {row.avg !== null ? `${row.avg}${row.unit}` : '—'}
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full"
-                            style={{
-                              background: isGood ? 'rgba(52,211,153,0.12)' : 'rgba(251,113,133,0.12)',
+                          <span style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontStyle: 'italic',
+                              fontSize: 9,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.1em',
                               color: isGood ? '#34d399' : '#fb7185',
                             }}>
-                            {isGood ? '🟢 Above Average' : '🔴 Needs Attention'}
+                            {isGood ? 'Above Avg' : 'Needs Attention'}
                           </span>
                         </td>
                       </tr>
@@ -747,7 +755,7 @@ export default function MailerLitePage() {
           {prevAnalysis?.mailerLite && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
               {/* Left: Comparison table */}
-              <div className="rounded-xl overflow-hidden" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+              <div style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
                 <div className="px-5 py-3 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
                   Month-over-Month
                 </div>
@@ -789,9 +797,9 @@ export default function MailerLitePage() {
               </div>
 
               {/* Right: Unsubscribe spikes */}
-              <div className="rounded-xl overflow-hidden" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+              <div style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
                 <div className="px-5 py-3 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
-                  ⚠ Unsubscribe Spikes — Watch
+                  Unsubscribe Spikes — Watch
                 </div>
                 <div className="px-5 py-4">
                   {(() => {
@@ -811,10 +819,11 @@ export default function MailerLitePage() {
                               <span className="text-[11.5px] truncate max-w-[200px]" style={{ color: '#374151' }}>{c.name}</span>
                               <span className="text-[11px] font-mono font-bold" style={{ color: '#F97B6B' }}>{c.unsubscribes}</span>
                             </div>
-                            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(249,123,107,0.1)' }}>
-                              <div className="h-full rounded-full" style={{
+                            <div className="h-2 overflow-hidden" style={{ background: 'rgba(249,123,107,0.1)' }}>
+                              <div className="h-full" style={{
                                 width: `${(c.unsubscribes / max) * 100}%`,
-                                background: `linear-gradient(90deg, rgba(249,123,107,${0.3 + (i === 0 ? 0.5 : 0.2)}), #F97B6B)`,
+                                background: '#F97B6B',
+                                opacity: 0.5 + (i === 0 ? 0.5 : 0.2),
                               }} />
                             </div>
                           </div>
@@ -837,14 +846,14 @@ export default function MailerLitePage() {
               storageKey="ml-section-automation"
               className="mb-5"
               badge={ml!.automations.length > 0 ? (
-                <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.06)', color: '#6B7280' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontStyle: 'italic', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6B7280' }}>
                   Live from MailerLite
                 </span>
               ) : undefined}
             >
               {ml!.automations.length === 0 ? (
                 <div className="px-5 py-8 flex flex-col items-center gap-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center mb-1" style={{ background: '#F5F5F4' }}>
+                  <div className="w-10 h-10 flex items-center justify-center mb-1" style={{ background: '#F7F1E6' }}>
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.5" stroke="#D1D5DB" strokeWidth="1.5" strokeDasharray="3 2"/><path d="M9 6v4M9 12h.01" stroke="#D1D5DB" strokeWidth="1.5" strokeLinecap="round"/></svg>
                   </div>
                   <p className="text-[12px] text-center" style={{ color: '#6B7280' }}>
@@ -855,35 +864,44 @@ export default function MailerLitePage() {
                 <div style={{ overflowX: 'auto' }}>
                   <table className="w-full border-collapse text-[12px]">
                     <thead>
-                      <tr style={{ background: '#F5F5F4' }}>
+                      <tr style={{ background: '#F7F1E6' }}>
                         {['Automation', 'Status', 'Subscribers', 'Open Rate', 'Click Rate', 'Health', ''].map(h => (
-                          <th key={h} className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-[0.8px]"
-                            style={{ color: '#6B7280' }}>{h}</th>
+                          <th key={h} className="text-left px-4 py-2"
+                            style={{ fontFamily: 'var(--font-mono)', fontStyle: 'italic', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6B7280', fontWeight: 500 }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {ml!.automations.map((auto: MailerLiteAutomation, i: number) => {
-                        const healthColors = { green: '#6EBF8B', amber: '#E9A020', red: '#F97B6B' }
+                        const healthColors = { green: '#6EBF8B', amber: '#D97706', red: '#F97B6B' }
                         const healthLabels = { green: 'Healthy', amber: 'Needs Attention', red: 'Stalled' }
                         return (
                           <tr key={i} className="border-t" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
                             <td className="px-4 py-2.5 max-w-[200px] truncate" style={{ color: '#1E2D3D' }}>{auto.name}</td>
                             <td className="px-4 py-2.5">
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                                style={{
-                                  background: auto.status === 'active' ? 'rgba(110,191,139,0.12)' : 'rgba(249,123,107,0.12)',
+                              <span style={{
+                                  fontFamily: 'var(--font-mono)',
+                                  fontStyle: 'italic',
+                                  fontSize: 9,
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.1em',
                                   color: auto.status === 'active' ? '#6EBF8B' : '#F97B6B',
                                 }}>
                                 {auto.status === 'active' ? 'Active' : 'Paused'}
                               </span>
                             </td>
                             <td className="px-4 py-2.5 font-mono" style={{ color: '#1E2D3D' }}>{auto.subscriberCount.toLocaleString()}</td>
-                            <td className="px-4 py-2.5 font-mono" style={{ color: auto.openRate >= 20 ? '#6EBF8B' : '#E9A020' }}>{auto.openRate}%</td>
-                            <td className="px-4 py-2.5 font-mono" style={{ color: auto.clickRate >= 1 ? '#6EBF8B' : '#E9A020' }}>{auto.clickRate}%</td>
+                            <td className="px-4 py-2.5 font-mono" style={{ color: auto.openRate >= 20 ? '#6EBF8B' : '#D97706' }}>{auto.openRate}%</td>
+                            <td className="px-4 py-2.5 font-mono" style={{ color: auto.clickRate >= 1 ? '#6EBF8B' : '#D97706' }}>{auto.clickRate}%</td>
                             <td className="px-4 py-2.5">
-                              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                                style={{ background: `${healthColors[auto.health]}20`, color: healthColors[auto.health] }}>
+                              <span style={{
+                                  fontFamily: 'var(--font-mono)',
+                                  fontStyle: 'italic',
+                                  fontSize: 9,
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.1em',
+                                  color: healthColors[auto.health],
+                                }}>
                                 {healthLabels[auto.health]}
                               </span>
                             </td>
@@ -893,7 +911,7 @@ export default function MailerLitePage() {
                                   href={`https://dashboard.mailerlite.com/automations/${auto.id}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  style={{ color: '#E9A020', fontSize: 12, textDecoration: 'none' }}
+                                  style={{ color: '#D97706', fontSize: 12, textDecoration: 'none' }}
                                   onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
                                   onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}
                                 >

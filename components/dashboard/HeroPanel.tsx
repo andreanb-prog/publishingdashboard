@@ -154,14 +154,14 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
               { icon: '✉',  title: 'MailerLite', desc: 'Add your API key',           cta: 'Connect →', href: '/dashboard/settings#mailerlite', border: '#6EBF8B' },
               { icon: '📘', title: 'Meta Ads',   desc: 'Connect your ad account',    cta: 'Connect →', href: '/dashboard/settings#meta',       border: '#60A5FA' },
             ].map(card => (
-              <div key={card.title} className="rounded-xl p-5 flex flex-col gap-3"
+              <div key={card.title} className="p-5 flex flex-col gap-3"
                 style={{ background: 'white', border: '1px solid #EEEBE6', borderLeft: `3px solid ${card.border}` }}>
                 <div className="text-2xl">{card.icon}</div>
                 <div>
                   <div className="text-[13.5px] font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>{card.title}</div>
                   <div className="text-[12.5px]" style={{ color: '#6B7280' }}>{card.desc}</div>
                 </div>
-                <Link href={card.href} className="inline-block text-[12.5px] font-semibold no-underline hover:opacity-80 mt-auto" style={{ color: '#E9A020' }}>
+                <Link href={card.href} className="inline-block text-[12.5px] font-semibold no-underline hover:opacity-80 mt-auto" style={{ color: '#D97706' }}>
                   {card.cta}
                 </Link>
               </div>
@@ -171,7 +171,7 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
       )}
 
       {/* Hero number card */}
-      <div className="rounded-xl mb-4" style={{ background: 'white', border: '1px solid var(--line, #d8cfbd)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', padding: '28px 28px 22px' }}>
+      <div className="mb-4" style={{ background: 'white', border: '1px solid var(--line, #d8cfbd)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', padding: '28px 28px 22px' }}>
         <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--green-text, #245c3f)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green-text, #245c3f)', display: 'inline-block', flexShrink: 0 }} />
           Est. Revenue · MTD · Live
@@ -217,7 +217,7 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
               ) : (
                 <div>
                   <div style={{ fontSize: 13, color: 'var(--ink4, #8a8076)', marginBottom: 2 }}>No data</div>
-                  <Link href="/dashboard?upload=1" style={{ fontSize: 10, color: '#E9A020', textDecoration: 'none', fontWeight: 600 }}>Upload →</Link>
+                  <Link href="/dashboard?upload=1" style={{ fontSize: 10, color: '#D97706', textDecoration: 'none', fontWeight: 600 }}>Upload →</Link>
                 </div>
               )}
             </div>
@@ -246,7 +246,7 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
                   <div className="text-[28px] font-semibold leading-none mb-1" style={{ color: '#1E2D3D' }}>{t.stat}</div>
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <div className="text-[11px] font-bold tracking-[1.5px] uppercase" style={{ color: '#6EBF8B' }}>{t.label}</div>
-                    {t.estimate && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>⚠ Est.</span>}
+                    {t.estimate && <span style={{ fontFamily: 'var(--font-mono)', fontStyle: 'italic', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#D97706' }}>Est.</span>}
                   </div>
                   <div className="text-[12px]" style={{ color: '#6B7280' }}>{t.sub}</div>
                 </div>

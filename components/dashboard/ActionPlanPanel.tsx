@@ -53,10 +53,10 @@ export function ActionPlanPanel({ dashboard }: { dashboard: DashboardState }) {
                   </div>
                   <button
                     onClick={toggleStoryMode}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11.5px] font-semibold transition-all flex-shrink-0 mt-0.5"
-                    style={{ background: storyMode ? '#E9A020' : '#F5F5F4', color: storyMode ? 'white' : '#6B7280', border: storyMode ? '1px solid #E9A020' : '1px solid #E5E7EB' }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-semibold transition-all flex-shrink-0 mt-0.5"
+                    style={{ background: storyMode ? '#1E2D3D' : 'white', color: storyMode ? 'white' : '#6B7280', border: storyMode ? '1px solid #1E2D3D' : '1px solid #E8E1D3' }}
                   >
-                    📖 Story
+                    Story
                   </button>
                 </div>
                 <BoutiqueChannelCardsRow analysis={analysis} liveML={liveML} analyses={analyses} />
@@ -97,7 +97,7 @@ export function ActionPlanPanel({ dashboard }: { dashboard: DashboardState }) {
                         <ActionItem key={i} priority={item.priority} type={item.type} title={item.title} body={item.body} action={item.action} />
                       ))}
                       {analysis.confidenceNote && (
-                        <div className="mt-4 px-4 py-2.5 rounded-lg text-[12px]" style={{ background: '#F5F5F4', color: '#6B7280' }}>
+                        <div className="mt-4 px-4 py-2.5 text-[12px]" style={{ background: '#F7F1E6', color: '#6B7280' }}>
                           {analysis.confidenceNote}
                         </div>
                       )}
@@ -119,7 +119,7 @@ export function ActionPlanPanel({ dashboard }: { dashboard: DashboardState }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', border: '1px solid var(--line, #d8cfbd)', background: 'var(--paper, #f7f1e5)' }}>
           {[
             { key: 'scale', label: 'Scale',     color: 'var(--green-text, #245c3f)',  borderColor: 'var(--sage, #6EBF8B)', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.scale },
-            { key: 'fix',   label: 'Fix',       color: 'var(--amber-text, #a56b13)', borderColor: 'var(--amber, #E9A020)', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.fix },
+            { key: 'fix',   label: 'Fix',       color: 'var(--amber-text, #a56b13)', borderColor: 'var(--amber, #D97706)', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.fix },
             { key: 'cut',   label: 'Cut',       color: '#dc2626',                     borderColor: '#dc2626', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.cut },
             { key: 'test',  label: 'Test Next', color: 'var(--ink3, #564e46)',        borderColor: 'var(--ink3, #564e46)', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.test },
           ].map((col, colIdx) => (
@@ -165,10 +165,10 @@ export function ActionPlanPanel({ dashboard }: { dashboard: DashboardState }) {
                   const label = new Date(a.month + '-02').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                   const isCurrent = i === 0
                   return (
-                    <tr key={a.month} className="border-t border-stone-100" style={{ background: isCurrent ? 'rgba(233,160,32,0.04)' : undefined }}>
+                    <tr key={a.month} className="border-t border-stone-100" style={{ background: isCurrent ? 'rgba(217,119,6,0.04)' : undefined }}>
                       <td className="px-5 py-3.5 font-semibold text-[#0d1f35]">
                         {label}
-                        {isCurrent && <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(233,160,32,0.15)', color: '#e9a020' }}>Latest</span>}
+                        {isCurrent && <span className="ml-2" style={{ fontFamily: 'var(--font-mono)', fontStyle: 'italic', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#D97706' }}>Latest</span>}
                       </td>
                       <td className="px-4 py-3.5 text-right">
                         <div className="font-semibold text-[#0d1f35]">{a.kdp ? fmtCurrency(a.kdp.totalRoyaltiesUSD) : '—'}</div>

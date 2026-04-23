@@ -59,7 +59,7 @@ function WhatHappenedCard({ current, previous, actionPlan }: { current: Analysis
   if (changes.length === 0) return null
 
   return (
-    <div className="rounded-xl mb-4 overflow-hidden" style={{ background: 'white', border: '1px solid #EEEBE6', borderLeft: '3px solid #e9a020', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
+    <div className="mb-4" style={{ background: 'white', border: '1px solid #EEEBE6', borderLeft: '3px solid #D97706', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
       <button onClick={handleToggle} className="w-full flex items-center justify-between px-5 py-3.5 text-left bg-transparent border-none cursor-pointer">
         <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>What happened this month</span>
         <span className="text-[12px]" style={{ color: '#6B7280', transform: open ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.2s' }}>▾</span>
@@ -71,7 +71,7 @@ function WhatHappenedCard({ current, previous, actionPlan }: { current: Analysis
             {changes.map(c => {
               const s = DIR_STYLE[c.direction]
               return (
-                <div key={c.label} className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12.5px]" style={{ background: s.bg }}>
+                <div key={c.label} className="flex items-center gap-2 px-3 py-2 text-[12.5px]" style={{ background: s.bg, borderLeft: `2px solid ${s.color}` }}>
                   <span className="text-[10px] font-bold" style={{ color: s.color }}>{s.icon}</span>
                   <span style={{ color: '#1E2D3D' }}><strong>{c.label}:</strong> {c.detail}</span>
                 </div>
@@ -124,7 +124,7 @@ export function PerformancePanel({ dashboard }: { dashboard: DashboardState }) {
               <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--amber-text, #a56b13)', marginBottom: 12 }}>Watch This</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 {analysis.executiveSummary.whereToStrengthen.map((item: string, i: number) => (
-                  <div key={i} style={{ borderLeft: '2px solid var(--amber, #E9A020)', padding: '8px 0 8px 12px', fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 14, color: 'var(--ink2, #2a2520)' }}>
+                  <div key={i} style={{ borderLeft: '2px solid var(--amber, #D97706)', padding: '8px 0 8px 12px', fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 14, color: 'var(--ink2, #2a2520)' }}>
                     <SafeMarkdown content={item} />
                   </div>
                 ))}
