@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   const pillarTemplate: Record<string, string> = {
     'Emotional Experience': 'lone woman in open landscape, back to camera, warm golden backlight, linen or cream clothing',
     'Reader Identity': 'intimate detail shot — hands holding a book, wine glass on wooden railing, bare feet on warm wood',
-    'World Mood Board': 'wide establishing landscape shot at golden hour — vineyard rows, lakeside dock, or small town main street',
+    'World Mood Board': 'wide establishing landscape shot at golden hour — vineyard rows, rolling hills, lakeside dock, wildflower meadow, rustic farmhouse exterior',
     'Book Mention': 'woman reading in warm light, soft golden hour, cozy intimate setting, book as a detail not a focal point',
   }
 
@@ -68,17 +68,17 @@ VISUAL RULES — these apply to every single prompt you generate, no exceptions:
 - Mood: hopeful, intimate, grounded. Never melancholic, broken, fragmented, or introspective-dark.
 - Color: warm earth tones — cream, amber, honey, terracotta, dusty sage. Never muted gray, cold blue, or desaturated.
 - Figures: backs to camera, faces turned away, or hands/details only. Never direct eye contact, never posed.
-- Settings: open landscapes, vineyards, lakesides, rustic interiors, small town streets at golden hour. Never urban grit, abandoned spaces, or dramatic architecture.
+- Settings: open landscapes, vineyards, lakesides, rustic interiors, rolling meadows, farmhouse exteriors. Never urban grit, abandoned spaces, dramatic architecture, or small towns/streets.
 - NEVER include: broken objects, mirrors, dramatic shadows, cold lighting, moody atmosphere, fragmented imagery, emotional vulnerability as darkness.
 
 PILLAR VISUAL TEMPLATES — use these as your starting point:
 - Emotional Experience: lone woman in open landscape, back to camera, warm golden backlight, linen or cream clothing
 - Reader Identity: intimate detail shot — hands holding a book, wine glass on a railing, bare feet on warm wood, steaming mug on a porch
-- World Mood Board: wide establishing shot — vineyard rows at dusk, lakeside dock at sunrise, small town main street at golden hour, rustic outdoor dining
+- World Mood Board: wide establishing shot — vineyard rows at golden hour, lakeside dock at sunrise, rolling meadow with wildflowers, rustic farmhouse porch at dusk, orchard in soft morning light. NEVER small towns, streets, architecture, or anything that could read gothic or dark academic.
 - Book Mention: same warm aesthetic, subtle book or reading element, never a book cover close-up
 
 NEGATIVE PROMPTS — always end every prompt with:
---no dark backgrounds, moody lighting, cold tones, broken objects, mirrors, dramatic shadows, cinematic darkness, stock photo feel, urban grit, abandoned spaces, sad expressions`,
+--no dark backgrounds, moody lighting, cold tones, broken objects, mirrors, dramatic shadows, cinematic darkness, stock photo feel, urban grit, abandoned spaces, sad expressions, gothic, dark academic, Victorian architecture, church steeples, foggy streets, purple sky, stormy atmosphere, bare trees, autumn decay, silhouettes`,
     messages: [{
       role: 'user',
       content: userPromptText,
@@ -87,7 +87,7 @@ NEGATIVE PROMPTS — always end every prompt with:
 
   const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
 
-  const NEGATIVE_PARAMS = '--no dark backgrounds, moody lighting, cold tones, broken objects, mirrors, dramatic shadows, cinematic darkness, stock photo feel, urban grit, abandoned spaces, sad expressions'
+  const NEGATIVE_PARAMS = '--no dark backgrounds, moody lighting, cold tones, broken objects, mirrors, dramatic shadows, cinematic darkness, stock photo feel, urban grit, abandoned spaces, sad expressions, gothic, dark academic, Victorian architecture, church steeples, foggy streets, purple sky, stormy atmosphere, bare trees, autumn decay, silhouettes'
   const STYLE_PARAMS = '--ar 4:5 --style raw --v 6'
 
   const midjourneyPrompt = styleString
