@@ -15,6 +15,7 @@ import { getCoachTitle } from '@/lib/coachTitle'
 import { fmtPct, fmtCurrency } from '@/lib/utils'
 
 // coach title is set per-mount so it changes on every page load
+import { BoutiqueSectionLabel } from '@/components/boutique'
 import { ActionItem } from '@/components/ui'
 import { InsightCallouts } from '@/components/InsightCallout'
 import { FreshBanner } from '@/components/FreshBanner'
@@ -1507,21 +1508,18 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
       {/* ══════ SECTION 1 — TODAY'S PRIORITIES ══════════════════════ */}
       {!loading && (
       <div className="mb-7">
-        <div className="flex items-baseline justify-between mb-1">
-          <h2 className="font-sans text-[22px] font-bold tracking-tight" style={{ color: '#1E2D3D' }}>
-            Today&apos;s Priorities
-          </h2>
-          {donePriorities.size > 0 && (
+        <BoutiqueSectionLabel
+          label="Today's Priorities"
+          action={donePriorities.size > 0 ? (
             <button
               onClick={() => setShowCompleted(prev => !prev)}
-              className="text-[11.5px] font-semibold"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280' }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink4, #8a8076)' }}
             >
-              {showCompleted ? 'Hide' : 'Show'} completed ({donePriorities.size})
+              {showCompleted ? 'Hide' : 'Show'} done ({donePriorities.size})
             </button>
-          )}
-        </div>
-        <p className="text-[12.5px] mb-5" style={{ color: '#6B7280' }}>
+          ) : undefined}
+        />
+        <p style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontStyle: 'italic', fontSize: 13, color: 'var(--ink3, #564e46)', marginBottom: 20, marginTop: -8 }}>
           Highest impact actions based on your real performance data
         </p>
 
@@ -1529,12 +1527,23 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
           const allItems = analysis.actionPlan as CoachingInsight[]
           const mainItems  = allItems.filter(item => item.confidence !== 'low').slice(0, 3)
           const otherItems = allItems.filter(item => item.confidence === 'low')
-          const highColors = ['#F97B6B', '#E9A020', '#60A5FA']
           const visibleItems = mainItems.filter((_, i) => showCompleted || !donePriorities.has(i))
+
+          const getPriorityLabel = (item: CoachingInsight, idx: number): { text: string; color: string } => {
+            if (item.type === 'RED') return { text: 'Fix This', color: '#dc2626' }
+            if (item.type === 'AMBER' || item.confidence === 'medium') return { text: 'Worth Checking', color: 'var(--amber-text, #a56b13)' }
+            if (item.type === 'GREEN') return { text: 'Keep Doing This', color: 'var(--green-text, #245c3f)' }
+            return idx === 0
+              ? { text: 'Fix This', color: '#dc2626' }
+              : idx === 1
+                ? { text: 'Worth Checking', color: 'var(--amber-text, #a56b13)' }
+                : { text: 'Keep Doing This', color: 'var(--green-text, #245c3f)' }
+          }
+
           return (
             <>
               {mainItems.length > 0 && (
-                <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '0.5px solid #EEEBE6' }}>
+                <div style={{ background: 'var(--card, white)', border: '1px solid var(--line, #d8cfbd)' }}>
                   {visibleItems.map((item) => {
                     const i = mainItems.indexOf(item)
                     const href = item.channel === 'kdp' ? '/dashboard/kdp'
@@ -1542,80 +1551,122 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
                       : item.channel === 'email' ? '/dashboard/mailerlite'
                       : item.channel === 'pinterest' ? '/dashboard/pinterest'
                       : '/dashboard?upload=1'
-                    const isMedium = item.confidence === 'medium'
-                    const color = isMedium ? '#E9A020' : (highColors[i] ?? highColors[2])
                     const isOpen = expandedPriority === i
                     const isDone = donePriorities.has(i)
+                    const isFirst = i === 0
+                    const { text: priorityText, color: priorityColor } = getPriorityLabel(item, i)
                     return (
-                      <div key={i}
-                        style={{
-                          borderBottom: i < mainItems.length - 1 ? '0.5px solid #EEEBE6' : 'none',
-                          background: isDone ? '#FAFAF9' : isOpen ? '#FFF8F0' : 'white',
-                          borderLeft: isDone ? '3px solid #D1D5DB' : isOpen ? `3px solid ${color}` : '3px solid transparent',
-                          transition: 'background 0.2s ease, border-left-color 0.2s ease',
-                          opacity: isDone ? 0.65 : 1,
-                        }}>
+                      <div key={i} style={{
+                        borderBottom: i < mainItems.length - 1 ? '1px solid var(--line, #d8cfbd)' : 'none',
+                        background: 'var(--card, white)',
+                        opacity: isDone ? 0.65 : 1,
+                      }}>
                         <button
                           onClick={() => !isDone && setExpandedPriority(isOpen ? null : i)}
-                          className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left bg-transparent border-none"
-                          style={{ cursor: isDone ? 'default' : 'pointer' }}
+                          style={{
+                            width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                            padding: '16px 20px', textAlign: 'left',
+                            background: 'transparent', border: 'none',
+                            cursor: isDone ? 'default' : 'pointer',
+                          }}
                         >
-                          <span className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
-                            style={{ background: isDone ? '#D1D5DB' : color, color: 'white' }}>
+                          <span style={{
+                            width: 24, height: 24, borderRadius: '50%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                            fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                            fontSize: 11, fontWeight: 700,
+                            background: isDone ? 'transparent' : isFirst ? 'var(--ink, #14110f)' : 'transparent',
+                            border: isDone ? '1.5px solid #9CA3AF' : isFirst ? 'none' : '1.5px solid var(--amber, #E9A020)',
+                            color: isDone ? '#9CA3AF' : isFirst ? 'var(--paper, #f7f1e5)' : 'var(--amber-text, #a56b13)',
+                          }}>
                             {isDone ? '✓' : i + 1}
                           </span>
-                          <span className="flex-1 min-w-0">
-                            {isMedium && !isDone && (
-                              <span className="text-[10px] font-bold uppercase tracking-wide mr-1.5"
-                                style={{ color: '#E9A020' }}>Worth checking:</span>
+
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            {!isDone && (
+                              <div style={{
+                                fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                                fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase',
+                                color: priorityColor, marginBottom: 4,
+                              }}>
+                                {priorityText}
+                              </div>
                             )}
-                            <span className="text-[13.5px] font-bold"
-                              style={{ color: isDone ? '#9CA3AF' : '#1E2D3D', textDecoration: isDone ? 'line-through' : 'none' }}>
+                            <div style={{
+                              fontFamily: 'var(--font-serif, Georgia, serif)',
+                              fontSize: 17, fontWeight: 500, lineHeight: 1.3,
+                              color: isDone ? 'var(--ink4, #8a8076)' : 'var(--ink, #14110f)',
+                              textDecoration: isDone ? 'line-through' : 'none',
+                            }}>
                               {item.title}
-                            </span>
-                            {isDone && (
-                              <span className="ml-2 text-[11px] font-semibold" style={{ color: '#9CA3AF' }}>Done</span>
-                            )}
+                            </div>
                           </span>
+
                           {!isDone && (
-                            <span className="text-[12px] flex-shrink-0 transition-transform duration-200"
-                              style={{ color: '#6B7280', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                              ▾
+                            <span style={{
+                              flexShrink: 0, fontSize: 18, lineHeight: 1,
+                              color: 'var(--ink4, #8a8076)',
+                              transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                              display: 'inline-block', transition: 'transform 0.2s',
+                            }}>
+                              ›
                             </span>
                           )}
                           {isDone && (
                             <button
                               onClick={e => { e.stopPropagation(); toggleDone(i) }}
-                              className="text-[10.5px] font-semibold flex-shrink-0"
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer',
+                                fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                                fontSize: 9, letterSpacing: '0.08em', textTransform: 'uppercase',
+                                color: 'var(--ink4, #8a8076)', flexShrink: 0,
+                              }}
                             >
                               Undo
                             </button>
                           )}
                         </button>
-                        <div className="overflow-hidden transition-all duration-300 ease-out"
-                          style={{ maxHeight: isOpen && !isDone ? '360px' : '0px', opacity: isOpen && !isDone ? 1 : 0 }}>
-                          <div className="px-4 pb-4 pl-[60px]">
-                            <div className="text-[12.5px] leading-[1.7] mb-3" style={{ color: '#374151' }}>
+
+                        <div style={{
+                          overflow: 'hidden', transition: 'max-height 0.3s ease-out, opacity 0.3s ease-out',
+                          maxHeight: isOpen && !isDone ? '360px' : '0px',
+                          opacity: isOpen && !isDone ? 1 : 0,
+                        }}>
+                          <div style={{ padding: '0 20px 18px 58px' }}>
+                            <div style={{
+                              fontFamily: "'Plus Jakarta Sans', sans-serif",
+                              fontSize: 14, lineHeight: 1.6, color: 'var(--ink2, #2a2520)',
+                              marginBottom: 14,
+                            }}>
                               {item.body}
                               {item.action && (
-                                <span className="ml-1">
-                                  <strong style={{ color: '#E9A020' }}>Next step:</strong> {item.action}
+                                <span style={{ marginLeft: 4 }}>
+                                  <strong style={{ color: 'var(--ink, #14110f)' }}>Next step:</strong> {item.action}
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-3">
-                              <Link href={href}
-                                className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-[11.5px] font-bold no-underline transition-all hover:opacity-90"
-                                style={{ background: color, color: 'white' }}>
-                                Read the Full Story →
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                              <Link href={href} style={{
+                                display: 'inline-block', textDecoration: 'none',
+                                background: 'var(--navy, #1E2D3D)', color: 'var(--paper, #f7f1e5)',
+                                fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                                fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
+                                padding: '7px 14px',
+                              }}>
+                                Full report →
                               </Link>
                               <button
                                 onClick={() => toggleDone(i)}
-                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11.5px] font-semibold transition-all hover:opacity-80"
-                                style={{ background: '#F0FFF4', color: '#6EBF8B', border: '1px solid #A7F3C8', cursor: 'pointer' }}
+                                style={{
+                                  background: 'none', border: '1px solid var(--line, #d8cfbd)',
+                                  cursor: 'pointer', padding: '7px 14px',
+                                  fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                                  fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
+                                  color: 'var(--green-text, #245c3f)',
+                                }}
                               >
-                                <span>✓</span> Mark as done
+                                ✓ Mark done
                               </button>
                             </div>
                           </div>
@@ -1634,7 +1685,7 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
         })() : analysis ? (
           <InsightCallouts analysis={analysis} page="overview" />
         ) : (
-          <div className="text-[13px] py-4" style={{ color: '#6B7280' }}>
+          <div style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 14, color: 'var(--ink3, #564e46)', padding: '16px 0' }}>
             Upload your files to see your priorities.
           </div>
         )}
@@ -1685,33 +1736,52 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
         </div>
       )}
 
-      {/* ══════ SECTION 3 — NEEDS ATTENTION SOON ══════════════════ */}
+      {/* ══════ SECTION 3 — PERFORMANCE SUMMARY ═══════════════════ */}
       {analysis?.executiveSummary && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-7">
-          <div>
-            <div className="text-[11px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6EBF8B' }}>
-              What&apos;s working
+        <div className="mb-7">
+          <BoutiqueSectionLabel label="Performance Summary" />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+            <div>
+              <div style={{
+                fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
+                color: 'var(--green-text, #245c3f)', marginBottom: 12,
+              }}>
+                Working Well
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {analysis.executiveSummary.whatsWorking.map((item: string, i: number) => (
+                  <div key={i} style={{
+                    borderLeft: '2px solid var(--sage, #6EBF8B)',
+                    padding: '8px 0 8px 12px',
+                    fontFamily: 'var(--font-serif, Georgia, serif)',
+                    fontSize: 14, color: 'var(--ink2, #2a2520)',
+                  }}>
+                    <SafeMarkdown content={item} />
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="space-y-2.5">
-              {analysis.executiveSummary.whatsWorking.map((item: string, i: number) => (
-                <div key={i} className="flex items-start gap-2.5 text-[13px] leading-snug" style={{ color: '#374151' }}>
-                  <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: '#6EBF8B' }} />
-                  <SafeMarkdown content={item} />
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <div className="text-[11px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#F97B6B' }}>
-              Needs attention soon
-            </div>
-            <div className="space-y-2.5">
-              {analysis.executiveSummary.whereToStrengthen.map((item: string, i: number) => (
-                <div key={i} className="flex items-start gap-2.5 text-[13px] leading-snug" style={{ color: '#374151' }}>
-                  <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: '#F97B6B' }} />
-                  <SafeMarkdown content={item} />
-                </div>
-              ))}
+            <div>
+              <div style={{
+                fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
+                color: 'var(--amber-text, #a56b13)', marginBottom: 12,
+              }}>
+                Watch This
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {analysis.executiveSummary.whereToStrengthen.map((item: string, i: number) => (
+                  <div key={i} style={{
+                    borderLeft: '2px solid var(--amber, #E9A020)',
+                    padding: '8px 0 8px 12px',
+                    fontFamily: 'var(--font-serif, Georgia, serif)',
+                    fontSize: 14, color: 'var(--ink2, #2a2520)',
+                  }}>
+                    <SafeMarkdown content={item} />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -1820,26 +1890,38 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
       {/* ══════ SECTION 5 — YOUR GROWTH ROADMAP ═══════════════════ */}
       {analysis?.executiveSummary?.topActions && analysis.executiveSummary.topActions.length > 0 && (
         <div className="mb-7">
-          <h2 className="font-sans text-[18px] text-[#0d1f35] mb-4">Your Growth Roadmap</h2>
-          <div className="space-y-3">
+          <BoutiqueSectionLabel label="Your Growth Roadmap" />
+          <div>
             {analysis.executiveSummary.topActions.map((action: { label: string; href: string }, i: number) => {
-              const isDone = false // future: track completion
+              const isDone = false
               return (
-                <div key={i} className="flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0"
-                    style={{
-                      background: isDone ? '#1E2D3D' : 'transparent',
-                      border: isDone ? 'none' : '2px solid #E9A020',
-                      color: isDone ? 'white' : '#E9A020',
-                    }}>
-                    {i + 1}
+                <div key={i} style={{
+                  display: 'grid', gridTemplateColumns: '24px 1fr auto',
+                  alignItems: 'center', gap: 16,
+                  padding: '14px 0',
+                  borderBottom: '1px solid var(--line, #d8cfbd)',
+                }}>
+                  <div style={{
+                    fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                    fontSize: 11, color: isDone ? 'var(--ink4, #8a8076)' : 'var(--ink4, #8a8076)',
+                    textAlign: 'center',
+                  }}>
+                    {isDone ? '✓' : i + 1}
                   </div>
-                  <div className="flex-1">
-                    <div className="text-[13.5px] font-semibold" style={{ color: '#1E2D3D' }}>{action.label}</div>
+                  <div style={{
+                    fontFamily: 'var(--font-serif, Georgia, serif)',
+                    fontSize: 16, fontWeight: 500,
+                    color: isDone ? 'var(--ink4, #8a8076)' : 'var(--ink, #14110f)',
+                    textDecoration: isDone ? 'line-through' : 'none',
+                  }}>
+                    {action.label}
                   </div>
-                  <Link href={action.href}
-                    className="text-[11.5px] font-semibold no-underline hover:underline"
-                    style={{ color: '#E9A020' }}>
+                  <Link href={action.href} style={{
+                    fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                    fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
+                    color: 'var(--amber-text, #a56b13)', textDecoration: 'none',
+                    whiteSpace: 'nowrap',
+                  }}>
                     Start here →
                   </Link>
                 </div>
@@ -1854,38 +1936,61 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
 
       {/* ══════ SECTION 6 — CROSS-CHANNEL ACTION PLAN ═════════════ */}
       <div className="mb-7">
-        <div className="flex items-baseline justify-between mb-4">
-          <h2 className="font-sans text-[18px] text-[#0d1f35]">Cross-Channel Action Plan</h2>
-          <span className="text-[12px] text-stone-500">AI-generated from your data</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <BoutiqueSectionLabel
+          label="Cross-Channel Action Plan"
+          action={
+            <span style={{
+              fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+              fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase',
+              color: 'var(--ink4, #8a8076)',
+            }}>
+              AI-generated from your data
+            </span>
+          }
+        />
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          border: '1px solid var(--line, #d8cfbd)',
+          background: 'var(--paper, #f7f1e5)',
+        }}>
           {[
-            { key: 'scale', label: 'SCALE',     icon: '▲', color: '#6EBF8B', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.scale },
-            { key: 'fix',   label: 'FIX',       icon: '⚠', color: '#E9A020', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.fix },
-            { key: 'cut',   label: 'CUT',       icon: '✕', color: '#F97B6B', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.cut },
-            { key: 'test',  label: 'TEST NEXT', icon: '◆', color: '#60A5FA', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.test },
-          ].map(col => (
-            <div key={col.key} className="rounded-xl overflow-hidden"
-              style={{ background: '#FFF8F0', border: '1px solid #EEEBE6', borderTop: `3px solid ${col.color}` }}>
-              <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #EEEBE6' }}>
-                <span className="text-[14px]" style={{ color: col.color }}>{col.icon}</span>
-                <span className="text-[10px] font-bold tracking-[1.5px] uppercase" style={{ color: col.color }}>
-                  {col.label}
-                </span>
+            { key: 'scale', label: 'Scale',     color: 'var(--green-text, #245c3f)',   borderColor: 'var(--sage, #6EBF8B)', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.scale },
+            { key: 'fix',   label: 'Fix',       color: 'var(--amber-text, #a56b13)',   borderColor: 'var(--amber, #E9A020)', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.fix },
+            { key: 'cut',   label: 'Cut',       color: '#dc2626',                       borderColor: '#dc2626', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.cut },
+            { key: 'test',  label: 'Test Next', color: 'var(--ink3, #564e46)',          borderColor: 'var(--ink3, #564e46)', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.test },
+          ].map((col, colIdx) => (
+            <div key={col.key} style={{
+              borderLeft: colIdx > 0 ? '1px solid var(--line, #d8cfbd)' : 'none',
+              borderTop: `2px solid ${col.borderColor}`,
+            }}>
+              <div style={{
+                padding: '12px 16px 10px',
+                fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase',
+                color: col.color,
+                borderBottom: '1px solid var(--line, #d8cfbd)',
+              }}>
+                {col.label}
               </div>
-              <div className="px-4 py-3">
+              <div style={{ padding: '0 16px' }}>
                 {col.items?.length ? (
-                  <ul className="space-y-2 list-none p-0 m-0">
-                    {col.items.map((item: string, i: number) => (
-                      <li key={i} className="text-[12.5px] leading-relaxed" style={{ color: '#374151' }}>
-                        <span className="mr-1.5" style={{ color: col.color }}>•</span>
-                        <SafeMarkdown content={item} />
-                      </li>
-                    ))}
-                  </ul>
+                  col.items.map((item: string, i: number) => (
+                    <div key={i} style={{
+                      padding: '10px 0',
+                      borderBottom: i < col.items!.length - 1 ? '1px solid var(--line, #d8cfbd)' : 'none',
+                      fontFamily: 'var(--font-serif, Georgia, serif)',
+                      fontSize: 14, lineHeight: 1.5, color: 'var(--ink2, #2a2520)',
+                    }}>
+                      <SafeMarkdown content={item} />
+                    </div>
+                  ))
                 ) : (
-                  <div className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>
-                    Upload your files to unlock this insight
+                  <div style={{
+                    padding: '14px 0',
+                    fontFamily: 'var(--font-serif, Georgia, serif)',
+                    fontSize: 13, fontStyle: 'italic', color: 'var(--ink4, #8a8076)',
+                  }}>
+                    Upload data to unlock
                   </div>
                 )}
               </div>
