@@ -9,6 +9,7 @@ const THIRTY_MINUTES = 30 * 60 // seconds
 const WEBHOOK_PATHS = [
   '/api/stripe/webhook',
   '/api/bookfunnel/webhook',
+  '/api/webhooks/bookfunnel',
   '/api/email/inbound',
 ]
 
