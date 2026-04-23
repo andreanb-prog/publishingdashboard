@@ -615,16 +615,6 @@ export default function MailerLitePage() {
             </div>
           )}
 
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399' }}>
-              ● Live
-            </span>
-            <span className="text-[11px]" style={{ color: '#6B7280' }}>
-              Data pulled fresh from MailerLite API on every load
-            </span>
-          </div>
-
           {/* ── Group selector (shown only when 2+ groups exist) ─────── */}
           {groups.length >= 2 && (
             <div className="flex items-center gap-2 mb-3">

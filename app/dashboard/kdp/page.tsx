@@ -1203,6 +1203,7 @@ export default function KDPPage() {
             <p className="text-[11px] mt-0.5" style={{ color: 'var(--ink4)' }}>
               KDP data typically lags 48–72 hours. Recent days may show incomplete numbers.
             </p>
+            {/* Download Ad Tracker button — hidden until feature is ready
             {kdp && (
               <div className="mt-2">
                 <button
@@ -1215,6 +1216,7 @@ export default function KDPPage() {
                 </button>
               </div>
             )}
+            */}
           </div>
         }
       />
