@@ -38,17 +38,6 @@ const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> 
   NEW:    { bg: 'bg-blue-50',    text: 'text-blue-800',    label: '🔵 Starting' },
 }
 
-// Hardcoded swap calendar (matches swaps/page.tsx)
-const SWAP_CALENDAR = [
-  { partner: 'Mandy Baker + Madison Brooke',     date: 'Apr 1',  direction: 'Inbound',           list: '1,038 / 1,532', status: 'Applied' },
-  { partner: 'Chloe Horne #3',                   date: 'Apr 6',  direction: 'Inbound + Outbound', list: '8,198',         status: 'Approved' },
-  { partner: 'Zoe Dawson + Ava Bloome + 4 more', date: 'Apr 6',  direction: 'Outbound',           list: 'Various',       status: 'Approved' },
-  { partner: 'Tessa Sloan',                      date: 'Apr 9',  direction: 'Inbound',            list: '4,288',         status: 'Applied — follow up' },
-  { partner: 'Lisa Monroe + Lucy Barbee',        date: 'Apr 13', direction: 'Inbound',            list: 'Various',       status: 'Approved' },
-  { partner: 'Rachel J. Green',                  date: 'Apr 18', direction: 'Inbound',            list: '9,451',         status: 'Applied — follow up' },
-  { partner: 'Brandi Creek (FPA)',               date: 'Apr 21', direction: 'Inbound',            list: '2,703',         status: 'Approved' },
-  { partner: 'Lily-Mae Montana',                 date: 'Apr 30', direction: 'Inbound + Outbound', list: '1,168',         status: 'Decision needed' },
-]
 
 function fmt(n: number | undefined, prefix = '', decimals = 0) {
   if (n == null) return '—'
@@ -75,10 +64,13 @@ function Trend({ curr, prev }: { curr?: number; prev?: number }) {
   )
 }
 
+type SwapCalendarEntry = { id: string; partnerName: string; bookTitle: string; promoDate: string; direction: string; status: string }
+
 function buildCoachPrompt(
   analysis: Analysis | null,
   rankLogs: RankLog[],
   roasLogs: RoasLog[],
+  swaps: SwapCalendarEntry[],
 ): string {
   const lines: string[] = []
   const month = analysis?.month ?? new Date().toISOString().substring(0, 7)
@@ -140,11 +132,14 @@ function buildCoachPrompt(
     lines.push('')
   }
 
-  lines.push('## Newsletter Swap Calendar (April)')
-  SWAP_CALENDAR.forEach(s => {
-    lines.push(`  • ${s.date} — ${s.partner} | ${s.direction} | List: ${s.list} | Status: ${s.status}`)
-  })
-  lines.push('')
+  if (swaps.length) {
+    lines.push('## Newsletter Swap Calendar')
+    swaps.forEach(s => {
+      const date = new Date(s.promoDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      lines.push(`  • ${date} — ${s.partnerName} | ${s.direction} | Status: ${s.status}`)
+    })
+    lines.push('')
+  }
 
   if (analysis?.pinterest) {
     const p = analysis.pinterest
@@ -941,6 +936,7 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
   const [showCompleted, setShowCompleted] = useState(true)
   const [isFresh,     setIsFresh]     = useState(false)
   const [storyMode,   setStoryMode]   = useState(true)
+  const [swapCalendar, setSwapCalendar] = useState<SwapCalendarEntry[]>([])
 
   function toggleStoryMode() {
     setStoryMode(prev => {
@@ -949,6 +945,14 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
       return next
     })
   }
+
+  // Fetch per-user swap calendar from DB (never hardcoded)
+  useEffect(() => {
+    fetch('/api/swaps/calendar')
+      .then(r => r.json())
+      .then(d => setSwapCalendar(d.swaps ?? []))
+      .catch(() => setSwapCalendar([]))
+  }, [])
 
   // Sync Story Mode from localStorage on mount + listen for TopBar toggle events
   useEffect(() => {
@@ -1248,7 +1252,7 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
   async function handleCopy() {
     setCopying(true)
     try {
-      const prompt = buildCoachPrompt(analysis, rankLogs, roasLogs)
+      const prompt = buildCoachPrompt(analysis, rankLogs, roasLogs, swapCalendar)
       await navigator.clipboard.writeText(prompt)
       setCopied(true)
       setTimeout(() => setCopied(false), 4000)
