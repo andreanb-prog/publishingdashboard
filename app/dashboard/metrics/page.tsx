@@ -1,7 +1,7 @@
 'use client'
 // app/dashboard/metrics/page.tsx
 import { useEffect, useState } from 'react'
-import { DarkPage, DarkSectionHeader } from '@/components/DarkPage'
+import { BoutiqueChannelPageLayout, BoutiquePageHeader, BoutiqueSectionLabel } from '@/components/boutique'
 import { BOOK_COLORS } from '@/lib/bookColors'
 import { HealthBenchmarkBar, ProjectionBadge, MetricTooltip } from '@/components/MetricHealth'
 import type { Analysis, RankLog, RoasLog } from '@/types'
@@ -310,23 +310,25 @@ export default function MetricsPage() {
 
   if (loading) {
     return (
-      <DarkPage title="Advanced Metrics" subtitle="Cross-channel insights that no single page can show">
+      <BoutiqueChannelPageLayout>
+        <BoutiquePageHeader title="Advanced Metrics" subtitle="Cross-channel performance" badge="Analytics" badgeColor="#60A5FA" />
         <div className="text-center py-16">
           <div className="animate-pulse text-lg" style={{ color: '#1E2D3D' }}>Reading your data…</div>
         </div>
-      </DarkPage>
+      </BoutiqueChannelPageLayout>
     )
   }
 
   return (
-    <DarkPage title="Advanced Metrics" subtitle="Cross-channel insights that no single page can show">
+    <BoutiqueChannelPageLayout>
+      <BoutiquePageHeader title="Advanced Metrics" subtitle="Cross-channel performance" badge="Analytics" badgeColor="#60A5FA" />
 
       {/* ── 1. READER FUNNEL CHECKER ───────────────────────────────────────── */}
-      <DarkSectionHeader title="Reader Funnel Checker" badge="Full pipeline" badgeColor="#fb7185" />
+      <BoutiqueSectionLabel label="Reader Funnel Checker" />
       <ReaderFunnel meta={meta} kdp={kdp} ml={ml} booksSorted={booksSorted} />
 
       {/* ── 2. CROSS-CHANNEL CORRELATIONS ──────────────────────────────────── */}
-      <DarkSectionHeader title="Cross-Channel Correlations" badge="Multi-source" badgeColor="#38bdf8" />
+      <BoutiqueSectionLabel label="Cross-Channel Correlations" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-7">
 
@@ -448,7 +450,7 @@ export default function MetricsPage() {
       </div>
 
       {/* ── 3. SERIES READ-THROUGH FUNNEL ──────────────────────────────────── */}
-      <DarkSectionHeader title="Series Read-Through Funnel" badge="Cross-book" badgeColor="#a78bfa" />
+      <BoutiqueSectionLabel label="Series Read-Through Funnel" />
 
       <div className="rounded-xl p-5 mb-7" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         {readThrough.length >= 2 ? (
@@ -477,7 +479,7 @@ export default function MetricsPage() {
       </div>
 
       {/* ── 4. ARC CALCULATOR ──────────────────────────────────────────────── */}
-      <DarkSectionHeader title="ARC Conversion Calculator" badge="Tool" badgeColor="#6B7280" />
+      <BoutiqueSectionLabel label="ARC Conversion Calculator" />
 
       <div className="rounded-xl p-5 mb-7 max-w-md" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         <div className="flex gap-3 mb-4">
@@ -507,6 +509,6 @@ export default function MetricsPage() {
         </div>
       </div>
 
-    </DarkPage>
+    </BoutiqueChannelPageLayout>
   )
 }

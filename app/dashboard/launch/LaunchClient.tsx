@@ -2,6 +2,7 @@
 // app/dashboard/launch/LaunchClient.tsx
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Pencil } from 'lucide-react'
+import { BoutiqueChannelPageLayout, BoutiquePageHeader } from '@/components/boutique'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface LaunchTask {
@@ -1303,10 +1304,16 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
   const isThisWeek = activeFilter === 'this_week'
 
   return (
-    <div className="min-h-screen pb-16" style={{ background: '#FFF8F0' }}>
+    <BoutiqueChannelPageLayout>
       <Toast message={toast.message} visible={toast.visible} variant={toast.variant} />
+      <BoutiquePageHeader
+        title="Launch Planner"
+        subtitle="Book launches"
+        badge="Launch"
+        badgeColor="#8B5CF6"
+      />
 
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+      <div className="max-w-3xl mx-auto space-y-4">
 
         {/* Launches panel */}
         <LaunchesPanel
@@ -1569,6 +1576,6 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
         )}
 
       </div>
-    </div>
+    </BoutiqueChannelPageLayout>
   )
 }

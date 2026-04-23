@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { BoutiqueChannelPageLayout, BoutiquePageHeader } from '@/components/boutique'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -681,19 +682,13 @@ export default function ContentPlannerPage() {
   const cardStyle = { borderColor: '#EEEBE6', borderWidth: '0.5px' }
 
   return (
-    <div className="min-h-screen pb-20" style={{ background: '#FFF8F0' }}>
-      {/* Page header */}
-      <div className="px-6 pt-8 pb-2 max-w-4xl mx-auto">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-[26px] font-bold" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-              Content Planner
-            </h1>
-            <p className="text-[14px] mt-1" style={{ color: '#6B7280' }}>
-              Build a 30-day campaign rooted in your reader's world.
-            </p>
-          </div>
-          {/* Tailwind connect button */}
+    <BoutiqueChannelPageLayout>
+      <BoutiquePageHeader
+        title="Content Planner"
+        subtitle="Plan content"
+        badge="Content"
+        badgeColor="#F4A261"
+        actions={
           <button
             onClick={() => setTailwindModal(true)}
             className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-all"
@@ -706,8 +701,8 @@ export default function ContentPlannerPage() {
           >
             {tailwindConnected ? '✓ Tailwind Connected' : 'Connect Tailwind'}
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Restore banner */}
       {showRestoreBanner && (
@@ -1564,6 +1559,6 @@ export default function ContentPlannerPage() {
           </div>
         </div>
       )}
-    </div>
+    </BoutiqueChannelPageLayout>
   )
 }

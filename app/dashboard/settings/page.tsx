@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
+import { BoutiquePageHeader, BoutiqueSectionLabel } from '@/components/boutique'
 import { BookCatalog } from '@/components/BookCatalog'
 import { Bot, Mail, Megaphone, BookOpen, PenLine, Lock } from '@/components/icons'
 import {
@@ -1363,11 +1364,13 @@ export default function SettingsPage() {
         <div className="px-8 py-6 max-w-lg">
 
           {/* SECTION: AI WRITING ASSISTANT */}
-          <div className="text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: '#9CA3AF' }}>AI WRITING ASSISTANT</div>
+          <BoutiqueSectionLabel label="AI Writing Assistant" />
           <WritingAssistantKeySection />
 
           {/* SECTION: PREFERENCES */}
-          <div className="text-[10px] font-semibold uppercase tracking-wider mb-3 mt-6" style={{ color: '#9CA3AF' }}>PREFERENCES</div>
+          <div style={{ marginTop: 24 }}>
+            <BoutiqueSectionLabel label="Preferences" />
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
 
             {/* Benchmarks */}
@@ -1622,9 +1625,7 @@ export default function SettingsPage() {
 
           {/* ── Audit log ─── */}
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-[2px] mb-3" style={{ color: '#9CA3AF' }}>
-              Audit Log
-            </div>
+            <BoutiqueSectionLabel label="Audit Log" />
             <div
               className="rounded-[10px] overflow-hidden"
               style={{ background: '#FFF8F0', border: '0.5px solid rgba(30,45,61,0.1)' }}
@@ -1698,12 +1699,21 @@ export default function SettingsPage() {
     <div
       style={{
         display: 'flex',
+        flexDirection: 'column',
         height: '100%',
         overflow: 'hidden',
         fontFamily: "'Plus Jakarta Sans', sans-serif",
       }}
     >
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
+
+      {/* ── Page header ──────────────────────────────────────────────────── */}
+      <div style={{ padding: '32px 48px 0', background: 'var(--paper)', flexShrink: 0 }}>
+        <BoutiquePageHeader title="Settings" subtitle="Account · connections" />
+      </div>
+
+      {/* ── Sidebar + panel ──────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
       {/* ── Left sidebar ─────────────────────────────────────────────────── */}
       <div
@@ -1781,6 +1791,8 @@ export default function SettingsPage() {
         }}
       >
         {tabContent[activeTab]}
+      </div>
+
       </div>
     </div>
   )

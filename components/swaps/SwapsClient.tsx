@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { BoutiqueChannelPageLayout, BoutiquePageHeader } from '@/components/boutique'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -299,23 +300,22 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
 
   // ─── Render ───────────────────────────────────────────────────────────
   return (
-    <div className="px-4 py-6 max-w-6xl mx-auto" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#1E2D3D' }}>Swaps &amp; Promos</h1>
-          <p className="text-sm mt-1" style={{ color: '#6B7280' }}>
-            Track newsletter swaps, partner promos, and your promo calendar.
-          </p>
-        </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="text-sm font-semibold px-4 py-2 rounded-lg flex-shrink-0"
-          style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer' }}
-        >
-          + Log swap
-        </button>
-      </div>
+    <BoutiqueChannelPageLayout>
+      <BoutiquePageHeader
+        title="Swaps & Promos"
+        subtitle="Newsletter partnerships"
+        badge="Partnerships"
+        badgeColor="#6EBF8B"
+        actions={
+          <button
+            onClick={() => setShowModal(true)}
+            className="text-sm font-semibold px-4 py-2 rounded-lg flex-shrink-0"
+            style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer' }}
+          >
+            + Log swap
+          </button>
+        }
+      />
 
       {/* Metrics Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
@@ -584,6 +584,6 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
       {showModal && (
         <LogSwapModal onClose={() => setShowModal(false)} onCreated={handleSwapCreated} />
       )}
-    </div>
+    </BoutiqueChannelPageLayout>
   )
 }

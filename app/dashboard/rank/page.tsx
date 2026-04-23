@@ -1,6 +1,7 @@
 'use client'
 // app/dashboard/rank/page.tsx — ROAS Hub
 import { DashboardErrorBoundary } from '@/components/DashboardErrorBoundary'
+import { BoutiqueChannelPageLayout, BoutiquePageHeader } from '@/components/boutique'
 // Central page for "Is my ad spend working?" — tabbed BSR + ad tracker with LM cost-per-sub
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
@@ -1156,31 +1157,28 @@ export default function RoasHubPage() {
 
   return (
     <DashboardErrorBoundary>
-    <div className="p-4 sm:p-8 pb-8 max-w-[1240px]">
-      {/* ── Page header ── */}
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <h1 className="font-sans text-[24px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
-            ROAS Hub
-          </h1>
-          <p className="text-[13px]" style={{ color: '#9CA3AF' }}>
-            Is your spend working? Track rank, revenue, and cost per result — every day.
-          </p>
-        </div>
-        <button
-          onClick={handleExport}
-          disabled={exporting}
-          className="px-3 py-2 rounded-lg text-[13px] font-medium transition-all disabled:opacity-50 whitespace-nowrap"
-          style={{
-            background: 'white',
-            border: '1px solid #E9A020',
-            color: '#E9A020',
-            cursor: exporting ? 'wait' : 'pointer',
-          }}
-        >
-          {exporting ? 'Exporting…' : 'Export →'}
-        </button>
-      </div>
+    <BoutiqueChannelPageLayout>
+      <BoutiquePageHeader
+        title="Advanced Metrics"
+        subtitle="Cross-channel performance"
+        badge="ROAS Hub"
+        badgeColor="#60A5FA"
+        actions={
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="px-3 py-2 rounded-lg text-[13px] font-medium transition-all disabled:opacity-50 whitespace-nowrap"
+            style={{
+              background: 'white',
+              border: '1px solid #E9A020',
+              color: '#E9A020',
+              cursor: exporting ? 'wait' : 'pointer',
+            }}
+          >
+            {exporting ? 'Exporting…' : 'Export →'}
+          </button>
+        }
+      />
 
       {/* ── Summary Strip ── */}
       <SummaryStrip refreshKey={summaryKey} />
@@ -1230,7 +1228,7 @@ export default function RoasHubPage() {
       ) : (
         <LeadMagnetTab />
       )}
-    </div>
+    </BoutiqueChannelPageLayout>
     </DashboardErrorBoundary>
   )
 }

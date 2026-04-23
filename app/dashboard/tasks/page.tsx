@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import type { Task } from '@/types'
+import { BoutiqueChannelPageLayout, BoutiquePageHeader } from '@/components/boutique'
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
 const PRIORITY_COLOR: Record<string, string> = {
@@ -207,7 +208,7 @@ export default function TaskCenterPage() {
   // Skeleton
   if (loading) {
     return (
-      <div className="min-h-screen p-6 md:p-8" style={{ background: '#FFF8F0', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <BoutiqueChannelPageLayout>
         <div className="max-w-3xl mx-auto">
           <div className="h-7 w-40 rounded-md mb-4" style={{ background: '#E5E2DD' }} />
           <div className="space-y-3">
@@ -219,23 +220,18 @@ export default function TaskCenterPage() {
             ))}
           </div>
         </div>
-      </div>
+      </BoutiqueChannelPageLayout>
     )
   }
 
   return (
-    <div className="min-h-screen p-6 md:p-8" style={{ background: '#FFF8F0', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
-          <div>
-            <h1 className="text-[20px] font-semibold m-0" style={{ color: '#1E2D3D' }}>Task center</h1>
-            <p className="text-[13px] mt-1 m-0" style={{ color: 'rgba(30,45,61,0.6)' }}>
-              {todoCount} task{todoCount !== 1 ? 's' : ''}
-              {aiCount > 0 && <> &middot; {aiCount} AI suggested</>}
-              {dueThisWeek > 0 && <> &middot; {dueThisWeek} due this week</>}
-            </p>
-          </div>
+    <BoutiqueChannelPageLayout>
+      <BoutiquePageHeader
+        title="Task Center"
+        subtitle="Your action plan"
+        badge="Tasks"
+        badgeColor="#E9A020"
+        actions={
           <div className="flex items-center gap-2">
             <button
               onClick={generateAI}
@@ -267,7 +263,9 @@ export default function TaskCenterPage() {
               + Add task
             </button>
           </div>
-        </div>
+        }
+      />
+      <div className="max-w-3xl mx-auto">
 
         {/* AI error */}
         {aiError && (
@@ -390,7 +388,7 @@ export default function TaskCenterPage() {
           }}
         />
       )}
-    </div>
+    </BoutiqueChannelPageLayout>
   )
 }
 
