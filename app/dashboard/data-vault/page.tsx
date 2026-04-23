@@ -280,6 +280,24 @@ export default function DataVaultPage() {
         )}
       </div>
 
+      {/* Export Your Data */}
+      <div className="rounded-xl p-5 mb-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2" style={{ color: '#6B7280' }}>
+          Export Your Data
+        </div>
+        <p className="text-[12.5px] mb-4 m-0" style={{ color: '#374151' }}>
+          Download a complete copy of everything AuthorDash holds about you.
+        </p>
+        <a
+          href="/api/user/data-export"
+          download
+          className="inline-block text-[11px] font-bold tracking-[0.08em] uppercase no-underline transition-all"
+          style={{ color: '#E9A020' }}
+        >
+          Download my data →
+        </a>
+      </div>
+
       {/* Delete All */}
       <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid rgba(251,113,133,0.25)' }}>
         <div className="text-[13px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>Delete all my data</div>

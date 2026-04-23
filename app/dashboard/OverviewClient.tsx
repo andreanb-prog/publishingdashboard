@@ -1011,6 +1011,7 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
   const animUnits = useCountUp(_unitsTarget, isFresh && !!analysis?.kdp)
   const animKenp  = useCountUp(_kenpTarget,  isFresh && !!analysis?.kdp)
   const animCtr   = useCountUp(_ctrTarget,   isFresh && !!analysis?.meta?.bestAd)
+  const _netVal   = animRev - (analysis?.meta?.totalSpend ?? 0)
 
   useEffect(() => {
     try {
@@ -1455,17 +1456,20 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
             fontFamily: 'var(--font-mono, ui-monospace, monospace)',
             fontSize: 11, color: 'var(--ink3, #564e46)',
           }}>
-            <span>${(analysis.kdp.totalRoyaltiesUSD ?? 0).toLocaleString()} gross</span>
+            <span>${animRev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} gross</span>
             {(analysis.meta?.totalSpend ?? 0) > 0 && (
               <>
                 <span style={{ color: 'var(--ink4, #8a8076)' }}> · minus </span>
-                <span style={{ color: '#dc2626' }}>${(analysis.meta.totalSpend).toLocaleString()}</span>
+                <span style={{ color: '#dc2626' }}>${(analysis.meta.totalSpend).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                 <span style={{ color: 'var(--ink4, #8a8076)' }}> Meta spend</span>
               </>
             )}
             <span style={{ color: 'var(--ink4, #8a8076)' }}> · minus $0 returns = </span>
-            <span style={{ color: 'var(--ink, #14110f)', fontWeight: 600 }}>
-              ${Math.max(0, Math.round(animRev - (analysis.meta?.totalSpend ?? 0))).toLocaleString()} net
+            <span style={{ color: _netVal < 0 ? '#F97B6B' : 'var(--ink, #14110f)', fontWeight: 600 }}>
+              {_netVal < 0
+                ? `-$${Math.abs(_netVal).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                : `$${_netVal.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+              } net
             </span>
           </div>
         )}

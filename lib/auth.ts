@@ -19,15 +19,21 @@ export const authOptions: NextAuthOptions = {
 
         // Try to fetch subscription data — gracefully skip if columns don't exist
         try {
-          const rows = await db.$queryRawUnsafe<any[]>(
-            `SELECT "subscriptionStatus", "subscriptionPlan", "trialEndsAt", "createdAt", "penName", "preferredGreetingName" FROM "User" WHERE "id" = $1 LIMIT 1`,
-            user.id
-          )
-          const row = rows[0]
+          const row = await db.user.findUnique({
+            where: { id: user.id },
+            select: {
+              subscriptionStatus: true,
+              subscriptionPlan: true,
+              trialEndsAt: true,
+              createdAt: true,
+              penName: true,
+              preferredGreetingName: true,
+            },
+          })
           if (row) {
             session.user.subscriptionStatus = row.subscriptionStatus ?? null
             session.user.subscriptionPlan = row.subscriptionPlan ?? null
-            session.user.trialEndsAt = row.trialEndsAt ? new Date(row.trialEndsAt).toISOString() : null
+            session.user.trialEndsAt = row.trialEndsAt ? row.trialEndsAt.toISOString() : null
             session.user.penName = row.penName ?? null
             session.user.preferredGreetingName = row.preferredGreetingName ?? null
             // Use pen name as display name if set
@@ -36,14 +42,14 @@ export const authOptions: NextAuthOptions = {
             // Auto-set trial for new users
             if (!row.subscriptionStatus && !row.trialEndsAt && row.createdAt) {
               try {
-                const trialEnd = new Date(new Date(row.createdAt).getTime() + 14 * 24 * 60 * 60 * 1000)
-                await db.$executeRawUnsafe(
-                  `UPDATE "User" SET "subscriptionStatus" = 'trialing', "trialEndsAt" = $1 WHERE "id" = $2`,
-                  trialEnd, user.id
-                )
+                const trialEnd = new Date(row.createdAt.getTime() + 14 * 24 * 60 * 60 * 1000)
+                await db.user.update({
+                  where: { id: user.id },
+                  data: { subscriptionStatus: 'trialing', trialEndsAt: trialEnd },
+                })
                 session.user.subscriptionStatus = 'trialing'
                 session.user.trialEndsAt = trialEnd.toISOString()
-              } catch { /* column may not exist */ }
+              } catch { /* non-fatal */ }
             }
           }
         } catch {
