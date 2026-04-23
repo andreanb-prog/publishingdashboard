@@ -5,7 +5,7 @@
 :root {
   /* Legacy vars (keep for backward compat) */
   --navy:   #1E2D3D;
-  --amber:  #E9A020;
+  --amber:  #D97706;
   --cream:  #FFF8F0;
   --coral:  #F97B6B;
   --peach:  #F4A261;
@@ -19,7 +19,7 @@
   /* Design tokens */
   --color-cream:  #FFF8F0;
   --color-navy:   #1E2D3D;
-  --color-amber:  #E9A020;
+  --color-amber:  #D97706;
   --color-sage:   #6EBF8B;
   --color-coral:  #F97B6B;
   --color-peach:  #F4A261;
@@ -85,12 +85,12 @@
 
 /* react-day-picker: apply AuthorDash amber palette */
 .rdp-root {
-  --rdp-accent-color: #E9A020;
+  --rdp-accent-color: #D97706;
   --rdp-accent-background-color: rgba(233, 160, 32, 0.12);
-  --rdp-range_start-date-background-color: #E9A020;
-  --rdp-range_end-date-background-color: #E9A020;
+  --rdp-range_start-date-background-color: #D97706;
+  --rdp-range_end-date-background-color: #D97706;
   --rdp-range_middle-background-color: rgba(233, 160, 32, 0.12);
-  --rdp-today-color: #E9A020;
+  --rdp-today-color: #D97706;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 /* hide scrollbar on pill rows */
@@ -110,25 +110,25 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-amber-brand text-[#0d1f35] font-bold px-5 py-2.5 rounded-lg text-sm
+    @apply bg-amber-brand text-[#0d1f35] font-bold px-5 py-2.5 text-sm
            hover:bg-amber-light transition-all duration-150 cursor-pointer border-0
            font-sans;
   }
 
   .btn-secondary {
-    @apply bg-white text-[#0d1f35] font-semibold px-4 py-2 rounded-lg text-sm
+    @apply bg-white text-[#0d1f35] font-semibold px-4 py-2 text-sm
            border border-stone-200 hover:bg-cream transition-all duration-150 cursor-pointer
            font-sans;
   }
 
   .card {
-    @apply bg-white rounded-xl;
+    @apply bg-white;
     border: 1px solid #EEEBE6;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
   }
 
   .card-dark {
-    @apply bg-dk-surface border border-dk-surface2 rounded-xl;
+    @apply bg-dk-surface border border-dk-surface2;
   }
 
   .metric-value {
@@ -140,68 +140,68 @@
   }
 
   .badge-green {
-    @apply bg-emerald-50 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full;
+    @apply bg-emerald-50 text-emerald-800 text-xs font-bold px-2.5 py-1;
   }
 
   .badge-amber {
-    @apply bg-amber-50 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full;
+    @apply bg-amber-50 text-amber-800 text-xs font-bold px-2.5 py-1;
   }
 
   .badge-red {
-    @apply bg-red-50 text-red-800 text-xs font-bold px-2.5 py-1 rounded-full;
+    @apply bg-red-50 text-red-800 text-xs font-bold px-2.5 py-1;
   }
 
   .badge-blue {
-    @apply bg-blue-50 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full;
+    @apply bg-blue-50 text-blue-800 text-xs font-bold px-2.5 py-1;
   }
 
   /* Dark theme badges — AuthorDash palette */
   .dk-badge-scale {
-    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+    @apply text-xs font-semibold px-2.5 py-1;
     background: rgba(110,191,139,0.15);
-    color: #6EBF8B;  /* sage — Scale it / Growing */
+    color: #6EBF8B;
   }
 
   .dk-badge-cut {
-    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+    @apply text-xs font-semibold px-2.5 py-1;
     background: rgba(249,123,107,0.15);
-    color: #F97B6B;  /* coral — Fix this / Cut this */
+    color: #F97B6B;
   }
 
   .dk-badge-watch {
-    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
-    background: rgba(233,160,32,0.15);
-    color: #E9A020;  /* amber — Keep watching */
+    @apply text-xs font-semibold px-2.5 py-1;
+    background: rgba(217,119,6,0.12);
+    color: #D97706;
   }
 
   .dk-badge-test {
-    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+    @apply text-xs font-semibold px-2.5 py-1;
     background: rgba(139,92,246,0.15);
-    color: #8B5CF6;  /* plum — Just starting / New */
+    color: #8B5CF6;
   }
 
   .dk-badge-teal {
-    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+    @apply text-xs font-semibold px-2.5 py-1;
     background: rgba(91,191,181,0.15);
-    color: #5BBFB5;  /* teal — Growing */
+    color: #5BBFB5;
   }
 
   /* Input styles */
   .input-field {
-    @apply w-full border border-stone-200 rounded-lg px-3 py-2.5 text-sm
+    @apply w-full border border-stone-200 px-3 py-2.5 text-sm
            font-sans text-[#0d1f35] bg-cream outline-none
            focus:border-amber-brand transition-colors duration-150;
   }
 
   .input-field-dark {
-    @apply w-full rounded-lg px-3 py-2.5 text-sm font-sans outline-none transition-colors duration-150;
+    @apply w-full px-3 py-2.5 text-sm font-sans outline-none transition-colors duration-150;
     background: #292524;
     border: 1.5px solid #44403c;
     color: #fafaf9;
   }
 
   .input-field-dark:focus {
-    border-color: #e9a020;
+    border-color: #D97706;
   }
 
   .input-field-dark::placeholder {
@@ -278,7 +278,7 @@
 }
 .wn-prose pre code { background: none; padding: 0; }
 .wn-prose blockquote {
-  border-left: 3px solid #E9A020; padding-left: 0.75em;
+  border-left: 3px solid #D97706; padding-left: 0.75em;
   margin: 0.5em 0; color: #6B7280; font-style: italic;
 }
 .wn-prose hr { border: none; border-top: 1px solid #EEEBE6; margin: 0.75em 0; }
