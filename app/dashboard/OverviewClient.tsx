@@ -13,6 +13,7 @@ import type { Analysis, RankLog, RoasLog, ChannelScore, CoachingInsight, CrossCh
 import type { DashboardData } from '@/lib/dashboard-data'
 import { getCoachTitle } from '@/lib/coachTitle'
 import { fmtPct, fmtCurrency } from '@/lib/utils'
+import { buildCoachPromptAction } from '@/app/actions/buildCoachPrompt'
 
 // coach title is set per-mount so it changes on every page load
 import { BoutiqueSectionLabel } from '@/components/boutique'
@@ -31,12 +32,28 @@ const CHANNEL_CARDS = [
   { key: 'pinterest',  href: '/dashboard/pinterest',   icon: Pin,        iconColor: '#fb7185', name: 'Pinterest',  colorClass: 'border-t-red-500' },
 ]
 
-const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
-  GREEN:  { bg: 'bg-emerald-50', text: 'text-emerald-800', label: '🟢 Growing' },
-  AMBER:  { bg: 'bg-amber-50',   text: 'text-amber-800',   label: '🟡 Watch' },
-  YELLOW: { bg: 'bg-amber-50',   text: 'text-amber-800',   label: '🟡 Watch' },
-  RED:    { bg: 'bg-red-50',     text: 'text-red-800',     label: '🔴 Fix this' },
-  NEW:    { bg: 'bg-blue-50',    text: 'text-blue-800',    label: '🔵 Starting' },
+function StatusChip({ status }: { status: 'growing' | 'watch' | 'fix' | 'starting' }) {
+  const config = {
+    growing:  { label: 'Growing',  color: 'var(--green)',          bg: 'rgba(47,109,78,0.08)',   bar: 'var(--green)' },
+    watch:    { label: 'Watch',    color: 'var(--amber-boutique)', bg: 'rgba(194,131,31,0.08)',  bar: 'var(--amber-boutique)' },
+    fix:      { label: 'Fix',      color: 'var(--red)',            bg: 'rgba(176,50,42,0.08)',   bar: 'var(--red)' },
+    starting: { label: 'Starting', color: 'var(--ink3)',           bg: 'rgba(86,78,70,0.08)',    bar: 'var(--ink3)' },
+  }
+  const c = config[status]
+  return (
+    <span
+      aria-label={`Status: ${c.label}`}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '3px 8px', background: c.bg,
+        fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
+        letterSpacing: '0.1em', textTransform: 'uppercase', color: c.color,
+      }}
+    >
+      <span style={{ width: 2, height: 10, background: c.bar, display: 'inline-block', borderRadius: 1 }} />
+      {c.label}
+    </span>
+  )
 }
 
 
@@ -66,134 +83,6 @@ function Trend({ curr, prev }: { curr?: number; prev?: number }) {
 }
 
 type SwapCalendarEntry = { id: string; partnerName: string; bookTitle: string; promoDate: string; direction: string; status: string }
-
-function buildCoachPrompt(
-  analysis: Analysis | null,
-  rankLogs: RankLog[],
-  roasLogs: RoasLog[],
-  swaps: SwapCalendarEntry[],
-): string {
-  const lines: string[] = []
-  const month = analysis?.month ?? new Date().toISOString().substring(0, 7)
-
-  lines.push(`# My Publishing Marketing Data — ${month}`)
-  lines.push(`I'm an indie author. Here's my full marketing data for the month.`)
-  lines.push('')
-
-  if (analysis?.kdp) {
-    const k = analysis.kdp
-    lines.push('## KDP (Amazon Publishing) Results')
-    lines.push(`Total royalties: $${k.totalRoyaltiesUSD}`)
-    lines.push(`Total units sold: ${k.totalUnits}`)
-    lines.push(`Total KENP reads: ${k.totalKENP?.toLocaleString()}`)
-    if (k.summary) {
-      lines.push(`Paid units: ${k.summary.paidUnits} | Free units: ${k.summary.freeUnits} | Paperback: ${k.summary.paperbackUnits}`)
-    }
-    if (k.books?.length) {
-      lines.push('Books breakdown:')
-      k.books.forEach(b => {
-        lines.push(`  • ${b.title}: ${b.units} units, ${b.kenp} KENP reads, $${b.royalties} royalties`)
-      })
-    }
-    lines.push('')
-  }
-
-  if (analysis?.meta) {
-    const m = analysis.meta
-    lines.push('## Meta (Facebook) Ads')
-    lines.push(`Total spend: $${m.totalSpend}`)
-    lines.push(`Total clicks: ${m.totalClicks}`)
-    lines.push(`Average CTR: ${m.avgCTR}%`)
-    lines.push(`Average CPC: $${m.avgCPC}`)
-    if (m.bestAd) {
-      lines.push(`Best ad: "${m.bestAd.name}" — ${m.bestAd.ctr}% CTR, $${m.bestAd.cpc} CPC, ${m.bestAd.clicks} clicks`)
-    }
-    if (m.ads?.length) {
-      lines.push('All ads:')
-      m.ads.forEach(a => {
-        lines.push(`  • "${a.name}": $${a.spend} spend, ${a.clicks} clicks, ${a.ctr}% CTR, $${a.cpc} CPC — ${a.status}`)
-      })
-    }
-    lines.push('')
-  }
-
-  if (analysis?.mailerLite) {
-    const ml = analysis.mailerLite
-    lines.push('## Email List (MailerLite)')
-    lines.push(`Subscribers: ${ml.listSize}`)
-    lines.push(`Open rate: ${ml.openRate}%`)
-    lines.push(`Click rate: ${ml.clickRate}%`)
-    lines.push(`Unsubscribes: ${ml.unsubscribes}`)
-    if (ml.campaigns?.length) {
-      lines.push('Recent campaigns:')
-      ml.campaigns.forEach(c => {
-        lines.push(`  • "${c.name}" (${c.sentAt}): ${c.openRate}% open, ${c.clickRate}% click, ${c.unsubscribes} unsubs`)
-      })
-    }
-    lines.push('')
-  }
-
-  if (swaps.length) {
-    lines.push('## Newsletter Swap Calendar')
-    swaps.forEach(s => {
-      const date = new Date(s.promoDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      lines.push(`  • ${date} — ${s.partnerName} | ${s.direction} | Status: ${s.status}`)
-    })
-    lines.push('')
-  }
-
-  if (analysis?.pinterest) {
-    const p = analysis.pinterest
-    lines.push('## Pinterest')
-    lines.push(`Total impressions: ${p.totalImpressions}`)
-    lines.push(`Total saves: ${p.totalSaves}`)
-    lines.push(`Total clicks: ${p.totalClicks}`)
-    lines.push(`Pin count: ${p.pinCount}`)
-    lines.push(`Save rate: ${p.saveRate}%`)
-    lines.push(`Account age: ${p.accountAge}`)
-    lines.push('')
-  }
-
-  if (rankLogs.length) {
-    lines.push('## Rank Tracker (Last 30 Days)')
-    rankLogs.forEach(r => {
-      const date = new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      lines.push(`  • ${date} — ${r.book}: rank #${r.rank}`)
-    })
-    lines.push('')
-  }
-
-  if (roasLogs.length) {
-    lines.push('## Daily ROAS Log (Last 30 Days)')
-    roasLogs.forEach(r => {
-      const date = new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      const note = r.notes ? ` — ${r.notes}` : ''
-      lines.push(`  • ${date}: $${r.spend} spend, $${r.earnings} earnings, ${r.roas}x ROAS${note}`)
-    })
-    lines.push('')
-  }
-
-  if (analysis?.channelScores?.length) {
-    lines.push('## Channel Health Scores')
-    analysis.channelScores.forEach(s => {
-      lines.push(`  • ${s.channel.toUpperCase()}: ${s.status} — ${s.metric} — ${s.subline}`)
-    })
-    lines.push('')
-  }
-
-  if (analysis?.actionPlan?.length) {
-    lines.push('## Current Action Plan')
-    analysis.actionPlan.forEach((item, i) => {
-      lines.push(`  ${i + 1}. [${item.type}] ${item.title}: ${item.body}`)
-    })
-    lines.push('')
-  }
-
-  lines.push('---')
-  lines.push('Based on everything above, I want to ask you:')
-
-  return lines.join('\n')
-}
 
 // ── What Happened card ──────────────────────────────────────────────────────
 function buildChanges(current: Analysis, previous: Analysis) {
@@ -1254,7 +1143,7 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
   async function handleCopy() {
     setCopying(true)
     try {
-      const prompt = buildCoachPrompt(analysis, rankLogs, roasLogs, swapCalendar)
+      const prompt = await buildCoachPromptAction(analysis, rankLogs, roasLogs, swapCalendar)
       await navigator.clipboard.writeText(prompt)
       setCopied(true)
       setTimeout(() => setCopied(false), 4000)

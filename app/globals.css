@@ -69,9 +69,18 @@
   --amber-boutique: #c2831f;
   --amber-soft:     #f5deaa;
   --amber-text:     #a56b13;
+  --green:          #2f6d4e;
   --green-text:     #245c3f;
+  --red:            #b0322a;
   --font-serif:     var(--font-fraunces), Georgia, serif;
   --font-mono:      var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Legacy token aliases — map to Boutique v2.3 tokens */
+  --color-navy:   var(--ink);
+  --color-cream:  var(--paper);
+  --color-amber:  var(--amber-boutique);
+  --color-sage:   var(--green);
+  --color-coral:  var(--red);
 }
 
 /* react-day-picker: apply AuthorDash amber palette */
