@@ -174,7 +174,9 @@ function InsightCard({ insight, index }: { insight: Insight; index: number }) {
         <div className="px-4 pb-4 -mt-1">
           <div className="text-[13px] leading-[1.7]" style={{ color: '#374151' }}
             dangerouslySetInnerHTML={{
-              __html: insight.text.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#1E2D3D">$1</strong>'),
+              __html: insight.text
+                .replace(/<[^>]*>/g, '')
+                .replace(/\*\*(.*?)\*\*/g, (_, inner) => `<strong style="color:#1E2D3D">${inner.replace(/<[^>]*>/g, '')}</strong>`),
             }}
           />
         </div>

@@ -1,5 +1,6 @@
 // app/api/meta/callback/route.ts — Exchange Meta auth code for long-lived token
 import { NextRequest, NextResponse } from 'next/server'
+import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 
 export async function GET(req: NextRequest) {
@@ -11,6 +12,14 @@ export async function GET(req: NextRequest) {
   if (error || !code || !userId) {
     const reason = searchParams.get('error_description') || error || 'Authorization was cancelled or failed'
     console.error('[Meta Callback] Error:', reason)
+    return NextResponse.redirect(new URL('/dashboard?meta_error=true', req.url))
+  }
+
+  // Verify the state param matches the authenticated session — prevents an attacker
+  // from crafting a callback URL with an arbitrary userId to hijack another user's token.
+  const session = await getAugmentedSession()
+  if (!session?.user?.id || session.user.id !== userId) {
+    console.error('[Meta Callback] state/session mismatch — possible CSRF attempt')
     return NextResponse.redirect(new URL('/dashboard?meta_error=true', req.url))
   }
 

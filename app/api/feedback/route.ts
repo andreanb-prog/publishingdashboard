@@ -78,6 +78,15 @@ async function sendToNotion({
   console.log('[Feedback → Notion] SUCCESS — page id:', data.id)
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export async function POST(req: NextRequest) {
   const session = await getAugmentedSession()
   if (!session?.user?.id) {
@@ -129,10 +138,10 @@ export async function POST(req: NextRequest) {
           subject: `[${type === 'bug' ? '🐛 Bug' : '💡 Idea'}] New feedback from ${session.user.name ?? session.user.email}`,
           html: `
             <p><strong>Type:</strong> ${type === 'bug' ? 'Bug report' : 'Feature idea'}</p>
-            <p><strong>From:</strong> ${session.user.name ?? ''} (${session.user.email})</p>
-            <p><strong>Page:</strong> ${page}</p>
+            <p><strong>From:</strong> ${escapeHtml(session.user.name ?? '')} (${escapeHtml(session.user.email ?? '')})</p>
+            <p><strong>Page:</strong> ${escapeHtml(page ?? '')}</p>
             <hr />
-            <p>${message.trim().replace(/\n/g, '<br />')}</p>
+            <p>${escapeHtml(message.trim()).replace(/\n/g, '<br />')}</p>
           `,
         }),
       })

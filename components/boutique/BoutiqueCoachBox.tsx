@@ -1,7 +1,11 @@
 'use client'
 
+function stripHtml(text: string): string {
+  return text.replace(/<[^>]*>/g, '')
+}
+
 function boldNumbers(text: string): string {
-  return text.replace(
+  return stripHtml(text).replace(
     /(\$[\d,.]+|\d[\d,.]*%|\d[\d,.]+)/g,
     '<strong style="color:#1E2D3D;font-weight:700">$1</strong>',
   )
