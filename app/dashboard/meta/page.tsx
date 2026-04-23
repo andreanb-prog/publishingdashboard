@@ -8,7 +8,15 @@ import 'react-day-picker/style.css'
 import ChartJS from 'chart.js/auto'
 import { ChartLegend } from '@/components/ChartLegend'
 import { CHART_COLORS, BASE_CHART_OPTIONS, barDataset } from '@/lib/chartConfig'
-import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
+import { DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
+import {
+  BoutiqueChannelPageLayout,
+  BoutiquePageHeader,
+  BoutiqueSectionLabel,
+  BoutiqueDataGrid,
+  BoutiqueMetricCard,
+  BoutiqueEmptyState,
+} from '@/components/boutique'
 import { FreshBanner } from '@/components/FreshBanner'
 import { InsightCallouts } from '@/components/InsightCallout'
 import { GoalSection } from '@/components/GoalSection'
@@ -867,15 +875,17 @@ export default function MetaPage() {
 
   if (loading) {
     return (
-      <DarkPage title="Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
+      <BoutiqueChannelPageLayout>
+        <BoutiquePageHeader title="Meta" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan" badge="LIVE" badgeColor="#F4A261" />
         <PageSkeleton cols={4} rows={3} />
-      </DarkPage>
+      </BoutiqueChannelPageLayout>
     )
   }
 
   return (
     <DashboardErrorBoundary>
-    <DarkPage title="Meta Ads" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan">
+    <BoutiqueChannelPageLayout>
+      <BoutiquePageHeader title="Meta" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan" badge="LIVE" badgeColor="#F4A261" />
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <LastUploadBadge channel="meta" dateRange={activeRange.start ? activeRange : undefined} />
 
@@ -893,27 +903,15 @@ export default function MetaPage() {
 
       {!meta ? (
         metaOverride === null ? (
-          /* Fetched a range but got no data back */
-          <div className="text-center py-16" style={{ color: '#6B7280' }}>
-            <div className="text-3xl mb-4">📭</div>
-            <div className="font-sans text-lg mb-2" style={{ color: '#1E2D3D' }}>
-              {preset === 'today' ? 'No data for today yet' : 'No data for this date range'}
-            </div>
-            <p className="text-sm mb-4" style={{ maxWidth: 340, margin: '0 auto 16px' }}>
-              {preset === 'today'
-                ? 'Meta exports update daily — try Yesterday or Last 7 Days.'
-                : 'Try a different date range, or sync fresh data from Meta.'}
-            </p>
-          </div>
+          <BoutiqueEmptyState
+            message={preset === 'today' ? 'No data for today yet' : 'No data for this date range'}
+          />
         ) : (
-          /* No Meta data at all */
-          <div className="text-center py-16" style={{ color: '#6B7280' }}>
-            <div className="text-4xl mb-4">📣</div>
-            <div className="font-sans text-xl mb-2" style={{ color: '#1E2D3D' }}>No Meta data yet</div>
-            <p className="text-sm mb-4">Connect your Meta Ads account and click Sync now to see your ad data</p>
-            <a href="/dashboard?upload=1" className="inline-block px-6 py-2.5 rounded-lg font-semibold text-sm no-underline"
-              style={{ background: '#e9a020', color: '#0d1f35' }}>Upload Files →</a>
-          </div>
+          <BoutiqueEmptyState
+            message="No Meta data yet"
+            ctaLabel="Upload Files →"
+            ctaHref="/dashboard?upload=1"
+          />
         )
       ) : (
         <>
@@ -980,64 +978,20 @@ export default function MetaPage() {
             </div>
           )}
 
-          {/* KPI strip with goal comparison */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-7">
-            {[
-              {
-                label: 'Total Spend',
-                value: fmtCurrency(meta.totalSpend),
-                sub: 'This period',
-                color: '#fb7185',
-              },
-              {
-                label: 'Best CTR',
-                value: fmtPct(meta.bestAd?.ctr || 0),
-                sub: ctrGoal ? `Goal: ${ctrGoal}%` : (meta.bestAd?.name || '—'),
-                color: '#34d399',
-                vsGoal: ctrGoal ? (meta.bestAd?.ctr || 0) >= ctrGoal : undefined,
-              },
-              {
-                label: 'Avg CPC',
-                value: fmtCurrency(meta.avgCPC),
-                sub: cpcGoal ? `Goal: ${fmtCurrency(cpcGoal)}` : 'Cost per click',
-                color: '#fbbf24',
-                vsGoal: cpcGoal ? meta.avgCPC <= cpcGoal : undefined,
-              },
-              {
-                label: 'Total Clicks',
-                value: meta.totalClicks.toLocaleString(),
-                sub: `${fmtCurrency(meta.avgCPC)} avg CPC`,
-                color: '#38bdf8',
-              },
-              {
-                label: 'Impressions',
-                value: meta.totalImpressions.toLocaleString(),
-                sub: `${fmtPct(meta.avgCTR)} avg CTR`,
-                color: '#a78bfa',
-              },
-            ].map((item, i) => (
-              <div key={i} className="rounded-xl p-4 relative overflow-hidden"
-                style={{ background: `linear-gradient(135deg, ${item.color}06, white 60%)`, border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
-                <div className="absolute bottom-0 left-0 right-0 h-[3px]"
-                  style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
-                <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2"
-                  style={{ color: '#6B7280' }}>
-                  {item.label}
-                </div>
-                <div className="text-[32px] font-semibold leading-none tracking-tight mb-1.5"
-                  style={{ color: item.color }}>
-                  {item.value}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px]" style={{ color: '#6B7280' }}>{item.sub}</span>
-                  {item.vsGoal !== undefined && (
-                    <span className="text-[10px] font-bold" style={{ color: item.vsGoal ? '#34d399' : '#fb7185' }}>
-                      {item.vsGoal ? '✓ on target' : '✗ below goal'}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+          {/* KPI strip */}
+          <BoutiqueSectionLabel label="Performance" />
+          <div style={{ marginBottom: 32 }}>
+            <BoutiqueDataGrid cols={3}>
+              <BoutiqueMetricCard label="Total Spend" value={fmtCurrency(meta.totalSpend)} colorDot="#F4A261" subtext="This period" />
+              <BoutiqueMetricCard label="Best CTR" value={fmtPct(meta.bestAd?.ctr || 0)} colorDot="#F4A261" subtext={ctrGoal ? `Goal: ${ctrGoal}%` : (meta.bestAd?.name || '—')} />
+              <BoutiqueMetricCard label="Avg CPC" value={fmtCurrency(meta.avgCPC)} colorDot="#F4A261" subtext={cpcGoal ? `Goal: ${fmtCurrency(cpcGoal)}` : 'Cost per click'} />
+            </BoutiqueDataGrid>
+            <div style={{ marginTop: 1 }}>
+              <BoutiqueDataGrid cols={2}>
+                <BoutiqueMetricCard label="Total Clicks" value={meta.totalClicks.toLocaleString()} colorDot="#F4A261" subtext={`${fmtCurrency(meta.avgCPC)} avg CPC`} />
+                <BoutiqueMetricCard label="Impressions" value={meta.totalImpressions.toLocaleString()} colorDot="#F4A261" subtext={`${fmtPct(meta.avgCTR)} avg CTR`} />
+              </BoutiqueDataGrid>
+            </div>
           </div>
 
           {/* Spend vs CTR chart — barDataset + line overlay from lib/chartConfig */}
@@ -1255,7 +1209,7 @@ export default function MetaPage() {
           />
         </>
       )}
-    </DarkPage>
+    </BoutiqueChannelPageLayout>
     </DashboardErrorBoundary>
   )
 }

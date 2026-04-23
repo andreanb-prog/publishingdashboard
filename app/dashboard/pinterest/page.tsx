@@ -1,7 +1,14 @@
 'use client'
 // app/(dashboard)/pinterest/page.tsx
 import { Suspense, useEffect, useState } from 'react'
-import { DarkPage, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
+import { DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
+import {
+  BoutiqueChannelPageLayout,
+  BoutiquePageHeader,
+  BoutiqueSectionLabel,
+  BoutiqueDataGrid,
+  BoutiqueMetricCard,
+} from '@/components/boutique'
 import { FreshBanner } from '@/components/FreshBanner'
 import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis } from '@/types'
@@ -87,31 +94,25 @@ export default function PinterestPage() {
 
   if (loading) {
     return (
-      <DarkPage title="📌 Pinterest" subtitle="Building from zero · Your 30-day plan">
+      <BoutiqueChannelPageLayout>
+        <BoutiquePageHeader title="Pinterest" subtitle="Building from zero · Your 30-day plan" badge="BUILDING" badgeColor="#F472B6" />
         <PageSkeleton cols={3} rows={3} />
-      </DarkPage>
+      </BoutiqueChannelPageLayout>
     )
   }
 
   return (
-    <DarkPage title="📌 Pinterest" subtitle="Building from zero · Your 30-day plan">
+    <BoutiqueChannelPageLayout>
+      <BoutiquePageHeader title="Pinterest" subtitle="Building from zero · Your 30-day plan" badge="BUILDING" badgeColor="#F472B6" />
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {/* KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-3.5 mb-7">
-        {[
-          { label: 'Total Impressions', value: pin?.totalImpressions ?? '—', sub: 'From your uploaded data', color: '#f472b6' },
-          { label: 'Active Pins', value: pin?.pinCount ?? '—', sub: 'From your uploaded data', color: '#fb7185' },
-          { label: 'Total Saves', value: pin?.totalSaves ?? '—', sub: 'From your uploaded data', color: '#fbbf24' },
-        ].map((item, i) => (
-          <div key={i} className="rounded-xl p-5 relative overflow-hidden"
-            style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-            <div className="absolute bottom-0 left-0 right-0 h-[3px]"
-              style={{ background: `linear-gradient(90deg, ${item.color}40, ${item.color})` }} />
-            <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-2" style={{ color: '#6B7280' }}>{item.label}</div>
-            <div className="text-[32px] font-semibold leading-none tracking-tight mb-1.5" style={{ color: item.color }}>{item.value}</div>
-            <div className="text-[11px]" style={{ color: '#6B7280' }}>{item.sub}</div>
-          </div>
-        ))}
+      <BoutiqueSectionLabel label="Performance" />
+      <div style={{ marginBottom: 32 }}>
+        <BoutiqueDataGrid cols={3}>
+          <BoutiqueMetricCard label="Total Impressions" value={pin?.totalImpressions != null ? String(pin.totalImpressions) : '—'} colorDot="#F472B6" subtext="From your uploaded data" />
+          <BoutiqueMetricCard label="Active Pins" value={pin?.pinCount != null ? String(pin.pinCount) : '—'} colorDot="#F472B6" subtext="From your uploaded data" />
+          <BoutiqueMetricCard label="Total Saves" value={pin?.totalSaves != null ? String(pin.totalSaves) : '—'} colorDot="#F472B6" subtext="From your uploaded data" />
+        </BoutiqueDataGrid>
       </div>
 
       {/* Coach box */}
@@ -254,6 +255,6 @@ export default function PinterestPage() {
           ))}
         </div>
       </div>
-    </DarkPage>
+    </BoutiqueChannelPageLayout>
   )
 }

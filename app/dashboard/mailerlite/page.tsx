@@ -5,7 +5,15 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import ChartJS from 'chart.js/auto'
 import { ChartLegend } from '@/components/ChartLegend'
 import { CHART_COLORS, BASE_CHART_OPTIONS, barDataset } from '@/lib/chartConfig'
-import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
+import { DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
+import {
+  BoutiqueChannelPageLayout,
+  BoutiquePageHeader,
+  BoutiqueSectionLabel,
+  BoutiqueDataGrid,
+  BoutiqueMetricCard,
+  BoutiqueEmptyState,
+} from '@/components/boutique'
 import { FreshBanner } from '@/components/FreshBanner'
 import { GoalSection } from '@/components/GoalSection'
 import { CollapsibleSection } from '@/components/CollapsibleSection'
@@ -504,24 +512,24 @@ export default function MailerLitePage() {
 
   if (loading) {
     return (
-      <DarkPage title="📧 MailerLite — Email Marketing" subtitle="Open rates · List health · Subscriber trends">
+      <BoutiqueChannelPageLayout>
+        <BoutiquePageHeader title="MailerLite" subtitle="Open rates · List health · Subscriber trends" badge="LIVE" badgeColor="#5BBFB5" />
         <PageSkeleton cols={4} />
-      </DarkPage>
+      </BoutiqueChannelPageLayout>
     )
   }
 
   return (
     <DashboardErrorBoundary>
-    <DarkPage title="📧 MailerLite — Email Marketing" subtitle="Open rates · List health · Subscriber trends">
+    <BoutiqueChannelPageLayout>
+      <BoutiquePageHeader title="MailerLite" subtitle="Open rates · List health · Subscriber trends" badge="LIVE" badgeColor="#5BBFB5" />
       <Suspense fallback={null}><FreshBanner /></Suspense>
       {!ml ? (
-        <div className="text-center py-16" style={{ color: '#6B7280' }}>
-          <div className="text-4xl mb-4">📧</div>
-          <div className="font-sans text-xl mb-2" style={{ color: '#1E2D3D' }}>MailerLite not connected</div>
-          <p className="text-sm mb-4">Connect your MailerLite account in Settings to see your email stats</p>
-          <a href="/dashboard/settings#connections" className="inline-block px-6 py-2.5 rounded-lg font-semibold text-sm no-underline"
-            style={{ background: '#e9a020', color: '#0d1f35' }}>Go to Settings → Connections →</a>
-        </div>
+        <BoutiqueEmptyState
+          message="MailerLite not connected"
+          ctaLabel="Go to Settings → Connections →"
+          ctaHref="/dashboard/settings#connections"
+        />
       ) : (
         <>
           <GoalSection
@@ -645,13 +653,20 @@ export default function MailerLitePage() {
             </div>
           )}
 
-          <DarkKPIStrip cols={5} items={[
-            { label: 'Open Rate',    value: fmtPct(ml.openRate),                                   sub: openSub,  color: ml.openRate  >= openTarget  ? '#34d399' : '#fbbf24' },
-            { label: 'List Size',    value: ml.listSize.toLocaleString(),                          sub: 'Active subscribers', color: '#38bdf8' },
-            { label: 'Click Rate',   value: fmtPct(ml.clickRate),                                  sub: clickSub, color: ml.clickRate >= clickTarget ? '#34d399' : '#fbbf24' },
-            { label: 'Unsubscribes', value: ml.unsubscribes,                                       sub: 'Total unsubscribed', color: ml.unsubscribes > 30 ? '#fb7185' : '#34d399' },
-            { label: 'Total Sent',   value: ml.sentCount != null ? ml.sentCount.toLocaleString() : '—', sub: 'Emails sent (list lifetime)', color: '#a78bfa' },
-          ]} />
+          <BoutiqueSectionLabel label="Performance" />
+          <div style={{ marginBottom: 32 }}>
+            <BoutiqueDataGrid cols={3}>
+              <BoutiqueMetricCard label="Open Rate" value={fmtPct(ml.openRate)} colorDot="#5BBFB5" subtext={openSub} />
+              <BoutiqueMetricCard label="List Size" value={ml.listSize.toLocaleString()} colorDot="#5BBFB5" subtext="Active subscribers" />
+              <BoutiqueMetricCard label="Click Rate" value={fmtPct(ml.clickRate)} colorDot="#5BBFB5" subtext={clickSub} />
+            </BoutiqueDataGrid>
+            <div style={{ marginTop: 1 }}>
+              <BoutiqueDataGrid cols={2}>
+                <BoutiqueMetricCard label="Unsubscribes" value={String(ml.unsubscribes)} colorDot="#5BBFB5" subtext="Total unsubscribed" />
+                <BoutiqueMetricCard label="Total Sent" value={ml.sentCount != null ? ml.sentCount.toLocaleString() : '—'} colorDot="#5BBFB5" subtext="Emails sent (list lifetime)" />
+              </BoutiqueDataGrid>
+            </div>
+          </div>
 
           {analysis && <InsightCallouts analysis={{ ...analysis, meta: undefined, kdp: undefined, pinterest: undefined }} page="mailerlite" />}
           <UnsubNote analysis={unsubAnalysis} />
@@ -927,7 +942,7 @@ export default function MailerLitePage() {
           />
         </>
       )}
-    </DarkPage>
+    </BoutiqueChannelPageLayout>
     </DashboardErrorBoundary>
   )
 }
