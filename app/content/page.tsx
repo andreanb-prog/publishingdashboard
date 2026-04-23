@@ -623,6 +623,11 @@ export default function ContentPlannerPage() {
           pillar: post.pillar,
           phase: post.phase,
           midjourneyStyleString: editingBrief?.midjourneyStyleString ?? '',
+          visualBrief: editingBrief ?? null,
+          genre: selectedBook?.genre ?? '',
+          tropes: selectedBook?.tropes ?? [],
+          feelings: profile?.coreFeelings ?? [],
+          voiceProfile: profile?.voiceProfile ?? '',
         }),
       })
       const { midjourneyPrompt, error } = await res.json()
