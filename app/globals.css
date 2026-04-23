@@ -54,6 +54,24 @@
   --card-border:   0.5px solid var(--color-border);
   --card-radius:   var(--radius-xl);
   --card-padding:  16px;
+
+  /* Boutique v2.3 design tokens */
+  --ink:            #14110f;
+  --ink2:           #2a2520;
+  --ink3:           #564e46;
+  --ink4:           #8a8076;
+  --paper:          #f7f1e5;
+  --paper2:         #efe6d2;
+  --paper3:         #e4d7b9;
+  --card-boutique:  #fefbf4;
+  --line:           #d8cfbd;
+  --line2:          #bfb39c;
+  --amber-boutique: #c2831f;
+  --amber-soft:     #f5deaa;
+  --amber-text:     #a56b13;
+  --green-text:     #245c3f;
+  --font-serif:     var(--font-fraunces), Georgia, serif;
+  --font-mono:      var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
 /* react-day-picker: apply AuthorDash amber palette */

@@ -846,11 +846,38 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
         </div>
       )}
 
+      {/* Boutique v2.3 greeting line — shown when analysis is loaded */}
+      {!loading && analysis && (
+        <div className="mb-5">
+          <p style={{
+            fontFamily: 'var(--font-serif, Georgia, serif)',
+            fontSize: 'clamp(20px, 2.5vw, 30px)',
+            fontWeight: 500, lineHeight: 1.3,
+            color: 'var(--ink, #14110f)', margin: 0,
+          }}>
+            {greeting}{userName ? `, ${userName.split(' ')[0]}` : ''}
+            {buildStorySentence(analysis) && (
+              <>
+                {' — '}
+                <em style={{ fontStyle: 'italic', color: 'var(--amber-text, #a56b13)' }}>
+                  {buildStorySentence(analysis)}
+                </em>
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
       {/* Empty state — new user with no data yet */}
       {!analysis && analyses.length === 0 && (
         <div className="mb-7">
-          <div className="text-[22px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
-            {greeting}{userName ? `, ${userName}` : ''}. Your dashboard is ready — it just needs your data.
+          <div className="mb-1" style={{
+            fontFamily: 'var(--font-serif, Georgia, serif)',
+            fontSize: 'clamp(20px, 2.5vw, 28px)',
+            fontWeight: 500, lineHeight: 1.3,
+            color: 'var(--ink, #1E2D3D)',
+          }}>
+            {greeting}{userName ? `, ${userName.split(' ')[0]}` : ''}. Your dashboard is ready — it just needs your data.
           </div>
           <p className="text-[13px] mb-5" style={{ color: '#6B7280' }}>
             Connect your channels below to unlock your personalised coaching.
@@ -880,55 +907,93 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
       )}
 
 
-      {/* Hero numbers strip — centered grid */}
-      <div className="rounded-xl mb-4 py-6 px-4 sm:px-6"
-        style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
-        <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Est. Revenue', value: analysis?.kdp ? `$${animRev.toFixed(2)}`             : null },
-            { label: 'Units Sold',   value: analysis?.kdp ? Math.round(animUnits).toLocaleString() : null },
-            { label: 'KENP Reads',   value: analysis?.kdp ? Math.round(animKenp).toLocaleString()  : null },
-            { label: 'Best CTR',     value: analysis?.meta?.bestAd ? `${animCtr.toFixed(1)}%`      : null },
-          ].map(stat => {
-            const hasData = stat.value != null && stat.value !== '—'
-            return (
-              <div key={stat.label} className="text-center transition-colors rounded-lg py-2"
-                style={{ background: hasData ? 'transparent' : undefined }}
-                onMouseEnter={e => { if (!hasData) e.currentTarget.style.background = '#FFF8F0' }}
-                onMouseLeave={e => { if (!hasData) e.currentTarget.style.background = 'transparent' }}>
-                <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-1"
-                  style={{ color: '#6B7280' }}>
-                  {stat.label}
-                </div>
-                {hasData ? (
-                  <div className="font-sans text-2xl sm:text-4xl font-semibold leading-none"
-                    style={{ color: '#1E2D3D' }}>
-                    {stat.value}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-2">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mb-2" style={{ opacity: 0.2 }}>
-                      <rect x="3" y="14" width="4" height="7" rx="1" fill="#1E2D3D" />
-                      <rect x="10" y="9" width="4" height="12" rx="1" fill="#1E2D3D" />
-                      <rect x="17" y="4" width="4" height="17" rx="1" fill="#1E2D3D" />
-                    </svg>
-                    <div className="text-[12px] mb-1" style={{ color: '#6B7280' }}>No data yet</div>
-                    <Link href="/dashboard?upload=1" className="text-[11px] font-semibold no-underline hover:underline"
-                      style={{ color: '#E9A020' }}>
-                      Upload to unlock →
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+      {/* Hero number — Boutique v2.3 */}
+      <div className="rounded-xl mb-4"
+        style={{ background: 'white', border: '1px solid var(--line, #d8cfbd)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', padding: '28px 28px 22px' }}>
+
+        {/* Live label */}
+        <div style={{
+          fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+          fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase',
+          color: 'var(--green-text, #245c3f)',
+          display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
+        }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green-text, #245c3f)', display: 'inline-block', flexShrink: 0 }} />
+          Est. Revenue · MTD · Live
         </div>
-        {storyMode && buildStorySentence(analysis) && (
-          <div className="mt-5 pt-4 text-center text-[13.5px] leading-relaxed"
-            style={{ borderTop: '1px solid #EEEBE6', color: '#1E2D3D', fontStyle: 'italic' }}>
-            {buildStorySentence(analysis)}
+
+        {/* Big number */}
+        {analysis?.kdp ? (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 1, lineHeight: 1 }}>
+            <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(36px, 5vw, 58px)', fontWeight: 500, color: 'var(--ink3, #564e46)', lineHeight: 1 }}>
+              $
+            </span>
+            <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(64px, 9vw, 104px)', fontWeight: 500, color: 'var(--ink, #14110f)', lineHeight: 1 }}>
+              {Math.floor(animRev).toLocaleString()}
+            </span>
+            <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 500, color: 'var(--ink3, #564e46)', lineHeight: 1 }}>
+              .{String(Math.round((animRev % 1) * 100)).padStart(2, '0')}
+            </span>
+          </div>
+        ) : (
+          <div style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 80, fontWeight: 300, color: 'var(--ink4, #8a8076)', lineHeight: 1 }}>
+            —
           </div>
         )}
+
+        {/* Breakdown line */}
+        {analysis?.kdp && (
+          <div style={{
+            marginTop: 14, paddingTop: 10,
+            borderTop: '1px dashed var(--line, #d8cfbd)',
+            fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+            fontSize: 11, color: 'var(--ink3, #564e46)',
+          }}>
+            <span>${(analysis.kdp.totalRoyaltiesUSD ?? 0).toLocaleString()} gross</span>
+            {(analysis.meta?.totalSpend ?? 0) > 0 && (
+              <>
+                <span style={{ color: 'var(--ink4, #8a8076)' }}> · minus </span>
+                <span style={{ color: '#dc2626' }}>${(analysis.meta.totalSpend).toLocaleString()}</span>
+                <span style={{ color: 'var(--ink4, #8a8076)' }}> Meta spend</span>
+              </>
+            )}
+            <span style={{ color: 'var(--ink4, #8a8076)' }}> · minus $0 returns = </span>
+            <span style={{ color: 'var(--ink, #14110f)', fontWeight: 600 }}>
+              ${Math.max(0, Math.round(animRev - (analysis.meta?.totalSpend ?? 0))).toLocaleString()} net
+            </span>
+          </div>
+        )}
+
+        {/* Secondary stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line, #d8cfbd)' }}>
+          {[
+            { label: 'Units Sold', value: analysis?.kdp ? Math.round(animUnits).toLocaleString() : null },
+            { label: 'KENP Reads', value: analysis?.kdp ? Math.round(animKenp).toLocaleString()  : null },
+            { label: 'Best CTR',   value: analysis?.meta?.bestAd ? `${animCtr.toFixed(1)}%`       : null },
+          ].map(stat => (
+            <div key={stat.label} style={{ textAlign: 'center' }}>
+              <div style={{
+                fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase',
+                color: 'var(--ink4, #8a8076)', marginBottom: 3,
+              }}>
+                {stat.label}
+              </div>
+              {stat.value != null ? (
+                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 600, color: 'var(--ink, #14110f)' }}>
+                  {stat.value}
+                </div>
+              ) : (
+                <div>
+                  <div style={{ fontSize: 13, color: 'var(--ink4, #8a8076)', marginBottom: 2 }}>No data</div>
+                  <Link href="/dashboard?upload=1" style={{ fontSize: 10, color: '#E9A020', textDecoration: 'none', fontWeight: 600 }}>
+                    Upload →
+                  </Link>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ══════ SECTION 1 — TODAY'S PRIORITIES ══════════════════════ */}
