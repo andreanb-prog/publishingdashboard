@@ -4,11 +4,18 @@ import { DashboardErrorBoundary } from '@/components/DashboardErrorBoundary'
 import { Suspense, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import ChartJS from 'chart.js/auto'
 import Link from 'next/link'
-import { DarkPage, DarkKPIStrip, DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
+import { DarkCoachBox, PageSkeleton } from '@/components/DarkPage'
+import {
+  BoutiqueChannelPageLayout,
+  BoutiquePageHeader,
+  BoutiqueSectionLabel,
+  BoutiqueDataGrid,
+  BoutiqueMetricCard,
+  BoutiqueEmptyState,
+} from '@/components/boutique'
 import { CollapsibleSection } from '@/components/CollapsibleSection'
 import { FreshBanner } from '@/components/FreshBanner'
 import { InsightCallouts } from '@/components/InsightCallout'
-import { MetricTooltip } from '@/components/MetricHealth'
 import { ViewingBar } from '@/components/ViewingBar'
 import { GoalSection } from '@/components/GoalSection'
 import { BarChart } from '@/components/ui'
@@ -1162,50 +1169,56 @@ export default function KDPPage() {
 
   if (loading) {
     return (
-      <DarkPage title="KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties">
+      <BoutiqueChannelPageLayout>
+        <BoutiquePageHeader title="KDP" subtitle="Amazon royalties" badge="LIVE" />
         <PageSkeleton cols={5} />
-      </DarkPage>
+      </BoutiqueChannelPageLayout>
     )
   }
 
   return (
     <DashboardErrorBoundary>
-    <DarkPage title="KDP — Sales & Royalties" subtitle="Kindle Direct Publishing · Units sold, KENP reads, royalties"
-      headerRight={
-        <div>
-          <DateRangePicker preset={preset} onPreset={handlePreset}
-            customStart={customStart} customEnd={customEnd}
-            onApply={(s, e) => { setCustomStart(s); setCustomEnd(e) }} />
-          <p className="text-[11px] mt-1.5" style={{ color: '#9CA3AF' }}>
-            {kdpLastUploadedAt
-              ? (() => {
-                  const uploadDate = new Date(kdpLastUploadedAt)
-                  const today = new Date()
-                  const isToday = uploadDate.toDateString() === today.toDateString()
-                  return isToday
-                    ? <>Showing data from today&apos;s upload ✅</>
-                    : <>Showing data from your last upload — {uploadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload a new report</a> to see the latest numbers.</>
-                })()
-              : <>No data uploaded yet. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload your KDP report</a> to get started.</>
-            }
-          </p>
-          <p className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>
-            KDP data typically lags 48–72 hours. Recent days may show incomplete numbers.
-          </p>
-          {kdp && (
-            <div className="mt-2">
-              <button
-                onClick={handleDownloadTracker}
-                disabled={downloading}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-semibold text-sm transition-opacity"
-                style={{ background: '#E9A020', color: '#1E2D3D', opacity: downloading ? 0.7 : 1 }}
-              >
-                {downloading ? 'Building tracker…' : 'Download Ad Tracker →'}
-              </button>
-            </div>
-          )}
-        </div>
-      }>
+    <BoutiqueChannelPageLayout>
+      <BoutiquePageHeader
+        title="KDP"
+        subtitle="Amazon royalties"
+        badge="LIVE"
+        actions={
+          <div>
+            <DateRangePicker preset={preset} onPreset={handlePreset}
+              customStart={customStart} customEnd={customEnd}
+              onApply={(s, e) => { setCustomStart(s); setCustomEnd(e) }} />
+            <p className="text-[11px] mt-1.5" style={{ color: 'var(--ink4)' }}>
+              {kdpLastUploadedAt
+                ? (() => {
+                    const uploadDate = new Date(kdpLastUploadedAt)
+                    const today = new Date()
+                    const isToday = uploadDate.toDateString() === today.toDateString()
+                    return isToday
+                      ? <>Showing data from today&apos;s upload ✅</>
+                      : <>Showing data from your last upload — {uploadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload a new report</a> to see the latest numbers.</>
+                  })()
+                : <>No data uploaded yet. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload your KDP report</a> to get started.</>
+              }
+            </p>
+            <p className="text-[11px] mt-0.5" style={{ color: 'var(--ink4)' }}>
+              KDP data typically lags 48–72 hours. Recent days may show incomplete numbers.
+            </p>
+            {kdp && (
+              <div className="mt-2">
+                <button
+                  onClick={handleDownloadTracker}
+                  disabled={downloading}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-semibold text-sm transition-opacity"
+                  style={{ background: '#E9A020', color: '#1E2D3D', opacity: downloading ? 0.7 : 1 }}
+                >
+                  {downloading ? 'Building tracker…' : 'Download Ad Tracker →'}
+                </button>
+              </div>
+            )}
+          </div>
+        }
+      />
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <LastUploadBadge channel="kdp" />
       {unmatchedBooks.length > 0 && (
@@ -1221,15 +1234,11 @@ export default function KDPPage() {
         </div>
       )}
       {!kdp && !kdpSalesData ? (
-        <div className="text-center py-16" style={{ color: '#6B7280' }}>
-          <div className="text-4xl mb-4">📚</div>
-          <div className="text-xl font-semibold mb-2" style={{ color: '#1E2D3D' }}>No KDP data yet</div>
-          <p className="text-sm mb-4">Upload your KDP Excel report to see your analysis</p>
-          <a href="/dashboard?upload=1" className="inline-block px-6 py-2.5 rounded-lg font-semibold text-sm no-underline"
-            style={{ background: '#e9a020', color: '#0d1f35' }}>
-            Upload Files →
-          </a>
-        </div>
+        <BoutiqueEmptyState
+          message="No KDP data yet"
+          ctaLabel="Upload Files →"
+          ctaHref="/dashboard?upload=1"
+        />
       ) : (
         <>
           <GoalSection
@@ -1252,74 +1261,29 @@ export default function KDPPage() {
             const unitsDelta = prev ? displayUnits - prev.totalUnits : null
             const kenpDelta  = prev ? displayKENP  - prev.totalKENP  : null
             const revDelta   = prev ? totalEstRevenue - Math.round((prev.totalRoyaltiesUSD + prev.totalKENP * 0.0045) * 100) / 100 : null
-
-            const kpis = [
-              { label: 'Units Sold',        value: displayUnits.toLocaleString(), delta: unitsDelta, color: '#38bdf8', tooltip: 'totalUnits' },
-              { label: 'KENP Reads',        value: displayKENP.toLocaleString(),  delta: kenpDelta,  color: '#fbbf24', tooltip: 'kenp' },
-              { label: 'Est. KU Revenue',   value: fmtCurrency(estKu),          delta: null,       color: '#a78bfa', tooltip: 'estKuEarnings',    projection: true },
-              { label: 'Total Est. Revenue',value: fmtCurrency(totalEstRevenue), delta: revDelta,   color: '#fb7185', tooltip: 'totalEstRevenue', projection: true },
-            ]
-
             return (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                {kpis.map((kpi, i) => {
-                  const isEmpty = kpi.value === '—' || kpi.value === '0' || kpi.value === '$0'
-                  return (
-                    <div key={i} className="rounded-xl relative p-4"
-                      style={{
-                        background: 'white',
-                        border: '1px solid #EEEBE6',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                        minWidth: 0,
-                        overflow: 'hidden',
-                        paddingBottom: 16,
-                      }}>
-                      <div className="absolute bottom-0 left-0 right-0 h-[2px]"
-                        style={{ background: isEmpty ? '#EEEBE6' : kpi.color }} />
-                      <div className="flex items-center gap-1 mb-2">
-                        <span className="text-[11px] font-medium uppercase" style={{ color: '#6B7280', letterSpacing: '0.3px' }}>
-                          {kpi.label}
-                        </span>
-                        <MetricTooltip metric={kpi.tooltip} />
-                      </div>
-                      {isEmpty ? (
-                        <div className="flex flex-col items-start" style={{ minHeight: 40 }}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="mb-1" style={{ opacity: 0.15 }}>
-                            <rect x="3" y="14" width="4" height="7" rx="1" fill="#1E2D3D" />
-                            <rect x="10" y="9" width="4" height="12" rx="1" fill="#1E2D3D" />
-                            <rect x="17" y="4" width="4" height="17" rx="1" fill="#1E2D3D" />
-                          </svg>
-                          <div className="text-[11px]" style={{ color: '#6B7280' }}>No data yet</div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="font-bold leading-none tracking-tight"
-                            style={{ color: '#1E2D3D', fontSize: 'clamp(20px, 2vw, 28px)' }}>
-                            {kpi.value}
-                          </div>
-                          {kpi.delta != null && kpi.delta !== 0 && (
-                            <div className="flex items-center gap-1 mt-1.5">
-                              <span className="text-[11px] font-semibold"
-                                style={{ color: kpi.delta > 0 ? '#6EBF8B' : '#F97B6B' }}>
-                                {kpi.delta > 0 ? '▲' : '▼'} {Math.abs(kpi.delta).toLocaleString()}
-                              </span>
-                              <span className="text-[10px]" style={{ color: '#6B7280' }}>vs prev</span>
-                            </div>
-                          )}
-                          {kpi.projection && (
-                            <span className="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-1.5"
-                              style={{ background: '#FEF3C7', color: '#92400E' }}>⚠ Estimate</span>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+              <>
+                <BoutiqueSectionLabel label="Revenue" />
+                <div style={{ marginBottom: 32 }}>
+                  <BoutiqueDataGrid cols={4}>
+                    <BoutiqueMetricCard label="Est. Revenue" value={fmtCurrency(totalEstRevenue)} colorDot="#F97B6B" isProjection delta={revDelta} />
+                    <BoutiqueMetricCard label="Royalties" value={fmtCurrency(displayRoyalties)} colorDot="#F97B6B" />
+                    <BoutiqueMetricCard label="KENP Reads" value={displayKENP.toLocaleString()} colorDot="#F97B6B" delta={kenpDelta} />
+                    <BoutiqueMetricCard label="Units Sold" value={displayUnits.toLocaleString()} colorDot="#F97B6B" delta={unitsDelta} />
+                  </BoutiqueDataGrid>
+                </div>
+              </>
             )
           })()}
 
-          {analysis && <InsightCallouts analysis={{ ...analysis, meta: undefined, mailerLite: undefined, pinterest: undefined }} page="kdp" />}
+          {analysis && (
+            <>
+              <BoutiqueSectionLabel label="Insights" />
+              <div style={{ marginBottom: 24 }}>
+                <InsightCallouts analysis={{ ...analysis, meta: undefined, mailerLite: undefined, pinterest: undefined }} page="kdp" />
+              </div>
+            </>
+          )}
           {coach && <DarkCoachBox color="#fbbf24" title={coachTitle}>{coach}</DarkCoachBox>}
 
           {/* Book Title Picker — excludes books marked as hidden in Settings > My Books */}
@@ -1476,6 +1440,8 @@ export default function KDPPage() {
             </button>
           </div>
 
+          <BoutiqueSectionLabel label="Charts" />
+
           {/* ── Chart 1 — Daily Units Sold (with Chart 5 heatmap toggle) ── */}
           <CollapsibleSection
             title="Daily Units Sold"
@@ -1586,7 +1552,7 @@ export default function KDPPage() {
           </CollapsibleSection>
         </>
       )}
-    </DarkPage>
+    </BoutiqueChannelPageLayout>
     </DashboardErrorBoundary>
   )
 }
