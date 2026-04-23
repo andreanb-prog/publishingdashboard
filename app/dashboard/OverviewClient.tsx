@@ -430,6 +430,493 @@ function getDefaultDateRange() {
   return { from, to }
 }
 
+// ── Boutique v2.3: channel cards row ────────────────────────────────────────
+function BoutiqueDeltaChip({ curr, prev }: { curr?: number | null; prev?: number | null }) {
+  if (curr == null || prev == null || prev === 0) return null
+  const pct = ((curr - prev) / Math.abs(prev)) * 100
+  const flat = Math.abs(pct) < 2
+  const up = pct > 0
+  return (
+    <div style={{
+      fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+      fontSize: 10, letterSpacing: '0.08em',
+      color: flat ? 'var(--ink4, #8a8076)' : up ? 'var(--green-text, #245c3f)' : '#dc2626',
+      marginTop: 4,
+    }}>
+      {flat ? '— flat' : `${up ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}%`}
+    </div>
+  )
+}
+
+function BoutiqueChannelCardsRow({
+  analysis, liveML, analyses,
+}: {
+  analysis: any
+  liveML: import('@/types').MailerLiteData | null
+  analyses: any[]
+}) {
+  const prev = analyses[1] ?? null
+
+  const kdpVal     = analysis?.kdp?.totalRoyaltiesUSD ?? null
+  const prevKdpVal = prev?.kdp?.totalRoyaltiesUSD ?? null
+
+  const metaSpend    = analysis?.meta?.totalSpend ?? 0
+  const kdpKuRev     = analysis?.kdp ? ((analysis.kdp.totalKENP ?? 0) * 0.0045) : 0
+  const totalRev     = (analysis?.kdp?.totalRoyaltiesUSD ?? 0) + kdpKuRev
+  const metaRoas     = metaSpend > 0 ? totalRev / metaSpend : null
+  const prevMetaSpd  = prev?.meta?.totalSpend ?? 0
+  const prevKuRev    = prev?.kdp ? ((prev.kdp.totalKENP ?? 0) * 0.0045) : 0
+  const prevTotalRev = (prev?.kdp?.totalRoyaltiesUSD ?? 0) + prevKuRev
+  const prevMetaRoas = prevMetaSpd > 0 ? prevTotalRev / prevMetaSpd : null
+
+  const mlList     = liveML?.listSize ?? analysis?.mailerLite?.listSize ?? null
+  const prevMlList = prev?.mailerLite?.listSize ?? null
+  const mlOpenRate = liveML?.openRate ?? analysis?.mailerLite?.openRate ?? null
+
+  const pinSaves     = analysis?.pinterest?.totalSaves ?? null
+  const prevPinSaves = prev?.pinterest?.totalSaves ?? null
+
+  const cards = [
+    {
+      label: 'KDP Royalties',
+      dot: '#F97B6B',
+      href: '/dashboard/kdp',
+      display: kdpVal != null
+        ? `$${kdpVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : null,
+      curr: kdpVal, prev: prevKdpVal,
+      velocity: analysis?.kdp?.totalUnits
+        ? `${(analysis.kdp.totalUnits as number).toLocaleString()} units`
+        : null,
+    },
+    {
+      label: 'Meta ROAS',
+      dot: '#F4A261',
+      href: '/dashboard/meta',
+      display: metaRoas != null ? `${metaRoas.toFixed(2)}×` : null,
+      curr: metaRoas, prev: prevMetaRoas,
+      velocity: metaSpend > 0
+        ? `$${(metaSpend as number).toLocaleString(undefined, { maximumFractionDigits: 2 })} spend`
+        : null,
+    },
+    {
+      label: 'MailerLite List',
+      dot: '#5BBFB5',
+      href: '/dashboard/mailerlite',
+      display: mlList != null ? (mlList as number).toLocaleString() : null,
+      curr: mlList, prev: prevMlList,
+      velocity: mlOpenRate != null ? `${mlOpenRate}% open` : null,
+    },
+    {
+      label: 'Pinterest Saves',
+      dot: '#60A5FA',
+      href: '/dashboard/pinterest',
+      display: pinSaves != null ? (pinSaves as number).toLocaleString() : null,
+      curr: pinSaves, prev: prevPinSaves,
+      velocity: analysis?.pinterest?.saveRate != null
+        ? `${analysis.pinterest.saveRate}% save rate`
+        : null,
+    },
+  ]
+
+  return (
+    <div className="boutique-channel-row" style={{
+      border: '1px solid var(--line, #d8cfbd)',
+      background: 'var(--card, white)',
+      marginBottom: 24,
+      overflow: 'hidden',
+    }}>
+      {cards.map((card, i) => (
+        <Link key={card.label} href={card.href} style={{
+          display: 'block', textDecoration: 'none',
+          background: 'var(--card, white)',
+          padding: '20px 22px',
+          borderRight: i < cards.length - 1 ? '1px solid var(--line, #d8cfbd)' : 'none',
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+            fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: 'var(--ink4, #8a8076)', marginBottom: 8,
+          }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%',
+              background: card.dot, flexShrink: 0, display: 'inline-block',
+            }} />
+            {card.label}
+          </div>
+
+          <div style={{
+            fontFamily: 'var(--font-serif, Georgia, serif)',
+            fontSize: 32, fontWeight: 500, lineHeight: 1,
+            color: card.display ? 'var(--ink, #14110f)' : 'var(--ink4, #8a8076)',
+            marginBottom: 4,
+          }}>
+            {card.display ?? '—'}
+          </div>
+
+          <BoutiqueDeltaChip curr={card.curr} prev={card.prev} />
+
+          {card.velocity && (
+            <div style={{
+              marginTop: 6, display: 'inline-block',
+              border: '1px solid var(--line, #d8cfbd)', padding: '2px 6px',
+              fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+              fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase',
+              color: 'var(--ink4, #8a8076)',
+            }}>
+              {card.velocity}
+            </div>
+          )}
+
+          {!card.display && (
+            <div style={{
+              marginTop: 8, display: 'inline-block',
+              border: '1px solid var(--line, #d8cfbd)', padding: '2px 8px',
+              fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+              fontSize: 9, letterSpacing: '0.08em', color: 'var(--ink4, #8a8076)',
+            }}>
+              Connect to unlock
+            </div>
+          )}
+        </Link>
+      ))}
+    </div>
+  )
+}
+
+// ── Boutique v2.3: coach promoted panel ─────────────────────────────────────
+function CoachPromotedPanel({ analysis }: { analysis: any }) {
+  const topInsight: CoachingInsight | undefined =
+    (analysis?.actionPlan as CoachingInsight[] | undefined)?.find((i: CoachingInsight) => i.type === 'RED') ??
+    (analysis?.actionPlan as CoachingInsight[] | undefined)?.[0]
+  if (!topInsight) return null
+
+  let triggerNum: string | null = null
+  let triggerLabel = ''
+  let triggerIsNeg = true
+  const ch = topInsight.channel
+  if (ch === 'meta' && analysis.meta) {
+    triggerNum = `${((analysis.meta.avgCTR ?? 0) as number).toFixed(1)}%`
+    triggerLabel = 'CTR'
+    triggerIsNeg = (analysis.meta.avgCTR ?? 0) < 1
+  } else if ((ch === 'kdp' || ch === 'general') && analysis.kdp) {
+    const rev = ((analysis.kdp.totalRoyaltiesUSD ?? 0) as number) +
+                ((analysis.kdp.totalKENP ?? 0) as number) * 0.0045
+    triggerNum = `$${rev.toFixed(2)}`
+    triggerLabel = 'Est. Revenue'
+    triggerIsNeg = rev < 100
+  } else if (ch === 'email' && analysis.mailerLite) {
+    triggerNum = `${((analysis.mailerLite.openRate ?? 0) as number).toFixed(1)}%`
+    triggerLabel = 'Open Rate'
+    triggerIsNeg = (analysis.mailerLite.openRate ?? 0) < 20
+  }
+
+  const href = ch === 'kdp' ? '/dashboard/kdp'
+    : ch === 'meta' ? '/dashboard/meta'
+    : ch === 'email' ? '/dashboard/mailerlite'
+    : ch === 'pinterest' ? '/dashboard/pinterest'
+    : '/dashboard?upload=1'
+
+  const titleParts = topInsight.title.split(/\b(fix|scale|cut|improve|low|high|drop|weak|strong)\b/gi)
+
+  return (
+    <div className="coach-panel-responsive" style={{
+      background: 'var(--card, white)',
+      border: '1px solid var(--line, #d8cfbd)',
+      borderLeft: '4px solid var(--amber, #E9A020)',
+      marginBottom: 24,
+      padding: '20px 24px',
+      display: 'flex', gap: 24, alignItems: 'flex-start',
+    }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <span style={{
+            fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+            fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: 'var(--amber-text, #a56b13)',
+          }}>
+            Coach
+          </span>
+          <span style={{
+            background: 'var(--amber-soft, #f5deaa)',
+            fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+            fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: 'var(--amber-text, #a56b13)',
+            padding: '2px 7px', borderRadius: 20,
+          }}>
+            New
+          </span>
+        </div>
+
+        <p style={{
+          fontFamily: 'var(--font-serif, Georgia, serif)',
+          fontSize: 'clamp(15px, 2vw, 22px)', fontStyle: 'italic', fontWeight: 400,
+          color: 'var(--ink, #14110f)', lineHeight: 1.45,
+          marginBottom: 16, marginTop: 0,
+        }}>
+          {titleParts.map((part, j) =>
+            /^(fix|scale|cut|improve|low|high|drop|weak|strong)$/i.test(part)
+              ? <em key={j} style={{ fontStyle: 'normal', color: 'var(--amber-text, #a56b13)', fontWeight: 500 }}>{part}</em>
+              : part
+          )}
+        </p>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link href={href} style={{
+            display: 'inline-block', textDecoration: 'none',
+            background: 'var(--navy, #1E2D3D)', color: 'var(--paper, #f7f1e5)',
+            fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+            fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase',
+            padding: '8px 16px',
+          }}>
+            Fix this →
+          </Link>
+          <Link href={href} style={{
+            display: 'inline-block', textDecoration: 'none',
+            background: 'transparent', color: 'var(--ink3, #564e46)',
+            border: '1px solid var(--line, #d8cfbd)',
+            fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+            fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase',
+            padding: '8px 16px',
+          }}>
+            See full report
+          </Link>
+        </div>
+      </div>
+
+      {triggerNum && (
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div style={{
+            fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+            fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: 'var(--ink4, #8a8076)', marginBottom: 4,
+          }}>
+            {triggerLabel}
+          </div>
+          <div style={{
+            fontFamily: 'var(--font-serif, Georgia, serif)',
+            fontSize: 34, fontWeight: 500, lineHeight: 1,
+            color: triggerIsNeg ? '#dc2626' : 'var(--green-text, #245c3f)',
+          }}>
+            {triggerNum}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Boutique v2.3: right rail components ────────────────────────────────────
+function RailLaunchCountdown() {
+  return (
+    <div style={{ marginBottom: 32 }}>
+      <div style={{
+        fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+        fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase',
+        color: 'var(--ink4, #8a8076)', marginBottom: 16,
+      }}>
+        Launch Countdown
+      </div>
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8,
+        padding: '16px',
+        border: '1px dashed var(--line, #d8cfbd)',
+      }}>
+        <div style={{
+          fontFamily: 'var(--font-serif, Georgia, serif)',
+          fontSize: 15, fontWeight: 400, color: 'var(--ink3, #564e46)',
+        }}>
+          No launch scheduled
+        </div>
+        <Link href="/dashboard/launch" style={{
+          fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+          fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase',
+          color: 'var(--amber-text, #a56b13)', textDecoration: 'none',
+        }}>
+          Plan a launch →
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+function RailTasksSection({ tasks }: { tasks: import('@/types').Task[] }) {
+  const doneTasks = tasks.filter(t => t.status === 'done').slice(0, 2)
+  const openTasks = tasks.filter(t => t.status === 'todo')
+  const topTask   = openTasks[0] ?? null
+  const restTasks = openTasks.slice(1, 3)
+
+  const doneCount = tasks.filter(t => t.status === 'done').length
+  const total     = Math.min(tasks.length, 5)
+  const r         = 15
+  const circ      = 2 * Math.PI * r
+  const dashOff   = total > 0 ? circ * (1 - doneCount / total) : circ
+
+  function fmtCompletedTime(iso: string | null | undefined) {
+    if (!iso) return ''
+    return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+          <circle cx="17" cy="17" r={r} stroke="var(--line, #d8cfbd)" strokeWidth="2.5" />
+          {total > 0 && (
+            <circle
+              cx="17" cy="17" r={r}
+              stroke="var(--amber, #E9A020)" strokeWidth="2.5"
+              strokeDasharray={circ}
+              strokeDashoffset={dashOff}
+              strokeLinecap="round"
+              transform="rotate(-90 17 17)"
+            />
+          )}
+        </svg>
+        <div>
+          <div style={{
+            fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+            fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase',
+            color: 'var(--ink4, #8a8076)',
+          }}>
+            Today&apos;s Tasks
+          </div>
+          {total > 0 && (
+            <div style={{
+              fontFamily: 'var(--font-serif, Georgia, serif)',
+              fontSize: 13, fontStyle: 'italic',
+              color: 'var(--amber-text, #a56b13)',
+            }}>
+              {doneCount} / {total} done
+            </div>
+          )}
+        </div>
+      </div>
+
+      {tasks.length === 0 ? (
+        <div style={{
+          padding: '12px 14px',
+          border: '1px dashed var(--line, #d8cfbd)',
+          fontFamily: 'var(--font-serif, Georgia, serif)',
+          fontSize: 13, color: 'var(--ink3, #564e46)',
+        }}>
+          No tasks yet.{' '}
+          <Link href="/dashboard/tasks" style={{ color: 'var(--amber-text, #a56b13)', textDecoration: 'none' }}>
+            Add one →
+          </Link>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {doneTasks.map(t => (
+            <div key={t.id} style={{
+              padding: '8px 12px', opacity: 0.7,
+              border: '1px solid var(--line, #d8cfbd)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-serif, Georgia, serif)',
+                fontSize: 12, fontStyle: 'italic', color: 'var(--ink3, #564e46)',
+                textDecoration: 'line-through', flex: 1, minWidth: 0,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {t.title}
+              </span>
+              {t.completedAt && (
+                <span style={{
+                  fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                  fontSize: 9, color: 'var(--ink4, #8a8076)', flexShrink: 0,
+                }}>
+                  {fmtCompletedTime(t.completedAt)}
+                </span>
+              )}
+            </div>
+          ))}
+
+          {topTask && (
+            <div style={{
+              padding: '12px 14px',
+              border: '1.5px solid var(--amber, #E9A020)',
+              background: 'linear-gradient(135deg, rgba(233,160,32,0.05) 0%, rgba(233,160,32,0.01) 100%)',
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase',
+                color: 'var(--amber-text, #a56b13)', marginBottom: 4,
+              }}>
+                Next up
+              </div>
+              <div style={{
+                fontFamily: 'var(--font-serif, Georgia, serif)',
+                fontSize: 13, fontStyle: 'italic',
+                color: 'var(--ink, #14110f)', marginBottom: 6,
+                overflow: 'hidden', textOverflow: 'ellipsis',
+                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+              }}>
+                {topTask.title}
+              </div>
+              {topTask.category && (
+                <div style={{
+                  fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                  fontSize: 9, color: 'var(--ink4, #8a8076)', marginBottom: 8,
+                  textTransform: 'uppercase', letterSpacing: '0.08em',
+                }}>
+                  {topTask.category}
+                </div>
+              )}
+              <Link href="/dashboard/tasks" style={{
+                display: 'inline-block', textDecoration: 'none',
+                background: 'var(--navy, #1E2D3D)', color: 'var(--paper, #f7f1e5)',
+                fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase',
+                padding: '5px 10px',
+              }}>
+                Start →
+              </Link>
+            </div>
+          )}
+
+          {restTasks.map(t => (
+            <div key={t.id} style={{
+              padding: '10px 12px',
+              border: '1px solid var(--line, #d8cfbd)',
+              background: 'white',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8,
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-serif, Georgia, serif)',
+                fontSize: 12, fontStyle: 'italic', color: 'var(--ink2, #2a2520)',
+                flex: 1, minWidth: 0,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {t.title}
+              </span>
+              <Link href="/dashboard/tasks" style={{
+                fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                fontSize: 9, letterSpacing: '0.08em', textTransform: 'uppercase',
+                color: 'var(--ink4, #8a8076)', textDecoration: 'none', flexShrink: 0,
+              }}>
+                Skip
+              </Link>
+            </div>
+          ))}
+
+          {openTasks.length > 3 && (
+            <Link href="/dashboard/tasks" style={{
+              fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+              fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase',
+              color: 'var(--amber-text, #a56b13)', textDecoration: 'none', marginTop: 4,
+              display: 'block',
+            }}>
+              +{openTasks.length - 3} more →
+            </Link>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 export function OverviewClient({ userName, initialData }: { userName?: string | null; initialData?: DashboardData } = {}) {
   const hasInitial = !!initialData
@@ -537,6 +1024,16 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
   const [syncingMeta,  setSyncingMeta]  = useState(false)
   const [syncingML,    setSyncingML]    = useState(false)
   const [metaErrorBanner, setMetaErrorBanner] = useState(false)
+  const [railTasks, setRailTasks] = useState<import('@/types').Task[]>([])
+
+  useEffect(() => {
+    fetch('/api/tasks?status=todo')
+      .then(r => r.ok ? r.json() : [])
+      .then((data: unknown) => {
+        if (Array.isArray(data)) setRailTasks(data.slice(0, 6))
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -846,6 +1343,10 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
         </div>
       )}
 
+      {/* ── Two-column layout: main content (flex-1) + right rail (320px at xl+) ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px]" style={{ gap: '0 32px', alignItems: 'start' }}>
+      <div className="min-w-0">
+
       {/* Boutique v2.3 greeting line — shown when analysis is loaded */}
       {!loading && analysis && (
         <div className="mb-5">
@@ -995,6 +1496,9 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
           ))}
         </div>
       </div>
+
+      {/* ══════ COACH PROMOTED PANEL ════════════════════════════════ */}
+      {analysis && <CoachPromotedPanel analysis={analysis} />}
 
       {/* ══════ SECTION 1 — TODAY'S PRIORITIES ══════════════════════ */}
       {!loading && (
@@ -1238,130 +1742,7 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
                     📖 Story
                   </button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
-                  {CHANNEL_CARDS.map(card => {
-                    let score = getChannelScore(card.key)
-
-                    // Fallback for KDP: if no channelScore from AI but KDP data is present
-                    // (e.g. uploaded in a prior month and backfilled, or AI omitted it), build
-                    // a synthetic score so the card always reflects real uploaded numbers.
-                    if (!score && card.key === 'kdp' && analysis?.kdp) {
-                      const k = analysis.kdp
-                      const estRevenue = Math.round(((k.totalRoyaltiesUSD ?? 0) + (k.totalKENP ?? 0) * 0.0045) * 100) / 100
-                      const status = k.totalUnits >= 50 ? 'GREEN' : k.totalUnits >= 10 ? 'AMBER' : 'NEW'
-                      score = {
-                        channel: 'kdp',
-                        status,
-                        headline: `${k.totalUnits.toLocaleString()} units sold`,
-                        metric: `$${estRevenue.toFixed(2)}`,
-                        subline: `${k.totalUnits.toLocaleString()} units · ${(k.totalKENP ?? 0).toLocaleString()} KENP reads`,
-                        badge: status === 'GREEN' ? 'Growing' : status === 'AMBER' ? 'Watch' : 'Starting',
-                      } as ChannelScore
-                    }
-
-                    // Fallback for Meta: if no channelScore exists but synced data is in the DB,
-                    // build a synthetic score from the raw meta fields so the card shows real numbers.
-                    if (!score && card.key === 'meta' && analysis?.meta) {
-                      const m = analysis.meta
-                      const ctr: number = m.avgCTR ?? 0
-                      const status = ctr >= 2 ? 'GREEN' : ctr >= 1 ? 'AMBER' : 'RED'
-                      score = {
-                        channel: 'meta',
-                        status,
-                        headline: `$${(m.totalSpend ?? 0).toFixed(2)} spent`,
-                        metric: `$${(m.totalSpend ?? 0).toFixed(2)}`,
-                        subline: `CTR ${ctr}% · CPC $${m.avgCPC ?? 0} · ${(m.totalImpressions ?? 0).toLocaleString()} impressions`,
-                        badge: status === 'GREEN' ? 'Growing' : status === 'AMBER' ? 'Watch' : 'Fix this',
-                      } as ChannelScore
-                    }
-
-                    // Fallback for MailerLite using live API data if available
-                    if (!score && card.key === 'mailerlite') {
-                      const ml = liveML ?? analysis?.mailerLite
-                      if (ml) {
-                        const status = ml.openRate >= 25 ? 'GREEN' : ml.openRate >= 15 ? 'AMBER' : 'RED'
-                        score = {
-                          channel: 'mailerlite',
-                          status,
-                          headline: `${ml.listSize.toLocaleString()} subscribers`,
-                          metric: ml.listSize.toLocaleString(),
-                          subline: `${ml.openRate}% open · ${ml.clickRate}% click`,
-                          badge: status === 'GREEN' ? 'Growing' : status === 'AMBER' ? 'Watch' : 'Fix this',
-                        } as ChannelScore
-                      }
-                    }
-
-                    const badge = (score?.status ? STATUS_BADGE[score.status] : null) ?? STATUS_BADGE.NEW
-                    return (
-                      <div key={card.key}
-                        className={`card p-4 hover:-translate-y-0.5 transition-all border-t-[3px] ${card.colorClass} animate-fade-up relative`}>
-                        <Link href={card.href} className="absolute inset-0 z-0 no-underline" aria-label={card.name} />
-                        <span className="mb-2.5 block"><card.icon size={20} strokeWidth={1.75} color={card.iconColor} /></span>
-                        <div className="text-[10.5px] font-bold tracking-[0.8px] uppercase text-stone-500 mb-1">
-                          {card.name}
-                        </div>
-                        <div className="font-sans text-[22px] text-[#0d1f35] tracking-tight leading-none mb-1.5">
-                          {score?.metric || '—'}
-                        </div>
-                        <div className="text-[11px] text-stone-500 leading-snug mb-2.5">
-                          {score?.subline || 'Add your files to see this'}
-                        </div>
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
-                          {badge.label}
-                        </span>
-                        {storyMode && score?.storyBullets && (
-                          <div className="mt-3 pt-3 space-y-1.5" style={{ borderTop: '0.5px solid #EEEBE6' }}>
-                            <p className="text-[11px] leading-snug" style={{ color: '#374151' }}>
-                              🟢 {score.storyBullets.win}
-                            </p>
-                            <p className="text-[11px] leading-snug" style={{ color: '#374151' }}>
-                              📈 {score.storyBullets.trend}
-                            </p>
-                            <p className="text-[11px] leading-snug" style={{ color: '#374151' }}>
-                              ➡️ {score.storyBullets.nextAction}
-                            </p>
-                          </div>
-                        )}
-                        {/* Data freshness footer */}
-                        <div className="mt-2 pt-1.5 flex items-center gap-2" style={{ borderTop: '0.5px solid #EEEBE6' }}>
-                          {card.key === 'kdp' && (
-                            kdpLastUploadedAt
-                              ? <span className="text-[9.5px] text-stone-400">Last upload: {fmtRelDate(kdpLastUploadedAt)}</span>
-                              : <span className="text-[9.5px] text-stone-400">No upload yet</span>
-                          )}
-                          {card.key === 'mailerlite' && (
-                            <>
-                              <span className="text-[9.5px] font-bold" style={{ color: '#34d399' }}>● Live</span>
-                              <button
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSyncML() }}
-                                disabled={syncingML}
-                                className="relative z-10 text-[9.5px] font-medium transition-colors"
-                                style={{ color: syncingML ? '#9CA3AF' : '#6B7280', cursor: syncingML ? 'not-allowed' : 'pointer', background: 'none', border: 'none', padding: 0 }}
-                              >
-                                {syncingML ? '↻ Syncing…' : '↻ Sync'}
-                              </button>
-                            </>
-                          )}
-                          {card.key === 'meta' && (
-                            <>
-                              <span className="text-[9.5px] text-stone-400">
-                                {metaLastSync ? `Synced ${fmtRelDate(metaLastSync)}` : 'Not synced'}
-                              </span>
-                              <button
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSyncMeta() }}
-                                disabled={syncingMeta}
-                                className="relative z-10 text-[9.5px] font-medium transition-colors"
-                                style={{ color: syncingMeta ? '#9CA3AF' : '#6B7280', cursor: syncingMeta ? 'not-allowed' : 'pointer', background: 'none', border: 'none', padding: 0 }}
-                              >
-                                {syncingMeta ? '↻ Syncing…' : '↻ Sync'}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                <BoutiqueChannelCardsRow analysis={analysis} liveML={liveML} analyses={analyses} />
               </div>
             ),
           },
@@ -1574,6 +1955,26 @@ export function OverviewClient({ userName, initialData }: { userName?: string | 
           </div>
         </>
       )}
+
+      </div>{/* /main content col */}
+
+      {/* Right rail — visible only at xl+ (≥1280px) */}
+      <aside
+        className="hidden xl:flex"
+        style={{
+          flexDirection: 'column',
+          borderLeft: '1px solid var(--line, #d8cfbd)',
+          padding: '40px 28px',
+          background: 'rgba(254,251,244,0.5)',
+          alignSelf: 'start',
+          position: 'sticky',
+          top: 24,
+        }}
+      >
+        <RailLaunchCountdown />
+        <RailTasksSection tasks={railTasks} />
+      </aside>
+      </div>{/* /xl grid */}
 
       {/* ── AI Coach panel — compact strip ── */}
       <div className="-mx-8 -mb-8 mt-2" style={{ background: '#FFF8F0', borderTop: '1px solid #EEEBE6' }}>

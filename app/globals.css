@@ -216,6 +216,32 @@
 .animate-fade-up-delay-4 { animation-delay: 0.2s; }
 .animate-fade-up-delay-5 { animation-delay: 0.25s; }
 
+/* Boutique v2.3 — channel cards row */
+.boutique-channel-row {
+  display: grid;
+  grid-template-columns: 2.4fr 1.2fr 1.2fr 0.8fr;
+}
+@media (max-width: 899px) {
+  .boutique-channel-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .boutique-channel-row > *:nth-child(2),
+  .boutique-channel-row > *:nth-child(4) {
+    border-right: none !important;
+  }
+  .boutique-channel-row > *:nth-child(1),
+  .boutique-channel-row > *:nth-child(2) {
+    border-bottom: 1px solid var(--line, #d8cfbd);
+  }
+}
+
+/* Coach panel — stack vertically below 768px */
+@media (max-width: 767px) {
+  .coach-panel-responsive {
+    flex-direction: column !important;
+  }
+}
+
 /* Writing Notebook — chat prose */
 .wn-prose { line-height: 1.6; }
 .wn-prose > *:first-child { margin-top: 0; }
