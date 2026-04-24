@@ -1,9 +1,9 @@
 'use client'
-// app/dashboard/settings/billing/page.tsx — Billing management
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { SHOW_PRICING } from '@/lib/flags'
+import { BoutiqueButton, BoutiqueCard, BoutiqueStatusChip } from '@/components/boutique'
 
 export default function BillingPage() {
   const { data: session } = useSession()
@@ -50,88 +50,91 @@ export default function BillingPage() {
     }
   }
 
+  const planLabel = isActive
+    ? (plan === 'fpa' ? 'FPA Circle Member' : 'AuthorDash Pro')
+    : isTrialing ? 'Free Trial'
+    : isCanceled ? 'Canceled'
+    : 'No Plan'
+
+  const statusTone: 'green' | 'amber' | 'coral' | 'navy' =
+    isActive ? 'green' : isTrialing ? 'amber' : 'coral'
+
+  const statusLabel = isActive ? 'Active' : isTrialing ? 'Trial' : isPastDue ? 'Past Due' : isCanceled ? 'Canceled' : 'Free'
+
   return (
     <div className="p-8 max-w-2xl">
       <Link href="/dashboard/settings" className="text-[12px] font-semibold no-underline hover:underline mb-6 inline-block"
-        style={{ color: '#6B7280' }}>
+        style={{ color: '#6B7280', fontFamily: 'var(--font-sans)' }}>
         ← Back to Settings
       </Link>
 
-      <h1 className="text-[24px] font-bold tracking-tight mb-1" style={{ color: '#1E2D3D' }}>
+      <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, fontWeight: 700, color: '#1E2D3D', marginBottom: 4 }}>
         Billing & Subscription
       </h1>
-      <p className="text-[13px] mb-8" style={{ color: '#6B7280' }}>
+      <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#6B7280', marginBottom: 32 }}>
         Manage your plan, payment method, and invoices.
       </p>
 
       {/* Current plan card */}
-      <div className="rounded-xl p-6 mb-6" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+      <BoutiqueCard accentLeft style={{ padding: 24, marginBottom: 24 }}>
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-2" style={{ color: '#E9A020' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#D97706', marginBottom: 8 }}>
               Current Plan
             </div>
-            <div className="text-[20px] font-bold mb-1" style={{ color: '#1E2D3D' }}>
-              {isActive ? (plan === 'fpa' ? 'FPA Circle Member' : 'AuthorDash Pro') : isTrialing ? 'Free Trial' : isCanceled ? 'Canceled' : 'No Plan'}
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 700, color: '#1E2D3D', marginBottom: 4 }}>
+              {planLabel}
             </div>
-            <div className="text-[13px]" style={{ color: '#6B7280' }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#6B7280' }}>
               {isTrialing && daysLeft != null && `${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining in your trial`}
               {isActive && (plan === 'fpa' ? '$19/month · FPA2026 coupon applied' : '$29/month')}
               {isCanceled && 'Your subscription has been canceled'}
               {isPastDue && 'Payment failed — please update your payment method'}
             </div>
           </div>
-          <div className="flex-shrink-0">
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-              style={{
-                background: isActive ? 'rgba(110,191,139,0.12)' : isTrialing ? 'rgba(233,160,32,0.12)' : 'rgba(249,123,107,0.12)',
-                color: isActive ? '#6EBF8B' : isTrialing ? '#E9A020' : '#F97B6B',
-              }}>
-              {isActive ? 'Active' : isTrialing ? 'Trial' : isPastDue ? 'Past Due' : isCanceled ? 'Canceled' : 'Free'}
-            </span>
-          </div>
+          <BoutiqueStatusChip tone={statusTone} label={statusLabel} />
         </div>
-      </div>
+      </BoutiqueCard>
 
       {/* Actions */}
       <div className="space-y-3">
         {(isTrialing || !isActive) && (
-          <button
+          <BoutiqueButton
+            variant="amber"
             onClick={() => handleUpgrade('regular')}
             disabled={loading}
-            className="w-full py-3 rounded-lg text-[14px] font-bold transition-all disabled:opacity-50"
-            style={{ background: '#E9A020', color: '#0d1f35', border: 'none', cursor: 'pointer' }}
+            style={{ width: '100%', justifyContent: 'center', padding: '12px 16px' }}
           >
             {loading ? 'Redirecting...' : isTrialing ? 'Upgrade to Pro — $29/month' : 'Subscribe to Pro'}
-          </button>
+          </BoutiqueButton>
         )}
 
         {isActive && (
-          <button
+          <BoutiqueButton
+            variant="ghost"
             onClick={openPortal}
             disabled={loading}
-            className="w-full py-3 rounded-lg text-[14px] font-semibold transition-all disabled:opacity-50"
-            style={{ background: 'white', border: '1px solid #EEEBE6', color: '#1E2D3D', cursor: 'pointer' }}
+            style={{ width: '100%', justifyContent: 'center', padding: '12px 16px' }}
           >
             {loading ? 'Opening...' : 'Manage Subscription & Invoices'}
-          </button>
+          </BoutiqueButton>
         )}
 
         {isPastDue && (
-          <button
+          <BoutiqueButton
+            variant="amber"
             onClick={openPortal}
             disabled={loading}
-            className="w-full py-3 rounded-lg text-[14px] font-bold transition-all disabled:opacity-50"
-            style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer' }}
+            style={{ width: '100%', justifyContent: 'center', padding: '12px 16px' }}
           >
             {loading ? 'Opening...' : 'Update Payment Method'}
-          </button>
+          </BoutiqueButton>
         )}
       </div>
 
-      {/* Help */}
-      <div className="mt-8 text-[12px]" style={{ color: '#6B7280' }}>
-        Questions about billing? Email <a href="mailto:support@authordash.com" style={{ color: '#E9A020' }}>support@authordash.com</a>
+      <div className="mt-8 text-[12px]" style={{ color: '#6B7280', fontFamily: 'var(--font-sans)' }}>
+        Questions about billing? Email{' '}
+        <a href="mailto:support@authordash.com" style={{ color: '#D97706' }}>support@authordash.com</a>
       </div>
     </div>
   )

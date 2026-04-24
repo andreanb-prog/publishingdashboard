@@ -15,7 +15,7 @@ import {
   PenLine, ListChecks,
 } from '@/components/icons'
 
-function IconTaskCenter({ size = 20, color = '#E9A020' }: { size?: number; color?: string }) {
+function IconTaskCenter({ size = 20, color = '#D97706' }: { size?: number; color?: string }) {
   return <ListChecks size={size} color={color} />
 }
 
@@ -38,17 +38,17 @@ const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
 
 const ALL_NAV: NavEntry[] = [
   { section: 'Overview', label: 'My Dashboard',   href: '/dashboard',              render: ph(House) },
-  { label: 'Task Center',                         href: '/dashboard/tasks',        render: () => <IconTaskCenter size={20} color="#E9A020" /> },
+  { label: 'Task Center',                         href: '/dashboard/tasks',        render: () => <IconTaskCenter size={20} color="#D97706" /> },
   // HIDDEN — re-enable when ready:
-  // { label: 'Writing Notebook',                    href: '/dashboard/writing-notebook',       render: () => <PenLine size={20} color="#E9A020" /> },
-  { section: 'Channels', label: 'KDP',            href: '/dashboard/kdp',          render: ic(IconKDP, '#E9A020') },
+  // { label: 'Writing Notebook',                    href: '/dashboard/writing-notebook',       render: () => <PenLine size={20} color="#D97706" /> },
+  { section: 'Channels', label: 'KDP',            href: '/dashboard/kdp',          render: ic(IconKDP, '#D97706') },
   { label: 'Meta / Facebook',                     href: '/dashboard/meta',         render: ic(IconMeta, '#60A5FA') },
   { label: 'MailerLite',                           href: '/dashboard/mailerlite',   render: ic(IconMailerLite, '#34d399') },
-  { label: 'Swaps & Promos',                       href: '/dashboard/swaps',        render: ic(IconSwaps, '#E9A020') },
+  { label: 'Swaps & Promos',                       href: '/dashboard/swaps',        render: ic(IconSwaps, '#D97706') },
   { label: 'Pinterest',                            href: '/dashboard/pinterest',    render: ic(IconPinterest, '#fb7185') },
-  { section: 'Tools', label: 'Advanced Metrics',  href: '/dashboard/metrics',      render: ic(IconMetrics, '#E9A020') },
+  { section: 'Tools', label: 'Advanced Metrics',  href: '/dashboard/metrics',      render: ic(IconMetrics, '#D97706') },
   { label: 'Rank Tracker',                        href: '/dashboard/rank',         render: ic(IconRank, '#34d399') },
-  // { label: 'Daily ROAS Log',                      href: '/dashboard/roas',         render: ic(IconROAS, '#E9A020') },
+  // { label: 'Daily ROAS Log',                      href: '/dashboard/roas',         render: ic(IconROAS, '#D97706') },
   // { label: 'List Building ROAS',                  href: '/dashboard/list-building', render: ic(IconListBuilding, '#34d399') },
   { label: 'Learn the Terms',                     href: '/dashboard/learn',        render: ph(GraduationCap) },
   { label: 'Settings',                             href: '/dashboard/settings',     render: ph(Gear) },
@@ -82,7 +82,7 @@ export function MobileNav() {
         </button>
         <div className="text-[15px]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
           <span style={{ color: '#4A7290', fontWeight: 700 }}>Author</span>
-          <span style={{ color: '#E9A020', fontWeight: 700 }}>Dash</span>
+          <span style={{ color: '#D97706', fontWeight: 700 }}>Dash</span>
         </div>
         <button
           onClick={openUploadModal}
@@ -112,7 +112,7 @@ export function MobileNav() {
               style={{ borderBottom: '1px solid #EEEBE6' }}>
               <div className="text-[16px]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                 <span style={{ color: '#4A7290', fontWeight: 700 }}>Author</span>
-                <span style={{ color: '#E9A020', fontWeight: 700 }}>Dash</span>
+                <span style={{ color: '#D97706', fontWeight: 700 }}>Dash</span>
               </div>
               <button
                 onClick={() => setOpen(false)}
@@ -142,7 +142,7 @@ export function MobileNav() {
                       className="flex items-center gap-3 px-3 py-3 rounded-lg text-[14px] no-underline"
                       style={{
                         color:      active ? '#e9a020' : '#1E2D3D',
-                        background: active ? 'rgba(233,160,32,0.1)' : undefined,
+                        background: active ? 'rgba(217,119,6,0.1)' : undefined,
                         fontWeight: active ? 600 : 400,
                         minHeight:  44,
                       }}

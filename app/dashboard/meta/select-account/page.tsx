@@ -21,7 +21,7 @@ export default function SelectMetaAccountPage() {
   }, [])
 
   return (
-    <div style={{ minHeight: '100vh', background: '#FFF8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Plus Jakarta Sans', sans-serif", padding: '24px' }}>
+    <div style={{ minHeight: '100vh', background: '#F7F1E6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Plus Jakarta Sans', sans-serif", padding: '24px' }}>
       <div style={{ background: '#fff', borderRadius: '16px', border: '0.5px solid #E8E4DC', padding: '40px', maxWidth: '480px', width: '100%' }}>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
@@ -63,7 +63,7 @@ export default function SelectMetaAccountPage() {
                   transition: 'border-color 0.15s, background 0.15s',
                 }}
                 onMouseEnter={e => {
-                  (e.currentTarget as HTMLAnchorElement).style.borderColor = '#E9A020'
+                  (e.currentTarget as HTMLAnchorElement).style.borderColor = '#D97706'
                   ;(e.currentTarget as HTMLAnchorElement).style.background = 'rgba(233,160,32,0.04)'
                 }}
                 onMouseLeave={e => {
@@ -82,7 +82,7 @@ export default function SelectMetaAccountPage() {
                     )}
                   </div>
                 </div>
-                <span style={{ fontSize: '18px', color: '#E9A020', marginLeft: '12px' }}>→</span>
+                <span style={{ fontSize: '18px', color: '#D97706', marginLeft: '12px' }}>→</span>
               </a>
             ))}
           </div>

@@ -51,8 +51,8 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
   }, [onDone])
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl text-[13px] font-semibold shadow-lg"
-      style={{ background: '#1E2D3D', color: 'white' }}
+      className="fixed bottom-6 right-6 z-50 px-4 py-3 text-[13px] font-semibold"
+      style={{ background: '#1E2D3D', color: 'white', borderRadius: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
     >
       {message}
     </div>
@@ -96,16 +96,16 @@ function IntegCard({
 }) {
   return (
     <div
-      className="flex flex-col rounded-[10px] overflow-hidden"
-      style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}
+      className="flex flex-col overflow-hidden"
+      style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0 }}
     >
       <div
         className="flex items-center gap-3 px-4 pt-4 pb-3"
         style={{ borderBottom: '0.5px solid rgba(30,45,61,0.06)' }}
       >
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: iconBg }}
+          className="w-8 h-8 flex items-center justify-center shrink-0"
+          style={{ border: '1px solid #E8E1D3', borderRadius: 0 }}
         >
           {icon}
         </div>
@@ -125,7 +125,7 @@ function Spinner() {
   return (
     <svg className="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none">
       <circle cx="7" cy="7" r="5.5" stroke="#E0D9D0" strokeWidth="1.5" />
-      <path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="#E9A020" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   )
 }
@@ -146,8 +146,8 @@ function AmberBtn({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`text-[11px] font-semibold px-3 py-1.5 rounded-[6px] border-none cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed${fullWidth ? ' w-full' : ''}`}
-      style={{ background: '#E9A020', color: '#1E2D3D' }}
+      className={`text-[11px] font-semibold px-3 py-1.5 border-none cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed${fullWidth ? ' w-full' : ''}`}
+      style={{ background: '#D97706', color: '#FFFFFF', borderRadius: 2 }}
     >
       {children}
     </button>
@@ -190,7 +190,7 @@ function KeyInput({
       className="w-full text-[11px] font-mono px-2.5 py-2 rounded-md outline-none"
       style={{
         border: '0.5px solid rgba(30,45,61,0.15)',
-        background: '#FFF8F0',
+        background: '#F7F1E6',
         color: '#1E2D3D',
       }}
     />
@@ -270,9 +270,9 @@ function WritingAssistantKeySection() {
   }
 
   return (
-    <div className="rounded-[10px] p-4 mb-6" style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+    <div style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0, padding: 16, marginBottom: 24 }}>
       <div className="flex items-center gap-2 mb-3">
-        <BookOpen size={16} style={{ color: '#E9A020' }} />
+        <BookOpen size={16} style={{ color: '#D97706' }} />
         <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Writing Notebook API Key</span>
       </div>
 
@@ -288,7 +288,7 @@ function WritingAssistantKeySection() {
             <button
               onClick={() => setShowUpdate(true)}
               className="text-[11px] font-semibold bg-transparent border-none cursor-pointer"
-              style={{ color: '#E9A020' }}
+              style={{ color: '#D97706' }}
             >
               Update key
             </button>
@@ -312,15 +312,15 @@ function WritingAssistantKeySection() {
             onChange={e => { setNewKey(e.target.value); setError(null) }}
             placeholder="sk-ant-..."
             className="w-full text-[11px] font-mono px-2.5 py-2 rounded-md outline-none mb-2"
-            style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
+            style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#F7F1E6', color: '#1E2D3D' }}
           />
           {error && <p className="text-[11px] mb-2" style={{ color: '#F97B6B' }}>{error}</p>}
           <div className="flex items-center gap-2">
             <button
               onClick={handleSave}
               disabled={!newKey.trim() || saving}
-              className="text-[10px] font-semibold px-3 py-1.5 rounded-[5px] border-none cursor-pointer disabled:opacity-40"
-              style={{ background: '#E9A020', color: '#1E2D3D' }}
+              className="text-[10px] font-semibold px-3 py-1.5 border-none cursor-pointer disabled:opacity-40"
+              style={{ background: '#D97706', color: '#FFFFFF', borderRadius: 2 }}
             >
               {saving ? 'Verifying...' : 'Save key'}
             </button>
@@ -454,7 +454,7 @@ function MailerLiteListManager() {
         <button
           onClick={openAdd}
           className="text-[11px] font-semibold border-none bg-transparent cursor-pointer"
-          style={{ color: '#E9A020' }}
+          style={{ color: '#D97706' }}
         >
           + Add list
         </button>
@@ -462,7 +462,7 @@ function MailerLiteListManager() {
 
       {/* Add list panel */}
       {showAdd && (
-        <div className="rounded-[8px] p-3 mb-3" style={{ background: '#FFF8F0', border: '0.5px solid rgba(233,160,32,0.35)' }}>
+        <div style={{ background: '#F7F1E6', border: '1px solid rgba(217,119,6,0.25)', borderRadius: 0, padding: 12, marginBottom: 12 }}>
           <div className="text-[11px] font-semibold mb-2" style={{ color: '#1E2D3D' }}>Connect a list</div>
           {groupsLoading ? (
             <div className="text-[11px]" style={{ color: '#9CA3AF' }}>Loading your lists…</div>
@@ -504,8 +504,8 @@ function MailerLiteListManager() {
                 <button
                   onClick={handleSave}
                   disabled={!selectedGroup || !labelInput.trim() || saving}
-                  className="text-[10px] font-semibold px-3 py-1.5 rounded-[5px] border-none cursor-pointer disabled:opacity-40"
-                  style={{ background: '#E9A020', color: '#1E2D3D' }}
+                  className="text-[10px] font-semibold px-3 py-1.5 border-none cursor-pointer disabled:opacity-40"
+                  style={{ background: '#D97706', color: '#FFFFFF', borderRadius: 2 }}
                 >
                   {saving ? 'Saving…' : 'Save'}
                 </button>
@@ -526,15 +526,15 @@ function MailerLiteListManager() {
       {lists.length === 0 ? (
         <div className="text-center py-6" style={{ color: '#9CA3AF' }}>
           <div className="text-[11px] mb-1">No lists connected yet</div>
-          <button onClick={openAdd} className="text-[11px] font-semibold border-none bg-transparent cursor-pointer" style={{ color: '#E9A020' }}>
+          <button onClick={openAdd} className="text-[11px] font-semibold border-none bg-transparent cursor-pointer" style={{ color: '#D97706' }}>
             + Add your first list
           </button>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
           {lists.map(list => (
-            <div key={list.id} className="rounded-[8px] px-3 py-2.5 flex items-center gap-3"
-              style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)', borderRadius: 8 }}>
+            <div key={list.id} className="px-3 py-2.5 flex items-center gap-3"
+              style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0 }}>
               {/* Genre pill */}
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0"
                 style={{ background: '#1E2D3D', color: 'white' }}>
@@ -559,8 +559,8 @@ function MailerLiteListManager() {
                   onClick={() => handleSync(list.id)}
                   disabled={syncingId === list.id}
                   title="Sync now"
-                  className="text-[10px] font-semibold px-2 py-1 rounded-[4px] flex items-center gap-1 disabled:opacity-50"
-                  style={{ border: '0.5px solid rgba(30,45,61,0.2)', background: 'transparent', color: '#6B7280', cursor: 'pointer' }}
+                  className="text-[10px] font-semibold px-2 py-1 flex items-center gap-1 disabled:opacity-50"
+                  style={{ border: '1px solid #E8E1D3', borderRadius: 2, background: 'transparent', color: '#6B7280', cursor: 'pointer' }}
                 >
                   <RefreshCw size={10} className={syncingId === list.id ? 'animate-spin' : ''} />
                   {syncingId === list.id ? 'Syncing' : 'Sync'}
@@ -1025,7 +1025,7 @@ export default function SettingsPage() {
               statusPill={
                 metaConnected ? (
                   <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                    style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>
+                    style={{ background: 'rgba(217,119,6,0.12)', color: '#D97706' }}>
                     Dev mode
                   </span>
                 ) : (
@@ -1040,17 +1040,17 @@ export default function SettingsPage() {
                       {metaSyncing ? <Spinner /> : 'Sync now'}
                     </AmberBtn>
                     <button onClick={handleMetaDisconnect}
-                      className="text-[10px] font-semibold px-3 py-1.5 rounded-[5px] border-none cursor-pointer"
-                      style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
+                      className="text-[10px] font-semibold px-3 py-1.5 border-none cursor-pointer"
+                      style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B', borderRadius: 2 }}>
                       Disconnect
                     </button>
                   </div>
                   {isAdmin ? (
                     <div className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
-                      style={{ background: 'rgba(233,160,32,0.06)', border: '0.5px solid rgba(233,160,32,0.25)', color: '#92610a' }}>
+                      style={{ background: 'rgba(217,119,6,0.06)', border: '0.5px solid rgba(217,119,6,0.25)', color: '#92610a' }}>
                       Only your account can connect in development mode.{' '}
                       <a href="https://developers.facebook.com/docs/app-review" target="_blank" rel="noopener noreferrer"
-                        className="font-semibold hover:underline" style={{ color: '#E9A020' }}>
+                        className="font-semibold hover:underline" style={{ color: '#D97706' }}>
                         Submit for app review →
                       </a>
                     </div>
@@ -1083,7 +1083,7 @@ export default function SettingsPage() {
             {/* KDP Report */}
             <IntegCard
               iconBg="#FFF3E0"
-              icon={<BookOpen size={16} strokeWidth={1.75} color="#E9A020" />}
+              icon={<BookOpen size={16} strokeWidth={1.75} color="#D97706" />}
               name="KDP Report"
               subtitle={kdpLastUpload ? `Last upload: ${fmtDate(kdpLastUpload)}` : 'File upload — not an API connection'}
               statusPill={
@@ -1205,7 +1205,7 @@ export default function SettingsPage() {
             {/* AI Writing Assistant */}
             <IntegCard
               iconBg="#FFF4E0"
-              icon={<PenLine size={16} strokeWidth={1.75} color="#E9A020" />}
+              icon={<PenLine size={16} strokeWidth={1.75} color="#D97706" />}
               name="AI Writing Assistant"
               subtitle="Powers your Writing Notebook"
               statusPill={
@@ -1280,8 +1280,8 @@ export default function SettingsPage() {
           </div>
 
           {/* API keys help accordion */}
-          <div className="rounded-[10px] mt-4 overflow-hidden"
-            style={{ border: '0.5px solid rgba(30,45,61,0.1)', background: 'white' }}>
+          <div className="mt-4 overflow-hidden"
+            style={{ border: '1px solid #E8E1D3', borderRadius: 0, background: 'white' }}>
             <button onClick={() => setHelpOpen(p => !p)}
               className="w-full flex items-center justify-between px-4 py-3 border-none cursor-pointer text-left"
               style={{ background: 'transparent' }}>
@@ -1295,7 +1295,7 @@ export default function SettingsPage() {
             </button>
             {helpOpen && (
               <div className="px-4 pb-4 space-y-2 text-[11px] leading-relaxed"
-                style={{ background: '#FFF8F0', color: '#6B7280', borderTop: '0.5px solid rgba(30,45,61,0.06)' }}>
+                style={{ background: '#F7F1E6', color: '#6B7280', borderTop: '0.5px solid rgba(30,45,61,0.06)' }}>
                 <div className="pt-3">
                   <strong style={{ color: '#1E2D3D' }}>MailerLite:</strong>{' '}
                   Log in → click your name → Integrations → API → Developer API → Create new token
@@ -1328,7 +1328,7 @@ export default function SettingsPage() {
                 onChange={e => setPenName(e.target.value)}
                 placeholder="e.g. Elle Wilder"
                 className="w-full text-[12px] px-3 py-2 rounded-md outline-none"
-                style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
+                style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#F7F1E6', color: '#1E2D3D' }}
               />
               <div className="text-[10px] mt-1" style={{ color: '#9CA3AF' }}>Used on your books and public profile</div>
             </div>
@@ -1342,7 +1342,7 @@ export default function SettingsPage() {
                 onChange={e => setPreferredGreetingName(e.target.value)}
                 placeholder="e.g. Elle, Elle Wilder, Andrea"
                 className="w-full text-[12px] px-3 py-2 rounded-md outline-none"
-                style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
+                style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#F7F1E6', color: '#1E2D3D' }}
               />
               <div className="text-[10px] mt-1" style={{ color: '#9CA3AF' }}>This is how we greet you in the dashboard</div>
             </div>
@@ -1374,8 +1374,7 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
 
             {/* Benchmarks */}
-            <div className="rounded-[10px] p-4 flex flex-col gap-3"
-              style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+            <div style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>My benchmarks</div>
               <div className="grid grid-cols-2 gap-2">
                 {[
@@ -1396,7 +1395,7 @@ export default function SettingsPage() {
                         value={benchmarks[f.key as keyof typeof benchmarks]}
                         onChange={e => setBenchmarks(b => ({ ...b, [f.key]: e.target.value }))}
                         className="flex-1 text-[12px] font-medium px-2 py-1.5 rounded-md outline-none"
-                        style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
+                        style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#F7F1E6', color: '#1E2D3D' }}
                       />
                       {f.unit === '%' && <span className="text-[11px]" style={{ color: '#9CA3AF' }}>%</span>}
                     </div>
@@ -1409,8 +1408,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Weekly digest */}
-            <div className="rounded-[10px] p-4 flex flex-col gap-3"
-              style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+            <div style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Weekly digest email</div>
                 <div className="text-[10px]" style={{ color: '#9CA3AF' }}>What changed + what needs action</div>
@@ -1432,10 +1430,11 @@ export default function SettingsPage() {
                         onClick={() => setDigestDays(prev =>
                           prev.includes(val) ? prev.filter(d => d !== val) : [...prev, val]
                         )}
-                        className="text-[10px] font-semibold px-2 py-1 rounded-md border-none cursor-pointer transition-all"
+                        className="text-[10px] font-semibold px-2 py-1 border-none cursor-pointer transition-all"
                         style={{
-                          background: selected ? '#E9A020' : 'rgba(30,45,61,0.06)',
-                          color: selected ? '#1E2D3D' : '#9CA3AF',
+                          borderRadius: 2,
+                          background: selected ? '#D97706' : 'rgba(30,45,61,0.06)',
+                          color: selected ? '#FFFFFF' : '#9CA3AF',
                         }}>
                         {label}
                       </button>
@@ -1460,25 +1459,23 @@ export default function SettingsPage() {
         <div className="px-8 py-6 max-w-md flex flex-col gap-4">
 
           {/* Links */}
-          <div className="rounded-[10px] p-4 flex flex-col gap-3"
-            style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
+          <div style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div className="flex items-center gap-2 text-[11px] mb-1" style={{ color: '#9CA3AF' }}>
-              <span>🔒</span>
+              <span style={{ fontFamily: 'var(--font-serif)', color: '#1E2D3D' }}>&#x1F512;</span>
               <span>API keys encrypted at rest, never shared</span>
             </div>
             <div className="flex flex-col gap-2">
               <Link href="/privacy" className="text-[12px] font-semibold no-underline hover:underline"
-                style={{ color: '#E9A020' }}>Privacy Policy →</Link>
+                style={{ color: '#D97706' }}>Privacy Policy →</Link>
               <Link href="/terms" className="text-[12px] font-semibold no-underline hover:underline"
-                style={{ color: '#E9A020' }}>Terms of Service →</Link>
+                style={{ color: '#D97706' }}>Terms of Service →</Link>
               <Link href="/data" className="text-[12px] font-semibold no-underline hover:underline"
-                style={{ color: '#E9A020' }}>Export Data →</Link>
+                style={{ color: '#D97706' }}>Export Data →</Link>
             </div>
           </div>
 
           {/* Danger zone */}
-          <div className="rounded-[10px] p-4 flex flex-col gap-3"
-            style={{ background: 'white', border: '1px solid rgba(249,123,107,0.4)' }}>
+          <div style={{ background: 'white', border: '1px solid rgba(249,123,107,0.4)', borderRadius: 0, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Danger Zone</div>
               <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>
@@ -1487,8 +1484,8 @@ export default function SettingsPage() {
             </div>
             <Link
               href="/dashboard/delete-account"
-              className="inline-flex items-center text-[12px] font-semibold px-3 py-2 rounded-[6px] no-underline w-fit"
-              style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}
+              className="inline-flex items-center text-[12px] font-semibold px-3 py-2 no-underline w-fit"
+              style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B', borderRadius: 2 }}
             >
               Delete Account
             </Link>
@@ -1556,7 +1553,7 @@ export default function SettingsPage() {
 
     function actionLabel(action: string) {
       switch (action) {
-        case 'started':    return { label: 'Started',    color: '#E9A020' }
+        case 'started':    return { label: 'Started',    color: '#D97706' }
         case 'ended':      return { label: 'Ended',      color: '#6EBF8B' }
         case 'upload':     return { label: 'Upload',     color: '#60A5FA' }
         case 'book_added': return { label: 'Book added', color: '#8B5CF6' }
@@ -1581,11 +1578,10 @@ export default function SettingsPage() {
         <div className="px-8 py-6">
           {/* ── Impersonate form ─── */}
           <div
-            className="rounded-[10px] p-5 flex flex-col gap-4 max-w-md mb-8"
-            style={{ background: 'white', border: '0.5px solid rgba(233,160,32,0.4)' }}
+            style={{ background: 'white', border: '1px solid rgba(217,119,6,0.3)', borderRadius: 0, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 448, marginBottom: 32 }}
           >
             <div className="flex items-center gap-2">
-              <ShieldAlert size={16} style={{ color: '#E9A020' }} />
+              <ShieldAlert size={16} style={{ color: '#D97706' }} />
               <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>Impersonate User</span>
             </div>
             <p className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>
@@ -1602,7 +1598,7 @@ export default function SettingsPage() {
                 onKeyDown={e => { if (e.key === 'Enter') startImpersonation() }}
                 placeholder="user@example.com"
                 className="w-full text-[12px] px-3 py-2 rounded-md outline-none"
-                style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#FFF8F0', color: '#1E2D3D' }}
+                style={{ border: '0.5px solid rgba(30,45,61,0.15)', background: '#F7F1E6', color: '#1E2D3D' }}
               />
             </div>
             {impersonateError && (
@@ -1627,8 +1623,7 @@ export default function SettingsPage() {
           <div>
             <BoutiqueSectionLabel label="Audit Log" />
             <div
-              className="rounded-[10px] overflow-hidden"
-              style={{ background: '#FFF8F0', border: '0.5px solid rgba(30,45,61,0.1)' }}
+              style={{ background: '#F7F1E6', border: '1px solid #E8E1D3', borderRadius: 0, overflow: 'hidden' }}
             >
               {auditLoading ? (
                 <div className="px-4 py-6 text-[12px]" style={{ color: '#9CA3AF' }}>Loading…</div>
@@ -1732,7 +1727,7 @@ export default function SettingsPage() {
         {/* Sidebar label */}
         <div
           className="px-4 mb-3 text-[9px] font-bold uppercase tracking-[2px]"
-          style={{ color: '#E9A020' }}
+          style={{ color: '#D97706' }}
         >
           Settings
         </div>
@@ -1746,10 +1741,11 @@ export default function SettingsPage() {
               <button
                 key={tab.id}
                 onClick={() => navigateTab(tab.id)}
-                className="w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-[6px] border-none cursor-pointer transition-all"
+                className="w-full text-left flex items-start gap-2.5 px-3 py-2.5 border-none cursor-pointer transition-all"
                 style={{
-                  background: isActive ? '#FFF3E0' : 'transparent',
-                  borderLeft: isActive ? '2px solid #E9A020' : '2px solid transparent',
+                  borderRadius: 0,
+                  background: isActive ? 'rgba(217,119,6,0.06)' : 'transparent',
+                  borderLeft: isActive ? '2px solid #D97706' : '2px solid transparent',
                   color: isActive ? '#1E2D3D' : '#888',
                 }}
                 onMouseEnter={e => {
@@ -1762,7 +1758,7 @@ export default function SettingsPage() {
                 <Icon
                   size={16}
                   strokeWidth={1.5}
-                  style={{ color: isActive ? '#E9A020' : '#888', marginTop: 2, flexShrink: 0 }}
+                  style={{ color: isActive ? '#D97706' : '#888', marginTop: 2, flexShrink: 0 }}
                 />
                 <div>
                   <div

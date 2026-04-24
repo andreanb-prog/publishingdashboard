@@ -137,8 +137,8 @@ export function GoalSection({
   const hasGoals = fields.some(f => goals[f.key] != null)
 
   return (
-    <div className="rounded-xl mb-5 overflow-hidden"
-      style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+    <div className="mb-5 overflow-hidden"
+      style={{ borderRadius: 0, background: 'white', border: '1px solid #E8E1D3' }}>
       {/* Header */}
       <button
         onClick={toggleCollapsed}

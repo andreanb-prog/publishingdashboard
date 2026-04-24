@@ -1,89 +1,52 @@
-'use client'
-import React, { useState } from 'react'
-
 interface BoutiqueInsightCardProps {
-  type: 'watch' | 'nice'
+  type: 'watch' | 'nice' | 'info'
   title: string
   body: string
-  defaultCollapsed?: boolean
+  style?: React.CSSProperties
 }
 
-export function BoutiqueInsightCard({
-  type,
-  title,
-  body,
-  defaultCollapsed = true,
-}: BoutiqueInsightCardProps) {
-  const [collapsed, setCollapsed] = useState(defaultCollapsed)
-
-  const borderColor = type === 'watch' ? 'var(--amber-boutique)' : '#6EBF8B'
-  const labelColor  = type === 'watch' ? 'var(--amber-text)' : 'var(--green-text)'
-  const labelText   = type === 'watch' ? 'WATCH THIS' : 'NICE WORK'
+export function BoutiqueInsightCard({ type, title, body, style }: BoutiqueInsightCardProps) {
+  const borderColor = type === 'nice' ? '#6EBF8B' : type === 'info' ? '#6D3FD4' : '#D97706'
+  const labelColor  = type === 'nice' ? '#6EBF8B' : type === 'info' ? '#6D3FD4' : '#D97706'
+  const labelText   = type === 'nice' ? 'NICE WORK' : type === 'info' ? 'NOTE' : 'WATCH THIS'
 
   return (
     <div style={{
       borderLeft: `3px solid ${borderColor}`,
       paddingLeft: 14,
-      marginBottom: 12,
+      paddingTop: 2,
+      paddingBottom: 2,
+      ...style,
     }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'pointer',
-          userSelect: 'none',
-        }}
-        onClick={() => setCollapsed(c => !c)}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-          <span style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 10,
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            color: labelColor,
-            flexShrink: 0,
-          }}>
-            {labelText}
-          </span>
-          <span style={{
-            fontFamily: 'var(--font-serif)',
-            fontWeight: 500,
-            fontSize: 16,
-            color: 'var(--ink)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: collapsed ? 'nowrap' : 'normal',
-          }}>
-            {title}
-          </span>
-        </div>
-        <span style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 12,
-          color: 'var(--ink4)',
-          flexShrink: 0,
-          marginLeft: 8,
-          transform: collapsed ? 'none' : 'rotate(180deg)',
-          transition: 'transform 0.15s ease',
-          display: 'inline-block',
-        }}>
-          ›
-        </span>
+      <div style={{
+        fontFamily: 'var(--font-mono)',
+        fontSize: 10,
+        textTransform: 'uppercase',
+        letterSpacing: '0.12em',
+        color: labelColor,
+        marginBottom: 4,
+      }}>
+        {labelText}
       </div>
-
-      {!collapsed && (
-        <div style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: 14,
-          color: 'var(--ink2)',
-          lineHeight: 1.65,
-          marginTop: 8,
-        }}>
-          {body}
-        </div>
-      )}
+      <div style={{
+        fontFamily: 'var(--font-serif)',
+        fontWeight: 600,
+        fontSize: 15,
+        color: '#1E2D3D',
+        marginBottom: 6,
+        lineHeight: 1.3,
+      }}>
+        {title}
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-serif)',
+        fontStyle: 'italic',
+        fontSize: 14,
+        color: '#4B5563',
+        lineHeight: 1.65,
+      }}>
+        {body}
+      </div>
     </div>
   )
 }

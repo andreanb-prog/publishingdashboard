@@ -48,8 +48,8 @@ export function CreativeHubTabs({
               style={{
                 background: 'transparent',
                 border: 'none',
-                borderBottom: active ? '2px solid #E9A020' : '2px solid transparent',
-                color: active ? '#E9A020' : '#9CA3AF',
+                borderBottom: active ? '2px solid #D97706' : '2px solid transparent',
+                color: active ? '#D97706' : '#9CA3AF',
                 cursor: 'pointer',
                 marginBottom: -1,
               }}

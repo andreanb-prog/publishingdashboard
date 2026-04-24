@@ -22,8 +22,9 @@ export function FreshBanner() {
 
   return (
     <div
-      className="mb-5 rounded-xl px-5 py-3.5 flex items-center gap-3"
+      className="mb-5 px-5 py-3.5 flex items-center gap-3"
       style={{
+        borderRadius: 0,
         opacity:    visible ? 1 : 0,
         transition: 'opacity 0.6s ease',
         background: 'rgba(52,211,153,0.1)',

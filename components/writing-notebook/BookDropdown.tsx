@@ -29,7 +29,7 @@ export function BookDropdown({ books, selectedBookId, onBookChange, onNewBook }:
       <button
         onClick={() => setOpen(v => !v)}
         className="flex items-center gap-2 px-2 py-1 rounded-md transition-colors"
-        style={{ background: open ? '#FFF8F0' : 'transparent' }}
+        style={{ background: open ? '#F7F1E6' : 'transparent' }}
       >
         {selected && (
           <span
@@ -97,8 +97,8 @@ export function BookDropdown({ books, selectedBookId, onBookChange, onNewBook }:
             onClick={() => { onNewBook?.(); setOpen(false) }}
             className="w-full flex items-center gap-2 px-3 py-2 hover:bg-orange-50 transition-colors"
           >
-            <Plus size={13} style={{ color: '#E9A020' }} />
-            <span className="text-[13px] font-medium" style={{ color: '#E9A020' }}>
+            <Plus size={13} style={{ color: '#D97706' }} />
+            <span className="text-[13px] font-medium" style={{ color: '#D97706' }}>
               New book
             </span>
           </button>

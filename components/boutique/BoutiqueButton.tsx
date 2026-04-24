@@ -1,7 +1,7 @@
 'use client'
 
 interface BoutiqueButtonProps {
-  variant?: 'primary' | 'amber' | 'ghost'
+  variant?: 'primary' | 'amber' | 'ghost' | 'danger'
   children: React.ReactNode
   onClick?: () => void
   disabled?: boolean
@@ -51,6 +51,11 @@ export function BoutiqueButton({
       background: 'transparent',
       color: '#1E2D3D',
       border: '1px solid #E8E1D3',
+    },
+    danger: {
+      background: '#F97B6B',
+      color: '#FFFFFF',
+      border: 'none',
     },
   }
 

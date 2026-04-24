@@ -13,13 +13,13 @@ export function TrialBanner({ trialEndsAt }: { trialEndsAt: string }) {
   return (
     <div className="px-6 py-2 flex items-center justify-between text-[12px]"
       style={{ background: daysLeft <= 3 ? '#FFF5F4' : '#FFFBF0', borderBottom: '1px solid #EEEBE6' }}>
-      <span style={{ color: daysLeft <= 3 ? '#F97B6B' : '#E9A020' }}>
+      <span style={{ color: daysLeft <= 3 ? '#F97B6B' : '#D97706' }}>
         {daysLeft === 0
           ? 'Your free trial ends today'
           : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left in your free trial`}
       </span>
       <Link href="/pricing" className="font-semibold no-underline hover:underline"
-        style={{ color: '#E9A020' }}>
+        style={{ color: '#D97706' }}>
         Choose a plan →
       </Link>
     </div>

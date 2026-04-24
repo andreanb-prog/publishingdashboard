@@ -14,7 +14,7 @@ interface Props {
 
 const SEVERITY_COLORS: Record<string, { bg: string; border: string; text: string }> = {
   flag:   { bg: '#FEF2F2', border: '#F97B6B', text: '#B91C1C' },
-  note:   { bg: '#FFFBEB', border: '#E9A020', text: '#92400E' },
+  note:   { bg: '#FFFBEB', border: '#D97706', text: '#92400E' },
   praise: { bg: '#F0FDF4', border: '#6EBF8B', text: '#166534' },
 }
 
@@ -196,7 +196,7 @@ export function AuditPanel({ bookId, bookTitle, chapterIndex, chapterTitle, chap
           disabled={loading || !hasContent}
           className="w-full py-2.5 rounded-lg text-[13px] font-semibold border-none cursor-pointer flex items-center justify-center gap-2 transition-opacity"
           style={{
-            background: loading || !hasContent ? '#E5E7EB' : '#E9A020',
+            background: loading || !hasContent ? '#E5E7EB' : '#D97706',
             color: loading || !hasContent ? '#9CA3AF' : '#FFFFFF',
             opacity: loading ? 0.7 : 1,
           }}
@@ -325,7 +325,7 @@ export function AuditPanel({ bookId, bookTitle, chapterIndex, chapterTitle, chap
                     <button
                       onClick={e => { e.stopPropagation(); jumpToPassage(i) }}
                       className="flex items-center gap-1 mt-2 text-[11px] font-medium bg-transparent border-none cursor-pointer p-0"
-                      style={{ color: '#E9A020' }}
+                      style={{ color: '#D97706' }}
                     >
                       Jump to passage <ArrowRight size={10} />
                     </button>

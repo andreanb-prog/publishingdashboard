@@ -95,7 +95,7 @@ export default function LearnPage() {
   return (
     <div className="p-8 max-w-3xl">
       {/* Header */}
-      <div className="card p-6 mb-6" style={{ background: '#FFF8F0', borderLeft: '4px solid #E9A020' }}>
+      <div className="card p-6 mb-6" style={{ background: '#F7F1E6', borderLeft: '4px solid #D97706' }}>
         <h1 className="font-sans text-[22px] mb-2" style={{ color: '#1E2D3D' }}>Glossary</h1>
         <p className="text-[13px] leading-relaxed" style={{ color: '#6B7280' }}>
           Tap any term to see what it means for your books.
@@ -133,8 +133,8 @@ export default function LearnPage() {
                   {term.body}
                 </div>
                 <div
-                  className="mt-4 p-3.5 rounded-xl text-[12.5px] leading-[1.65] font-medium"
-                  style={{ background: `${term.color}15`, color: term.color.replace(')', ', 0.9)').replace('rgb', 'rgba') }}
+                  className="mt-4 p-3.5 text-[12.5px] leading-[1.65] font-medium"
+                  style={{ borderRadius: 0, background: `${term.color}15`, color: term.color.replace(')', ', 0.9)').replace('rgb', 'rgba') }}
                 >
                   <strong>What's good for romance authors:</strong> {term.benchmark}
                 </div>

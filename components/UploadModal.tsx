@@ -20,11 +20,11 @@ interface ParsedFile {
 }
 
 const BADGE: Record<FileType, { label: string; bg: string; color: string }> = {
-  kdp:       { label: 'KDP',        bg: '#FFF4E0', color: '#E9A020' },
+  kdp:       { label: 'KDP',        bg: '#FFF4E0', color: '#D97706' },
   meta:      { label: 'Meta Ads',   bg: '#EFF6FF', color: '#60A5FA' },
   pinterest: { label: 'Pinterest',  bg: '#FFF0F3', color: '#F472B6' },
-  adtracker: { label: 'Ad Tracker', bg: '#FFF4E0', color: '#E9A020' },
-  unknown:   { label: 'Unknown — we\'ll try to read it', bg: '#FFF4E0', color: '#E9A020' },
+  adtracker: { label: 'Ad Tracker', bg: '#FFF4E0', color: '#D97706' },
+  unknown:   { label: 'Unknown — we\'ll try to read it', bg: '#FFF4E0', color: '#D97706' },
 }
 
 // ── KDP multi-file merge ────────────────────────────────────────────────────
@@ -343,8 +343,8 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
     }
   }
 
-  const borderColor = dragging ? '#E9A020' : '#D4D0CB'
-  const bgColor     = dragging ? 'rgba(233,160,32,0.04)' : 'white'
+  const borderColor = dragging ? '#D97706' : '#D4D0CB'
+  const bgColor     = dragging ? 'rgba(217,119,6,0.04)' : 'white'
 
   return (
     <>
@@ -366,8 +366,8 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           onClick={e => { if (e.target === e.currentTarget && !uploading) onClose() }}
         >
           <div
-            className="w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-            style={{ background: 'white', border: '1px solid #EEEBE6', maxHeight: '100dvh' }}
+            className="w-full sm:max-w-lg flex flex-col overflow-hidden"
+            style={{ borderRadius: 0, background: 'white', border: '1px solid #E8E1D3', maxHeight: '100dvh' }}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 flex-shrink-0"
@@ -392,8 +392,8 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
             <div className="flex-1 overflow-y-auto px-5 py-5" style={{ overscrollBehavior: 'contain' }}>
               {/* Drop zone */}
               <div
-                className="rounded-xl border-2 border-dashed cursor-pointer transition-all duration-150 mb-4"
-                style={{ borderColor, background: bgColor, pointerEvents: uploading ? 'none' : 'auto', opacity: uploading ? 0.5 : 1 }}
+                className="border-2 border-dashed cursor-pointer transition-all duration-150 mb-4"
+                style={{ borderRadius: 2, borderColor, background: bgColor, pointerEvents: uploading ? 'none' : 'auto', opacity: uploading ? 0.5 : 1 }}
                 onClick={() => inputRef.current?.click()}
                 onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragging(true) }}
                 onDragEnter={e => { e.preventDefault(); e.stopPropagation(); setDragging(true) }}
@@ -402,7 +402,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
               >
                 <div className="flex flex-col items-center justify-center text-center px-6 py-10">
                   <div className="mb-3 flex items-center justify-center">
-                    <Upload size={32} color="#E9A020" strokeWidth={1.5} />
+                    <Upload size={32} color="#D97706" strokeWidth={1.5} />
                   </div>
                   <div className="text-[15px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
                     Drop files here
@@ -447,7 +447,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                             {/* Status icon */}
                             <div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
                               {f.status === 'reading' ? (
-                                <svg className="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ color: '#E9A020' }}>
+                                <svg className="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ color: '#D97706' }}>
                                   <circle cx="7" cy="7" r="5.5" stroke="#EEEBE6" strokeWidth="1.5" />
                                   <path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                                 </svg>
@@ -503,7 +503,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                           {/* ── Diagnostics panel ── */}
                           {f.status === 'done' && diag && (
                             <div className="rounded-b-lg overflow-hidden"
-                              style={{ background: diagStatus === 'success' ? 'rgba(110,191,139,0.07)' : diagStatus === 'partial' ? 'rgba(233,160,32,0.07)' : 'rgba(249,123,107,0.07)', border: '0.5px solid', borderColor: diagStatus === 'success' ? 'rgba(110,191,139,0.3)' : diagStatus === 'partial' ? 'rgba(233,160,32,0.3)' : 'rgba(249,123,107,0.3)', borderTop: 'none', marginTop: -1 }}>
+                              style={{ background: diagStatus === 'success' ? 'rgba(110,191,139,0.07)' : diagStatus === 'partial' ? 'rgba(217,119,6,0.07)' : 'rgba(249,123,107,0.07)', border: '0.5px solid', borderColor: diagStatus === 'success' ? 'rgba(110,191,139,0.3)' : diagStatus === 'partial' ? 'rgba(217,119,6,0.3)' : 'rgba(249,123,107,0.3)', borderTop: 'none', marginTop: -1 }}>
                               <div className="px-3 py-2 flex items-start justify-between gap-2">
                                 <div className="flex-1 min-w-0">
                                   {diagStatus === 'success' && (
@@ -571,7 +571,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
               {/* KDP months-loaded summary */}
               {kdpMerged && (
                 <div className="mb-4 px-3 py-2 rounded-lg text-[12px]"
-                  style={{ background: '#FFF4E0', border: '0.5px solid rgba(233,160,32,0.4)', color: '#92400E' }}>
+                  style={{ background: '#FFF4E0', border: '0.5px solid rgba(217,119,6,0.4)', color: '#92400E' }}>
                   <span className="font-semibold">
                     {kdpMerged.monthCount} {kdpMerged.monthCount === 1 ? 'month' : 'months'} of data loaded
                   </span>
@@ -604,7 +604,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                 disabled={!canAnalyze}
                 className="px-5 py-2 rounded-lg text-[13px] font-bold transition-all"
                 style={{
-                  background: canAnalyze ? '#E9A020' : '#F0EDEA',
+                  background: canAnalyze ? '#D97706' : '#F0EDEA',
                   color: canAnalyze ? '#0d1f35' : '#9CA3AF',
                   border: 'none',
                   cursor: canAnalyze ? 'pointer' : 'not-allowed',

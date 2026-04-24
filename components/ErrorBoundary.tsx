@@ -57,7 +57,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 window.location.reload()
               }}
               className="px-5 py-2.5 rounded-lg text-[13px] font-bold border-none cursor-pointer"
-              style={{ background: '#E9A020', color: '#0d1f35' }}
+              style={{ background: '#D97706', color: '#0d1f35' }}
             >
               Refresh page
             </button>

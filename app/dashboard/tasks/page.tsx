@@ -296,7 +296,7 @@ export default function TaskCenterPage() {
 
         {/* Export panel */}
         {showExport && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 16, marginBottom: 16, background: '#FFF8F0', border: '1px solid #E8E1D3' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 16, marginBottom: 16, background: '#F7F1E6', border: '1px solid #E8E1D3' }}>
             <button onClick={copyToClipboard}
               style={{ padding: '7px 12px', background: 'white', border: '1px solid #E8E1D3', color: '#1E2D3D', fontFamily: 'var(--font-sans)', fontSize: 12, cursor: 'pointer' }}>
               {copyMsg || 'Copy to clipboard'}
@@ -503,7 +503,7 @@ function TaskCard({
               fontStyle: 'italic',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
-              background: '#FFF8F0',
+              background: '#F7F1E6',
               border: '1px solid #D97706',
               color: '#D97706',
               flexShrink: 0,
@@ -603,7 +603,7 @@ function AddTaskModal({
         style={{
           position: 'relative', width: '100%', maxWidth: 440,
           margin: '0 16px', padding: 24,
-          background: '#FFF8F0',
+          background: '#F7F1E6',
           fontFamily: 'var(--font-sans)',
         }}
         onClick={e => e.stopPropagation()}

@@ -446,7 +446,7 @@ export default function WritingNotebookPage() {
         <div
           onMouseDown={onDividerMouseDown}
           onDoubleClick={onDividerDoubleClick}
-          className="shrink-0 hover:bg-[#E9A020] transition-colors duration-150"
+          className="shrink-0 hover:bg-[#D97706] transition-colors duration-150"
           style={{ width: 4, cursor: 'col-resize', background: 'transparent' }}
         />
 

@@ -189,7 +189,7 @@ export function InlineAIPanel({
           className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
           style={{ background: '#FFF3E0' }}
         >
-          <span style={{ color: '#E9A020', fontSize: 14 }}>✦</span>
+          <span style={{ color: '#D97706', fontSize: 14 }}>✦</span>
         </div>
 
         {/* Placeholder */}
@@ -200,7 +200,7 @@ export function InlineAIPanel({
         {/* Open link */}
         <button
           className="text-[12px] font-medium shrink-0"
-          style={{ color: '#E9A020' }}
+          style={{ color: '#D97706' }}
           onClick={e => { e.stopPropagation(); setExpanded(true) }}
         >
           Open ↑
@@ -250,8 +250,9 @@ export function InlineAIPanel({
         {messages.map((msg, i) => (
           <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
             <div
-              className="max-w-[85%] rounded-xl px-3 py-2 text-[13px] whitespace-pre-wrap"
+              className="max-w-[85%] px-3 py-2 text-[13px] whitespace-pre-wrap"
               style={{
+                borderRadius: 2,
                 background: msg.role === 'user' ? '#1E2D3D' : '#F3F4F6',
                 color: msg.role === 'user' ? '#FFFFFF' : '#1E2D3D',
                 lineHeight: '1.55',
@@ -275,8 +276,8 @@ export function InlineAIPanel({
       {/* Input bar (iMessage pill style) */}
       <div className="px-4 pb-2">
         <div
-          className="flex items-end gap-2 px-3 py-2 rounded-2xl"
-          style={{ background: '#F7F2EC' }}
+          className="flex items-end gap-2 px-3 py-2"
+          style={{ borderRadius: 2, background: '#F7F2EC' }}
         >
           <textarea
             ref={inputRef}
@@ -302,7 +303,7 @@ export function InlineAIPanel({
             onClick={() => sendMessage()}
             disabled={!input.trim() || isStreaming}
             className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-opacity disabled:opacity-40"
-            style={{ background: '#E9A020', color: '#FFFFFF' }}
+            style={{ background: '#D97706', color: '#FFFFFF' }}
           >
             <Send size={13} />
           </button>
@@ -321,7 +322,7 @@ export function InlineAIPanel({
                 inputRef.current?.focus()
               }}
               className="text-[11px] px-2.5 py-1 rounded-full whitespace-nowrap shrink-0 transition-colors hover:opacity-80"
-              style={{ border: '1px solid #E9A020', color: '#E9A020', background: '#FFFBF0' }}
+              style={{ border: '1px solid #D97706', color: '#D97706', background: '#FFFBF0' }}
             >
               {chip}
             </button>

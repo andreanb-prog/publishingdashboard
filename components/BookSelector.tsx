@@ -36,13 +36,13 @@ export default function BookSelector({ value, onChange, placeholder = 'Select a 
   if (!loading && books.length === 0) {
     return (
       <div
-        className="rounded-lg px-3 py-2 text-[12.5px]"
-        style={{ background: '#FFF8F0', border: '0.5px dashed #e0d8d0', color: '#9CA3AF' }}
+        className="px-3 py-2 text-[12.5px]"
+        style={{ borderRadius: 2, background: '#F7F1E6', border: '1px dashed #E8E1D3', color: '#9CA3AF' }}
       >
         <Link
           href="/dashboard/settings#my-books"
           className="hover:underline"
-          style={{ color: '#E9A020' }}
+          style={{ color: '#D97706' }}
         >
           Add your books in Settings to get started
         </Link>
@@ -57,8 +57,8 @@ export default function BookSelector({ value, onChange, placeholder = 'Select a 
       <button
         onClick={() => setOpen(o => !o)}
         disabled={loading}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
-        style={{ border: '0.5px solid #e8e0d8', background: '#fff', minWidth: 180 }}
+        className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 transition-colors"
+        style={{ borderRadius: 2, border: '1px solid #E8E1D3', background: '#fff', minWidth: 180 }}
       >
         {selected && (
           <span
@@ -74,15 +74,15 @@ export default function BookSelector({ value, onChange, placeholder = 'Select a 
 
       {open && (
         <div
-          className="absolute top-full mt-1 left-0 rounded-lg shadow-lg z-50 py-1 min-w-full"
-          style={{ background: '#fff', border: '0.5px solid #e8e0d8', minWidth: 200 }}
+          className="absolute top-full mt-1 left-0 z-50 py-1 min-w-full"
+          style={{ borderRadius: 0, background: '#fff', border: '1px solid #E8E1D3', minWidth: 200 }}
         >
           {books.map(book => (
             <button
               key={book.id}
               onClick={() => { onChange(book.id); setOpen(false) }}
-              className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#FFF8F0] transition-colors flex items-center gap-2"
-              style={{ color: book.id === value ? '#E9A020' : '#1E2D3D' }}
+              className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#F7F1E6] transition-colors flex items-center gap-2"
+              style={{ color: book.id === value ? '#D97706' : '#1E2D3D' }}
             >
               <span
                 className="w-2.5 h-2.5 rounded-full flex-shrink-0"

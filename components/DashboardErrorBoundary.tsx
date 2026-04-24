@@ -25,7 +25,7 @@ export class DashboardErrorBoundary extends Component<Props, State> {
           background: 'white',
           borderRadius: '0.5rem',
           border: '1px solid rgba(30,45,61,0.1)',
-          borderLeft: '4px solid #E9A020',
+          borderLeft: '4px solid #D97706',
           padding: '1.25rem 1.5rem',
           margin: '1rem 0',
         }}>

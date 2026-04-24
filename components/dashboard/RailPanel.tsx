@@ -41,7 +41,7 @@ export function RailTasksSection({ tasks }: { tasks: Task[] }) {
         <svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
           <circle cx="17" cy="17" r={r} stroke="var(--line, #d8cfbd)" strokeWidth="2.5" />
           {total > 0 && (
-            <circle cx="17" cy="17" r={r} stroke="var(--amber, #E9A020)" strokeWidth="2.5" strokeDasharray={circ} strokeDashoffset={dashOff} strokeLinecap="round" transform="rotate(-90 17 17)" />
+            <circle cx="17" cy="17" r={r} stroke="var(--amber, #D97706)" strokeWidth="2.5" strokeDasharray={circ} strokeDashoffset={dashOff} strokeLinecap="round" transform="rotate(-90 17 17)" />
           )}
         </svg>
         <div>
@@ -64,7 +64,7 @@ export function RailTasksSection({ tasks }: { tasks: Task[] }) {
             </div>
           ))}
           {topTask && (
-            <div style={{ padding: '12px 14px', border: '1.5px solid var(--amber, #E9A020)', background: 'linear-gradient(135deg, rgba(233,160,32,0.05) 0%, rgba(233,160,32,0.01) 100%)' }}>
+            <div style={{ padding: '12px 14px', border: '1px solid var(--amber, #D97706)', background: 'rgba(217,119,6,0.04)' }}>
               <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--amber-text, #a56b13)', marginBottom: 4 }}>Next up</div>
               <div style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 13, fontStyle: 'italic', color: 'var(--ink, #14110f)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{topTask.title}</div>
               {topTask.category && <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 9, color: 'var(--ink4, #8a8076)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{topTask.category}</div>}

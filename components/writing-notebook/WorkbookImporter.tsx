@@ -88,7 +88,7 @@ export function WorkbookImporter({ bookId, onImportComplete, onSwitchToOutline }
       <button
         onClick={() => setState('expanded')}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors hover:bg-amber-50 mb-3"
-        style={{ border: '1.5px solid #E9A020', color: '#E9A020' }}
+        style={{ border: '1.5px solid #D97706', color: '#D97706' }}
       >
         <UploadCloud size={14} />
         Import existing workbook
@@ -101,7 +101,7 @@ export function WorkbookImporter({ bookId, onImportComplete, onSwitchToOutline }
     return (
       <div
         className="rounded-lg p-6 mb-3 text-center"
-        style={{ background: '#FFF8F0', border: '1.5px dashed #6EBF8B' }}
+        style={{ background: '#F7F1E6', border: '1.5px dashed #6EBF8B' }}
       >
         <CheckCircle size={24} style={{ color: '#6EBF8B' }} className="mx-auto mb-2" />
         <p className="text-sm font-medium" style={{ color: '#1E2D3D' }}>Workbook imported successfully</p>
@@ -113,7 +113,7 @@ export function WorkbookImporter({ bookId, onImportComplete, onSwitchToOutline }
         <button
           onClick={onSwitchToOutline}
           className="mt-3 text-sm font-medium hover:underline"
-          style={{ color: '#E9A020' }}
+          style={{ color: '#D97706' }}
         >
           View your outline &rarr;
         </button>
@@ -126,7 +126,7 @@ export function WorkbookImporter({ bookId, onImportComplete, onSwitchToOutline }
     return (
       <div
         className="rounded-lg p-6 mb-3 text-center"
-        style={{ background: '#FFF8F0', border: '1.5px dashed #F97B6B' }}
+        style={{ background: '#F7F1E6', border: '1.5px dashed #F97B6B' }}
       >
         <XCircle size={24} style={{ color: '#F97B6B' }} className="mx-auto mb-2" />
         <p className="text-sm" style={{ color: '#1E2D3D' }}>
@@ -135,7 +135,7 @@ export function WorkbookImporter({ bookId, onImportComplete, onSwitchToOutline }
         <button
           onClick={() => { setState('expanded'); setFile(null); setErrorMsg('') }}
           className="mt-3 px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
-          style={{ border: '1.5px solid #E9A020', color: '#E9A020' }}
+          style={{ border: '1.5px solid #D97706', color: '#D97706' }}
         >
           Try again
         </button>
@@ -148,9 +148,9 @@ export function WorkbookImporter({ bookId, onImportComplete, onSwitchToOutline }
     return (
       <div
         className="rounded-lg p-6 mb-3 text-center"
-        style={{ background: '#FFF8F0', border: '1.5px dashed #E9A020' }}
+        style={{ background: '#F7F1E6', border: '1.5px dashed #D97706' }}
       >
-        <Loader2 size={20} className="animate-spin mx-auto mb-2" style={{ color: '#E9A020' }} />
+        <Loader2 size={20} className="animate-spin mx-auto mb-2" style={{ color: '#D97706' }} />
         <p className="text-sm" style={{ color: '#6B7280' }}>Reading your workbook...</p>
         <div className="mt-2 space-y-0.5 text-[13px]" style={{ color: '#9CA3AF' }}>
           <p>{step >= 1 ? '\u2713' : '\u25CB'} Parsing document...</p>
@@ -165,7 +165,7 @@ export function WorkbookImporter({ bookId, onImportComplete, onSwitchToOutline }
   return (
     <div
       className="rounded-lg p-6 mb-3 text-center cursor-pointer"
-      style={{ background: '#FFF8F0', border: '1.5px dashed #E9A020' }}
+      style={{ background: '#F7F1E6', border: '1.5px dashed #D97706' }}
       onClick={() => inputRef.current?.click()}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
@@ -179,7 +179,7 @@ export function WorkbookImporter({ bookId, onImportComplete, onSwitchToOutline }
         onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
       />
 
-      <UploadCloud size={32} style={{ color: '#E9A020' }} className="mx-auto mb-2" />
+      <UploadCloud size={32} style={{ color: '#D97706' }} className="mx-auto mb-2" />
       <p className="text-sm font-medium" style={{ color: '#1E2D3D' }}>Import your FPA Writing Workbook</p>
       <p className="text-[13px] mt-1" style={{ color: '#9CA3AF' }}>
         Upload your .docx workbook and we&apos;ll fill in your outline, characters, and style guide automatically.
@@ -193,7 +193,7 @@ export function WorkbookImporter({ bookId, onImportComplete, onSwitchToOutline }
           <button
             onClick={(e) => { e.stopPropagation(); handleImport() }}
             className="mt-2 w-full py-2 rounded-lg text-sm font-medium transition-colors"
-            style={{ background: '#E9A020', color: '#FFFFFF' }}
+            style={{ background: '#D97706', color: '#FFFFFF' }}
           >
             Import Workbook
           </button>

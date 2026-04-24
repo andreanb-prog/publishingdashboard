@@ -132,11 +132,11 @@ export default function DataVaultPage() {
                 Analyzed {formatDate(active.createdAt)} at {formatTime(active.createdAt)}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                <div style={{ background: '#FFF8F0', border: '1px solid #EEEBE6', padding: '8px 12px' }}>
+                <div style={{ background: '#F7F1E6', border: '1px solid #EEEBE6', padding: '8px 12px' }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6B7280', marginBottom: 2 }}>Files used</div>
                   <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600, color: '#1E2D3D' }}>{getFilesUsed(active.data)}</div>
                 </div>
-                <div style={{ background: '#FFF8F0', border: '1px solid #EEEBE6', padding: '8px 12px' }}>
+                <div style={{ background: '#F7F1E6', border: '1px solid #EEEBE6', padding: '8px 12px' }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6B7280', marginBottom: 2 }}>Records parsed</div>
                   <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600, color: '#1E2D3D' }}>{getRecordsSummary(active.data)}</div>
                 </div>

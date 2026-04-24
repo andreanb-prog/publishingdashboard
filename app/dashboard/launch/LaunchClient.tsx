@@ -98,11 +98,11 @@ function Toast({ message, visible, variant = 'navy' }: { message: string; visibl
       style={{ opacity: visible ? 1 : 0, pointerEvents: 'none', transform: `translateX(-50%) translateY(${visible ? 0 : 8}px)` }}
     >
       {variant === 'amber' ? (
-        <div className="text-white shadow-lg font-medium rounded-full" style={{ fontSize: '12px', padding: '8px 16px', background: '#E9A020' }}>
+        <div style={{ fontSize: '12px', padding: '8px 16px', background: '#D97706', color: 'white', fontFamily: 'var(--font-sans)', fontWeight: 500, borderRadius: 0 }}>
           {message}
         </div>
       ) : (
-        <div className="bg-[#1E2D3D] text-white text-sm px-4 py-2.5 rounded-xl shadow-lg font-medium">
+        <div style={{ background: '#1E2D3D', color: 'white', fontSize: 13, padding: '10px 16px', fontFamily: 'var(--font-sans)', fontWeight: 500, borderRadius: 0 }}>
           {message}
         </div>
       )}
@@ -213,8 +213,7 @@ function InlineAIPanel({
 
   return (
     <div
-      className="mt-2 rounded-xl overflow-hidden"
-      style={{ background: '#FFFDF7', border: '1px solid #F6D38A', marginLeft: 40 }}
+      style={{ background: '#FFFDF7', border: '1px solid rgba(217,119,6,0.3)', borderLeft: '3px solid #D97706', borderRadius: 0, marginTop: 8, marginLeft: 40, overflow: 'hidden' }}
       onClick={e => e.stopPropagation()}
     >
       {/* Header */}
@@ -231,7 +230,7 @@ function InlineAIPanel({
               <polyline points="2,3.5 5,6.5 8,3.5" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          <span className="text-[11px] font-bold" style={{ color: '#E9A020', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <span className="text-[11px] font-bold" style={{ color: '#D97706', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             {title}
           </span>
         </div>
@@ -267,7 +266,7 @@ function InlineAIPanel({
           {content && (
             <p className="text-[12px] leading-relaxed m-0 whitespace-pre-wrap" style={{ color: '#1E2D3D' }}>
               {content}
-              {loading && <span className="inline-block w-1 h-3 ml-0.5 animate-pulse" style={{ background: '#E9A020', verticalAlign: 'text-bottom' }} />}
+              {loading && <span className="inline-block w-1 h-3 ml-0.5 animate-pulse" style={{ background: '#D97706', verticalAlign: 'text-bottom' }} />}
             </p>
           )}
         </div>
@@ -309,8 +308,10 @@ function ActionButton({ actionType, actionPrompt, phase, bookTitle, launchDate, 
   return (
     <button
       onClick={handleClick}
-      className="text-[11px] font-medium px-2.5 py-1 rounded-lg border border-amber-400 text-amber-700 hover:bg-amber-50 transition-colors whitespace-nowrap"
-      style={isActive ? { background: '#FFF8EC' } : undefined}
+      className="text-[11px] font-medium px-2.5 py-1 transition-colors whitespace-nowrap"
+      style={isActive
+        ? { background: '#FFF8EC', border: '1px solid #D97706', color: '#D97706', borderRadius: 2 }
+        : { background: 'transparent', border: '1px solid #E8E1D3', color: '#6B7280', borderRadius: 2 }}
     >
       {label}
     </button>
@@ -351,12 +352,12 @@ function TaskRow({
 
   return (
     <div
-      className={`flex flex-col rounded-lg transition-colors group
+      className={`flex flex-col transition-colors group
         ${isOverdue && !isDone ? 'border-l-2' : ''}`}
-      style={isOverdue && !isDone ? { borderColor: '#E9A020' } : undefined}
+      style={isOverdue && !isDone ? { borderColor: '#D97706' } : undefined}
     >
       {/* Main row */}
-      <div className={`flex items-center gap-3 py-2.5 px-3 hover:bg-gray-50 rounded-lg ${isOverdue && !isDone ? 'pl-2.5' : ''}`}>
+      <div className={`flex items-center gap-3 py-2.5 px-3 hover:bg-stone-50 ${isOverdue && !isDone ? 'pl-2.5' : ''}`}>
         {/* Checkbox */}
         <button
           onClick={handleCheck}
@@ -459,7 +460,7 @@ function TaskSection({
       {isOverdue ? (
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="flex items-center gap-1.5 text-sm font-semibold mb-2 hover:opacity-80 transition-opacity" style={{ color: '#E9A020' }}
+          className="flex items-center gap-1.5 text-sm font-semibold mb-2 hover:opacity-80 transition-opacity" style={{ color: '#D97706' }}
         >
           <span className="text-xs">{collapsed ? '▶' : '▼'}</span>
           {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'} to catch up on
@@ -521,7 +522,8 @@ function AddTaskForm({ onAdd }: { onAdd: (task: LaunchTask) => void }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-gray-300 text-sm text-gray-400 hover:border-amber-400 hover:text-amber-600 transition-colors mt-2"
+        className="w-full flex items-center gap-2 px-3 py-2.5 border border-dashed border-gray-300 text-sm text-gray-400 hover:border-amber-400 hover:text-amber-600 transition-colors mt-2"
+        style={{ borderRadius: 0 }}
       >
         <span>+</span> Add task
       </button>
@@ -529,19 +531,21 @@ function AddTaskForm({ onAdd }: { onAdd: (task: LaunchTask) => void }) {
   }
 
   return (
-    <div className="mt-2 p-3 rounded-xl border border-gray-200 bg-gray-50">
+    <div style={{ marginTop: 8, padding: 12, borderRadius: 0, border: '1px solid #E8E1D3', background: '#F7F1E6' }}>
       <input
         autoFocus
         value={name}
         onChange={e => setName(e.target.value)}
         placeholder="Task name"
-        className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white mb-2 outline-none focus:border-amber-400"
+        className="w-full text-sm px-3 py-2 mb-2 outline-none focus:border-amber-400"
+        style={{ borderRadius: 2, border: '1px solid #E8E1D3', background: '#FFFFFF', color: '#1E2D3D' }}
       />
       <div className="flex gap-2 mb-2">
         <select
           value={channel}
           onChange={e => setChannel(e.target.value)}
-          className="text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none focus:border-amber-400 flex-1"
+          className="text-sm px-3 py-2 outline-none focus:border-amber-400 flex-1"
+          style={{ borderRadius: 2, border: '1px solid #E8E1D3', background: '#FFFFFF', color: '#1E2D3D' }}
         >
           <option>General</option>
           <option>Ads</option>
@@ -553,21 +557,23 @@ function AddTaskForm({ onAdd }: { onAdd: (task: LaunchTask) => void }) {
           type="date"
           value={dueDate}
           onChange={e => setDueDate(e.target.value)}
-          className="text-sm px-3 py-2 rounded-lg border border-gray-200 bg-white outline-none focus:border-amber-400 flex-1"
+          className="text-sm px-3 py-2 outline-none focus:border-amber-400 flex-1"
+          style={{ borderRadius: 2, border: '1px solid #E8E1D3', background: '#FFFFFF', color: '#1E2D3D' }}
         />
       </div>
       <div className="flex gap-2">
         <button
           onClick={handleSave}
           disabled={saving || !name.trim() || !dueDate}
-          className="text-sm px-4 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50"
-          style={{ background: '#E9A020', color: '#1E2D3D' }}
+          className="text-sm px-4 py-1.5 font-medium transition-colors disabled:opacity-50"
+          style={{ background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: 2, cursor: 'pointer' }}
         >
           {saving ? 'Saving…' : 'Save'}
         </button>
         <button
           onClick={() => setOpen(false)}
-          className="text-sm px-4 py-1.5 rounded-lg text-gray-500 hover:bg-gray-200 transition-colors"
+          className="text-sm px-4 py-1.5 text-gray-500 hover:bg-gray-200 transition-colors"
+          style={{ borderRadius: 2, border: '1px solid #E8E1D3', background: 'transparent', cursor: 'pointer' }}
         >
           Cancel
         </button>
@@ -635,7 +641,7 @@ function StreakWidget({ streak, events }: { streak: StreakData; events: StreakEv
   const eventDates = new Set(events.map(e => fmt(toLocalDate(e.date))))
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4 mt-4">
+    <div style={{ background: '#FFFFFF', border: '1px solid #E8E1D3', borderRadius: 0, padding: 16, marginTop: 16 }}>
       <div className="flex items-center gap-2 mb-3">
         <span style={{
           fontFamily: 'var(--font-serif)',
@@ -754,7 +760,7 @@ function InlineTextField({
           if (e.key === 'Escape') { setEditing(false); setDraft(value) }
         }}
         className={`font-semibold text-[13px] bg-transparent border-b outline-none w-full ${extraClass ?? ''}`}
-        style={{ ...fieldStyle, borderColor: '#E9A020' }}
+        style={{ ...fieldStyle, borderColor: '#D97706' }}
         placeholder={placeholder}
       />
     )
@@ -798,7 +804,7 @@ function InlineDateField({
         }}
         onKeyDown={e => { if (e.key === 'Escape') setEditing(false) }}
         className="text-[11px] bg-transparent outline-none border-b"
-        style={{ borderColor: '#E9A020', color: '#6B7280', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        style={{ borderColor: '#D97706', color: '#6B7280', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
       />
     )
   }
@@ -830,8 +836,8 @@ function InlinePhaseSelect({
         defaultValue={value}
         onBlur={async e => { await onSave(e.target.value); setEditing(false) }}
         onChange={async e => { await onSave(e.target.value); setEditing(false) }}
-        className="text-[10px] font-bold px-2 py-0.5 rounded-full outline-none cursor-pointer"
-        style={{ background: pc.bg, color: pc.color, border: 'none', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        className="text-[10px] font-bold px-2 py-0.5 outline-none cursor-pointer"
+        style={{ borderRadius: 2, background: pc.bg, color: pc.color, border: 'none', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
       >
         {PHASE_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
       </select>
@@ -944,13 +950,13 @@ function LaunchesPanel({ initialLaunches, activeLaunch, onActiveLaunchTitleChang
   }
 
   const inp: React.CSSProperties = {
-    border: '1px solid #E5E7EB', borderRadius: 8, padding: '6px 10px',
+    border: '1px solid #E8E1D3', borderRadius: 2, padding: '6px 10px',
     fontSize: 12, fontFamily: "'Plus Jakarta Sans', sans-serif",
-    outline: 'none', background: '#FAFAFA', color: '#1E2D3D', width: '100%',
+    outline: 'none', background: '#FFFFFF', color: '#1E2D3D', width: '100%',
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 px-5 py-4 shadow-sm">
+    <div style={{ background: '#FFFFFF', border: '1px solid #E8E1D3', borderRadius: 0, padding: '16px 20px' }}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-[14px] m-0" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
           My Launches
@@ -958,8 +964,8 @@ function LaunchesPanel({ initialLaunches, activeLaunch, onActiveLaunchTitleChang
         {!showAdd && (
           <button
             onClick={() => setShowAdd(true)}
-            className="text-[12px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
-            style={{ background: '#FFF4E0', color: '#E9A020', border: '1px solid #F6D38A' }}
+            className="text-[12px] font-semibold px-3 py-1.5 transition-colors"
+            style={{ background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: 2, cursor: 'pointer' }}
           >
             + Plan next launch
           </button>
@@ -1040,15 +1046,15 @@ function LaunchesPanel({ initialLaunches, activeLaunch, onActiveLaunchTitleChang
               <button
                 onClick={handleAdd}
                 disabled={!newTitle.trim() || saving}
-                className="text-[12px] font-bold px-4 py-1.5 rounded-lg disabled:opacity-50"
-                style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer' }}
+                className="text-[12px] font-bold px-4 py-1.5 disabled:opacity-50"
+                style={{ background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: 2, cursor: 'pointer' }}
               >
                 {saving ? 'Saving…' : 'Save'}
               </button>
               <button
                 onClick={() => { setShowAdd(false); setNewTitle(''); setNewStart(''); setNewPhase('Pre-order') }}
-                className="text-[12px] font-semibold px-3 py-1.5 rounded-lg"
-                style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}
+                className="text-[12px] font-semibold px-3 py-1.5"
+                style={{ background: 'transparent', color: '#6B7280', border: '1px solid #E8E1D3', borderRadius: 2, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -1085,10 +1091,10 @@ function SetupCard({ onSetup }: { onSetup: (launchDate: string, bookTitle: strin
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#FFF8F0' }}>
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#F7F1E6' }}>
+      <div style={{ background: '#FFFFFF', border: '1px solid #E8E1D3', borderRadius: 0, padding: 32 }} className="w-full max-w-md">
         <div className="mb-6 text-center">
-          <div className="text-3xl mb-3">🚀</div>
+          <div className="text-3xl mb-3" style={{ fontFamily: 'var(--font-serif)', color: '#D97706', fontSize: 36 }}>L</div>
           <h1 className="text-2xl font-bold mb-1" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             When does your book launch?
           </h1>
@@ -1105,7 +1111,8 @@ function SetupCard({ onSetup }: { onSetup: (launchDate: string, bookTitle: strin
               value={bookTitle}
               onChange={e => setBookTitle(e.target.value)}
               placeholder="e.g. The Midnight Garden"
-              className="w-full text-sm px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-amber-400 transition-colors"
+              className="w-full text-sm px-4 py-2.5 outline-none focus:border-amber-400 transition-colors"
+              style={{ borderRadius: 2, border: '1px solid #E8E1D3', color: '#1E2D3D' }}
             />
           </div>
 
@@ -1116,15 +1123,16 @@ function SetupCard({ onSetup }: { onSetup: (launchDate: string, bookTitle: strin
               value={launchDate}
               onChange={e => setLaunchDate(e.target.value)}
               required
-              className="w-full text-sm px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-amber-400 transition-colors"
+              className="w-full text-sm px-4 py-2.5 outline-none focus:border-amber-400 transition-colors"
+              style={{ borderRadius: 2, border: '1px solid #E8E1D3', color: '#1E2D3D' }}
             />
           </div>
 
           <button
             type="submit"
             disabled={loading || !launchDate}
-            className="w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-50"
-            style={{ background: '#E9A020', color: '#1E2D3D' }}
+            className="w-full py-3 font-semibold text-sm transition-all disabled:opacity-50"
+            style={{ background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: 2, cursor: 'pointer' }}
           >
             {loading ? 'Generating plan…' : 'Generate my launch plan →'}
           </button>
@@ -1268,7 +1276,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
   const daysToLaunch = daysBetween(todayMid, launchMid)
 
   let countdownLabel: string
-  if (daysToLaunch === 0) countdownLabel = '🚀 Launch day!'
+  if (daysToLaunch === 0) countdownLabel = 'Launch day!'
   else if (daysToLaunch > 0) countdownLabel = `${daysToLaunch} days to launch`
   else countdownLabel = `${Math.abs(daysToLaunch)} days since launch`
 
@@ -1343,11 +1351,11 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
         />
 
         {/* Header card */}
-        <div id="launch-tasks" className="bg-white rounded-2xl border border-gray-100 px-5 py-4 flex items-center gap-4 flex-wrap shadow-sm">
+        <div id="launch-tasks" style={{ background: '#FFFFFF', border: '1px solid #E8E1D3', borderRadius: 0, padding: '16px 20px' }} className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             {bookTitle && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold"
-                style={{ background: '#FFF4E0', color: '#E9A020' }}>
+              <span className="inline-flex items-center px-3 py-1 text-sm font-semibold"
+                style={{ background: '#FFF4E0', color: '#D97706', borderRadius: 2, border: '1px solid #F6D38A' }}>
                 {bookTitle}
               </span>
             )}
@@ -1361,7 +1369,8 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
 
           <button
             onClick={() => setShowChangeDate(d => !d)}
-            className="text-sm text-gray-400 hover:text-gray-600 transition-colors border border-gray-200 px-3 py-1.5 rounded-lg"
+            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            style={{ border: '1px solid #E8E1D3', borderRadius: 2, padding: '6px 12px', background: 'transparent', cursor: 'pointer' }}
           >
             Change date
           </button>
@@ -1369,7 +1378,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
 
         {/* Change date form */}
         {showChangeDate && (
-          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+          <div style={{ background: '#FFFFFF', border: '1px solid #E8E1D3', borderRadius: 0, padding: 16 }}>
             <p className="text-sm font-semibold text-gray-600 mb-3">Set a new launch date</p>
             <p className="text-xs text-red-500 mb-3">This will replace all current tasks.</p>
             <form
@@ -1394,11 +1403,13 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
               className="flex flex-wrap gap-2"
             >
               <input name="newTitle" type="text" defaultValue={bookTitle ?? ''} placeholder="Book title (optional)"
-                className="text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-amber-400 flex-1 min-w-[180px]" />
+                className="text-sm px-3 py-2 outline-none flex-1 min-w-[180px]"
+                style={{ borderRadius: 2, border: '1px solid #E8E1D3', color: '#1E2D3D' }} />
               <input name="newDate" type="date" defaultValue={launchDate.split('T')[0]} required
-                className="text-sm px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-amber-400" />
-              <button type="submit" className="text-sm px-4 py-2 rounded-lg font-semibold transition-all"
-                style={{ background: '#E9A020', color: '#1E2D3D' }}>
+                className="text-sm px-3 py-2 outline-none"
+                style={{ borderRadius: 2, border: '1px solid #E8E1D3', color: '#1E2D3D' }} />
+              <button type="submit" className="text-sm px-4 py-2 font-semibold transition-all"
+                style={{ background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: 2, cursor: 'pointer' }}>
                 Update
               </button>
             </form>
@@ -1426,7 +1437,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                 {isActive && (
                   <span
                     className="absolute bottom-0 left-0 right-0 rounded-t-sm"
-                    style={{ height: '2px', background: '#E9A020' }}
+                    style={{ height: '2px', background: '#D97706' }}
                   />
                 )}
               </button>
@@ -1445,10 +1456,11 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                   <button
                     key={ch}
                     onClick={() => setChannelFilter('All')}
-                    className="rounded-full font-medium transition-all"
+                    className="font-medium transition-all"
                     style={{
                       fontSize: '11px',
                       padding: '3px 10px',
+                      borderRadius: 2,
                       background: isActive ? '#1E2D3D' : 'transparent',
                       color: isActive ? '#FFFFFF' : '#9CA3AF',
                       border: `0.5px solid ${isActive ? '#1E2D3D' : '#D1D5DB'}`,
@@ -1463,10 +1475,11 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
                 <button
                   key={ch}
                   onClick={() => setChannelFilter(prev => prev === ch ? 'All' : ch)}
-                  className="rounded-full font-medium transition-all"
+                  className="font-medium transition-all"
                   style={{
                     fontSize: '11px',
                     padding: '3px 10px',
+                    borderRadius: 2,
                     background: isActive ? s.bg : 'transparent',
                     color: isActive ? s.text : '#9CA3AF',
                     border: `0.5px solid ${isActive ? s.dot : s.dot}`,
@@ -1480,7 +1493,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
         </div>
 
         {/* Week strip */}
-        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+        <div style={{ background: '#FFFFFF', border: '1px solid #E8E1D3', borderRadius: 0, padding: 16 }}>
           <WeekStrip tasks={tasks} />
         </div>
 
@@ -1502,7 +1515,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
         </div>
 
         {/* Task list */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div style={{ background: '#FFFFFF', border: '1px solid #E8E1D3', borderRadius: 0 }} className="overflow-hidden">
           <div className="p-4">
             {isThisWeek ? (
               <>

@@ -135,7 +135,7 @@ function CoverPlaceholder({ color, width = 40, height = 60 }: { color: string; w
         style={{
           width,
           height,
-          background: '#FFF8F0',
+          background: '#F7F1E6',
           border: '1.5px dashed rgba(30,45,61,0.2)',
         }}
       >
@@ -197,8 +197,9 @@ function SortableBookCard({
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.4 : 1,
+        borderRadius: 0,
       }}
-      className="flex items-center gap-3 px-4 py-3 rounded-xl border border-stone-200 bg-white group/card"
+      className="flex items-center gap-3 px-4 py-3 border border-stone-200 bg-white group/card"
     >
       {/* Drag handle */}
       <button
@@ -267,14 +268,14 @@ function SortableBookCard({
           title={book.excludeFromDashboard ? 'Show in dashboard' : 'Exclude from dashboard'}
           onClick={() => onToggleExclude(book.id, !book.excludeFromDashboard)}
           className="text-[12px] px-2 py-1 rounded transition-colors border-none bg-transparent cursor-pointer"
-          style={{ color: book.excludeFromDashboard ? '#E9A020' : '#D1D5DB' }}
+          style={{ color: book.excludeFromDashboard ? '#D97706' : '#D1D5DB' }}
         >
           {book.excludeFromDashboard ? '👁 Show' : '🚫 Hide'}
         </button>
         <Link
           href={`/dashboard/books/${book.id}/bible`}
           className="text-[12px] font-semibold px-2 py-1 rounded transition-colors no-underline"
-          style={{ color: '#E9A020' }}
+          style={{ color: '#D97706' }}
         >
           Book Bible →
         </Link>
@@ -464,8 +465,8 @@ function BookModal({
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col"
-        style={{ background: '#FFF8F0', maxHeight: '90vh' }}
+        className="w-full max-w-lg overflow-hidden flex flex-col"
+        style={{ borderRadius: 0, background: '#F7F1E6', maxHeight: '90vh' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-stone-100">
@@ -494,7 +495,7 @@ function BookModal({
               onChange={e => set('title', e.target.value)}
               placeholder="e.g. My Off-Limits Roommate"
               autoFocus
-              className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+              className="w-full border border-stone-200 px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#D97706] transition-colors" style={{ borderRadius: 2 }}
             />
           </div>
 
@@ -533,7 +534,7 @@ function BookModal({
                     onChange={e => handleAmazonUrlChange(e.target.value)}
                     onBlur={e => handleAmazonUrlChange(e.target.value)}
                     placeholder="https://amazon.com/dp/B0GSC2RTF8..."
-                    className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                    className="w-full border border-stone-200 px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#D97706] transition-colors" style={{ borderRadius: 2 }}
                   />
                   {asinStatus === 'idle' && (
                     <span className="block mt-1 text-[11px] text-stone-400">
@@ -572,7 +573,7 @@ function BookModal({
                     onChange={e => { set('asin', e.target.value.toUpperCase()); setLookupStatus('idle') }}
                     onBlur={e => handleManualAsinBlur(e.target.value.toUpperCase())}
                     placeholder="e.g. B0GSC2RTF8"
-                    className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                    className="w-full border border-stone-200 px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#D97706] transition-colors" style={{ borderRadius: 2 }}
                   />
                   {form.asin && !/^[A-Z0-9]{10}$/.test(form.asin) && (
                     <span className="block mt-1 text-[11px]" style={{ color: '#F97B6B' }}>
@@ -599,7 +600,7 @@ function BookModal({
                       type="button"
                       onClick={() => setHowToFindOpen(p => !p)}
                       className="text-[11px] border-none bg-transparent cursor-pointer p-0"
-                      style={{ color: '#E9A020' }}
+                      style={{ color: '#D97706' }}
                     >
                       How do I find this? →
                     </button>
@@ -627,7 +628,7 @@ function BookModal({
                 type="date"
                 value={form.pubDate}
                 onChange={e => set('pubDate', e.target.value)}
-                className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                className="w-full border border-stone-200 px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#D97706] transition-colors" style={{ borderRadius: 2 }}
               />
               <span className="block mt-1 text-[11px] text-stone-400">
                 Add a publish date and AuthorDash will build your launch timeline automatically.
@@ -646,7 +647,7 @@ function BookModal({
                 value={form.seriesName}
                 onChange={e => set('seriesName', e.target.value)}
                 placeholder="e.g. Stillwater Series"
-                className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                className="w-full border border-stone-200 px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#D97706] transition-colors" style={{ borderRadius: 2 }}
               />
             </div>
             <div>
@@ -659,7 +660,7 @@ function BookModal({
                 value={form.seriesOrder}
                 onChange={e => set('seriesOrder', e.target.value)}
                 placeholder="1"
-                className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                className="w-full border border-stone-200 px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#D97706] transition-colors" style={{ borderRadius: 2 }}
               />
             </div>
           </div>
@@ -712,7 +713,7 @@ function BookModal({
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 mb-3 p-1 rounded-lg" style={{ background: 'rgba(30,45,61,0.05)' }}>
+            <div className="flex gap-1 mb-3 p-1" style={{ borderRadius: 2, background: 'rgba(30,45,61,0.05)' }}>
               {(['upload', 'url', ...(form.asin ? ['amazon'] : [])] as BookForm['coverTab'][]).map(tab => (
                 <button
                   key={tab}
@@ -743,7 +744,7 @@ function BookModal({
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="w-full py-2.5 border-2 border-dashed border-stone-200 rounded-lg text-[12px] font-semibold text-stone-500 hover:border-[#E9A020] hover:text-[#E9A020] transition-all cursor-pointer bg-transparent"
+                  className="w-full py-2.5 border-2 border-dashed border-stone-200 text-[12px] font-semibold text-stone-500 hover:border-[#D97706] hover:text-[#D97706] transition-all cursor-pointer bg-transparent" style={{ borderRadius: 2 }}
                 >
                   {form.coverUrl?.startsWith('data:') ? '✓ Cover uploaded — click to change' : 'Click to upload cover image'}
                 </button>
@@ -756,14 +757,14 @@ function BookModal({
                 value={form.coverUrl?.startsWith('data:') ? '' : form.coverUrl}
                 onChange={e => set('coverUrl', e.target.value)}
                 placeholder="https://example.com/cover.jpg"
-                className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                className="w-full border border-stone-200 px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#D97706] transition-colors" style={{ borderRadius: 2 }}
               />
             )}
 
             {form.coverTab === 'amazon' && (
               <div className="flex gap-2">
                 <div
-                  className="flex-1 py-2.5 px-3 border border-stone-200 rounded-lg text-[12px] text-stone-400 bg-stone-50 truncate"
+                  className="flex-1 py-2.5 px-3 border border-stone-200 text-[12px] text-stone-400 bg-stone-50 truncate" style={{ borderRadius: 2 }}
                 >
                   {form.asin
                     ? `images-na.ssl-images-amazon.com/images/P/${form.asin}.01.LZZZZZZZ.jpg`
@@ -773,8 +774,8 @@ function BookModal({
                   type="button"
                   onClick={handleAmazonPull}
                   disabled={!form.asin}
-                  className="px-3 py-2 rounded-lg text-[12px] font-semibold border-none cursor-pointer transition-all disabled:opacity-40"
-                  style={{ background: '#E9A020', color: '#1E2D3D' }}
+                  className="px-3 py-2 text-[12px] font-semibold border-none cursor-pointer transition-all disabled:opacity-40"
+                  style={{ borderRadius: 2, background: '#D97706', color: '#FFFFFF' }}
                 >
                   Pull
                 </button>
@@ -807,8 +808,8 @@ function BookModal({
 
               {manuscriptState === 'done' ? (
                 <div
-                  className="flex items-center justify-between px-3 py-2.5 rounded-lg border"
-                  style={{ borderColor: '#6EBF8B', background: 'rgba(110,191,139,0.06)' }}
+                  className="flex items-center justify-between px-3 py-2.5 border"
+                  style={{ borderRadius: 0, borderColor: '#6EBF8B', background: 'rgba(110,191,139,0.06)' }}
                 >
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none">
@@ -823,13 +824,13 @@ function BookModal({
                     type="button"
                     onClick={() => manuscriptFileRef.current?.click()}
                     className="text-[11.5px] font-semibold border-none bg-transparent cursor-pointer transition-colors"
-                    style={{ color: '#E9A020' }}
+                    style={{ color: '#D97706' }}
                   >
                     Replace
                   </button>
                 </div>
               ) : manuscriptState === 'uploading' ? (
-                <div className="flex items-center gap-3 px-3 py-3 rounded-lg border border-stone-200 bg-white">
+                <div className="flex items-center gap-3 px-3 py-3 border border-stone-200 bg-white" style={{ borderRadius: 0 }}>
                   <div className="w-4 h-4 rounded-full border-2 border-amber-400 border-t-transparent animate-spin shrink-0" />
                   <span className="text-[12.5px] text-stone-500">Extracting text…</span>
                 </div>
@@ -845,10 +846,11 @@ function BookModal({
                     if (f) handleManuscriptUpload(f)
                   }}
                   onClick={() => manuscriptFileRef.current?.click()}
-                  className="w-full py-4 border-2 border-dashed rounded-lg text-center cursor-pointer transition-all"
+                  className="w-full py-4 border-2 border-dashed text-center cursor-pointer transition-all"
                   style={{
-                    borderColor: manuscriptDragging ? '#E9A020' : '#d1d5db',
-                    background: manuscriptDragging ? 'rgba(233,160,32,0.04)' : 'white',
+                    borderRadius: 0,
+                    borderColor: manuscriptDragging ? '#D97706' : '#d1d5db',
+                    background: manuscriptDragging ? 'rgba(217,119,6,0.04)' : 'white',
                   }}
                 >
                   {manuscriptState === 'error' ? (
@@ -877,7 +879,7 @@ function BookModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-[12.5px] font-semibold border border-stone-200 text-stone-500 hover:bg-stone-50 transition-all cursor-pointer bg-white"
+              className="px-4 py-2 text-[12.5px] font-semibold border border-stone-200 text-stone-500 hover:bg-stone-50 transition-all cursor-pointer bg-white" style={{ borderRadius: 2 }}
             >
               Cancel
             </button>
@@ -889,8 +891,8 @@ function BookModal({
                 if (err) setSaveError(err)
               }}
               disabled={!titleValid || !asinValid || isSaving}
-              className="px-5 py-2 rounded-lg text-[12.5px] font-semibold border-none cursor-pointer transition-all disabled:opacity-40"
-              style={{ background: '#E9A020', color: '#1E2D3D' }}
+              className="px-5 py-2 text-[12.5px] font-semibold border-none cursor-pointer transition-all disabled:opacity-40"
+              style={{ borderRadius: 2, background: '#D97706', color: '#FFFFFF' }}
             >
               {isSaving ? 'Saving…' : editing ? 'Save Changes' : 'Add Book'}
             </button>
@@ -1106,8 +1108,8 @@ export function BookCatalog() {
         </div>
         <button
           onClick={openAdd}
-          className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border-none cursor-pointer"
-          style={{ background: '#E9A020', color: '#1E2D3D' }}
+          className="text-[11px] font-semibold px-3 py-1.5 border-none cursor-pointer"
+          style={{ borderRadius: 2, background: '#D97706', color: '#FFFFFF' }}
         >
           + Add book
         </button>
@@ -1124,7 +1126,7 @@ export function BookCatalog() {
           className="flex-1 text-[11px] px-2.5 py-1.5 rounded-md outline-none"
           style={{
             border: '0.5px solid rgba(30,45,61,0.15)',
-            background: '#FFF8F0',
+            background: '#F7F1E6',
             color: '#1E2D3D',
           }}
         />
@@ -1134,7 +1136,7 @@ export function BookCatalog() {
           className="text-[11px] px-2 py-1.5 rounded-md outline-none cursor-pointer"
           style={{
             border: '0.5px solid rgba(30,45,61,0.15)',
-            background: '#FFF8F0',
+            background: '#F7F1E6',
             color: '#1E2D3D',
           }}
         >
@@ -1156,14 +1158,14 @@ export function BookCatalog() {
             </p>
           ) : (
             <div
-              className="mx-4 my-5 flex flex-col items-center justify-center py-8 px-6 rounded-xl text-center"
-              style={{ border: '1.5px dashed rgba(30,45,61,0.15)', background: '#FAFAFA' }}
+              className="mx-4 my-5 flex flex-col items-center justify-center py-8 px-6 text-center"
+              style={{ borderRadius: 0, border: '1.5px dashed #E8E1D3', background: '#FFFFFF' }}
             >
               {/* Stack of books icon */}
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="mb-3">
-                <rect x="6" y="26" width="28" height="6" rx="2" fill="#E9A020" opacity="0.3" />
-                <rect x="9" y="19" width="22" height="8" rx="2" fill="#E9A020" opacity="0.5" />
-                <rect x="12" y="10" width="16" height="10" rx="2" fill="#E9A020" opacity="0.85" />
+                <rect x="6" y="26" width="28" height="6" rx="2" fill="#D97706" opacity="0.3" />
+                <rect x="9" y="19" width="22" height="8" rx="2" fill="#D97706" opacity="0.5" />
+                <rect x="12" y="10" width="16" height="10" rx="2" fill="#D97706" opacity="0.85" />
                 <rect x="15" y="13" width="2" height="4" rx="1" fill="white" opacity="0.7" />
               </svg>
               <div className="text-[13px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>
@@ -1174,8 +1176,8 @@ export function BookCatalog() {
               </div>
               <button
                 onClick={openAdd}
-                className="text-[11px] font-semibold px-4 py-2 rounded-lg border-none cursor-pointer"
-                style={{ background: '#E9A020', color: '#1E2D3D' }}
+                className="text-[11px] font-semibold px-4 py-2 border-none cursor-pointer"
+                style={{ borderRadius: 2, background: '#D97706', color: '#FFFFFF' }}
               >
                 + Add your first book
               </button>
@@ -1215,7 +1217,7 @@ export function BookCatalog() {
                     <div className="text-[11px] font-medium truncate" style={{ color: '#1E2D3D' }}>{book.title}</div>
                     {book.asin
                       ? <div className="text-[10px] font-mono" style={{ color: '#9CA3AF' }}>{book.asin}</div>
-                      : <div className="text-[10px] font-semibold mt-0.5 px-1.5 py-0.5 rounded inline-block" style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>No ASIN</div>
+                      : <div className="text-[10px] font-semibold mt-0.5 px-1.5 py-0.5 rounded inline-block" style={{ background: 'rgba(233,160,32,0.12)', color: '#D97706' }}>No ASIN</div>
                     }
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -1228,7 +1230,7 @@ export function BookCatalog() {
                     title={book.excludeFromDashboard ? 'Show in dashboard' : 'Exclude from dashboard'}
                     onClick={() => handleToggleExclude(book.id, !book.excludeFromDashboard)}
                     className="text-[11px] border-none bg-transparent cursor-pointer px-2 py-1 rounded"
-                    style={{ color: book.excludeFromDashboard ? '#E9A020' : '#D1D5DB' }}
+                    style={{ color: book.excludeFromDashboard ? '#D97706' : '#D1D5DB' }}
                   >{book.excludeFromDashboard ? '👁' : '🚫'}</button>
                   <button onClick={() => openEdit(book)}
                     className="text-[11px] font-semibold border-none bg-transparent cursor-pointer px-2 py-1 rounded"
@@ -1254,10 +1256,11 @@ export function BookCatalog() {
         </span>
         <button
           onClick={openAdd}
-          className="text-[11px] font-semibold px-3 py-1 rounded-lg cursor-pointer"
+          className="text-[11px] font-semibold px-3 py-1 cursor-pointer"
           style={{
-            border: '1px dashed #E9A020',
-            color: '#E9A020',
+            borderRadius: 2,
+            border: '1px dashed #D97706',
+            color: '#D97706',
             background: 'transparent',
           }}
         >

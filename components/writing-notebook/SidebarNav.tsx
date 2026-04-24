@@ -45,7 +45,7 @@ const getDraftLabel = (draftNumber: number): string => {
 }
 
 const STATUS_PILL: Record<'Draft' | 'Done' | 'Empty', React.CSSProperties> = {
-  Draft: { background: '#FFF3E0', color: '#E9A020', border: '1px solid #F5CFA0' },
+  Draft: { background: '#FFF3E0', color: '#D97706', border: '1px solid #F5CFA0' },
   Done: { background: '#D6F0E0', color: '#1A6B3A' },
   Empty: { background: 'transparent', color: '#9CA3AF', border: '1px solid #E5E7EB' },
 }
@@ -262,8 +262,8 @@ export function SidebarNav({
           onClick={onAddChapter}
           className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-colors hover:bg-orange-50"
         >
-          <Plus size={12} style={{ color: '#E9A020' }} />
-          <span className="text-[13px]" style={{ color: '#E9A020' }}>New chapter</span>
+          <Plus size={12} style={{ color: '#D97706' }} />
+          <span className="text-[13px]" style={{ color: '#D97706' }}>New chapter</span>
         </button>
 
         {/* Full Manuscript */}

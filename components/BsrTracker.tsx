@@ -259,7 +259,7 @@ export default function BsrTracker() {
   if (booksLoading) {
     return (
       <div className="p-5">
-        <div className="animate-pulse rounded-lg h-16" style={{ background: '#F3F0EB' }} />
+        <div className="animate-pulse h-16" style={{ borderRadius: 2, background: '#F3F0EB' }} />
       </div>
     )
   }
@@ -294,8 +294,8 @@ export default function BsrTracker() {
           <button
             onClick={handleRefresh}
             disabled={fetchState === 'loading'}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-bold transition-all disabled:opacity-50"
-            style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-bold transition-all disabled:opacity-50"
+            style={{ borderRadius: 2, background: '#D97706', color: '#FFFFFF', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             {fetchState === 'loading' ? (
               <>
@@ -314,36 +314,36 @@ export default function BsrTracker() {
 
       {/* ── Error states ── */}
       {fetchState === 'blocked' && (
-        <div className="rounded-lg px-4 py-3 text-[13px]" style={{ background: '#FFF8F0', border: '1px solid #E9A020', color: '#92400e' }}>
+        <div className="px-4 py-3 text-[13px]" style={{ borderRadius: 0, background: '#F7F1E6', border: '1px solid #D97706', color: '#92400e' }}>
           Amazon blocked the auto-fetch — enter your rank manually below.
         </div>
       )}
       {fetchState === 'timeout' && (
-        <div className="rounded-lg px-4 py-3 text-[13px]" style={{ background: '#FFF8F0', border: '1px solid #E9A020', color: '#92400e' }}>
+        <div className="px-4 py-3 text-[13px]" style={{ borderRadius: 0, background: '#F7F1E6', border: '1px solid #D97706', color: '#92400e' }}>
           Took too long — try again or enter manually.
         </div>
       )}
       {fetchState === 'no_asin' && (
-        <div className="rounded-lg px-4 py-3 text-[13px]" style={{ background: '#FFF8F0', border: '1px solid #E9A020', color: '#92400e' }}>
+        <div className="px-4 py-3 text-[13px]" style={{ borderRadius: 0, background: '#F7F1E6', border: '1px solid #D97706', color: '#92400e' }}>
           Add your ASIN in{' '}
-          <Link href="/dashboard/settings#my-books" className="font-semibold underline" style={{ color: '#E9A020' }}>Settings</Link>{' '}
+          <Link href="/dashboard/settings#my-books" className="font-semibold underline" style={{ color: '#D97706' }}>Settings</Link>{' '}
           first.
         </div>
       )}
       {fetchState === 'parse_fail' && (
-        <div className="rounded-lg px-4 py-3 text-[13px]" style={{ background: '#FFF8F0', border: '1px solid #E9A020', color: '#92400e' }}>
+        <div className="px-4 py-3 text-[13px]" style={{ borderRadius: 0, background: '#F7F1E6', border: '1px solid #D97706', color: '#92400e' }}>
           Couldn&apos;t read the rank — enter manually below.
         </div>
       )}
       {fetchState === 'rate_limited' && (
-        <div className="rounded-lg px-4 py-3 text-[13px]" style={{ background: '#FFF8F0', border: '1px solid #E9A020', color: '#92400e' }}>
+        <div className="px-4 py-3 text-[13px]" style={{ borderRadius: 0, background: '#F7F1E6', border: '1px solid #D97706', color: '#92400e' }}>
           Fetched recently — auto-fetch is limited to once per hour. Enter manually if needed.
         </div>
       )}
 
       {/* ── Main rank display (Boutique v2.3) ── */}
       {selectedBook && (currentRank || history.length > 0) && (
-        <div className="rounded-lg p-4" style={{ background: '#F9F7F4', border: '0.5px solid #EEEBE6' }}>
+        <div className="p-4" style={{ borderRadius: 0, background: '#F7F1E6', border: '1px solid #E8E1D3' }}>
           {/* Primary rank number */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
             <span style={{
@@ -415,19 +415,19 @@ export default function BsrTracker() {
                 value={rankInput}
                 onChange={e => setRankInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleLogRank()}
-                className="rounded-lg px-3 py-2 text-[13px] w-40"
-                style={{ border: '0.5px solid #D1CBC2', background: 'white', color: '#1E2D3D', outline: 'none' }}
+                className="px-3 py-2 text-[13px] w-40"
+                style={{ borderRadius: 2, border: '1px solid #E8E1D3', background: 'white', color: '#1E2D3D', outline: 'none' }}
               />
               <button
                 onClick={handleLogRank}
                 disabled={logSaving || !rankInput}
-                className="px-4 py-2 rounded-lg text-[13px] font-bold transition-all disabled:opacity-40"
-                style={{ background: 'white', color: '#E9A020', border: '1.5px solid #E9A020', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                className="px-4 py-2 text-[13px] font-bold transition-all disabled:opacity-40"
+                style={{ borderRadius: 2, background: 'white', color: '#D97706', border: '1px solid #D97706', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
                 {logSaving ? 'Saving…' : "Log Today's Rank →"}
               </button>
               {logConfirmed && (
-                <span className="text-[12.5px] font-semibold px-3 py-1.5 rounded-lg" style={{ background: '#eaf7f1', color: '#0f6b46' }}>
+                <span className="text-[12.5px] font-semibold px-3 py-1.5" style={{ borderRadius: 2, background: '#eaf7f1', color: '#0f6b46' }}>
                   Rank logged ✓
                 </span>
               )}
@@ -444,13 +444,13 @@ export default function BsrTracker() {
             {[1, 2, 3].map(i => <div key={i} className="animate-pulse rounded h-8" style={{ background: '#F3F0EB' }} />)}
           </div>
         ) : history.length === 0 ? (
-          <div className="rounded-lg p-6 flex flex-col items-center text-center" style={{ border: '1px dashed #D1CBC2' }}>
+          <div className="p-6 flex flex-col items-center text-center" style={{ borderRadius: 0, border: '1px dashed #E8E1D3' }}>
             <div className="text-[13px]" style={{ color: '#9CA3AF' }}>
               No rank history yet. Fetch and log your first rank.
             </div>
           </div>
         ) : (
-          <div className="rounded-lg overflow-hidden" style={{ border: '0.5px solid #EEEBE6' }}>
+          <div className="overflow-hidden" style={{ borderRadius: 0, border: '1px solid #E8E1D3' }}>
             <table className="w-full">
               <thead>
                 <tr style={{ background: '#F9F7F4', borderBottom: '0.5px solid #EEEBE6' }}>

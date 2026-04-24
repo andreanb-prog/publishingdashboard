@@ -32,14 +32,14 @@ interface MLListOption {
 
 function MetricCard({ label, value, badge }: { label: string; value: string | number; badge?: string }) {
   return (
-    <div className="rounded-xl p-5" style={{ background: 'white', border: '0.5px solid #E5E7EB' }}>
+    <div className="p-5" style={{ borderRadius: 0, background: 'white', border: '1px solid #E8E1D3' }}>
       <p className="text-xs font-medium mb-1" style={{ color: '#6B7280' }}>{label}</p>
       <div className="flex items-baseline gap-2">
         <p className="font-semibold" style={{ color: '#1E2D3D', fontSize: 28, lineHeight: 1.2 }}>{value}</p>
         {badge && (
           <span
-            className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-            style={{ background: 'rgba(233,160,32,0.15)', color: '#E9A020' }}
+            className="text-[10px] font-semibold px-2 py-0.5"
+            style={{ borderRadius: 2, background: 'rgba(217,119,6,0.15)', color: '#D97706' }}
           >
             {badge}
           </span>
@@ -122,8 +122,8 @@ function LogSwapModal({
     }
   }
 
-  const inputCls = 'w-full text-sm px-3 py-2 rounded-lg outline-none'
-  const inputSty = { border: '1.5px solid #D1D5DB', color: '#1E2D3D', background: 'white' }
+  const inputCls = 'w-full text-sm px-3 py-2 outline-none'
+  const inputSty = { borderRadius: 2, border: '1px solid #E8E1D3', color: '#1E2D3D', background: 'white' }
   const lblSty = { color: '#6B7280' }
 
   return (
@@ -133,8 +133,8 @@ function LogSwapModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-2xl overflow-hidden"
-        style={{ background: 'white', maxHeight: '90vh', overflowY: 'auto' }}
+        className="w-full max-w-lg overflow-hidden"
+        style={{ borderRadius: 0, background: 'white', maxHeight: '90vh', overflowY: 'auto' }}
         onClick={e => e.stopPropagation()}
       >
         <div
@@ -144,8 +144,8 @@ function LogSwapModal({
           <p className="font-semibold text-base" style={{ color: '#1E2D3D' }}>Log a Swap</p>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}
+            className="p-1"
+            style={{ borderRadius: 2, background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -215,16 +215,16 @@ function LogSwapModal({
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-opacity hover:opacity-90 disabled:opacity-60"
-              style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer' }}
+              className="flex-1 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+              style={{ borderRadius: 2, background: '#D97706', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
             >
               {saving ? 'Saving...' : 'Log Swap'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 text-sm rounded-lg"
-              style={{ border: '1px solid #E5E7EB', color: '#6B7280', background: 'transparent', cursor: 'pointer' }}
+              className="px-5 py-2.5 text-sm"
+              style={{ borderRadius: 2, border: '1px solid #E8E1D3', color: '#6B7280', background: 'transparent', cursor: 'pointer' }}
             >
               Cancel
             </button>
@@ -239,12 +239,12 @@ function LogSwapModal({
 
 function EmptyState({ onOpenModal }: { onOpenModal: () => void }) {
   return (
-    <div className="rounded-xl p-12 flex flex-col items-center justify-center" style={{ border: '2px dashed #D1D5DB' }}>
+    <div className="p-12 flex flex-col items-center justify-center" style={{ borderRadius: 0, border: '2px dashed #E8E1D3' }}>
       <p className="text-base font-semibold mb-2" style={{ color: '#1E2D3D' }}>No swaps logged yet</p>
       <button
         onClick={onOpenModal}
         className="text-sm font-semibold"
-        style={{ color: '#E9A020', background: 'none', border: 'none', cursor: 'pointer' }}
+        style={{ color: '#D97706', background: 'none', border: 'none', cursor: 'pointer' }}
       >
         Log your first swap &rarr;
       </button>
@@ -309,8 +309,8 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
         actions={
           <button
             onClick={() => setShowModal(true)}
-            className="text-sm font-semibold px-4 py-2 rounded-lg flex-shrink-0"
-            style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer' }}
+            className="text-sm font-semibold px-4 py-2 flex-shrink-0"
+            style={{ borderRadius: 2, background: '#D97706', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
           >
             + Log swap
           </button>
@@ -322,7 +322,7 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
         style={{
           background: 'var(--paper)',
           border: '1px solid var(--line)',
-          borderRadius: 10,
+          borderRadius: 0,
           padding: '20px 24px',
           display: 'flex',
           alignItems: 'center',
@@ -333,14 +333,14 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
       >
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#E9A020', flexShrink: 0 }} />
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#D97706', flexShrink: 0 }} />
             <span
               style={{
                 fontFamily: 'var(--font-jetbrains-mono)',
                 fontSize: 10,
                 letterSpacing: '0.15em',
                 textTransform: 'uppercase' as const,
-                color: '#E9A020',
+                color: '#D97706',
                 fontWeight: 600,
               }}
             >
@@ -379,9 +379,9 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
             fontSize: 13,
             fontWeight: 600,
             color: '#1E2D3D',
-            background: '#E9A020',
+            background: '#D97706',
             border: 'none',
-            borderRadius: 999,
+            borderRadius: 2,
             padding: '10px 20px',
             textDecoration: 'none',
             whiteSpace: 'nowrap' as const,
@@ -395,21 +395,21 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
 
       {/* Metrics Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
-        <div style={{ background: '#f9fafb', borderRadius: 10, padding: '14px 16px' }}>
+        <div style={{ background: '#FFFFFF', borderRadius: 0, border: '1px solid #E8E1D3', padding: '14px 16px' }}>
           <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>Total booked</p>
           <p style={{ fontSize: 22, fontWeight: 500, color: '#1E2D3D', margin: '4px 0 0' }}>{totalBooked}</p>
         </div>
-        <div style={{ background: '#f9fafb', borderRadius: 10, padding: '14px 16px' }}>
+        <div style={{ background: '#FFFFFF', borderRadius: 0, border: '1px solid #E8E1D3', padding: '14px 16px' }}>
           <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>Est. total reach</p>
           <p style={{ fontSize: 22, fontWeight: 500, color: '#1E2D3D', margin: '4px 0 0' }}>{fmtReach(estReach)}</p>
           <p style={{ fontSize: 11, color: '#9ca3af', margin: '2px 0 0' }}>&#9888; estimated</p>
         </div>
-        <div style={{ background: '#f9fafb', borderRadius: 10, padding: '14px 16px' }}>
+        <div style={{ background: '#FFFFFF', borderRadius: 0, border: '1px solid #E8E1D3', padding: '14px 16px' }}>
           <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>Your promos to send</p>
           <p style={{ fontSize: 22, fontWeight: 500, color: pendingSend > 0 ? '#D85A30' : '#1E2D3D', margin: '4px 0 0' }}>{pendingSend}</p>
           <p style={{ fontSize: 11, color: '#9ca3af', margin: '2px 0 0' }}>pending</p>
         </div>
-        <div style={{ background: '#f9fafb', borderRadius: 10, padding: '14px 16px' }}>
+        <div style={{ background: '#FFFFFF', borderRadius: 0, border: '1px solid #E8E1D3', padding: '14px 16px' }}>
           <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>Partner promos incoming</p>
           <p style={{ fontSize: 22, fontWeight: 500, color: pendingReceive > 0 ? '#EF9F27' : '#1E2D3D', margin: '4px 0 0' }}>{pendingReceive}</p>
           <p style={{ fontSize: 11, color: '#9ca3af', margin: '2px 0 0' }}>pending</p>
@@ -462,19 +462,19 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
         const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
         return (
-          <div style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)', borderRadius: 12, padding: '1.25rem', marginBottom: '1rem' }}>
+          <div style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0, padding: '1.25rem', marginBottom: '1rem' }}>
             {/* Title + nav */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <button
                 onClick={() => setCalMonthOffset(p => p - 1)}
-                style={{ fontSize: 22, fontWeight: 600, padding: '8px 16px', border: '0.5px solid rgba(30,45,61,0.15)', borderRadius: 8, background: 'white', cursor: 'pointer', color: '#1E2D3D', lineHeight: 1 }}
+                style={{ fontSize: 22, fontWeight: 600, padding: '8px 16px', border: '1px solid #E8E1D3', borderRadius: 2, background: 'white', cursor: 'pointer', color: '#1E2D3D', lineHeight: 1 }}
               >
                 &#8249;
               </button>
               <p style={{ fontSize: 14, fontWeight: 600, color: '#1E2D3D', margin: 0 }}>Swap Calendar &mdash; {monthLabel}</p>
               <button
                 onClick={() => setCalMonthOffset(p => p + 1)}
-                style={{ fontSize: 22, fontWeight: 600, padding: '8px 16px', border: '0.5px solid rgba(30,45,61,0.15)', borderRadius: 8, background: 'white', cursor: 'pointer', color: '#1E2D3D', lineHeight: 1 }}
+                style={{ fontSize: 22, fontWeight: 600, padding: '8px 16px', border: '1px solid #E8E1D3', borderRadius: 2, background: 'white', cursor: 'pointer', color: '#1E2D3D', lineHeight: 1 }}
               >
                 &#8250;
               </button>
@@ -563,7 +563,7 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
           {upcoming.length === 0 ? (
             <p style={{ fontSize: 13, color: '#9ca3af' }}>No upcoming swaps — all caught up!</p>
           ) : (
-            <div style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)', borderRadius: 12, padding: '0.75rem 1.25rem' }}>
+            <div style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0, padding: '0.75rem 1.25rem' }}>
               {upcoming.map((s, i) => {
                 const isYou = s.direction === 'you_promote'
                 const initials = s.partnerName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -611,7 +611,7 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
                             fontSize: 11,
                             fontWeight: 500,
                             padding: '3px 9px',
-                            borderRadius: 20,
+                            borderRadius: 2,
                             background: isYou ? '#FAECE7' : '#FAEEDA',
                             color: isYou ? '#993C1D' : '#854F0B',
                             marginLeft: 'auto',
@@ -637,7 +637,7 @@ export default function SwapsClient({ swaps: initialSwaps }: { swaps: SwapRecord
                           fontSize: 11,
                           fontWeight: 500,
                           padding: '3px 9px',
-                          borderRadius: 20,
+                          borderRadius: 2,
                           background: 'rgba(110,191,139,0.15)',
                           color: '#6EBF8B',
                           border: 'none',

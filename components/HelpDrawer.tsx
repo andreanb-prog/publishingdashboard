@@ -58,8 +58,8 @@ export function HelpDrawer() {
         <div className="fixed inset-0 z-50" onClick={() => setOpen(false)}>
           <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.3)' }} />
           <div
-            className="absolute top-0 right-0 bottom-0 w-[340px] overflow-y-auto shadow-2xl"
-            style={{ background: '#FFFFFF' }}
+            className="absolute top-0 right-0 bottom-0 w-[340px] overflow-y-auto"
+            style={{ background: '#FFFFFF', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
@@ -75,7 +75,7 @@ export function HelpDrawer() {
             {/* Help items */}
             <div className="p-4 space-y-2">
               {HELP_ITEMS.map((item, i) => (
-                <div key={i} className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+                <div key={i} className="overflow-hidden" style={{ borderRadius: 0, background: 'white', border: '1px solid #E8E1D3' }}>
                   <button
                     onClick={() => setExpandedIdx(expandedIdx === i ? null : i)}
                     className="w-full flex items-center justify-between px-4 py-3 text-left bg-transparent border-none cursor-pointer"
@@ -89,7 +89,7 @@ export function HelpDrawer() {
                         {item.steps.map((step, j) => (
                           <div key={j} className="flex items-start gap-2">
                             <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5"
-                              style={{ background: 'rgba(233,160,32,0.12)', color: '#e9a020' }}>{j + 1}</span>
+                              style={{ background: 'rgba(217,119,6,0.12)', color: '#D97706' }}>{j + 1}</span>
                             <span className="text-[12.5px]" style={{ color: '#374151' }}>{step}</span>
                           </div>
                         ))}
@@ -100,7 +100,7 @@ export function HelpDrawer() {
               ))}
 
               {/* Something not working */}
-              <div className="rounded-xl px-4 py-3 mt-4" style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.2)' }}>
+              <div className="px-4 py-3 mt-4" style={{ borderRadius: 0, background: 'rgba(217,119,6,0.06)', border: '1px solid rgba(217,119,6,0.2)' }}>
                 <div className="text-[13px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>Something not working?</div>
                 <p className="text-[12px]" style={{ color: '#6B7280' }}>
                   Use the feedback button at the bottom right of any page to let us know. We read every message.

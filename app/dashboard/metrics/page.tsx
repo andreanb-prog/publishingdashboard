@@ -89,13 +89,13 @@ function MetricCard({ title, value, valueColor, sub, coach, children }: {
   children?: React.ReactNode
 }) {
   return (
-    <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
+    <div style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0, padding: 20, boxShadow: 'none' }}>
       <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
         {title}
       </div>
       {value && (
         <div className="text-[32px] font-semibold leading-none tracking-tight mb-1"
-          style={{ color: valueColor || '#E9A020' }}>
+          style={{ color: valueColor || '#D97706' }}>
           {value}
         </div>
       )}
@@ -175,7 +175,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
     <div className="mb-8">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {metrics.map(m => (
-          <div key={m.label} className="rounded-xl p-4" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+          <div key={m.label} style={{ borderRadius: 0, padding: 16, background: 'white', border: '1px solid #E8E1D3' }}>
             <div className="flex items-center gap-1 mb-1.5">
               <span className="text-[10px] font-bold tracking-[1.2px] uppercase" style={{ color: '#6B7280' }}>{m.label}</span>
               {m.tooltip && <MetricTooltip metric={m.tooltip} />}
@@ -187,7 +187,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
       </div>
 
       {/* Visual funnel — 4 horizontal bars */}
-      <div className="rounded-xl p-5 md:p-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div style={{ borderRadius: 0, padding: '20px 24px', background: 'white', border: '1px solid #E8E1D3' }}>
         <div className="space-y-3">
           {funnelStages.map((stage, i) => {
             const widthPct = stage.value > 0 ? Math.max((stage.value / maxFunnel) * 100, 8) : 0
@@ -228,7 +228,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
         </div>
 
         {/* AI insight box */}
-        <div className="mt-5 rounded-xl p-4" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+        <div style={{ marginTop: 20, borderRadius: 0, padding: 16, background: '#F7F1E6', border: '1px solid #E8E1D3', borderLeft: '3px solid #D97706' }}>
           <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-1" style={{ color: '#F97B6B' }}>
             Biggest leak
           </div>
@@ -333,7 +333,7 @@ export default function MetricsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-7">
 
         {/* Ad Spend → Rank Correlation */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <div style={{ borderRadius: 0, padding: 20, background: 'white', border: '1px solid #E8E1D3' }}>
           <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
             Ad Spend → Rank Correlation
           </div>
@@ -360,7 +360,7 @@ export default function MetricsPage() {
         </div>
 
         {/* Email → Sales Correlation */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <div style={{ borderRadius: 0, padding: 20, background: 'white', border: '1px solid #E8E1D3' }}>
           <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
             Email → Sales Correlation
           </div>
@@ -387,7 +387,7 @@ export default function MetricsPage() {
         </div>
 
         {/* Swap → KENP Correlation */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <div style={{ borderRadius: 0, padding: 20, background: 'white', border: '1px solid #E8E1D3' }}>
           <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
             Swap → KENP Correlation
           </div>
@@ -408,7 +408,7 @@ export default function MetricsPage() {
         </div>
 
         {/* Series Health Score */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <div style={{ borderRadius: 0, padding: 20, background: 'white', border: '1px solid #E8E1D3' }}>
           <div className="flex items-center gap-1 mb-3">
             <span className="text-[10px] font-bold tracking-[1.5px] uppercase" style={{ color: '#6B7280' }}>
               Series Health Score
@@ -452,7 +452,7 @@ export default function MetricsPage() {
       {/* ── 3. SERIES READ-THROUGH FUNNEL ──────────────────────────────────── */}
       <BoutiqueSectionLabel label="Series Read-Through Funnel" />
 
-      <div className="rounded-xl p-5 mb-7" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div style={{ borderRadius: 0, padding: 20, marginBottom: 28, background: 'white', border: '1px solid #E8E1D3' }}>
         {readThrough.length >= 2 ? (
           <>
             {readThrough.map((rt, i) => (
@@ -481,7 +481,7 @@ export default function MetricsPage() {
       {/* ── 4. ARC CALCULATOR ──────────────────────────────────────────────── */}
       <BoutiqueSectionLabel label="ARC Conversion Calculator" />
 
-      <div className="rounded-xl p-5 mb-7 max-w-md" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div style={{ borderRadius: 0, padding: 20, marginBottom: 28, maxWidth: 448, background: 'white', border: '1px solid #E8E1D3' }}>
         <div className="flex gap-3 mb-4">
           <div className="flex-1">
             <label className="text-[10px] font-bold tracking-[1px] uppercase block mb-1.5" style={{ color: '#6B7280' }}>ARCs Sent</label>

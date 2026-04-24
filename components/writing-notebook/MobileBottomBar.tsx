@@ -29,10 +29,10 @@ export function MobileBottomBar({ activeTab, onTabChange }: Props) {
             onClick={() => onTabChange(id)}
             className="flex flex-col items-center gap-0.5 py-1 px-4"
           >
-            <Icon size={20} style={{ color: isActive ? '#E9A020' : '#9CA3AF' }} />
+            <Icon size={20} style={{ color: isActive ? '#D97706' : '#9CA3AF' }} />
             <span
               className="text-[11px] font-medium"
-              style={{ color: isActive ? '#E9A020' : '#9CA3AF' }}
+              style={{ color: isActive ? '#D97706' : '#9CA3AF' }}
             >
               {label}
             </span>

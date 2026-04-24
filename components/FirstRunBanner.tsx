@@ -66,15 +66,16 @@ export function FirstRunBanner({ hasBooks, hasKdpData, hasMailerLite, onUploadCl
 
   return (
     <div
-      className="mb-5 rounded-xl overflow-hidden"
+      className="mb-5 overflow-hidden"
       style={{
-        background: '#FFF8F0',
-        border: '0.5px solid #E9D8C0',
+        borderRadius: 0,
+        background: '#F7F1E6',
+        border: '1px solid #E8E1D3',
         fontFamily: "'Plus Jakarta Sans', sans-serif",
       }}
     >
       {/* Amber top accent */}
-      <div style={{ height: 3, background: '#E9A020' }} />
+      <div style={{ height: 3, background: '#D97706' }} />
 
       <div className="px-5 py-4">
         {/* Header row */}
@@ -103,10 +104,10 @@ export function FirstRunBanner({ hasBooks, hasKdpData, hasMailerLite, onUploadCl
             let bg = 'rgba(110,191,139,0.08)'
 
             if (isCurrent) {
-              dotColor = '#E9A020'
+              dotColor = '#D97706'
               labelColor = '#1E2D3D'
-              borderColor = 'rgba(233,160,32,0.4)'
-              bg = 'rgba(233,160,32,0.06)'
+              borderColor = 'rgba(217,119,6,0.4)'
+              bg = 'rgba(217,119,6,0.06)'
             } else if (isUpcoming) {
               dotColor = '#D1D5DB'
               labelColor = '#9CA3AF'
@@ -139,8 +140,9 @@ export function FirstRunBanner({ hasBooks, hasKdpData, hasMailerLite, onUploadCl
               <div key={step.label} className="flex-1 flex items-stretch sm:contents">
                 <Wrapper>
                   <div
-                    className="flex items-center gap-3 rounded-lg px-4 py-3 h-full transition-all"
+                    className="flex items-center gap-3 px-4 py-3 h-full transition-all"
                     style={{
+                      borderRadius: 2,
                       border: `0.5px solid ${borderColor}`,
                       background: bg,
                       margin: '0 2px',
@@ -151,7 +153,7 @@ export function FirstRunBanner({ hasBooks, hasKdpData, hasMailerLite, onUploadCl
                     <div
                       className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
                       style={{
-                        background: step.done ? '#6EBF8B' : isCurrent ? '#E9A020' : '#E5E7EB',
+                        background: step.done ? '#6EBF8B' : isCurrent ? '#D97706' : '#E5E7EB',
                         color: step.done || isCurrent ? 'white' : '#9CA3AF',
                       }}
                     >
@@ -176,7 +178,7 @@ export function FirstRunBanner({ hasBooks, hasKdpData, hasMailerLite, onUploadCl
                         {step.label}
                       </div>
                       {isCurrent && (
-                        <div className="text-[11px] font-medium mt-0.5" style={{ color: '#E9A020' }}>
+                        <div className="text-[11px] font-medium mt-0.5" style={{ color: '#D97706' }}>
                           {step.linkLabel}
                         </div>
                       )}

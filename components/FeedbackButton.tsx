@@ -70,8 +70,8 @@ export function FeedbackButton() {
           width: '320px',
         }}
       >
-        <div className="rounded-xl shadow-2xl overflow-hidden"
-          style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <div className="overflow-hidden"
+          style={{ borderRadius: 0, background: 'white', border: '1px solid #E8E1D3' }}>
 
           {status === 'done' ? (
             /* ── Thank-you state ── */
@@ -110,11 +110,12 @@ export function FeedbackButton() {
                   <button
                     key={t.key}
                     onClick={() => setTab(t.key)}
-                    className="flex-1 text-[11.5px] font-semibold px-2 py-1.5 rounded-lg transition-all"
+                    className="flex-1 text-[11.5px] font-semibold px-2 py-1.5 transition-all"
                     style={{
-                      background: tab === t.key ? 'rgba(233,160,32,0.12)' : '#F5F5F4',
-                      color:      tab === t.key ? '#e9a020' : '#6B7280',
-                      border:     `1px solid ${tab === t.key ? 'rgba(233,160,32,0.3)' : '#EEEBE6'}`,
+                      borderRadius: 2,
+                      background: tab === t.key ? 'rgba(217,119,6,0.12)' : '#F5F5F4',
+                      color:      tab === t.key ? '#D97706' : '#6B7280',
+                      border:     `1px solid ${tab === t.key ? 'rgba(217,119,6,0.3)' : '#E8E1D3'}`,
                     }}
                   >
                     {t.label}
@@ -131,11 +132,11 @@ export function FeedbackButton() {
                   onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit() }}
                   rows={4}
                   placeholder="Tell us what happened..."
-                  className="w-full resize-none rounded-lg px-3 py-2.5 text-[13px] leading-relaxed
-                             outline-none transition-colors"
+                  className="w-full resize-none px-3 py-2.5 text-[13px] leading-relaxed outline-none transition-colors"
                   style={{
-                    background: '#FAFAFA',
-                    border: '1px solid #EEEBE6',
+                    borderRadius: 2,
+                    background: '#FFFFFF',
+                    border: '1px solid #E8E1D3',
                     color: '#1E2D3D',
                   }}
                 />
@@ -144,8 +145,8 @@ export function FeedbackButton() {
               {/* Page URL (for bugs) */}
               {tab === 'bug' && (
                 <div className="px-5 pb-3">
-                  <div className="flex items-center gap-2 rounded-lg px-3 py-2"
-                    style={{ background: '#F5F5F4', border: '1px solid #EEEBE6' }}>
+                  <div className="flex items-center gap-2 px-3 py-2"
+                    style={{ borderRadius: 2, background: '#F5F5F4', border: '1px solid #E8E1D3' }}>
                     <span className="text-[10px] font-bold uppercase tracking-[0.8px]" style={{ color: '#6B7280' }}>
                       Page
                     </span>
@@ -161,9 +162,8 @@ export function FeedbackButton() {
                 <button
                   onClick={handleSubmit}
                   disabled={!message.trim() || status === 'submitting'}
-                  className="w-full py-2.5 rounded-lg text-[13px] font-semibold transition-all
-                             disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{ background: '#e9a020', color: '#0d1f35' }}
+                  className="w-full py-2.5 text-[13px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ borderRadius: 2, background: '#D97706', color: '#FFFFFF' }}
                 >
                   {status === 'submitting' ? 'Sending…' : 'Send it →'}
                 </button>
@@ -198,7 +198,7 @@ export function FeedbackButton() {
           </span>
           <button
             onClick={handleOpen}
-            className="shadow-lg transition-all duration-200 hover:scale-105 active:scale-95"
+            className="transition-all duration-200 hover:scale-105 active:scale-95"
             style={{
               width: 36,
               height: 36,

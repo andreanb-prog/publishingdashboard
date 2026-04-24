@@ -76,7 +76,7 @@ const PHASE_LABELS: Record<string, string> = {
 const PHASE_COLORS: Record<string, { color: string; bg: string }> = {
   'pre-order':  { color: '#3B82F6', bg: '#EFF6FF' },
   launch:       { color: '#6EBF8B', bg: '#F0FFF4' },
-  'post-launch':{ color: '#E9A020', bg: '#FFF4E0' },
+  'post-launch':{ color: '#D97706', bg: '#FFF4E0' },
   evergreen:    { color: '#8B5CF6', bg: '#F5F3FF' },
 }
 const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
@@ -87,7 +87,7 @@ const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
 }
 const TARGETING_COLORS: Record<string, { color: string; bg: string }> = {
   cold:       { color: '#3B82F6', bg: '#EFF6FF' },
-  warm:       { color: '#E9A020', bg: '#FFF4E0' },
+  warm:       { color: '#D97706', bg: '#FFF4E0' },
   retarget:   { color: '#8B5CF6', bg: '#F5F3FF' },
   newsletter: { color: '#6EBF8B', bg: '#F0FFF4' },
 }
@@ -111,10 +111,12 @@ function Toast({ msg, ok, onDone }: { msg: string; ok: boolean; onDone: () => vo
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t) }, [onDone])
   return (
     <div
-      className="fixed bottom-6 left-1/2 z-50 px-4 py-2.5 rounded-lg text-sm font-medium shadow-lg"
+      className="fixed bottom-6 left-1/2 z-50 px-4 py-2.5 text-sm font-medium"
       style={{
+        borderRadius: 2,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         transform: 'translateX(-50%)',
-        background: ok ? '#E9A020' : '#F97B6B',
+        background: ok ? '#D97706' : '#F97B6B',
         color: '#fff',
         fontFamily: "'Plus Jakarta Sans', sans-serif",
       }}
@@ -129,8 +131,8 @@ function Toast({ msg, ok, onDone }: { msg: string; ok: boolean; onDone: () => vo
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_COLORS[status] ?? STATUS_COLORS.draft
   return (
-    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
-      style={{ background: cfg.bg, color: cfg.color }}>
+    <span className="text-[10px] font-bold px-2 py-0.5 capitalize"
+      style={{ borderRadius: 2, background: cfg.bg, color: cfg.color }}>
       {status}
     </span>
   )
@@ -182,8 +184,8 @@ function InlineEditableName({
         disabled={saving}
         style={{
           ...style,
-          border: '1.5px solid #E9A020',
-          borderRadius: 6,
+          border: '1px solid #D97706',
+          borderRadius: 2,
           padding: '2px 6px',
           outline: 'none',
           background: '#FFFDF7',
@@ -247,8 +249,8 @@ function AddAdForm({
   }
 
   return (
-    <div className="flex flex-col gap-2 mt-2 p-3 rounded-xl"
-      style={{ background: '#F9F7F4', border: '1px solid #E5E7EB', marginLeft: 80 }}>
+    <div className="flex flex-col gap-2 mt-2 p-3"
+      style={{ borderRadius: 0, background: '#F7F1E6', border: '1px solid #E8E1D3', marginLeft: 80 }}>
       <div className="flex items-center gap-2 flex-wrap">
         <select value={bookSlot} onChange={e => setBookSlot(e.target.value)} style={sel}>
           {BOOK_SLOT_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -260,18 +262,18 @@ function AddAdForm({
           {FORMAT_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
         </select>
       </div>
-      <div className="font-mono text-[11px] px-2 py-1.5 rounded-lg" style={{ background: '#1E2D3D', color: '#E9A020' }}>
+      <div className="font-mono text-[11px] px-2 py-1.5" style={{ borderRadius: 2, background: '#1E2D3D', color: '#D97706' }}>
         {preview}
       </div>
       <div className="flex gap-1.5">
         <button onClick={handleAdd} disabled={saving}
-          className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
-          style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}>
+          className="text-[11px] font-bold px-3 py-1.5"
+          style={{ borderRadius: 2, background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}>
           {saving ? 'Adding…' : 'Add ad'}
         </button>
         <button onClick={onCancel}
-          className="text-[11px] font-semibold px-3 py-1.5 rounded-lg"
-          style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}>
+          className="text-[11px] font-semibold px-3 py-1.5"
+          style={{ borderRadius: 2, background: 'transparent', color: '#6B7280', border: '1px solid #E8E1D3', cursor: 'pointer' }}>
           Cancel
         </button>
       </div>
@@ -294,9 +296,9 @@ function AddAdSetForm({
   const [saving,    setSaving]    = useState(false)
 
   const inp: React.CSSProperties = {
-    border: '1px solid #E5E7EB', borderRadius: 8, padding: '6px 10px',
+    border: '1px solid #E8E1D3', borderRadius: 2, padding: '6px 10px',
     fontSize: 12, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none',
-    background: '#FAFAFA', color: '#1E2D3D', width: '100%',
+    background: '#FFFFFF', color: '#1E2D3D', width: '100%',
   }
 
   async function handleAdd() {
@@ -307,8 +309,8 @@ function AddAdSetForm({
   }
 
   return (
-    <div className="flex flex-col gap-2 mt-2 p-3 rounded-xl"
-      style={{ background: '#F9F7F4', border: '1px solid #E5E7EB', marginLeft: 40 }}>
+    <div className="flex flex-col gap-2 mt-2 p-3"
+      style={{ borderRadius: 0, background: '#F7F1E6', border: '1px solid #E8E1D3', marginLeft: 40 }}>
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="text-[10px] font-semibold mb-1 block" style={{ color: '#6B7280' }}>Ad Set name</label>
@@ -333,13 +335,13 @@ function AddAdSetForm({
       </div>
       <div className="flex gap-1.5">
         <button onClick={handleAdd} disabled={!name.trim() || saving}
-          className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
-          style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}>
+          className="text-[11px] font-bold px-3 py-1.5"
+          style={{ borderRadius: 2, background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}>
           {saving ? 'Adding…' : 'Add ad set'}
         </button>
         <button onClick={onCancel}
-          className="text-[11px] font-semibold px-3 py-1.5 rounded-lg"
-          style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}>
+          className="text-[11px] font-semibold px-3 py-1.5"
+          style={{ borderRadius: 2, background: 'transparent', color: '#6B7280', border: '1px solid #E8E1D3', cursor: 'pointer' }}>
           Cancel
         </button>
       </div>
@@ -360,8 +362,8 @@ function LinkCreativePicker({
 }) {
   const [linking, setLinking] = useState<string | null>(null)
   return (
-    <div className="absolute z-30 right-0 top-7 w-72 rounded-xl shadow-xl overflow-hidden"
-      style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}>
+    <div className="absolute z-30 right-0 top-7 w-72 overflow-hidden"
+      style={{ borderRadius: 0, background: '#FFFFFF', border: '1px solid #E8E1D3', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
       <div className="px-3 py-2.5 font-semibold text-[12px] flex items-center justify-between"
         style={{ borderBottom: '1px solid #E5E7EB', color: '#1E2D3D' }}>
         Link a creative
@@ -419,8 +421,8 @@ function AdRow({
   }
 
   return (
-    <div className="flex items-start gap-3 px-3 py-2.5 rounded-xl group"
-      style={{ marginLeft: 80, background: '#FAFAFA', border: '1px solid #F3F4F6' }}>
+    <div className="flex items-start gap-3 px-3 py-2.5 group"
+      style={{ borderRadius: 0, marginLeft: 80, background: '#FFFFFF', border: '1px solid #E8E1D3' }}>
       {/* Name */}
       <div className="flex-1 min-w-0">
         <InlineEditableName
@@ -437,23 +439,20 @@ function AdRow({
         {ad.status === 'active' && (ad.ctr != null || ad.spend != null) && (
           <div className="flex gap-1.5 mt-1.5 flex-wrap">
             {ad.ctr != null && (
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                style={{
-                  background: ad.ctr < 1 ? '#FFF1EE' : ad.ctr >= 4 ? '#F0FFF4' : '#F3F4F6',
-                  color:      ad.ctr < 1 ? '#F97B6B' : ad.ctr >= 4 ? '#6EBF8B' : '#6B7280',
-                }}>
+              <span className="text-[10px] font-semibold px-2 py-0.5"
+                style={{ borderRadius: 2, background: ad.ctr < 1 ? '#FFF1EE' : ad.ctr >= 4 ? '#F0FFF4' : '#F3F4F6', color: ad.ctr < 1 ? '#F97B6B' : ad.ctr >= 4 ? '#6EBF8B' : '#6B7280' }}>
                 CTR {ad.ctr.toFixed(2)}%
               </span>
             )}
             {ad.cpc != null && (
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                style={{ background: '#F3F4F6', color: '#6B7280' }}>
+              <span className="text-[10px] font-semibold px-2 py-0.5"
+                style={{ borderRadius: 2, background: '#F3F4F6', color: '#6B7280' }}>
                 CPC ${ad.cpc.toFixed(2)}
               </span>
             )}
             {ad.spend != null && (
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                style={{ background: '#F3F4F6', color: '#6B7280' }}>
+              <span className="text-[10px] font-semibold px-2 py-0.5"
+                style={{ borderRadius: 2, background: '#F3F4F6', color: '#6B7280' }}>
                 Spend ${ad.spend.toFixed(0)}
               </span>
             )}
@@ -467,8 +466,8 @@ function AdRow({
       {/* Actions */}
       <div className="flex items-center gap-1 flex-shrink-0 relative">
         <button onClick={handleCopyName} title="Copy name"
-          className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md"
-          style={{ background: '#FFF4E0', color: '#E9A020', border: '1px solid #F6D38A', cursor: 'pointer' }}>
+          className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1"
+          style={{ borderRadius: 2, background: '#D97706', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}>
           <Copy size={10} /> Copy
         </button>
         <button onClick={() => setShowLinker(v => !v)} title="Link creative"
@@ -542,24 +541,24 @@ function GenerateModal({
   }
 
   const optStyle = (active: boolean): React.CSSProperties => ({
-    border: active ? '2px solid #E9A020' : '1.5px solid #E5E7EB',
-    background: active ? '#FFF8EC' : '#FFFFFF',
-    borderRadius: 12, padding: '12px 16px', cursor: 'pointer', textAlign: 'left',
+    border: active ? '2px solid #D97706' : '1px solid #E8E1D3',
+    background: active ? '#FFF4E0' : '#FFFFFF',
+    borderRadius: 2, padding: '12px 16px', cursor: 'pointer', textAlign: 'left',
     width: '100%', fontFamily: "'Plus Jakarta Sans', sans-serif",
   })
 
   const selStyle: React.CSSProperties = {
-    border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 12px',
+    border: '1px solid #E8E1D3', borderRadius: 2, padding: '8px 12px',
     fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none',
-    background: '#FAFAFA', color: '#1E2D3D', cursor: 'pointer', width: '100%',
+    background: '#FFFFFF', color: '#1E2D3D', cursor: 'pointer', width: '100%',
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(30,45,61,0.4)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="w-full max-w-md rounded-2xl overflow-hidden"
-        style={{ background: '#FFFFFF', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div className="w-full max-w-md overflow-hidden"
+        style={{ borderRadius: 0, background: '#FFFFFF', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
         <div className="flex items-center justify-between px-6 py-5"
           style={{ borderBottom: '1px solid #EEEBE6' }}>
           <h2 className="font-bold text-[18px] m-0" style={{ color: '#1E2D3D' }}>
@@ -579,7 +578,7 @@ function GenerateModal({
             ) : launches.length === 0 ? (
               <div className="text-[12px] py-2" style={{ color: '#9CA3AF' }}>
                 No launches yet —{' '}
-                <a href="/dashboard/launch" className="underline" style={{ color: '#E9A020' }}>
+                <a href="/dashboard/launch" className="underline" style={{ color: '#D97706' }}>
                   create one in Launch Planner first
                 </a>
               </div>
@@ -595,7 +594,7 @@ function GenerateModal({
           {/* Template choices */}
           <div className="flex flex-col gap-2">
             <button style={optStyle(template === 'standard')} onClick={() => setTemplate('standard')}>
-              <div className="font-bold text-[13px]" style={{ color: template === 'standard' ? '#E9A020' : '#1E2D3D' }}>
+              <div className="font-bold text-[13px]" style={{ color: template === 'standard' ? '#D97706' : '#1E2D3D' }}>
                 Standard
               </div>
               <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>
@@ -603,19 +602,19 @@ function GenerateModal({
               </div>
             </button>
             <button style={optStyle(template === 'minimal')} onClick={() => setTemplate('minimal')}>
-              <div className="font-bold text-[13px]" style={{ color: template === 'minimal' ? '#E9A020' : '#1E2D3D' }}>
+              <div className="font-bold text-[13px]" style={{ color: template === 'minimal' ? '#D97706' : '#1E2D3D' }}>
                 Minimal
               </div>
               <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>One campaign, one ad set — build from there</div>
             </button>
             <button style={optStyle(template === 'starter')} onClick={() => setTemplate('starter')}>
-              <div className="font-bold text-[13px]" style={{ color: template === 'starter' ? '#E9A020' : '#1E2D3D' }}>
+              <div className="font-bold text-[13px]" style={{ color: template === 'starter' ? '#D97706' : '#1E2D3D' }}>
                 Just Starting Out
               </div>
               <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>One simple campaign, one audience — no jargon, just a place to begin.</div>
             </button>
             <button style={optStyle(template === 'blank')} onClick={() => setTemplate('blank')}>
-              <div className="font-bold text-[13px]" style={{ color: template === 'blank' ? '#E9A020' : '#1E2D3D' }}>
+              <div className="font-bold text-[13px]" style={{ color: template === 'blank' ? '#D97706' : '#1E2D3D' }}>
                 My structure
               </div>
               <div className="text-[11px] mt-0.5" style={{ color: '#9CA3AF' }}>Blank canvas — add campaigns manually</div>
@@ -628,13 +627,13 @@ function GenerateModal({
 
         <div className="px-6 pb-6 flex gap-3">
           <button onClick={handleGenerate} disabled={loading || !launchId || launchsLoad}
-            className="flex-1 py-2.5 rounded-xl font-bold text-[14px]"
-            style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: loading || !launchId ? 'not-allowed' : 'pointer', opacity: loading || !launchId ? 0.6 : 1 }}>
+            className="flex-1 py-2.5 font-bold text-[14px]"
+            style={{ borderRadius: 2, background: '#1E2D3D', color: '#fff', border: 'none', cursor: loading || !launchId ? 'not-allowed' : 'pointer', opacity: loading || !launchId ? 0.6 : 1 }}>
             {loading ? 'Generating…' : 'Generate'}
           </button>
           <button onClick={onClose}
-            className="px-5 py-2.5 rounded-xl font-semibold text-[14px]"
-            style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}>
+            className="px-5 py-2.5 font-semibold text-[14px]"
+            style={{ borderRadius: 2, background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}>
             Cancel
           </button>
         </div>
@@ -658,18 +657,18 @@ function ConfirmDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(30,45,61,0.4)' }}
       onClick={e => { if (e.target === e.currentTarget) onCancel() }}>
-      <div className="w-full max-w-sm rounded-2xl p-6 flex flex-col gap-4"
-        style={{ background: '#FFFFFF', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div className="w-full max-w-sm p-6 flex flex-col gap-4"
+        style={{ borderRadius: 0, background: '#FFFFFF', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
         <p className="text-[14px] m-0 leading-relaxed" style={{ color: '#1E2D3D' }}>{message}</p>
         <div className="flex gap-2 justify-end">
           <button onClick={onCancel}
-            className="px-4 py-2 rounded-xl text-[13px] font-semibold"
-            style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}>
+            className="px-4 py-2 text-[13px] font-semibold"
+            style={{ borderRadius: 2, background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}>
             Cancel
           </button>
           <button onClick={onConfirm}
-            className="px-4 py-2 rounded-xl text-[13px] font-bold"
-            style={{ background: '#F97B6B', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            className="px-4 py-2 text-[13px] font-bold"
+            style={{ borderRadius: 2, background: '#F97B6B', color: '#fff', border: 'none', cursor: 'pointer' }}>
             Delete
           </button>
         </div>
@@ -700,8 +699,8 @@ function ThreeDotMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-20" onClick={e => { e.stopPropagation(); setOpen(false) }} />
-          <div className="absolute z-30 right-0 top-7 w-36 rounded-xl shadow-xl overflow-hidden"
-            style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}>
+          <div className="absolute z-30 right-0 top-7 w-36 overflow-hidden"
+            style={{ borderRadius: 0, background: '#FFFFFF', border: '1px solid #E8E1D3', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <button
               onClick={e => { e.stopPropagation(); setOpen(false); onRename() }}
               className="w-full text-left px-3 py-2.5 text-[12px] font-semibold flex items-center gap-2 hover:bg-gray-50"
@@ -1015,7 +1014,7 @@ export function CampaignClient({
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ background: '#FFF8F0', minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ background: '#F7F1E6', minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-5"
         style={{ background: '#FFFFFF', borderBottom: '1px solid #EEEBE6' }}>
@@ -1025,8 +1024,8 @@ export function CampaignClient({
         <div className="flex flex-col items-end gap-1">
           <button
             onClick={() => setShowGenerate(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-[13px]"
-            style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            className="flex items-center gap-1.5 px-4 py-2 font-bold text-[13px]"
+            style={{ borderRadius: 2, background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}>
             <Plus size={14} strokeWidth={2.5} /> Generate structure
           </button>
           <span className="text-[10px]" style={{ color: '#9CA3AF' }}>
@@ -1038,14 +1037,14 @@ export function CampaignClient({
       {/* Tree */}
       <div className="p-6 flex flex-col gap-3">
         {campaigns.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 rounded-2xl"
-            style={{ border: '2px dashed #D1D5DB' }}>
+          <div className="flex flex-col items-center justify-center py-20"
+            style={{ borderRadius: 0, border: '2px dashed #E8E1D3' }}>
             <span className="text-[15px] font-semibold mb-3" style={{ color: '#9CA3AF' }}>
               No campaigns yet
             </span>
             <button onClick={() => setShowGenerate(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-[13px]"
-              style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}>
+              className="flex items-center gap-1.5 px-4 py-2 font-bold text-[13px]"
+              style={{ borderRadius: 2, background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}>
               <Plus size={14} /> Generate structure
             </button>
           </div>
@@ -1057,8 +1056,8 @@ export function CampaignClient({
 
             return (
               <div key={campaign.id}
-                className="rounded-2xl overflow-hidden"
-                style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}>
+                className="overflow-hidden"
+                style={{ borderRadius: 0, background: '#FFFFFF', border: '1px solid #E8E1D3' }}>
                 {/* Campaign row */}
                 <div className="flex items-center gap-3 px-4 py-3.5 cursor-pointer select-none group"
                   onClick={() => toggleCampaign(campaign.id)}
@@ -1081,12 +1080,12 @@ export function CampaignClient({
                   </div>
                   {/* Badges */}
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: phaseCfg.bg, color: phaseCfg.color }}>
+                    <span className="text-[10px] font-bold px-2 py-0.5"
+                      style={{ borderRadius: 2, background: phaseCfg.bg, color: phaseCfg.color }}>
                       {PHASE_LABELS[campaign.phase] ?? campaign.phase}
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: '#F3F4F6', color: '#6B7280' }}>
+                    <span className="text-[10px] font-bold px-2 py-0.5"
+                      style={{ borderRadius: 2, background: '#F3F4F6', color: '#6B7280' }}>
                       {OBJECTIVE_LABELS[campaign.objective] ?? campaign.objective}
                     </span>
                     <StatusBadge status={campaign.status} />
@@ -1116,8 +1115,8 @@ export function CampaignClient({
                       return (
                         <div key={adSet.id}>
                           {/* Ad set row */}
-                          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer group"
-                            style={{ marginLeft: 20, background: '#F9F7F4', border: '1px solid #EEEBE6' }}
+                          <div className="flex items-center gap-3 px-3 py-2.5 cursor-pointer group"
+                            style={{ borderRadius: 0, marginLeft: 20, background: '#F9F7F4', border: '1px solid #E8E1D3' }}
                             onClick={() => toggleAdSet(adSet.id)}>
                             <div style={{ color: '#9CA3AF', flexShrink: 0 }}>
                               {adSetExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -1130,8 +1129,8 @@ export function CampaignClient({
                                 forceEditKey={renameTriggers[adSet.id]}
                               />
                             </div>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
-                              style={{ background: tCfg.bg, color: tCfg.color }}>
+                            <span className="text-[10px] font-bold px-2 py-0.5 capitalize"
+                              style={{ borderRadius: 2, background: tCfg.bg, color: tCfg.color }}>
                               {adSet.targeting}
                             </span>
                             {adSet.audience && (
@@ -1146,8 +1145,8 @@ export function CampaignClient({
                             {/* Add ad button */}
                             <button
                               onClick={e => { e.stopPropagation(); setAddAdFor(adSet.id); setExpandedAdSets(prev => new Set(Array.from(prev).concat(adSet.id))) }}
-                              className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg"
-                              style={{ background: '#FFF4E0', color: '#E9A020', border: '1px solid #F6D38A', cursor: 'pointer' }}
+                              className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1"
+                              style={{ borderRadius: 2, background: '#D97706', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
                               title="Add ad">
                               <Plus size={10} /> Add ad
                             </button>
@@ -1195,8 +1194,8 @@ export function CampaignClient({
                     ) : (
                       <button
                         onClick={() => setAddAdSetFor(campaign.id)}
-                        className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-2 rounded-xl self-start"
-                        style={{ marginLeft: 20, background: '#F9F7F4', color: '#6B7280', border: '1px dashed #D1D5DB', cursor: 'pointer' }}>
+                        className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-2 self-start"
+                        style={{ borderRadius: 2, marginLeft: 20, background: '#F7F1E6', color: '#6B7280', border: '1px dashed #E8E1D3', cursor: 'pointer' }}>
                         <Plus size={12} /> Add ad set
                       </button>
                     )}

@@ -64,7 +64,7 @@ interface Book {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   briefed:   { label: 'Briefed',   color: '#6B7280', bg: '#F3F4F6', border: '#D1D5DB' },
-  'in-canva':{ label: 'In Canva',  color: '#E9A020', bg: '#FFF4E0', border: '#F6D38A' },
+  'in-canva':{ label: 'In Canva',  color: '#D97706', bg: '#FFF4E0', border: '#F6D38A' },
   ready:     { label: 'Ready',     color: '#3B82F6', bg: '#EFF6FF', border: '#BFDBFE' },
   live:      { label: 'Live',      color: '#6EBF8B', bg: '#F0FFF4', border: '#A7F3C8' },
   paused:    { label: 'Paused',    color: '#F97316', bg: '#FFF7ED', border: '#FED7AA' },
@@ -95,7 +95,7 @@ const FORMAT_LABELS: Record<string, string> = {
 }
 const TARGETING_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   cold:       { label: 'Cold',       color: '#3B82F6', bg: '#EFF6FF' },
-  warm:       { label: 'Warm',       color: '#E9A020', bg: '#FFF4E0' },
+  warm:       { label: 'Warm',       color: '#D97706', bg: '#FFF4E0' },
   retarget:   { label: 'Retarget',   color: '#8B5CF6', bg: '#F5F3FF' },
   newsletter: { label: 'Newsletter', color: '#6EBF8B', bg: '#F0FFF4' },
 }
@@ -115,8 +115,10 @@ function Toast({ msg, ok, onDone }: { msg: string; ok: boolean; onDone: () => vo
   }, [onDone])
   return (
     <div
-      className="fixed bottom-6 left-1/2 z-50 px-4 py-2.5 rounded-lg text-sm font-medium shadow-lg"
+      className="fixed bottom-6 left-1/2 z-50 px-4 py-2.5 text-sm font-medium"
       style={{
+        borderRadius: 2,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         transform: 'translateX(-50%)',
         background: ok ? '#6EBF8B' : '#F97B6B',
         color: '#fff',
@@ -132,7 +134,7 @@ function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.briefed
   return (
     <span
-      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+      className="text-[10px] font-bold px-2 py-0.5"
       style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}
     >
       {cfg.label}
@@ -146,7 +148,7 @@ function TargetingBadge({ targeting }: { targeting: string | null }) {
   if (!cfg) return null
   return (
     <span
-      className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+      className="text-[10px] font-semibold px-2 py-0.5"
       style={{ background: cfg.bg, color: cfg.color }}
     >
       {cfg.label}
@@ -173,15 +175,15 @@ function PerformanceChips({ creative }: { creative: Creative }) {
 
   return (
     <div className="flex gap-1.5 flex-wrap mt-2">
-      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+      <span className="text-[11px] font-semibold px-2 py-0.5"
         style={{ background: ctrBg, color: ctrColor }}>
         CTR {creative.ctr != null ? `${creative.ctr.toFixed(2)}%` : '—'}
       </span>
-      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+      <span className="text-[11px] font-semibold px-2 py-0.5"
         style={{ background: '#F3F4F6', color: '#6B7280' }}>
         CPC {creative.cpc != null ? `$${creative.cpc.toFixed(2)}` : '—'}
       </span>
-      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+      <span className="text-[11px] font-semibold px-2 py-0.5"
         style={{ background: '#F3F4F6', color: '#6B7280' }}>
         Spend {creative.spend != null ? `$${creative.spend.toFixed(0)}` : '—'}
       </span>
@@ -329,10 +331,11 @@ function CreativeCard({
 
   return (
     <div
-      className="rounded-xl overflow-hidden flex flex-col"
+      className="overflow-hidden flex flex-col"
       style={{
         background: '#FFFFFF',
-        border: '0.5px solid #E5DDD5',
+        border: '1px solid #E8E1D3',
+        borderRadius: 0,
         opacity: isCut ? 0.5 : 1,
         fontFamily: "'Plus Jakarta Sans', sans-serif",
         cursor: 'pointer',
@@ -379,14 +382,14 @@ function CreativeCard({
         {/* Tags row */}
         <div className="flex flex-wrap gap-1">
           {creative.variant && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+            <span className="text-[10px] px-2 py-0.5 font-semibold"
               style={{ background: '#F3F4F6', color: '#6B7280' }}>
               {creative.variant}
             </span>
           )}
           {creative.phase && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-              style={{ background: '#FFF8F0', color: '#E9A020', border: '1px solid #F6D38A' }}>
+            <span className="text-[10px] px-2 py-0.5 font-semibold"
+              style={{ background: '#FFF4E0', color: '#D97706', border: '1px solid #F6D38A' }}>
               {PHASE_LABELS[creative.phase] ?? creative.phase}
             </span>
           )}
@@ -461,7 +464,7 @@ function CreativeCard({
                   </button>
                   <button onClick={handleCopyPrompt}
                     className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-md"
-                    style={{ background: '#FFF4E0', color: '#E9A020', border: '1px solid #F6D38A', cursor: 'pointer' }}>
+                    style={{ background: '#FFF4E0', color: '#D97706', border: '1px solid #F6D38A', cursor: 'pointer' }}>
                     Copy prompt <ExternalLink size={10} />
                   </button>
                 </>
@@ -618,8 +621,8 @@ function NewCreativeModal({
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="w-full max-w-lg rounded-2xl overflow-y-auto"
-        style={{ background: '#FFFFFF', maxHeight: '90vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        className="w-full max-w-lg overflow-y-auto"
+        style={{ borderRadius: 0, background: '#FFFFFF', maxHeight: '90vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5"
@@ -628,8 +631,8 @@ function NewCreativeModal({
             New creative
           </h2>
           <button onClick={onClose}
-            className="p-1.5 rounded-lg transition-colors"
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#6B7280' }}>
+            className="p-1.5 transition-colors"
+            style={{ background: 'transparent', border: 'none', borderRadius: 2, cursor: 'pointer', color: '#6B7280' }}>
             <X size={18} />
           </button>
         </div>
@@ -698,14 +701,15 @@ function NewCreativeModal({
                     key={s.id}
                     type="button"
                     onClick={() => toggleSize(s.id)}
-                    className="text-left rounded-xl p-3 transition-all"
+                    className="text-left p-3 transition-all"
                     style={{
-                      background:  selected ? '#FFF8EC' : '#FFFFFF',
-                      border:      selected ? '2px solid #E9A020' : '1.5px solid #E5E7EB',
+                      borderRadius: 2,
+                      background:  selected ? '#FFF4E0' : '#FFFFFF',
+                      border:      selected ? '2px solid #D97706' : '1px solid #E8E1D3',
                       cursor: 'pointer',
                     }}
                   >
-                    <div className="font-bold text-[12px] mb-0.5" style={{ color: selected ? '#E9A020' : '#1E2D3D' }}>
+                    <div className="font-bold text-[12px] mb-0.5" style={{ color: selected ? '#D97706' : '#1E2D3D' }}>
                       {s.name}
                     </div>
                     <div className="text-[11px] font-semibold mb-1" style={{ color: selected ? '#C97D0E' : '#6B7280' }}>
@@ -741,8 +745,8 @@ function NewCreativeModal({
               <button
                 onClick={handleGenerateBrief}
                 disabled={generatingBrief}
-                className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md"
-                style={{ background: '#FFF4E0', color: '#E9A020', border: '1px solid #F6D38A', cursor: generatingBrief ? 'not-allowed' : 'pointer', opacity: generatingBrief ? 0.6 : 1 }}>
+                className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1"
+                style={{ borderRadius: 2, background: '#D97706', color: '#FFFFFF', border: 'none', cursor: generatingBrief ? 'not-allowed' : 'pointer', opacity: generatingBrief ? 0.6 : 1 }}>
                 {generatingBrief ? 'Generating…' : 'Generate brief'}
               </button>
             </div>
@@ -768,8 +772,9 @@ function NewCreativeModal({
           <button
             onClick={handleSubmit}
             disabled={!name.trim() || saving}
-            className="flex-1 py-2.5 rounded-xl font-bold text-[14px]"
+            className="flex-1 py-2.5 font-bold text-[14px]"
             style={{
+              borderRadius: 2,
               background: !name.trim() || saving ? '#E5E7EB' : '#1E2D3D',
               color: !name.trim() || saving ? '#9CA3AF' : '#fff',
               border: 'none',
@@ -780,8 +785,8 @@ function NewCreativeModal({
           </button>
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl font-semibold text-[14px]"
-            style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}
+            className="px-5 py-2.5 font-semibold text-[14px]"
+            style={{ borderRadius: 2, background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}
           >
             Cancel
           </button>
@@ -893,8 +898,8 @@ function EditCreativeModal({
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="w-full max-w-lg rounded-2xl overflow-y-auto"
-        style={{ background: '#FFFFFF', maxHeight: '90vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        className="w-full max-w-lg overflow-y-auto"
+        style={{ borderRadius: 0, background: '#FFFFFF', maxHeight: '90vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5"
@@ -903,8 +908,8 @@ function EditCreativeModal({
             Edit creative
           </h2>
           <button onClick={onClose}
-            className="p-1.5 rounded-lg transition-colors"
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#6B7280' }}>
+            className="p-1.5 transition-colors"
+            style={{ background: 'transparent', border: 'none', borderRadius: 2, cursor: 'pointer', color: '#6B7280' }}>
             <X size={18} />
           </button>
         </div>
@@ -973,14 +978,15 @@ function EditCreativeModal({
                     key={s.id}
                     type="button"
                     onClick={() => toggleSize(s.id)}
-                    className="text-left rounded-xl p-3 transition-all"
+                    className="text-left p-3 transition-all"
                     style={{
-                      background:  selected ? '#FFF8EC' : '#FFFFFF',
-                      border:      selected ? '2px solid #E9A020' : '1.5px solid #E5E7EB',
+                      borderRadius: 2,
+                      background:  selected ? '#FFF4E0' : '#FFFFFF',
+                      border:      selected ? '2px solid #D97706' : '1px solid #E8E1D3',
                       cursor: 'pointer',
                     }}
                   >
-                    <div className="font-bold text-[12px] mb-0.5" style={{ color: selected ? '#E9A020' : '#1E2D3D' }}>
+                    <div className="font-bold text-[12px] mb-0.5" style={{ color: selected ? '#D97706' : '#1E2D3D' }}>
                       {s.name}
                     </div>
                     <div className="text-[11px] font-semibold mb-1" style={{ color: selected ? '#C97D0E' : '#6B7280' }}>
@@ -1013,8 +1019,8 @@ function EditCreativeModal({
               <button
                 onClick={handleGenerateBrief}
                 disabled={generatingBrief}
-                className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md"
-                style={{ background: '#FFF4E0', color: '#E9A020', border: '1px solid #F6D38A', cursor: generatingBrief ? 'not-allowed' : 'pointer', opacity: generatingBrief ? 0.6 : 1 }}>
+                className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1"
+                style={{ borderRadius: 2, background: '#D97706', color: '#FFFFFF', border: 'none', cursor: generatingBrief ? 'not-allowed' : 'pointer', opacity: generatingBrief ? 0.6 : 1 }}>
                 {generatingBrief ? 'Generating…' : 'Generate brief'}
               </button>
             </div>
@@ -1040,8 +1046,9 @@ function EditCreativeModal({
           <button
             onClick={handleSave}
             disabled={!name.trim() || saving}
-            className="flex-1 py-2.5 rounded-xl font-bold text-[14px]"
+            className="flex-1 py-2.5 font-bold text-[14px]"
             style={{
+              borderRadius: 2,
               background: !name.trim() || saving ? '#E5E7EB' : '#1E2D3D',
               color: !name.trim() || saving ? '#9CA3AF' : '#fff',
               border: 'none',
@@ -1052,8 +1059,8 @@ function EditCreativeModal({
           </button>
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl font-semibold text-[14px]"
-            style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}
+            className="px-5 py-2.5 font-semibold text-[14px]"
+            style={{ borderRadius: 2, background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}
           >
             Cancel
           </button>
@@ -1096,15 +1103,15 @@ function KanbanColumn({
     <div className="flex-shrink-0 flex flex-col" style={{ width: 280 }}>
       {/* Column header */}
       <div
-        className="flex items-center gap-2 px-3 py-2.5 rounded-xl mb-3"
-        style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}
+        className="flex items-center gap-2 px-3 py-2.5 mb-3"
+        style={{ borderRadius: 0, background: cfg.bg, border: `1px solid ${cfg.border}` }}
       >
         <span className="font-bold text-[13px]" style={{ color: cfg.color }}>
           {cfg.label}
         </span>
         <span
-          className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-          style={{ background: cfg.color, color: '#fff' }}
+          className="text-[11px] font-bold px-2 py-0.5"
+          style={{ borderRadius: 2, background: cfg.color, color: '#fff' }}
         >
           {creatives.length}
         </span>
@@ -1115,9 +1122,10 @@ function KanbanColumn({
         <div className="flex flex-col gap-3 flex-1">
           {creatives.length === 0 ? (
             <div
-              className="rounded-xl flex items-center justify-center py-8"
+              className="flex items-center justify-center py-8"
               style={{
-                border: '2px dashed #E5E7EB',
+                borderRadius: 0,
+                border: '2px dashed #E8E1D3',
                 color: '#9CA3AF',
                 fontSize: 12,
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -1283,7 +1291,7 @@ export function CreativeClient({
   const selectedBookObj = books.find(b => b.id === selectedBook)
 
   return (
-    <div style={{ background: '#FFF8F0', minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ background: '#F7F1E6', minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {/* Header */}
       <div
         className="flex items-center justify-between px-6 py-5"
@@ -1298,11 +1306,12 @@ export function CreativeClient({
             <select
               value={selectedBook}
               onChange={e => setSelectedBook(e.target.value)}
-              className="appearance-none text-[12px] font-semibold pl-3 pr-7 py-1.5 rounded-full cursor-pointer"
+              className="appearance-none text-[12px] font-semibold pl-3 pr-7 py-1.5 cursor-pointer"
               style={{
+                borderRadius: 2,
                 background: selectedBook !== 'all' ? '#FFF4E0' : '#F3F4F6',
-                color: selectedBook !== 'all' ? '#E9A020' : '#6B7280',
-                border: selectedBook !== 'all' ? '1px solid #F6D38A' : '1px solid #E5E7EB',
+                color: selectedBook !== 'all' ? '#D97706' : '#6B7280',
+                border: selectedBook !== 'all' ? '1px solid #F6D38A' : '1px solid #E8E1D3',
                 outline: 'none',
               }}
             >
@@ -1320,8 +1329,8 @@ export function CreativeClient({
         <div className="flex items-center gap-2">
           {/* View switcher */}
           <div
-            className="flex rounded-lg overflow-hidden"
-            style={{ border: '1px solid #E5E7EB', background: '#F3F4F6' }}
+            className="flex overflow-hidden"
+            style={{ borderRadius: 2, border: '1px solid #E8E1D3', background: '#F3F4F6' }}
           >
             <button
               onClick={() => setView('grid')}
@@ -1354,8 +1363,8 @@ export function CreativeClient({
           {/* New creative button */}
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-[13px]"
-            style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}
+            className="flex items-center gap-1.5 px-4 py-2 font-bold text-[13px]"
+            style={{ borderRadius: 2, background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}
           >
             <Plus size={14} strokeWidth={2.5} /> New creative
           </button>
@@ -1377,18 +1386,20 @@ export function CreativeClient({
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold whitespace-nowrap transition-all"
                 style={{
+                  borderRadius: 2,
                   background: active ? (cfg?.color ?? '#1E2D3D') : '#F3F4F6',
                   color:      active ? '#fff' : '#6B7280',
-                  border:     active ? 'none' : '1px solid #E5E7EB',
+                  border:     active ? 'none' : '1px solid #E8E1D3',
                   cursor: 'pointer',
                 }}
               >
                 {label}
                 <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+                  className="text-[10px] font-bold px-1.5 py-0.5 min-w-[18px] text-center"
                   style={{
+                    borderRadius: 2,
                     background: active ? 'rgba(255,255,255,0.25)' : '#E5E7EB',
                     color:      active ? '#fff' : '#6B7280',
                   }}
@@ -1407,8 +1418,8 @@ export function CreativeClient({
           displayed.length === 0 ? (
             /* Empty state */
             <div
-              className="flex flex-col items-center justify-center py-20 rounded-2xl"
-              style={{ border: '2px dashed #D1D5DB' }}
+              className="flex flex-col items-center justify-center py-20"
+              style={{ borderRadius: 0, border: '2px dashed #E8E1D3' }}
             >
               <span className="text-[15px] font-semibold mb-3" style={{ color: '#9CA3AF' }}>
                 {statusFilter === 'all' ? 'Add your first creative' : `No ${STATUS_CONFIG[statusFilter]?.label ?? statusFilter} creatives`}
@@ -1416,8 +1427,8 @@ export function CreativeClient({
               {statusFilter === 'all' && (
                 <button
                   onClick={() => setShowModal(true)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-[13px]"
-                  style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}
+                  className="flex items-center gap-1.5 px-4 py-2 font-bold text-[13px]"
+                  style={{ borderRadius: 2, background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}
                 >
                   <Plus size={14} strokeWidth={2.5} /> New creative
                 </button>

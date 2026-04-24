@@ -37,7 +37,7 @@ function getChapterStatus(idx: number, meta: ChapterMeta, workbookData: Workbook
 
 const STATUS_STYLES: Record<ChapterStatus, { bg: string; color: string; label: string; border?: string; Icon: typeof Pencil }> = {
   complete:   { bg: '#6EBF8B', color: '#FFFFFF', label: 'Complete',   Icon: CheckCircle },
-  draft:      { bg: '#E9A020', color: '#FFFFFF', label: 'Draft',      Icon: Pencil },
+  draft:      { bg: '#D97706', color: '#FFFFFF', label: 'Draft',      Icon: Pencil },
   needs_edit: { bg: '#F97B6B', color: '#FFFFFF', label: 'Needs Edit', Icon: AlertCircle },
   empty:      { bg: 'transparent', color: '#9CA3AF', label: 'Not started', border: '1px solid #D1D5DB', Icon: Pencil },
 }
@@ -74,7 +74,7 @@ export function ChapterDrawer({
     .reduce((sum, [, v]) => sum + wordCount(v), 0)
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ background: '#FFF8F0', borderLeft: '1px solid #E5E7EB' }}>
+    <div className="flex flex-col h-full overflow-hidden" style={{ background: '#F7F1E6', borderLeft: '1px solid #E5E7EB' }}>
       {/* Drawer header */}
       <div className="px-4 pt-3 pb-2 shrink-0">
         <div className="flex items-center justify-between">
@@ -89,7 +89,7 @@ export function ChapterDrawer({
             <button
               onClick={onAddChapter}
               className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
-              style={{ border: '1.5px solid #E9A020', color: '#E9A020' }}
+              style={{ border: '1.5px solid #D97706', color: '#D97706' }}
             >
               <Plus size={14} />
               <span className="hidden lg:inline">New Chapter</span>
@@ -105,7 +105,7 @@ export function ChapterDrawer({
               onClick={() => onDrawerToggle(t)}
               className="px-3 py-1 rounded-full text-xs font-medium transition-colors capitalize"
               style={{
-                background: drawerToggle === t ? '#E9A020' : 'transparent',
+                background: drawerToggle === t ? '#D97706' : 'transparent',
                 color: drawerToggle === t ? '#FFFFFF' : '#1E2D3D',
                 border: drawerToggle === t ? 'none' : '1px solid #1E2D3D',
               }}
@@ -132,13 +132,13 @@ export function ChapterDrawer({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 pt-2">
         {/* CARD 1 — Story Outline (pinned) */}
-        <div className="rounded-lg p-3" style={{ background: '#FFF8F0', borderLeft: '3px solid #E9A020' }}>
+        <div className="rounded-lg p-3" style={{ background: '#F7F1E6', borderLeft: '3px solid #D97706' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <BookOpen size={14} style={{ color: '#E9A020' }} />
+              <BookOpen size={14} style={{ color: '#D97706' }} />
               <span className="text-[13px] font-medium" style={{ color: '#1E2D3D' }}>Story Outline</span>
             </div>
-            <button onClick={() => onSectionClick('storyOutline')} className="text-xs hover:underline" style={{ color: '#E9A020' }}>
+            <button onClick={() => onSectionClick('storyOutline')} className="text-xs hover:underline" style={{ color: '#D97706' }}>
               Edit &rarr;
             </button>
           </div>
@@ -148,13 +148,13 @@ export function ChapterDrawer({
         </div>
 
         {/* CARD 2 — Story So Far (expandable) */}
-        <div className="rounded-lg p-3" style={{ background: '#EFF6FF', borderLeft: '3px solid #E9A020' }}>
+        <div className="rounded-lg p-3" style={{ background: '#EFF6FF', borderLeft: '3px solid #D97706' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <ScrollText size={14} style={{ color: '#60A5FA' }} />
               <span className="text-[13px] font-medium" style={{ color: '#1E2D3D' }}>Story So Far</span>
             </div>
-            <button onClick={() => onSectionClick('storySoFar')} className="text-xs hover:underline" style={{ color: '#E9A020' }}>
+            <button onClick={() => onSectionClick('storySoFar')} className="text-xs hover:underline" style={{ color: '#D97706' }}>
               Edit &rarr;
             </button>
           </div>
@@ -185,7 +185,7 @@ export function ChapterDrawer({
           <div className="text-center py-8">
             <FileText size={32} style={{ color: '#D1D5DB' }} className="mx-auto mb-2" />
             <p className="text-[15px] font-medium" style={{ color: '#1E2D3D' }}>No chapters yet</p>
-            <button onClick={onOpenChat} className="text-[13px] mt-1 hover:underline" style={{ color: '#E9A020' }}>
+            <button onClick={onOpenChat} className="text-[13px] mt-1 hover:underline" style={{ color: '#D97706' }}>
               Ask the AI to write your first one &rarr;
             </button>
           </div>
@@ -206,13 +206,13 @@ export function ChapterDrawer({
               className="w-full text-left rounded-lg p-3 transition-all group"
               style={{
                 background: '#FFFFFF',
-                border: isSelected ? '1.5px solid #E9A020' : '0.5px solid #E5E7EB',
+                border: isSelected ? '1.5px solid #D97706' : '0.5px solid #E5E7EB',
                 borderLeftWidth: isSelected ? 3 : undefined,
-                borderLeftColor: isSelected ? '#E9A020' : undefined,
+                borderLeftColor: isSelected ? '#D97706' : undefined,
               }}
             >
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#E9A020', color: '#FFFFFF' }}>
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#D97706', color: '#FFFFFF' }}>
                   Ch {idx + 1}
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: st.bg, color: st.color, border: st.border }}>

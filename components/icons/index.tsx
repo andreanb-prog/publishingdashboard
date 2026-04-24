@@ -63,10 +63,10 @@ interface IconProps {
   className?: string
 }
 
-export function IconKDP({ size = 24, color = '#E9A020', className }: IconProps) {
+export function IconKDP({ size = 24, color = '#D97706', className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none" className={className}>
-      <rect x="5" y="14" width="18" height="20" rx="2" fill="#FFF8F0" stroke={color} strokeWidth="1.5" />
+      <rect x="5" y="14" width="18" height="20" rx="2" fill="#F7F1E6" stroke={color} strokeWidth="1.5" />
       <rect x="9" y="10" width="18" height="20" rx="2" fill="#FFF4E0" stroke={color} strokeWidth="1.5" />
       <rect x="13" y="6" width="18" height="20" rx="2" fill="#FFEBC0" stroke={color} strokeWidth="1.5" />
       <line x1="16" y1="13" x2="28" y2="13" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.6" />
@@ -115,7 +115,7 @@ export function IconPinterest({ size = 24, color = '#fb7185', className }: IconP
   )
 }
 
-export function IconSwaps({ size = 24, color = '#E9A020', className }: IconProps) {
+export function IconSwaps({ size = 24, color = '#D97706', className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 36 36" fill="none" className={className}>
       <path d="M6 12 L30 12" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
@@ -126,7 +126,7 @@ export function IconSwaps({ size = 24, color = '#E9A020', className }: IconProps
   )
 }
 
-export function IconMetrics({ size = 24, color = '#E9A020', className }: IconProps) {
+export function IconMetrics({ size = 24, color = '#D97706', className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
       <rect x="3" y="12" width="4" height="9" rx="1" fill={color} fillOpacity="0.3" stroke={color} strokeWidth="1.5" />
@@ -146,7 +146,7 @@ export function IconRank({ size = 24, color = '#34d399', className }: IconProps)
   )
 }
 
-export function IconROAS({ size = 24, color = '#E9A020', className }: IconProps) {
+export function IconROAS({ size = 24, color = '#D97706', className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
       <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.8" fill={color} fillOpacity="0.1" />
@@ -170,7 +170,7 @@ export function IconStar({ size = 20, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" className={className}>
       <polygon points="40,5 55,30 82,30 60,48 69,74 40,57 11,74 20,48 -2,30 25,30" fill="none" stroke="#1E2D3D" strokeWidth="5" strokeLinejoin="round"/>
-      <polygon points="40,18 51,38 74,38 56,50 63,70 40,57 17,70 24,50 6,38 29,38" fill="#E9A020" stroke="none"/>
+      <polygon points="40,18 51,38 74,38 56,50 63,70 40,57 17,70 24,50 6,38 29,38" fill="#D97706" stroke="none"/>
     </svg>
   )
 }

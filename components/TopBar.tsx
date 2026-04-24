@@ -172,13 +172,17 @@ export function TopBar({ user }: TopBarProps) {
       try {
         const form = new FormData()
         form.append('file', file)
-        const res = await fetch('/api/parse-kdp', { method: 'POST', body: form })
+        // parse-auto detects KDP, Meta, and Pinterest — handles all file types
+        const res = await fetch('/api/parse-auto', { method: 'POST', body: form })
         const json = await res.json()
 
         if (!res.ok) {
           errorMsg = json.error || 'Upload failed. Please try again.'
+        } else if (json.type === 'unknown' || !json.type) {
+          errorMsg = "Can't identify this file. Expected a KDP report (.xlsx), Meta Ads (.csv or .xlsx), or Pinterest (.csv)."
         } else {
-          totalRows += json.rowCount ?? json.data?.books?.length ?? 0
+          // Count rows depending on file type
+          totalRows += json.rowCount ?? json.data?.books?.length ?? json.data?.ads?.length ?? 1
         }
       } catch {
         errorMsg = 'Upload failed. Check your connection and try again.'
@@ -225,7 +229,7 @@ export function TopBar({ user }: TopBarProps) {
                   style={{
                     fontSize: 11,
                     padding: '3px 8px',
-                    borderRadius: 20,
+                    borderRadius: 2,
                     border: '0.5px solid #1E2D3D',
                     background: 'white',
                     color: '#1E2D3D',
@@ -242,7 +246,7 @@ export function TopBar({ user }: TopBarProps) {
                   style={{
                     fontSize: 11,
                     padding: '3px 8px',
-                    borderRadius: 20,
+                    borderRadius: 2,
                     border: '0.5px solid #1E2D3D',
                     background: 'white',
                     color: '#1E2D3D',
@@ -256,8 +260,8 @@ export function TopBar({ user }: TopBarProps) {
                   style={{
                     fontSize: 11,
                     padding: '4px 12px',
-                    borderRadius: 20,
-                    background: '#E9A020',
+                    borderRadius: 2,
+                    background: '#D97706',
                     color: 'white',
                     border: 'none',
                     cursor: 'pointer',
@@ -280,22 +284,22 @@ export function TopBar({ user }: TopBarProps) {
           <div ref={checkRef} className="relative">
             <button
               onClick={() => setCheckOpen(o => !o)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all hover:bg-stone-50"
-              style={{ background: 'white', border: '0.5px solid #EEEBE6', color: '#1E2D3D', cursor: 'pointer' }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium transition-all hover:bg-stone-50"
+              style={{ borderRadius: 2, background: 'white', border: '1px solid #E8E1D3', color: '#1E2D3D', cursor: 'pointer' }}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <rect x="1" y="1" width="10" height="10" rx="2" stroke="#1E2D3D" strokeWidth="1.2" />
-                {doneCount > 0 && <path d="M3.5 6L5.5 8L8.5 4" stroke="#E9A020" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />}
+                {doneCount > 0 && <path d="M3.5 6L5.5 8L8.5 4" stroke="#D97706" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />}
               </svg>
               Check-In
               {doneCount > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: allDone ? '#6EBF8B' : '#E9A020' }} />
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: allDone ? '#6EBF8B' : '#D97706' }} />
               )}
             </button>
 
             {checkOpen && (
-              <div className="absolute right-0 top-full mt-2 z-50 rounded-xl shadow-lg"
-                style={{ width: 260, background: 'white', border: '0.5px solid #EEEBE6', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
+              <div className="absolute right-0 top-full mt-2 z-50"
+                style={{ borderRadius: 0, width: 260, background: 'white', border: '1px solid #E8E1D3', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                 <div className="px-4 pt-4 pb-2">
                   <div className="text-[14px] font-medium mb-0.5" style={{ color: '#1E2D3D' }}>Daily Check-In</div>
                   <div className="text-[11px]" style={{ color: '#6B7280' }}>{shortDate}</div>
@@ -305,9 +309,9 @@ export function TopBar({ user }: TopBarProps) {
                     const checked = !!checks[c.key]
                     return (
                       <button key={c.key} onClick={() => toggle(c.key)}
-                        className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-left transition-all hover:bg-stone-50"
+                        className="w-full flex items-center gap-3 px-2 py-2 text-left transition-all hover:bg-stone-50"
                         style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                        <span style={{ width: 16, height: 16, background: checked ? '#E9A020' : 'transparent', border: checked ? '2px solid #E9A020' : '2px solid #D1D5DB', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ width: 16, height: 16, background: checked ? '#D97706' : 'transparent', border: checked ? '2px solid #D97706' : '2px solid #D1D5DB', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {checked && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5L4 7L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                         </span>
                         <span className="text-[13px]" style={{ color: checked ? '#6B7280' : '#1E2D3D', textDecoration: checked ? 'line-through' : 'none' }}>{c.label}</span>
@@ -317,7 +321,7 @@ export function TopBar({ user }: TopBarProps) {
                 </div>
                 <div className="px-4 pb-3 pt-2">
                   <div className="h-1.5 rounded-full overflow-hidden mb-1.5" style={{ background: '#EEEBE6' }}>
-                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${(doneCount / DAILY_CHECKS.length) * 100}%`, background: allDone ? '#6EBF8B' : '#E9A020' }} />
+                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${(doneCount / DAILY_CHECKS.length) * 100}%`, background: allDone ? '#6EBF8B' : '#D97706' }} />
                   </div>
                   <div className="text-[11px] text-center" style={{ color: allDone ? '#6EBF8B' : '#6B7280' }}>
                     {allDone ? 'All done for today! 🎉' : `${doneCount} of ${DAILY_CHECKS.length} complete`}
@@ -332,9 +336,9 @@ export function TopBar({ user }: TopBarProps) {
             onClick={toggleStoryMode}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all hover:bg-stone-50"
             style={{
-              background: storyMode ? '#FFF8F0' : 'white',
-              border: `0.5px solid ${storyMode ? '#E9A020' : '#EEEBE6'}`,
-              color: storyMode ? '#E9A020' : '#6B7280',
+              background: storyMode ? '#F7F1E6' : 'white',
+              border: `0.5px solid ${storyMode ? '#D97706' : '#EEEBE6'}`,
+              color: storyMode ? '#D97706' : '#6B7280',
               cursor: 'pointer',
             }}
             title={storyMode ? 'Story Mode on — click to hide copy' : 'Story Mode off — click to show copy'}
@@ -369,10 +373,11 @@ export function TopBar({ user }: TopBarProps) {
           <button
             onClick={() => uploadInputRef.current?.click()}
             disabled={uploadStatus === 'loading'}
-            className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all hover:opacity-90"
+            className="px-3 py-1.5 text-[12px] font-semibold transition-all hover:opacity-90"
             style={{
-              background: '#E9A020',
-              color: '#0d1f35',
+              borderRadius: 2,
+              background: '#D97706',
+              color: '#FFFFFF',
               border: 'none',
               cursor: uploadStatus === 'loading' ? 'not-allowed' : 'pointer',
               opacity: uploadStatus === 'loading' ? 0.7 : 1,
@@ -386,8 +391,10 @@ export function TopBar({ user }: TopBarProps) {
       {/* Toast — success notification */}
       {showToast && (
         <div
-          className="fixed bottom-6 left-1/2 z-[200] flex items-center gap-2.5 px-5 py-3 rounded-xl shadow-lg"
+          className="fixed bottom-6 left-1/2 z-[200] flex items-center gap-2.5 px-5 py-3"
           style={{
+            borderRadius: 2,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
             transform: 'translateX(-50%)',
             background: '#6EBF8B',
             color: 'white',

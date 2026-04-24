@@ -311,7 +311,7 @@ export default function ListBuildingPage() {
               { label: 'Subscriber ROAS', value: subRoas > 0 ? `${subRoas.toFixed(2)}x` : '—', color: subRoas >= 1 ? 'text-emerald-600' : 'text-red-500' },
               { label: 'Break-even Subs', value: breakEven > 0 ? Math.ceil(breakEven).toLocaleString() : '—', color: 'text-stone-500' },
             ].map(k => (
-              <div key={k.label} className="text-center p-3 rounded-xl" style={{ background: '#fafaf9' }}>
+              <div key={k.label} className="text-center p-3" style={{ background: '#FFFFFF', border: '1px solid #E8E1D3', borderRadius: 0 }}>
                 <div className="text-[10px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1.5">{k.label}</div>
                 <div className={`font-sans text-[22px] tracking-tight ${k.color}`}>{k.value}</div>
               </div>
@@ -336,8 +336,8 @@ export default function ListBuildingPage() {
             )}
             <button
               onClick={() => setShowForm(s => !s)}
-              className="px-4 py-2 rounded-lg text-[12.5px] font-bold transition-all"
-              style={{ background: '#e9a020', color: '#0d1f35', border: 'none', cursor: 'pointer' }}
+              className="px-4 py-2 text-[12.5px] font-bold transition-all"
+              style={{ background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: 2, cursor: 'pointer' }}
             >
               {showForm ? 'Cancel' : '+ Add Campaign'}
             </button>
@@ -431,8 +431,8 @@ export default function ListBuildingPage() {
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2.5 rounded-lg text-[13px] font-bold text-white disabled:opacity-50 transition-all"
-              style={{ background: '#e9a020', color: '#0d1f35', border: 'none', cursor: 'pointer' }}
+              className="px-6 py-2.5 text-[13px] font-bold text-white disabled:opacity-50 transition-all"
+              style={{ background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: 2, cursor: 'pointer' }}
             >
               {saving ? 'Saving…' : 'Save Campaign'}
             </button>
@@ -520,7 +520,7 @@ export default function ListBuildingPage() {
             <a
               href="/dashboard/settings"
               className="text-[11px] font-semibold no-underline"
-              style={{ color: '#E9A020' }}
+              style={{ color: '#D97706' }}
             >
               Manage →
             </a>
@@ -536,8 +536,8 @@ export default function ListBuildingPage() {
             </div>
             <a
               href="/dashboard/settings"
-              className="inline-block px-4 py-2 rounded-lg text-[12px] font-bold no-underline"
-              style={{ background: '#e9a020', color: '#0d1f35' }}
+              className="inline-block px-4 py-2 text-[12px] font-bold no-underline"
+              style={{ background: '#D97706', color: '#FFFFFF', borderRadius: 2 }}
             >
               Set up BookFunnel →
             </a>
@@ -551,7 +551,7 @@ export default function ListBuildingPage() {
                 { label: 'Confirmation Rate', value: `${bfStats.confirmRate}%`,           color: bfStats.confirmRate >= 70 ? 'text-emerald-600' : bfStats.confirmRate >= 40 ? 'text-amber-600' : 'text-red-500' },
                 { label: 'Top Book',          value: bfStats.topBook ?? '—',              color: 'text-[#0d1f35]', small: true },
               ].map(k => (
-                <div key={k.label} className="text-center p-3 rounded-xl" style={{ background: '#fafaf9' }}>
+                <div key={k.label} className="text-center p-3" style={{ background: '#FFFFFF', border: '1px solid #E8E1D3', borderRadius: 0 }}>
                   <div className="text-[10px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1.5">{k.label}</div>
                   <div className={`font-sans tracking-tight ${k.small ? 'text-[13px]' : 'text-[22px]'} ${k.color}`}>{k.value}</div>
                 </div>
@@ -577,16 +577,16 @@ export default function ListBuildingPage() {
       <div className="card p-5">
         <div className="text-[13px] font-bold text-[#0d1f35] mb-3">How to use this tracker</div>
         <div className="grid grid-cols-3 gap-3 text-[12px] text-stone-500">
-          <div className="rounded-lg p-3" style={{ background: '#eaf7f1' }}>
-            <div className="font-bold text-emerald-700 mb-1">1. Set your subscriber value</div>
+          <div style={{ border: '1px solid #E8E1D3', borderLeft: '3px solid #6EBF8B', borderRadius: 0, padding: 12 }}>
+            <div className="font-bold mb-1" style={{ color: '#6EBF8B', fontFamily: 'var(--font-sans)', fontSize: 12 }}>1. Set your subscriber value</div>
             <div>What's a subscriber worth to you? For most romance authors, $1–$3 is a reasonable starting point based on expected book purchases over time.</div>
           </div>
-          <div className="rounded-lg p-3" style={{ background: '#fdf5e3' }}>
-            <div className="font-bold text-amber-700 mb-1">2. Add your campaign data</div>
+          <div style={{ border: '1px solid #E8E1D3', borderLeft: '3px solid #D97706', borderRadius: 0, padding: 12 }}>
+            <div className="font-bold mb-1" style={{ color: '#D97706', fontFamily: 'var(--font-sans)', fontSize: 12 }}>2. Add your campaign data</div>
             <div>After each BookFunnel or list-swap campaign, enter your Meta ad spend and how many new subscribers you gained from BookFunnel.</div>
           </div>
-          <div className="rounded-lg p-3" style={{ background: '#f0f4ff' }}>
-            <div className="font-bold text-blue-700 mb-1">3. Act on the status badges</div>
+          <div style={{ border: '1px solid #E8E1D3', borderLeft: '3px solid #6D3FD4', borderRadius: 0, padding: 12 }}>
+            <div className="font-bold mb-1" style={{ color: '#6D3FD4', fontFamily: 'var(--font-sans)', fontSize: 12 }}>3. Act on the status badges</div>
             <div>🟢 Scale = profitable, add budget. 🟡 Watch = close to break-even, optimise first. 🔴 Cut = losing money, pause and test new creative.</div>
           </div>
         </div>

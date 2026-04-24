@@ -2,9 +2,9 @@
 import { useState } from "react";
 
 const C = {
-  cream: "#FFF8F0",
+  cream: "#F7F1E6",
   navy: "#1E2D3D",
-  amber: "#E9A020",
+  amber: "#D97706",
   coral: "#F97B6B",
   sage: "#6EBF8B",
   peach: "#F4A261",

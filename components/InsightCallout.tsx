@@ -130,15 +130,16 @@ const PAGE_FILTERS: Record<string, (i: Insight) => boolean> = {
 function InsightCard({ insight, index }: { insight: Insight; index: number }) {
   const [collapsed, setCollapsed] = useState(true)
   const isAlarm = insight.mode === 'alarm'
-  const borderColor = isAlarm ? '#E9A020' : '#6EBF8B'
-  const pillBg      = isAlarm ? '#E9A020' : '#6EBF8B'
-  const cardBg      = isAlarm ? 'rgba(233,160,32,0.06)' : 'rgba(110,191,139,0.06)'
+  const borderColor = isAlarm ? '#D97706' : '#6EBF8B'
+  const pillBg      = isAlarm ? '#D97706' : '#6EBF8B'
+  const cardBg      = isAlarm ? 'rgba(217,119,6,0.06)' : 'rgba(110,191,139,0.06)'
 
   return (
-    <div className="rounded-xl overflow-hidden transition-all duration-200"
+    <div className="overflow-hidden transition-all duration-200"
       style={{
+        borderRadius: 0,
         background: cardBg,
-        border: '1px solid #EEEBE6',
+        border: '1px solid #E8E1D3',
         borderLeft: `3px solid ${borderColor}`,
       }}>
       <button
@@ -233,8 +234,8 @@ function PepTalkCard({ analysis }: { analysis: Analysis }) {
 
   return (
     <div style={{
-      background: '#FFF8F0',
-      borderLeft: '4px solid #E9A020',
+      background: '#F7F1E6',
+      borderLeft: '4px solid #D97706',
       borderRadius: '0.75rem',
       padding: '16px 20px',
     }}>

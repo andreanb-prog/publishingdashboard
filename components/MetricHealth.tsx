@@ -46,7 +46,7 @@ function getDotPosition(metric: string, value: number): number {
   return Math.max(2, Math.min(98, pct))
 }
 
-const ZONE_COLORS = { weak: '#F97B6B', healthy: '#E9A020', strong: '#6EBF8B' }
+const ZONE_COLORS = { weak: '#F97B6B', healthy: '#D97706', strong: '#6EBF8B' }
 
 export function HealthBenchmarkBar({ metric, value }: { metric: string; value: number }) {
   if (!BENCHMARKS[metric] || value == null || isNaN(value)) return null
@@ -89,7 +89,7 @@ export function ProjectionBadge({ metric }: { metric: string }) {
   if (!note) return null
   return (
     <span className="inline-flex items-center gap-1 ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded"
-      style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}
+      style={{ background: 'rgba(217,119,6,0.12)', color: '#D97706' }}
       title={note}>
       ⚠ {note.split(' — ')[0]}
     </span>
@@ -254,7 +254,7 @@ export function MetricTooltip({ metric }: { metric: string }) {
 
   const tooltipContent = (
     <div className="p-3.5">
-      <div className="text-[10px] font-bold tracking-[1px] uppercase mb-2" style={{ color: '#E9A020' }}>
+      <div className="text-[10px] font-bold tracking-[1px] uppercase mb-2" style={{ color: '#D97706' }}>
         How we calculate this
       </div>
       <div className="text-[12px] font-mono font-semibold mb-2 px-2 py-1.5 rounded"
@@ -268,7 +268,7 @@ export function MetricTooltip({ metric }: { metric: string }) {
         <strong style={{ color: '#1E2D3D' }}>Example:</strong> {content.example}
       </div>
       {content.caution && (
-        <div className="text-[10.5px] px-2 py-1.5 rounded" style={{ background: 'rgba(233,160,32,0.08)', color: '#E9A020' }}>
+        <div className="text-[10.5px] px-2 py-1.5 rounded" style={{ background: 'rgba(217,119,6,0.08)', color: '#D97706' }}>
           ⚠ {content.caution}
         </div>
       )}
@@ -294,26 +294,28 @@ export function MetricTooltip({ metric }: { metric: string }) {
       {open && (fixedPos ? (
         /* Mobile: fixed position to prevent card overflow */
         <div
-          className="fixed z-50 rounded-lg shadow-lg max-w-[280px]"
+          className="fixed z-50 max-w-[280px]"
           style={{
+            borderRadius: 0,
             top: fixedPos.top,
             left: fixedPos.left,
             width: Math.min(280, window.innerWidth - 16),
             background: 'white',
-            border: '0.5px solid #EEEBE6',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            border: '1px solid #E8E1D3',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           }}>
           {tooltipContent}
         </div>
       ) : (
         /* Desktop: absolute position anchored to button */
         <div
-          className={`absolute z-50 mt-2 rounded-lg shadow-lg max-w-[280px] ${side === 'right' ? 'right-0' : 'left-0'}`}
+          className={`absolute z-50 mt-2 max-w-[280px] ${side === 'right' ? 'right-0' : 'left-0'}`}
           style={{
+            borderRadius: 0,
             width: 280,
             background: 'white',
-            border: '0.5px solid #EEEBE6',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            border: '1px solid #E8E1D3',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           }}>
           {tooltipContent}
         </div>

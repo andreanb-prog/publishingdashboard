@@ -42,7 +42,7 @@ export function CollapsibleSection({
   }
 
   return (
-    <div className={`rounded-xl ${className}`} style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+    <div className={className} style={{ borderRadius: 0, background: 'white', border: '1px solid #E8E1D3' }}>
       {/* Header row — full-width, clickable */}
       <div
         role="button"

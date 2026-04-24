@@ -59,9 +59,9 @@ function SaveStatusIndicator({
         <>
           <span
             className="w-1.5 h-1.5 rounded-full"
-            style={{ background: '#E9A020' }}
+            style={{ background: '#D97706' }}
           />
-          <span className="text-[12px] font-medium" style={{ color: '#E9A020' }}>
+          <span className="text-[12px] font-medium" style={{ color: '#D97706' }}>
             Saving…
           </span>
         </>
@@ -160,7 +160,7 @@ export function WritingNotebookTopBar({
         <button
           onClick={onAddChapter}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors"
-          style={{ background: '#E9A020', color: '#FFFFFF' }}
+          style={{ background: '#D97706', color: '#FFFFFF' }}
         >
           <Plus size={13} />
           Chapter
@@ -172,9 +172,9 @@ export function WritingNotebookTopBar({
             onClick={onToggleChat}
             className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors"
             style={{
-              border: '1.5px solid #E9A020',
-              color: isChatOpen ? '#FFFFFF' : '#E9A020',
-              background: isChatOpen ? '#E9A020' : 'transparent',
+              border: '1.5px solid #D97706',
+              color: isChatOpen ? '#FFFFFF' : '#D97706',
+              background: isChatOpen ? '#D97706' : 'transparent',
             }}
           >
             {isChatOpen ? <X size={13} /> : <Sparkles size={13} />}

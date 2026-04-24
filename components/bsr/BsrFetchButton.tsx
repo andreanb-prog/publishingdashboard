@@ -80,7 +80,7 @@ export default function BsrFetchButton({ asin, onResult, onError, size = 'md', l
 
     const labelColor =
       state === 'success' ? '#6EBF8B' :
-      state === 'blocked' || state === 'rate_limited' ? '#E9A020' :
+      state === 'blocked' || state === 'rate_limited' ? '#D97706' :
       '#6B7280'
 
     return (
@@ -112,7 +112,7 @@ export default function BsrFetchButton({ asin, onResult, onError, size = 'md', l
         disabled={state === 'loading' || !asin}
         className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-bold transition-all disabled:opacity-40"
         style={{
-          background: showLogged || state === 'success' ? '#6EBF8B' : '#E9A020',
+          background: showLogged || state === 'success' ? '#6EBF8B' : '#D97706',
           color: '#1E2D3D',
           border: 'none',
           cursor: state === 'loading' || !asin ? 'not-allowed' : 'pointer',
@@ -142,7 +142,7 @@ export default function BsrFetchButton({ asin, onResult, onError, size = 'md', l
         </span>
       )}
       {state === 'blocked' && (
-        <span className="text-[11.5px] font-medium" style={{ color: '#E9A020' }}>
+        <span className="text-[11.5px] font-medium" style={{ color: '#D97706' }}>
           ⚠ Amazon blocked — enter manually
         </span>
       )}

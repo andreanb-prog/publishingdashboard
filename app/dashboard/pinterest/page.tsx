@@ -34,9 +34,9 @@ const ROADMAP = [
 ]
 
 const BENCHMARKS = [
-  { period: 'Month 1–2', range: '100–500 impressions/week', note: 'Focus on posting consistency, not numbers', color: '#E9A020' },
-  { period: 'Month 3–6', range: '1K–10K impressions/week', note: 'Save rate above 2% means your content resonates', color: '#E9A020' },
-  { period: 'Month 6–12', range: '10K–100K impressions/week', note: 'Old pins compound — this is when Pinterest pays off', color: '#E9A020' },
+  { period: 'Month 1–2', range: '100–500 impressions/week', note: 'Focus on posting consistency, not numbers', color: '#D97706' },
+  { period: 'Month 3–6', range: '1K–10K impressions/week', note: 'Save rate above 2% means your content resonates', color: '#D97706' },
+  { period: 'Month 6–12', range: '10K–100K impressions/week', note: 'Old pins compound — this is when Pinterest pays off', color: '#D97706' },
 ]
 
 export default function PinterestPage() {
@@ -129,7 +129,7 @@ export default function PinterestPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {ROADMAP.map((step, i) => (
-            <div key={i} className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+            <div key={i} style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0, padding: 20 }}>
               <div className="text-[10px] font-bold tracking-[1px] uppercase mb-2" style={{ color: '#e60023' }}>
                 {step.week}
               </div>
@@ -141,7 +141,7 @@ export default function PinterestPage() {
       </div>
 
       {/* Weekly log form */}
-      <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0, padding: 20, marginBottom: 20 }}>
         <div className="text-[13px] font-bold mb-4" style={{ color: '#1E2D3D' }}>
           Log your weekly Pinterest numbers — takes 30 seconds
         </div>
@@ -163,9 +163,10 @@ export default function PinterestPage() {
                   placeholder={field.placeholder}
                   value={logForm[field.key as keyof typeof logForm]}
                   onChange={e => setLogForm(f => ({ ...f, [field.key]: e.target.value }))}
-                  className="w-full rounded-lg px-3 py-2 text-[13px] font-sans outline-none transition-colors"
+                  className="w-full px-3 py-2 text-[13px] font-sans outline-none transition-colors"
                   style={{
-                    background: 'white', border: '1.5px solid #D6D3D1',
+                    borderRadius: 2,
+                    background: 'white', border: '1px solid #E8E1D3',
                     color: '#1E2D3D',
                   }}
                 />
@@ -175,24 +176,23 @@ export default function PinterestPage() {
           <button
             type="submit"
             disabled={saving}
-            className="px-5 py-2.5 rounded-lg text-[13.5px] font-bold transition-all disabled:opacity-40"
-            style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer' }}
+            className="px-5 py-2.5 text-[13.5px] font-bold transition-all disabled:opacity-40"
+            style={{ background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: 2, cursor: 'pointer' }}
           >
             {saving ? 'Logging...' : 'Log This Week →'}
           </button>
         </form>
 
         {verdict && (
-          <div className="mt-3 p-3 rounded-lg text-[13px] font-semibold"
-            style={{ background: 'rgba(244,114,182,0.1)', color: '#f472b6' }}>
+          <div style={{ marginTop: 12, padding: 12, borderRadius: 0, fontSize: 13, fontWeight: 600, background: 'rgba(244,114,182,0.1)', color: '#f472b6', borderLeft: '3px solid #f472b6' }}>
             {verdict}
           </div>
         )}
       </div>
 
       {/* History table */}
-      <div className="rounded-xl overflow-x-auto mb-6"
-        style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div className="overflow-x-auto mb-6"
+        style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0 }}>
         <table className="w-full border-collapse text-[12px]" style={{ minWidth: 580 }}>
           <thead>
             <tr style={{ background: '#F5F5F4' }}>
@@ -241,14 +241,13 @@ export default function PinterestPage() {
       </div>
 
       {/* Benchmarks */}
-      <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0, padding: 20 }}>
         <div className="text-[11px] font-bold uppercase tracking-[1px] mb-3" style={{ color: '#6B7280' }}>
           Pinterest Benchmarks for Romance Authors
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {BENCHMARKS.map((b, i) => (
-            <div key={i} className="rounded-lg p-3"
-              style={{ background: `${b.color}10` }}>
+            <div key={i} style={{ background: `${b.color}10`, borderLeft: `3px solid ${b.color}`, borderRadius: 0, padding: 12 }}>
               <div className="text-[11.5px] font-bold mb-1" style={{ color: b.color }}>{b.period}</div>
               <div className="text-[12px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>{b.range}</div>
               <div className="text-[11px]" style={{ color: '#6B7280' }}>{b.note}</div>

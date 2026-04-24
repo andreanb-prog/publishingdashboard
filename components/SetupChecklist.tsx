@@ -55,8 +55,8 @@ function StepRow({ step }: { step: StepDef }) {
       {!step.complete && (
         <button
           onClick={go}
-          className="flex-shrink-0 text-[11.5px] font-semibold px-3 py-1 rounded-lg cursor-pointer transition-all hover:opacity-80"
-          style={{ background: 'rgba(233,160,32,0.1)', color: '#E9A020', border: '1px solid rgba(233,160,32,0.25)', whiteSpace: 'nowrap' }}
+          className="flex-shrink-0 text-[11.5px] font-semibold px-3 py-1 cursor-pointer transition-all hover:opacity-80"
+          style={{ borderRadius: 2, background: 'rgba(217,119,6,0.1)', color: '#D97706', border: '1px solid rgba(217,119,6,0.25)', whiteSpace: 'nowrap' }}
         >
           {step.actionLabel}
         </button>
@@ -135,8 +135,8 @@ export function SetupChecklist({ analysis }: { analysis: Analysis | null }) {
   if (toast && !show) {
     return (
       <div
-        className="mb-5 rounded-xl px-5 py-3.5 flex items-center gap-3"
-        style={{ background: 'rgba(110,191,139,0.1)', border: '1px solid rgba(110,191,139,0.3)' }}
+        className="mb-5 px-5 py-3.5 flex items-center gap-3"
+        style={{ borderRadius: 0, background: 'rgba(110,191,139,0.1)', border: '1px solid rgba(110,191,139,0.3)' }}
       >
         <CheckCircle size={16} color="#6EBF8B" strokeWidth={2} />
         <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
@@ -150,11 +150,12 @@ export function SetupChecklist({ analysis }: { analysis: Analysis | null }) {
 
   return (
     <div
-      className="mb-5 rounded-xl overflow-hidden"
+      className="mb-5 overflow-hidden"
       style={{
+        borderRadius: 0,
         background: 'white',
-        border: '1px solid #EEEBE6',
-        borderLeft: '3px solid #E9A020',
+        border: '1px solid #E8E1D3',
+        borderLeft: '3px solid #D97706',
         opacity: dismissing ? 0 : 1,
         transition: 'opacity 0.4s ease',
       }}
@@ -170,8 +171,8 @@ export function SetupChecklist({ analysis }: { analysis: Analysis | null }) {
             ✦ Finish setting up AuthorDash
           </span>
           {remaining > 0 && (
-            <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>
+            <span className="text-[10.5px] font-bold px-2 py-0.5"
+              style={{ borderRadius: 2, background: 'rgba(217,119,6,0.12)', color: '#D97706' }}>
               {remaining} step{remaining !== 1 ? 's' : ''} remaining
             </span>
           )}

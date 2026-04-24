@@ -14,7 +14,7 @@ const STEPS = [
 
 const STATUS_COLORS: Record<StepStatus, { bg: string; text: string; numBg: string; numText: string }> = {
   done:     { bg: '#F0FAF4', text: '#2D6A4F', numBg: '#6EBF8B', numText: '#fff' },
-  current:  { bg: '#FFFBF0', text: '#92400E', numBg: '#E9A020', numText: '#fff' },
+  current:  { bg: '#FFFBF0', text: '#92400E', numBg: '#D97706', numText: '#fff' },
   upcoming: { bg: '#F9F9F9', text: '#9CA3AF', numBg: '#E5E7EB', numText: '#6B7280' },
 }
 
@@ -60,16 +60,17 @@ export function OnboardingBanner({ bookCount, hasKdpData, hasMailerLiteKey }: Pr
 
   return (
     <div
-      className="mb-5 rounded-xl overflow-hidden"
+      className="mb-5 overflow-hidden"
       style={{
-        background: '#FFF8F0',
-        border: '0.5px solid #E8DDD0',
+        borderRadius: 0,
+        background: '#F7F1E6',
+        border: '1px solid #E8E1D3',
         fontFamily: "'Plus Jakarta Sans', sans-serif",
         opacity: fading ? 0 : 1,
         transition: 'opacity 0.3s ease',
       }}
     >
-      <div style={{ height: 3, background: '#E9A020' }} />
+      <div style={{ height: 3, background: '#D97706' }} />
 
       <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-shrink-0">
@@ -109,7 +110,7 @@ export function OnboardingBanner({ bookCount, hasKdpData, hasMailerLiteKey }: Pr
                     <a
                       href={step.link}
                       className="text-[11px] font-semibold hover:underline"
-                      style={{ color: status === 'current' ? '#E9A020' : '#D1D5DB' }}
+                      style={{ color: status === 'current' ? '#D97706' : '#D1D5DB' }}
                     >
                       {step.linkLabel}
                     </a>

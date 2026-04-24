@@ -225,7 +225,7 @@ function KillListEditor({
         <button
           onClick={addWord}
           className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium transition-colors"
-          style={{ background: '#E9A020', color: '#FFFFFF' }}
+          style={{ background: '#D97706', color: '#FFFFFF' }}
         >
           <Plus size={14} />
           Add
@@ -278,7 +278,7 @@ function NewDraftButton({ onNewDraft, align = 'left' }: {
       <button
         onClick={() => setOpen(v => !v)}
         className="px-2 py-1 text-[12px] font-medium transition-opacity hover:opacity-70"
-        style={{ color: '#E9A020', background: 'none', border: 'none' }}
+        style={{ color: '#D97706', background: 'none', border: 'none' }}
       >
         + New draft
       </button>
@@ -426,7 +426,7 @@ function ManuscriptView({
           <button
             onClick={() => onNavChange?.('chapter:0')}
             className="text-[13px] mt-2 hover:underline"
-            style={{ color: '#E9A020', background: 'none', border: 'none', cursor: 'pointer' }}
+            style={{ color: '#D97706', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             Start with Chapter 1 →
           </button>
@@ -478,7 +478,7 @@ function ManuscriptView({
           <button
             onClick={handleExport}
             className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[12px] font-medium"
-            style={{ background: '#E9A020', color: '#FFFFFF' }}
+            style={{ background: '#D97706', color: '#FFFFFF' }}
           >
             <Download size={12} />
             Export
@@ -532,8 +532,8 @@ function ManuscriptView({
       {/* Toast */}
       {toast && (
         <div
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg text-sm font-medium shadow-lg z-50"
-          style={{ background: '#6EBF8B', color: '#FFFFFF' }}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 text-sm font-medium z-50"
+          style={{ borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', background: '#6EBF8B', color: '#FFFFFF' }}
         >
           {toast}
         </div>
@@ -679,7 +679,7 @@ export function EditorArea({
           <div className="text-center">
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-              style={{ background: '#FFF8F0' }}
+              style={{ background: '#F7F1E6' }}
             >
               <span style={{ fontSize: 22 }}>🔍</span>
             </div>
@@ -700,7 +700,7 @@ export function EditorArea({
           <div className="text-center">
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-              style={{ background: '#FFF8F0' }}
+              style={{ background: '#F7F1E6' }}
             >
               <span style={{ fontSize: 22 }}>📤</span>
             </div>
@@ -745,7 +745,7 @@ export function EditorArea({
     const chapterLastEditedTs = getLastEdited?.('writing', `chapter:${chapterIdx}:draft:${activeDraftIdx}`) ?? null
 
     const STATUS_STYLE: Record<string, React.CSSProperties> = {
-      Draft: { background: '#FFF3E0', color: '#E9A020', border: '1px solid #F5CFA0' },
+      Draft: { background: '#FFF3E0', color: '#D97706', border: '1px solid #F5CFA0' },
       Done:  { background: '#D6F0E0', color: '#1A6B3A' },
       Empty: { background: '#F3F4F6', color: '#9CA3AF' },
     }
@@ -766,11 +766,11 @@ export function EditorArea({
                     style={{
                       fontSize: 12,
                       fontWeight: 500,
-                      background: i === activeDraftIdx ? '#E9A020' : 'transparent',
+                      background: i === activeDraftIdx ? '#D97706' : 'transparent',
                       color: i === activeDraftIdx ? '#FFFFFF' : '#888888',
                     }}
                     onMouseEnter={e => {
-                      if (i !== activeDraftIdx) (e.target as HTMLElement).style.background = '#FFF8F0'
+                      if (i !== activeDraftIdx) (e.target as HTMLElement).style.background = '#F7F1E6'
                     }}
                     onMouseLeave={e => {
                       if (i !== activeDraftIdx) (e.target as HTMLElement).style.background = 'transparent'
@@ -869,7 +869,7 @@ export function EditorArea({
                 <button
                   onClick={onStorySoFarUpdate}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors"
-                  style={{ background: '#E9A020', color: '#FFFFFF' }}
+                  style={{ background: '#D97706', color: '#FFFFFF' }}
                 >
                   ✨ Fill in the story so far
                 </button>

@@ -28,7 +28,7 @@ const CACHE_TTL = 5 * 60 * 1000
 
 const DOT_COLORS = {
   green: '#6EBF8B',
-  amber: '#E9A020',
+  amber: '#D97706',
   red: '#F97B6B',
 }
 
@@ -63,7 +63,7 @@ function clearCache() {
 function Spinner() {
   return (
     <svg className="animate-spin" width="10" height="10" viewBox="0 0 10 10" fill="none">
-      <circle cx="5" cy="5" r="3.5" stroke="#E9A020" strokeWidth="1.5" strokeDasharray="6 4" />
+      <circle cx="5" cy="5" r="3.5" stroke="#D97706" strokeWidth="1.5" strokeDasharray="6 4" />
     </svg>
   )
 }
@@ -217,8 +217,8 @@ export function ConnectionStatus() {
 
       {open && health && (
         <div
-          className="absolute right-0 top-full mt-2 z-50 rounded-xl"
-          style={{ width: 290, background: 'white', border: '0.5px solid #EEEBE6', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}
+          className="absolute right-0 top-full mt-2 z-50"
+          style={{ borderRadius: 0, width: 290, background: 'white', border: '1px solid #E8E1D3', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
         >
           <div className="px-4 pt-3.5 pb-1">
             <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -238,7 +238,7 @@ export function ConnectionStatus() {
                   <button
                     onClick={connectMeta}
                     className="text-[10px] font-semibold border-none bg-transparent cursor-pointer hover:underline p-0"
-                    style={{ color: '#E9A020' }}
+                    style={{ color: '#D97706' }}
                   >
                     {item.actionText || 'Connect →'}
                   </button>
@@ -249,7 +249,7 @@ export function ConnectionStatus() {
                     onClick={syncMeta}
                     disabled={metaSync === 'syncing'}
                     className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border disabled:opacity-60 cursor-pointer"
-                    style={{ borderColor: '#E9A020', color: metaSync === 'ok' ? '#6EBF8B' : metaSync === 'error' ? '#F97B6B' : '#E9A020', background: 'transparent' }}
+                    style={{ borderColor: '#D97706', color: metaSync === 'ok' ? '#6EBF8B' : metaSync === 'error' ? '#F97B6B' : '#D97706', background: 'transparent' }}
                   >
                     {metaSync === 'syncing' ? <><Spinner /> Syncing...</>
                       : metaSync === 'ok' ? '✓ Synced'
@@ -263,7 +263,7 @@ export function ConnectionStatus() {
                     onClick={syncMailerLite}
                     disabled={mlSync === 'syncing'}
                     className="text-[10px] font-semibold border-none bg-transparent cursor-pointer disabled:opacity-60 hover:underline p-0"
-                    style={{ color: mlSync === 'ok' ? '#6EBF8B' : mlSync === 'error' ? '#F97B6B' : '#E9A020' }}
+                    style={{ color: mlSync === 'ok' ? '#6EBF8B' : mlSync === 'error' ? '#F97B6B' : '#D97706' }}
                   >
                     {mlSync === 'syncing' ? '↻ Syncing...'
                       : mlSync === 'ok' ? '✓ Synced'
@@ -276,7 +276,7 @@ export function ConnectionStatus() {
                   <Link
                     href="/dashboard?upload=1"
                     className="text-[10px] font-semibold no-underline hover:underline"
-                    style={{ color: '#E9A020' }}
+                    style={{ color: '#D97706' }}
                     onClick={() => setOpen(false)}
                   >
                     Upload →
@@ -303,7 +303,7 @@ export function ConnectionStatus() {
                           <Link
                             href={item.actionHref}
                             className="font-semibold no-underline hover:underline"
-                            style={{ color: '#E9A020' }}
+                            style={{ color: '#D97706' }}
                             onClick={() => setOpen(false)}
                           >
                             {item.actionText}
@@ -342,7 +342,7 @@ export function ConnectionStatus() {
                 onClick={syncAll}
                 disabled={allSync === 'syncing'}
                 className="text-[11px] font-semibold border-none bg-transparent cursor-pointer disabled:opacity-60 hover:underline p-0"
-                style={{ color: allSync === 'ok' ? '#6EBF8B' : allSync === 'error' ? '#F97B6B' : '#E9A020' }}
+                style={{ color: allSync === 'ok' ? '#6EBF8B' : allSync === 'error' ? '#F97B6B' : '#D97706' }}
               >
                 {allSync === 'syncing' ? '↻ Syncing all...'
                   : allSync === 'ok' ? '✓ All synced'

@@ -33,7 +33,7 @@ function CoachPromotedPanel({ analysis }: { analysis: any }) {
   const titleParts = topInsight.title.split(/\b(fix|scale|cut|improve|low|high|drop|weak|strong)\b/gi)
 
   return (
-    <div className="coach-panel-responsive" style={{ background: 'var(--card, white)', border: '1px solid var(--line, #d8cfbd)', borderLeft: '4px solid var(--amber, #E9A020)', marginBottom: 24, padding: '20px 24px', display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+    <div className="coach-panel-responsive" style={{ background: 'var(--card, white)', border: '1px solid var(--line, #d8cfbd)', borderLeft: '4px solid var(--amber, #D97706)', marginBottom: 24, padding: '20px 24px', display: 'flex', gap: 24, alignItems: 'flex-start' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <span style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--amber-text, #a56b13)' }}>Coach</span>
@@ -73,7 +73,7 @@ export function CoachPanel({ dashboard }: { dashboard: DashboardState }) {
 export function CoachCopyStrip({ dashboard }: { dashboard: DashboardState }) {
   const { copying, copied, handleCopy } = dashboard
   return (
-    <div className="-mx-8 -mb-8 mt-2" style={{ background: '#FFF8F0', borderTop: '1px solid #EEEBE6' }}>
+    <div className="-mx-8 -mb-8 mt-2" style={{ background: '#F7F1E6', borderTop: '1px solid #EEEBE6' }}>
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-8 py-5">
         <div>
           <div className="text-[13px] font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>Export your data to any AI</div>

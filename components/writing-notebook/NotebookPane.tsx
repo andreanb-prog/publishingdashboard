@@ -68,7 +68,7 @@ function wordCount(text: string): number {
 
 const STATUS_CYCLE: ChapterStatus[] = ['draft', 'complete', 'needs_edit']
 const STATUS_CONFIG: Record<ChapterStatus, { label: string; bg: string; color: string; border?: string; Icon: typeof Pencil }> = {
-  draft:      { label: 'Draft',      bg: 'transparent', color: '#E9A020', border: '1px solid #E9A020', Icon: Pencil },
+  draft:      { label: 'Draft',      bg: 'transparent', color: '#D97706', border: '1px solid #D97706', Icon: Pencil },
   complete:   { label: 'Complete',   bg: '#6EBF8B',     color: '#FFFFFF', Icon: CheckCircle },
   needs_edit: { label: 'Needs Edit', bg: 'transparent', color: '#F97B6B', border: '1px solid #F97B6B', Icon: AlertCircle },
   empty:      { label: 'Not started', bg: 'transparent', color: '#9CA3AF', border: '1px solid #D1D5DB', Icon: Pencil },
@@ -165,7 +165,7 @@ export function NotebookPane({
             onClick={() => onPhaseChange(p.id)}
             className="px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
             style={{
-              background: activePhase === p.id ? '#E9A020' : 'transparent',
+              background: activePhase === p.id ? '#D97706' : 'transparent',
               color: activePhase === p.id ? '#FFFFFF' : '#1E2D3D',
               border: activePhase === p.id ? 'none' : '1px solid #1E2D3D',
             }}
@@ -194,7 +194,7 @@ export function NotebookPane({
                 <button
                   onClick={() => onSectionChange(sec.id)}
                   className="text-sm font-medium"
-                  style={{ color: activeSection === sec.id ? '#E9A020' : '#1E2D3D' }}
+                  style={{ color: activeSection === sec.id ? '#D97706' : '#1E2D3D' }}
                 >
                   {sec.label}
                 </button>
@@ -220,7 +220,7 @@ export function NotebookPane({
             {/* Story So Far */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <button onClick={() => onSectionChange('storySoFar')} className="text-sm font-medium" style={{ color: activeSection === 'storySoFar' ? '#E9A020' : '#1E2D3D' }}>
+                <button onClick={() => onSectionChange('storySoFar')} className="text-sm font-medium" style={{ color: activeSection === 'storySoFar' ? '#D97706' : '#1E2D3D' }}>
                   Story So Far
                 </button>
                 <SavedIndicator saving={saving[getKey('writing', 'storySoFar')]} saved={saved[getKey('writing', 'storySoFar')]} />
@@ -253,12 +253,12 @@ export function NotebookPane({
                   key={i}
                   className="rounded-lg p-3 transition-colors"
                   style={{
-                    border: isActive ? '1.5px solid #E9A020' : '0.5px solid #E5E7EB',
+                    border: isActive ? '1.5px solid #D97706' : '0.5px solid #E5E7EB',
                     background: isActive ? '#FFFBF0' : '#FFFFFF',
                   }}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#E9A020', color: '#FFFFFF' }}>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#D97706', color: '#FFFFFF' }}>
                       Ch {i + 1}
                     </span>
                     <input
@@ -287,7 +287,7 @@ export function NotebookPane({
                   </div>
                   {summarizingChapter === i && (
                     <div className="flex items-center gap-1.5 mb-1 ml-1">
-                      <Loader2 size={12} className="animate-spin" style={{ color: '#E9A020' }} />
+                      <Loader2 size={12} className="animate-spin" style={{ color: '#D97706' }} />
                       <span className="text-xs" style={{ color: '#9CA3AF' }}>Updating story summary...</span>
                     </div>
                   )}
@@ -321,7 +321,7 @@ export function NotebookPane({
                       onClick={() => summarizeChapter(i)}
                       disabled={summarizingChapter === i}
                       className="flex items-center gap-1 mt-1 ml-1 text-xs hover:underline disabled:opacity-50 transition-opacity"
-                      style={{ color: '#E9A020' }}
+                      style={{ color: '#D97706' }}
                     >
                       {summarizingChapter === i ? (
                         <><Loader2 size={11} className="animate-spin" /> Updating...</>
@@ -433,7 +433,7 @@ export function NotebookPane({
                             onClick={() => setAuditChapterIndex(i)}
                             className="px-2.5 py-1 rounded-full text-[11px] font-medium border-none cursor-pointer transition-all"
                             style={{
-                              background: auditChapterIndex === i ? '#E9A020' : '#F5F5F4',
+                              background: auditChapterIndex === i ? '#D97706' : '#F5F5F4',
                               color: auditChapterIndex === i ? '#FFFFFF' : '#4B5563',
                             }}
                           >
@@ -462,8 +462,8 @@ export function NotebookPane({
       {/* Toast */}
       {toast && (
         <div
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg text-sm font-medium shadow-lg z-50"
-          style={{ background: '#6EBF8B', color: '#FFFFFF' }}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 text-sm font-medium z-50"
+          style={{ borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', background: '#6EBF8B', color: '#FFFFFF' }}
         >
           {toast}
         </div>

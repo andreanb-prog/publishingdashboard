@@ -88,7 +88,7 @@ export function ActionPlanPanel({ dashboard }: { dashboard: DashboardState }) {
                   </div>
                 ) : (
                   <div className="card overflow-hidden mb-7">
-                    <div className="px-5 py-3.5" style={{ background: '#FFF8F0', borderBottom: '1px solid #EEEBE6' }}>
+                    <div className="px-5 py-3.5" style={{ background: '#F7F1E6', borderBottom: '1px solid #EEEBE6' }}>
                       <div className="font-sans text-[16px]" style={{ color: '#1E2D3D' }}>{coachTitle.replace(' says', '')} reviewed everything. Here&apos;s what to do next.</div>
                       <div className="text-[11px] mt-0.5" style={{ color: '#6B7280' }}>Ranked by priority · Based on your real numbers</div>
                     </div>
@@ -153,7 +153,7 @@ export function ActionPlanPanel({ dashboard }: { dashboard: DashboardState }) {
           <div className="card overflow-hidden mb-7">
             <table className="w-full text-[12.5px]">
               <thead>
-                <tr style={{ background: '#FFF8F0', borderBottom: '1px solid #EEEBE6' }}>
+                <tr style={{ background: '#F7F1E6', borderBottom: '1px solid #EEEBE6' }}>
                   {['Month', 'Royalties', 'Units', 'KENP', 'Ad Spend', 'Subscribers'].map((h, i) => (
                     <th key={h} className={`py-3 font-semibold ${i === 0 ? 'text-left px-5' : 'text-right px-4'}`} style={{ color: '#6B7280' }}>{h}</th>
                   ))}

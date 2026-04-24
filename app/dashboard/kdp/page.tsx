@@ -171,10 +171,10 @@ function MiniCalendar({
               onClick={() => onSelect(cellYmd)}
               className="text-center text-[11px] py-[3px] rounded"
               style={{
-                background: isSelected ? '#E9A020' : 'transparent',
-                color:      isSelected ? 'white' : isToday ? '#E9A020' : '#1E2D3D',
+                background: isSelected ? '#D97706' : 'transparent',
+                color:      isSelected ? 'white' : isToday ? '#D97706' : '#1E2D3D',
                 fontWeight: isSelected || isToday ? 600 : 400,
-                outline:    isToday && !isSelected ? '0.5px solid #E9A020' : 'none',
+                outline:    isToday && !isSelected ? '0.5px solid #D97706' : 'none',
               }}
             >
               {day}
@@ -290,9 +290,9 @@ function DateRangePicker({
             }}
             className="px-2.5 py-1 rounded-full text-[12px] font-medium transition-all duration-150"
             style={{
-              background: activePreset === p.key ? '#E9A020' : '#FFF8F0',
+              background: activePreset === p.key ? '#D97706' : '#F7F1E6',
               color:      activePreset === p.key ? 'white' : '#1E2D3D',
-              border:     `0.5px solid ${activePreset === p.key ? '#E9A020' : '#EEEBE6'}`,
+              border:     `0.5px solid ${activePreset === p.key ? '#D97706' : '#EEEBE6'}`,
             }}
           >
             {p.label}
@@ -302,8 +302,7 @@ function DateRangePicker({
 
       {open && (
         <div
-          className="absolute right-0 mt-2 z-50 rounded-xl shadow-lg p-4"
-          style={{ background: '#FFF8F0', border: '0.5px solid #EEEBE6', width: '460px' }}
+          style={{ position: 'absolute', right: 0, marginTop: 8, zIndex: 50, borderRadius: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', padding: 16, background: '#F7F1E6', border: '1px solid #E8E1D3', width: '460px' }}
         >
           <div className="flex gap-4">
             {/* From */}
@@ -360,7 +359,7 @@ function DateRangePicker({
               type="button"
               onClick={handleApply}
               className="px-3 py-1.5 rounded-lg text-[12px] font-medium"
-              style={{ background: '#E9A020', border: '0.5px solid #E9A020', color: 'white' }}
+              style={{ background: '#D97706', border: '0.5px solid #D97706', color: 'white' }}
             >
               Apply
             </button>
@@ -565,7 +564,7 @@ function HeatmapCalendar({
   const maxVal = Math.max(...data.map(d => d.value), 1)
 
   function cellColor(value: number): string {
-    if (value === 0) return '#FFF8F0'
+    if (value === 0) return '#F7F1E6'
     const t = value / maxVal
     if (t < 0.33)  return `rgba(233,160,32,${(0.2 + t * 1.2).toFixed(2)})`
     if (t < 0.66)  return `rgba(233,160,32,${(0.6 + (t - 0.33) * 1.0).toFixed(2)})`
@@ -647,7 +646,7 @@ function HeatmapCalendar({
       )}
       <div className="flex flex-wrap items-center justify-between mt-3 gap-2">
         <ChartLegend items={[
-          { color: '#FFF8F0',          label: '0 units',   type: 'square' },
+          { color: '#F7F1E6',          label: '0 units',   type: 'square' },
           { color: CHART_COLORS.amber, label: 'Mid',       type: 'square' },
           { color: CHART_COLORS.coral, label: 'Peak',      type: 'square' },
           { color: CHART_COLORS.plum,  label: 'Email day', type: 'square' },
@@ -932,8 +931,8 @@ function EmailVsSalesChart({
             <strong>{topEmailInsight.name}</strong> → {topEmailInsight.units48} units in 48hrs
             {topEmailInsight.multiple > 0 && ` (${topEmailInsight.multiple.toFixed(1)}× your 2-day average)`}
           </div>
-          <div className="px-3 py-2.5" style={{ background: '#FFF8F0', borderTop: '1px solid #EEEBE6' }}>
-            <div className="text-[10px] font-bold uppercase tracking-[0.8px] mb-1" style={{ color: '#E9A020' }}>
+          <div className="px-3 py-2.5" style={{ background: '#F7F1E6', borderTop: '1px solid #EEEBE6' }}>
+            <div className="text-[10px] font-bold uppercase tracking-[0.8px] mb-1" style={{ color: '#D97706' }}>
               What To Do Next
             </div>
             <div className="text-[12px] leading-relaxed" style={{ color: '#374151' }}>
@@ -1195,9 +1194,9 @@ export default function KDPPage() {
                     const isToday = uploadDate.toDateString() === today.toDateString()
                     return isToday
                       ? <>Showing data from today&apos;s upload ✅</>
-                      : <>Showing data from your last upload — {uploadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload a new report</a> to see the latest numbers.</>
+                      : <>Showing data from your last upload — {uploadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. <a href="/dashboard?upload=1" style={{ color: '#D97706', textDecoration: 'underline' }}>Upload a new report</a> to see the latest numbers.</>
                   })()
-                : <>No data uploaded yet. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload your KDP report</a> to get started.</>
+                : <>No data uploaded yet. <a href="/dashboard?upload=1" style={{ color: '#D97706', textDecoration: 'underline' }}>Upload your KDP report</a> to get started.</>
               }
             </p>
             <p className="text-[11px] mt-0.5" style={{ color: 'var(--ink4)' }}>
@@ -1210,7 +1209,7 @@ export default function KDPPage() {
                   onClick={handleDownloadTracker}
                   disabled={downloading}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-semibold text-sm transition-opacity"
-                  style={{ background: '#E9A020', color: '#1E2D3D', opacity: downloading ? 0.7 : 1 }}
+                  style={{ background: '#D97706', color: '#1E2D3D', opacity: downloading ? 0.7 : 1 }}
                 >
                   {downloading ? 'Building tracker…' : 'Download Ad Tracker →'}
                 </button>
@@ -1223,12 +1222,12 @@ export default function KDPPage() {
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <LastUploadBadge channel="kdp" />
       {unmatchedBooks.length > 0 && (
-        <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl"
-          style={{ background: 'rgba(233,160,32,0.08)', border: '1px solid rgba(233,160,32,0.25)' }}>
-          <span>📚</span>
+        <div className="mb-4 flex items-center gap-3 px-4 py-3"
+          style={{ background: 'rgba(217,119,6,0.06)', border: '1px solid rgba(217,119,6,0.25)', borderLeft: '3px solid #D97706', borderRadius: 0 }}>
+          <span style={{ fontFamily: 'var(--font-serif)', color: '#D97706', fontWeight: 600 }}>Books</span>
           <p className="text-[13px] m-0" style={{ color: '#92400E' }}>
             We found data for <strong>{unmatchedBooks.length} title{unmatchedBooks.length !== 1 ? 's' : ''}</strong> not in your catalog.{' '}
-            <a href="/dashboard/settings" style={{ color: '#E9A020', textDecoration: 'underline', fontWeight: 600 }}>
+            <a href="/dashboard/settings" style={{ color: '#D97706', textDecoration: 'underline', fontWeight: 600 }}>
               Add them to see full insights →
             </a>
           </p>
@@ -1295,9 +1294,9 @@ export default function KDPPage() {
                 onClick={() => setSelectedBooks(new Set())}
                 className="px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
                 style={{
-                  background: selectedBooks.size === 0 ? '#E9A020' : '#FFF8F0',
+                  background: selectedBooks.size === 0 ? '#D97706' : '#F7F1E6',
                   color: selectedBooks.size === 0 ? 'white' : '#1E2D3D',
-                  border: `0.5px solid ${selectedBooks.size === 0 ? '#E9A020' : '#EEEBE6'}`,
+                  border: `0.5px solid ${selectedBooks.size === 0 ? '#D97706' : '#EEEBE6'}`,
                   cursor: 'pointer',
                 }}>
                 All Books
@@ -1317,7 +1316,7 @@ export default function KDPPage() {
                     })}
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
                     style={{
-                      background: isSelected ? c : '#FFF8F0',
+                      background: isSelected ? c : '#F7F1E6',
                       color: isSelected ? 'white' : '#1E2D3D',
                       border: `0.5px solid ${isSelected ? c : '#EEEBE6'}`,
                       cursor: 'pointer',
@@ -1347,7 +1346,7 @@ export default function KDPPage() {
             function BookBar({ books, metric, title }: { books: typeof visibleBooks; metric: 'units' | 'kenp'; title: string }) {
               const maxVal = Math.max(...books.map(b => b[metric]), 1)
               return (
-                <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0, padding: 20, boxShadow: 'none' }}>
                   <h3 className="text-[14px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>{title}</h3>
                   <div className="space-y-3">
                     {books.map((b, visibleIdx) => {
@@ -1384,7 +1383,7 @@ export default function KDPPage() {
 
           {/* Unmatched books — present in KDP data but not in My Books catalog */}
           {unmatchedBooks.length > 0 && (
-            <div className="mb-6 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(233,160,32,0.25)' }}>
+            <div className="mb-6 overflow-hidden" style={{ border: '1px solid rgba(217,119,6,0.25)', borderRadius: 0 }}>
               <div className="px-5 py-3" style={{ background: 'rgba(233,160,32,0.06)', borderBottom: '1px solid rgba(233,160,32,0.15)' }}>
                 <span className="text-[12px] font-semibold" style={{ color: '#92400E' }}>
                   Titles not in your catalog — data saved, not yet matched
@@ -1405,7 +1404,7 @@ export default function KDPPage() {
                     <a
                       href="/dashboard/settings"
                       className="text-[11px] font-semibold whitespace-nowrap ml-4"
-                      style={{ color: '#E9A020', textDecoration: 'none' }}
+                      style={{ color: '#D97706', textDecoration: 'none' }}
                     >
                       Add to catalog →
                     </a>
@@ -1454,14 +1453,14 @@ export default function KDPPage() {
                 <button
                   onClick={() => setHeatmapView(false)}
                   className="px-3 py-1 text-[11px] font-medium transition-all"
-                  style={{ background: !heatmapView ? '#E9A020' : '#FFF8F0', color: !heatmapView ? 'white' : '#6B7280' }}
+                  style={{ background: !heatmapView ? '#D97706' : '#F7F1E6', color: !heatmapView ? 'white' : '#6B7280' }}
                 >
                   Area view
                 </button>
                 <button
                   onClick={() => setHeatmapView(true)}
                   className="px-3 py-1 text-[11px] font-medium transition-all"
-                  style={{ background: heatmapView ? '#E9A020' : '#FFF8F0', color: heatmapView ? 'white' : '#6B7280' }}
+                  style={{ background: heatmapView ? '#D97706' : '#F7F1E6', color: heatmapView ? 'white' : '#6B7280' }}
                 >
                   Heatmap
                 </button>

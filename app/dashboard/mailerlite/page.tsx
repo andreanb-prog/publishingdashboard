@@ -193,7 +193,7 @@ function CampaignSkeleton() {
         </thead>
         <tbody>
           {[0, 1, 2].map(i => (
-            <tr key={i} className="border-t" style={{ borderColor: 'rgba(0,0,0,0.06)', background: i % 2 === 1 ? '#FFF8F0' : 'white' }}>
+            <tr key={i} className="border-t" style={{ borderColor: 'rgba(0,0,0,0.06)', background: i % 2 === 1 ? '#F7F1E6' : 'white' }}>
               {[200, 60, 60, 50, 60].map((w, j) => (
                 <td key={j} className="px-4 py-3">
                   <div className="h-3 animate-pulse" style={{ width: w, background: '#E5E7EB' }} />
@@ -307,7 +307,7 @@ function CampaignPerformanceSection({
             <tbody>
               {campaigns.map((c, i) => (
                 <tr key={c.id || i} className="border-t"
-                  style={{ borderColor: 'rgba(0,0,0,0.06)', background: i % 2 === 1 ? '#FFF8F0' : 'white' }}>
+                  style={{ borderColor: 'rgba(0,0,0,0.06)', background: i % 2 === 1 ? '#F7F1E6' : 'white' }}>
                   <td className="px-4 py-2.5 max-w-[240px]" style={{ color: '#1E2D3D' }}>
                     <span
                       title={c.subject}
@@ -589,7 +589,7 @@ export default function MailerLitePage() {
                   : 'Never synced'
                 return (
                   <div className="mt-3 px-5 py-3 flex items-center gap-6"
-                    style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+                    style={{ background: '#F7F1E6', border: '1px solid #EEEBE6' }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontStyle: 'italic', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#1E2D3D', fontWeight: 600 }}>
                       {active.name}
                     </span>
@@ -682,7 +682,7 @@ export default function MailerLitePage() {
                 { label: 'Best Open Rate', value: topCampaign ? fmtPct(topCampaign.openRate) : '—', sub: topCampaign ? topCampaign.name : 'No campaigns', color: '#D97706' },
               ]
               return metrics.map((m, i) => (
-                <div key={i} className="p-4" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+                <div key={i} className="p-4" style={{ background: '#F7F1E6', border: '1px solid #EEEBE6' }}>
                   <div className="text-[10px] font-bold tracking-[1px] uppercase mb-1.5" style={{ color: '#6B7280' }}>{m.label}</div>
                   <div className="text-[24px] font-semibold tracking-tight leading-none mb-1" style={{ color: m.color }}>{m.value}</div>
                   <div className="text-[11px]" style={{ color: '#6B7280' }}>{m.sub}</div>
@@ -755,7 +755,7 @@ export default function MailerLitePage() {
           {prevAnalysis?.mailerLite && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
               {/* Left: Comparison table */}
-              <div style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+              <div style={{ background: '#F7F1E6', border: '1px solid #EEEBE6' }}>
                 <div className="px-5 py-3 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
                   Month-over-Month
                 </div>
@@ -797,7 +797,7 @@ export default function MailerLitePage() {
               </div>
 
               {/* Right: Unsubscribe spikes */}
-              <div style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+              <div style={{ background: '#F7F1E6', border: '1px solid #EEEBE6' }}>
                 <div className="px-5 py-3 text-[13px] font-semibold" style={{ color: '#1E2D3D', borderBottom: '1px solid #EEEBE6' }}>
                   Unsubscribe Spikes — Watch
                 </div>

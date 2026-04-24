@@ -106,8 +106,8 @@ export function ExportDropdown({ bookId, drawerToggle }: Props) {
       {/* Toast */}
       {toast && (
         <div
-          className="fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg text-sm font-medium shadow-lg z-50 transition-opacity"
-          style={{ background: '#6EBF8B', color: '#FFFFFF' }}
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 text-sm font-medium z-50 transition-opacity"
+          style={{ borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', background: '#6EBF8B', color: '#FFFFFF' }}
         >
           {toast}
         </div>

@@ -50,9 +50,9 @@ const SHOW_DAILY_TABLE = false
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
-const LM_COLOR = '#E9A020'
-const GOALS_BG = '#FFF8F0'
-const ROW_STRIPE = '#FFF8F0'
+const LM_COLOR = '#D97706'
+const GOALS_BG = '#F7F1E6'
+const ROW_STRIPE = '#F7F1E6'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -129,13 +129,13 @@ function SummaryStrip({ refreshKey }: { refreshKey: number }) {
   if (isEmptyState) {
     return (
       <div className="mb-6">
-        <div className="rounded-lg p-6" style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
-          <div className="rounded-lg p-5" style={{ background: '#FFF8F0', border: '1px dashed #D1CBC2' }}>
+        <div style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0, padding: 24 }}>
+          <div style={{ background: '#F7F1E6', border: '1px dashed #D1CBC2', borderRadius: 0, padding: 20 }}>
             <div className="font-semibold mb-2" style={{ fontSize: 16, color: '#1E2D3D' }}>No rank data yet</div>
             <p className="text-[14px] mb-3" style={{ color: 'rgba(30,45,61,0.6)', maxWidth: 320 }}>
               Select a book tab and click Refresh Rank to start tracking your BSR.
             </p>
-            <span className="text-[20px]" style={{ color: '#E9A020' }}>→</span>
+            <span className="text-[20px]" style={{ color: '#D97706' }}>→</span>
           </div>
         </div>
       </div>
@@ -147,8 +147,8 @@ function SummaryStrip({ refreshKey }: { refreshKey: number }) {
       {tiles.map((tile, i) => (
         <div
           key={i}
-          className="flex-1 min-w-[150px] rounded-lg px-5 py-4"
-          style={{ background: GOALS_BG }}
+          className="flex-1 min-w-[150px] px-5 py-4"
+          style={{ background: GOALS_BG, border: '1px solid #E8E1D3', borderRadius: 0 }}
         >
           {loading ? (
             <div className="animate-pulse rounded h-7 w-20 mb-1" style={{ background: '#EEEBE6' }} />
@@ -158,7 +158,7 @@ function SummaryStrip({ refreshKey }: { refreshKey: number }) {
               style={{ fontSize: 28, color: tile.value ? '#1E2D3D' : '#9CA3AF' }}
             >
               {tile.value ?? (
-                <span className="text-[14px] font-normal" style={{ color: '#E9A020' }}>⚠ No data</span>
+                <span className="text-[14px] font-normal" style={{ color: '#D97706' }}>⚠ No data</span>
               )}
             </div>
           )}
@@ -226,7 +226,7 @@ function EditableCell({
           onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false) }}
           className="w-full rounded px-1 py-0 text-[12px] outline-none"
           style={{
-            border: '1.5px solid #E9A020',
+            border: '1.5px solid #D97706',
             background: 'white',
             color: '#1E2D3D',
             minWidth: isText ? 80 : 60,
@@ -269,7 +269,7 @@ function ctrColor(v: number | null) {
 function roasColor(v: number | null): string {
   if (v == null) return '#1E2D3D'
   if (v >= 1) return '#6EBF8B'
-  if (v >= 0.5) return '#E9A020'
+  if (v >= 0.5) return '#D97706'
   return '#F97B6B'
 }
 
@@ -299,7 +299,7 @@ function RoasTable({ rows, loading, asin, onSave }: RoasTableProps) {
   )
 
   return (
-    <div className="overflow-x-auto rounded-lg mb-5" style={{ border: '0.5px solid #EEEBE6' }}>
+    <div className="overflow-x-auto mb-5" style={{ border: '1px solid #E8E1D3', borderRadius: 0 }}>
       <table className="w-full" style={{ minWidth: 900 }}>
         <thead>
           <tr style={{ borderBottom: '0.5px solid #EEEBE6' }}>
@@ -445,7 +445,7 @@ const LM_GOALS = { cpc: 0.10, ctr: 15, costPerSub: 2.00 }
 function costPerSubColor(v: number | null): string {
   if (v == null) return '#1E2D3D'
   if (v < LM_GOALS.costPerSub) return '#6EBF8B'
-  if (v <= 5) return '#E9A020'
+  if (v <= 5) return '#D97706'
   return '#F97B6B'
 }
 
@@ -473,7 +473,7 @@ function LmTable({ rows, loading, onSave }: LmTableProps) {
   )
 
   return (
-    <div className="overflow-x-auto rounded-lg mb-5" style={{ border: '0.5px solid #EEEBE6' }}>
+    <div className="overflow-x-auto mb-5" style={{ border: '1px solid #E8E1D3', borderRadius: 0 }}>
       <table className="w-full" style={{ minWidth: 780 }}>
         <thead>
           <tr style={{ borderBottom: '0.5px solid #EEEBE6' }}>
@@ -582,8 +582,8 @@ function CorrelationChart({ rows, color }: CorrelationChartProps) {
 
   if (!hasBsr && !hasSpend && !hasSubs) {
     return (
-      <div className="flex items-center justify-center py-8 rounded-lg"
-        style={{ border: '1px dashed #D1CBC2', color: '#9CA3AF', fontSize: 12 }}>
+      <div className="flex items-center justify-center py-8"
+        style={{ border: '1px dashed #D1CBC2', borderRadius: 0, color: '#9CA3AF', fontSize: 12 }}>
         No chart data yet — log rank + spend to see correlation.
       </div>
     )
@@ -665,8 +665,8 @@ function TrendChart({ rows }: { rows: RoasRow[] }) {
 
   if (!hasData) {
     return (
-      <div className="flex items-center justify-center py-8 rounded-lg"
-        style={{ border: '1px dashed #D1CBC2', color: '#9CA3AF', fontSize: 12 }}>
+      <div className="flex items-center justify-center py-8"
+        style={{ border: '1px dashed #D1CBC2', borderRadius: 0, color: '#9CA3AF', fontSize: 12 }}>
         No trend data yet — log spend + subscriber data to see trends.
       </div>
     )
@@ -743,7 +743,7 @@ function BsrSparkline({ rows }: { rows: RoasRow[] }) {
           {!hasEnoughData && chartData.length > 0 && (
             <ReferenceLine
               y={chartData[0].rank}
-              stroke="#E9A020"
+              stroke="#D97706"
               strokeDasharray="4 4"
               strokeOpacity={0.3}
               label={{ value: 'Track more days to see your trend', position: 'insideTopRight', fill: '#9CA3AF', fontSize: 11 }}
@@ -752,9 +752,9 @@ function BsrSparkline({ rows }: { rows: RoasRow[] }) {
           <Line
             type="monotone"
             dataKey="rank"
-            stroke="#E9A020"
+            stroke="#D97706"
             strokeWidth={2}
-            dot={{ r: 3, fill: '#E9A020', stroke: '#E9A020' }}
+            dot={{ r: 3, fill: '#D97706', stroke: '#D97706' }}
             connectNulls
           />
         </LineChart>
@@ -767,7 +767,7 @@ function BsrSparkline({ rows }: { rows: RoasRow[] }) {
         >
           View full rank history
         </summary>
-        <div className="mt-2 overflow-x-auto rounded-lg" style={{ border: '0.5px solid #EEEBE6' }}>
+        <div className="mt-2 overflow-x-auto" style={{ border: '1px solid #E8E1D3', borderRadius: 0 }}>
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: '0.5px solid #EEEBE6' }}>
@@ -893,9 +893,9 @@ function BookTab({ book, onLogSuccess }: { book: BookRecord; onLogSuccess?: () =
   return (
     <div>
       {!book.asin ? (
-        <div className="rounded-lg p-4 text-[13px] mb-4" style={{ background: '#FFF8F0', border: '0.5px solid #E9A020', color: '#92400e' }}>
+        <div style={{ background: '#F7F1E6', border: '1px solid rgba(217,119,6,0.3)', borderLeft: '3px solid #D97706', borderRadius: 0, padding: 16, fontSize: 13, marginBottom: 16, color: '#92400e' }}>
           No ASIN for this book.{' '}
-          <a href="/dashboard/settings#my-books" className="font-semibold underline" style={{ color: '#E9A020' }}>
+          <a href="/dashboard/settings#my-books" className="font-semibold underline" style={{ color: '#D97706' }}>
             Add it in Settings →
           </a>
         </div>
@@ -933,14 +933,14 @@ function BookTab({ book, onLogSuccess }: { book: BookRecord; onLogSuccess?: () =
                   value={bsrInput}
                   onChange={e => setBsrInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleLog()}
-                  className="rounded-lg px-3 py-2 text-[13px] w-36"
-                  style={{ border: '0.5px solid #D1CBC2', background: 'white', color: '#1E2D3D', outline: 'none' }}
+                  className="px-3 py-2 text-[13px] w-36"
+                  style={{ border: '1px solid #E8E1D3', borderRadius: 2, background: 'white', color: '#1E2D3D', outline: 'none' }}
                 />
                 <button
                   onClick={() => handleLog()}
                   disabled={logLoading || !bsrInput}
-                  className="px-3.5 py-2 rounded-lg text-[12.5px] font-bold transition-all disabled:opacity-40"
-                  style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  className="px-3.5 py-2 text-[12.5px] font-bold transition-all disabled:opacity-40"
+                  style={{ background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: 2, cursor: 'pointer', whiteSpace: 'nowrap' }}
                 >
                   {logLoading ? '…' : 'Log Today →'}
                 </button>
@@ -1170,8 +1170,8 @@ export default function RoasHubPage() {
             className="px-3 py-2 rounded-lg text-[13px] font-medium transition-all disabled:opacity-50 whitespace-nowrap"
             style={{
               background: 'white',
-              border: '1px solid #E9A020',
-              color: '#E9A020',
+              border: '1px solid #D97706',
+              color: '#D97706',
               cursor: exporting ? 'wait' : 'pointer',
             }}
           >
@@ -1221,7 +1221,7 @@ export default function RoasHubPage() {
         <div className="rounded-lg p-6 text-center text-[13px]"
           style={{ border: '1px dashed #D1CBC2', color: '#9CA3AF' }}>
           No book in this slot yet.{' '}
-          <a href="/dashboard/settings#my-books" className="font-semibold underline" style={{ color: '#E9A020' }}>
+          <a href="/dashboard/settings#my-books" className="font-semibold underline" style={{ color: '#D97706' }}>
             Add books in Settings →
           </a>
         </div>

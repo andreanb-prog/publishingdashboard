@@ -86,7 +86,7 @@ export function ImportPreviewModal({
                   className="px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 whitespace-nowrap"
                   style={isNew
                     ? { background: '#D6F0E0', color: '#1A6B3A' }
-                    : { background: '#FFF3E0', color: '#E9A020' }
+                    : { background: '#FFF3E0', color: '#D97706' }
                   }
                 >
                   {draftLabel}
@@ -111,7 +111,7 @@ export function ImportPreviewModal({
           <button
             onClick={onConfirm}
             className="px-4 py-2 rounded-lg text-[13px] font-medium transition-colors"
-            style={{ background: '#E9A020', color: '#FFFFFF' }}
+            style={{ background: '#D97706', color: '#FFFFFF' }}
           >
             Import {chapters.length} chapter{chapters.length !== 1 ? 's' : ''}
           </button>

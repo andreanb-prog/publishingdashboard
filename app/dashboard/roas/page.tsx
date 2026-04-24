@@ -203,9 +203,9 @@ export default function ROASPage() {
   if (loading) {
     return (
       <div className="p-4 sm:p-8 pb-8 max-w-2xl animate-pulse space-y-4">
-        <div className="h-10 rounded-xl bg-stone-100 w-48" />
-        <div className="h-40 rounded-xl bg-stone-100" />
-        <div className="h-64 rounded-xl bg-stone-100" />
+        <div className="h-10 bg-stone-100 w-48" />
+        <div className="h-40 bg-stone-100" />
+        <div className="h-64 bg-stone-100" />
       </div>
     )
   }
@@ -225,10 +225,10 @@ export default function ROASPage() {
         <a
           href="/api/export/ad-tracker"
           download
-          className="w-full sm:w-auto sm:flex-shrink-0 px-4 py-2 rounded-lg text-[12.5px] font-semibold no-underline transition-all text-center"
-          style={{ background: '#e9a020', color: '#0d1f35' }}
+          className="w-full sm:w-auto sm:flex-shrink-0 px-4 py-2 text-[12.5px] font-semibold no-underline transition-all text-center"
+          style={{ background: '#D97706', color: '#FFFFFF', borderRadius: 2 }}
         >
-          ⬇ Download ROAS Tracker
+          Download ROAS Tracker
         </a>
       </div>
 
@@ -248,8 +248,7 @@ export default function ROASPage() {
       </div>
 
       {/* Explainer */}
-      <div className="rounded-xl px-4 py-3.5 mb-5 text-[12.5px] leading-relaxed"
-        style={{ background: '#f5f0e8', border: '1px solid #e8e0d0', color: '#57534e' }}>
+      <div style={{ background: '#F7F1E6', border: '1px solid #E8E1D3', borderLeft: '3px solid #D97706', borderRadius: 0, padding: '14px 16px', marginBottom: 20, fontSize: 12.5, lineHeight: 1.6, color: '#57534e' }}>
         <strong style={{ color: '#0d1f35' }}>Where does this come from?</strong>
         {' '}Your spend comes from your Meta Ads upload. Your earnings come from your KDP report.
         We pre-fill what we can — you adjust if needed.
@@ -318,8 +317,8 @@ export default function ROASPage() {
 
           {/* Live ROAS */}
           {liveROAS !== null && (
-            <div className="rounded-lg px-4 py-2.5 mb-4 flex items-center justify-between"
-              style={{ background: roasBg(liveROAS, true), border: '1px solid rgba(0,0,0,0.06)' }}>
+            <div className="px-4 py-2.5 mb-4 flex items-center justify-between"
+              style={{ background: roasBg(liveROAS, true), border: '1px solid #E8E1D3', borderRadius: 0 }}>
               <span className="text-[11.5px] font-semibold text-stone-500">Your ROAS right now</span>
               <span className="font-mono text-[15px] font-bold" style={{ color: roasColor(liveROAS, true) }}>
                 {liveROAS.toFixed(2)}x
@@ -352,8 +351,7 @@ export default function ROASPage() {
         </form>
 
         {verdict && (
-          <div className="mt-4 p-3.5 rounded-xl text-[13px] font-semibold"
-            style={{ background: `${verdict.color}15`, color: verdict.color }}>
+          <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 0, fontSize: 13, fontWeight: 600, background: `${verdict.color}12`, color: verdict.color, borderLeft: `3px solid ${verdict.color}` }}>
             {verdict.text}
           </div>
         )}

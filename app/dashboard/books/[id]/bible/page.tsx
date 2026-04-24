@@ -70,7 +70,7 @@ function Section({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden">
+    <div style={{ border: '1px solid #E8E1D3', borderRadius: 0, background: 'white', overflow: 'hidden' }}>
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-stone-50 transition-colors border-none bg-transparent cursor-pointer"
@@ -122,7 +122,7 @@ function TropePill({
       className="px-3 py-1.5 rounded-full text-[12.5px] font-medium border transition-all cursor-pointer"
       style={
         selected
-          ? { background: 'rgba(233,160,32,0.15)', borderColor: '#E9A020', color: '#92400e' }
+          ? { background: 'rgba(217,119,6,0.15)', borderColor: '#D97706', color: '#92400e' }
           : { background: 'white', borderColor: '#e5e7eb', color: '#6b7280' }
       }
     >
@@ -137,7 +137,7 @@ function SelectedTag({ label, onRemove }: { label: string; onRemove: () => void 
   return (
     <span
       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-medium"
-      style={{ background: 'rgba(233,160,32,0.12)', color: '#92400e' }}
+      style={{ background: 'rgba(217,119,6,0.12)', color: '#92400e' }}
     >
       {label}
       <button
@@ -310,7 +310,7 @@ export default function BookBiblePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#FFF8F0' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#F7F1E6' }}>
         <div className="text-stone-400 text-sm">Loading Book Bible…</div>
       </div>
     )
@@ -328,7 +328,7 @@ export default function BookBiblePage() {
   const showFreeTropeInput = isCustomGenre || isCustomSubgenre || (data.genre && data.subgenre && availableTropes === null)
 
   return (
-    <div className="min-h-screen pb-20" style={{ background: '#FFF8F0' }}>
+    <div className="min-h-screen pb-20" style={{ background: '#F7F1E6' }}>
       <div className="max-w-2xl mx-auto px-4 pt-8 sm:pt-12">
 
         {/* Header */}
@@ -345,8 +345,7 @@ export default function BookBiblePage() {
 
         {/* Progress nudge */}
         <div
-          className="mb-6 rounded-xl px-5 py-4 text-[13px] leading-relaxed"
-          style={{ background: 'rgba(233,160,32,0.08)', color: '#92400e', borderLeft: '3px solid #E9A020' }}
+          style={{ marginBottom: 24, borderRadius: 0, padding: '16px 20px', fontSize: 13, lineHeight: 1.65, background: 'rgba(217,119,6,0.06)', color: '#92400e', borderLeft: '3px solid #D97706', border: '1px solid rgba(217,119,6,0.2)' }}
         >
           {getProgressNudge(data, wordCount)}
         </div>
@@ -426,7 +425,7 @@ export default function BookBiblePage() {
                     onClick={addCustomTrope}
                     disabled={!customTropeInput.trim()}
                     className="px-3 py-2 rounded-lg text-[12.5px] font-semibold transition-colors border-none cursor-pointer"
-                    style={{ background: customTropeInput.trim() ? '#E9A020' : '#e5e7eb', color: customTropeInput.trim() ? 'white' : '#9ca3af' }}
+                    style={{ background: customTropeInput.trim() ? '#D97706' : '#e5e7eb', color: customTropeInput.trim() ? 'white' : '#9ca3af' }}
                   >
                     Add
                   </button>
@@ -459,10 +458,11 @@ export default function BookBiblePage() {
               onDragLeave={() => setDragging(false)}
               onDrop={onDrop}
               onClick={() => uploadState !== 'uploading' && fileInputRef.current?.click()}
-              className="rounded-xl border-2 border-dashed transition-colors cursor-pointer flex flex-col items-center justify-center py-10 px-6 text-center"
+              className="border-2 border-dashed transition-colors cursor-pointer flex flex-col items-center justify-center py-10 px-6 text-center"
               style={{
-                borderColor: dragging ? '#E9A020' : uploadState === 'done' ? '#6EBF8B' : '#d1d5db',
-                background: dragging ? 'rgba(233,160,32,0.04)' : uploadState === 'done' ? 'rgba(110,191,139,0.05)' : 'white',
+                borderRadius: 0,
+                borderColor: dragging ? '#D97706' : uploadState === 'done' ? '#6EBF8B' : '#d1d5db',
+                background: dragging ? 'rgba(217,119,6,0.04)' : uploadState === 'done' ? 'rgba(110,191,139,0.05)' : 'white',
               }}
             >
               <input
@@ -576,7 +576,7 @@ export default function BookBiblePage() {
                   onClick={addCompTitle}
                   disabled={!compTitleInput.trim()}
                   className="px-3 py-2 rounded-lg text-[12.5px] font-semibold transition-colors border-none cursor-pointer"
-                  style={{ background: compTitleInput.trim() ? '#E9A020' : '#e5e7eb', color: compTitleInput.trim() ? 'white' : '#9ca3af' }}
+                  style={{ background: compTitleInput.trim() ? '#D97706' : '#e5e7eb', color: compTitleInput.trim() ? 'white' : '#9ca3af' }}
                 >
                   Add
                 </button>

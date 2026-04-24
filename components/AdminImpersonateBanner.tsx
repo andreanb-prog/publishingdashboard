@@ -17,7 +17,7 @@ export function AdminImpersonateBanner({ email }: { email: string }) {
   return (
     <div
       className="w-full flex items-center justify-center gap-3 px-4 py-2 text-[12px] font-semibold z-50"
-      style={{ background: '#E9A020', color: '#1E2D3D' }}
+      style={{ background: '#D97706', color: '#1E2D3D' }}
     >
       <span>
         Admin View: viewing as <strong>{email}</strong>
@@ -26,7 +26,7 @@ export function AdminImpersonateBanner({ email }: { email: string }) {
         onClick={exitImpersonation}
         disabled={exiting}
         className="px-3 py-1 rounded-[5px] text-[11px] font-bold border-none cursor-pointer disabled:opacity-60 transition-opacity"
-        style={{ background: '#1E2D3D', color: '#E9A020' }}
+        style={{ background: '#1E2D3D', color: '#D97706' }}
       >
         {exiting ? 'Exiting…' : 'Exit Admin View'}
       </button>

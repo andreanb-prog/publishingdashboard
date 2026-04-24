@@ -216,7 +216,7 @@ export function AIChatPanel({
                   key={chip}
                   onClick={() => sendMessage(chip)}
                   className="text-xs px-3 py-1.5 rounded-full transition-colors hover:opacity-80"
-                  style={{ border: '1px solid #E9A020', color: '#E9A020' }}
+                  style={{ border: '1px solid #D97706', color: '#D97706' }}
                 >
                   {chip}
                 </button>
@@ -247,7 +247,7 @@ export function AIChatPanel({
                   onClick={() => handleSaveToWorkbook(i)}
                   disabled={savingIndex === i}
                   className="flex items-center gap-1 mt-2 text-xs font-medium hover:underline transition-opacity"
-                  style={{ color: '#E9A020' }}
+                  style={{ color: '#D97706' }}
                 >
                   {savingIndex === i ? (
                     <><Loader2 size={12} className="animate-spin" /> Saving...</>
@@ -278,7 +278,7 @@ export function AIChatPanel({
             onClick={() => sendMessage()}
             disabled={!input.trim() || isStreaming}
             className="self-end p-2 rounded-lg transition-colors disabled:opacity-40"
-            style={{ background: '#E9A020', color: '#FFFFFF' }}
+            style={{ background: '#D97706', color: '#FFFFFF' }}
           >
             <Send size={16} />
           </button>

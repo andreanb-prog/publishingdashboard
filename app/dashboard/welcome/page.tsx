@@ -1,8 +1,8 @@
 'use client'
-// app/dashboard/welcome/page.tsx — Post-signup profile + integrations onboarding
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { BoutiqueButton, BoutiqueInput, BoutiqueProgressBar, BoutiqueStatusChip } from '@/components/boutique'
 
 const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
 
@@ -30,14 +30,12 @@ export default function WelcomePage() {
   const isAdmin = ADMIN_EMAILS.includes(session?.user?.email ?? '')
   const [step, setStep] = useState<1 | 2>(1)
 
-  // Step 1 state
   const [penName, setPenName] = useState('')
   const [category, setCategory] = useState('')
   const [subgenre, setSubgenre] = useState('')
   const [referral, setReferral] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // Step 2 state
   const [mailerLiteKey, setMailerLiteKey] = useState('')
   const [mlSaved, setMlSaved] = useState(false)
   const [mlSaving, setMlSaving] = useState(false)
@@ -62,7 +60,6 @@ export default function WelcomePage() {
       })
       setStep(2)
     } catch {
-      // still advance
       setStep(2)
     } finally {
       setSaving(false)
@@ -89,71 +86,72 @@ export default function WelcomePage() {
     }
   }
 
+  const toggleStyle = (active: boolean): React.CSSProperties => ({
+    background: active ? '#D97706' : 'white',
+    color: active ? 'white' : '#1E2D3D',
+    border: `1px solid ${active ? '#D97706' : '#E8E1D3'}`,
+    borderRadius: 2,
+    padding: '6px 12px',
+    fontSize: 13,
+    fontFamily: 'var(--font-sans)',
+    fontWeight: 500,
+    cursor: 'pointer',
+  })
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#FFF8F0' }}>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#F7F1E6' }}>
       <div className="w-full max-w-lg">
 
-        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="text-[18px] mb-1" style={{ color: '#4A7290', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 }}>
-            Author<span style={{ color: '#E9A020' }}>Dash</span>
+          <div className="text-[18px] mb-1" style={{ color: '#4A7290', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
+            Author<span style={{ color: '#D97706' }}>Dash</span>
           </div>
         </div>
 
-        {/* Card */}
-        <div className="rounded-2xl p-8" style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+        {/* Hero card — 0 radius, no shadow */}
+        <div style={{ background: 'white', border: '1px solid #E8E1D3', borderRadius: 0, padding: 32 }}>
 
           {/* Progress */}
-          <div className="flex items-center gap-2 mb-6">
-            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#EEEBE6' }}>
-              <div className="h-full rounded-full transition-all duration-500"
-                style={{ width: step === 1 ? '50%' : '100%', background: '#E9A020' }} />
-            </div>
-            <span className="text-[11px] font-medium" style={{ color: '#6B7280' }}>Step {step} of 2</span>
+          <div className="flex items-center gap-3 mb-6">
+            <BoutiqueProgressBar
+              value={step === 1 ? 50 : 100}
+              showLabel={false}
+              height={4}
+              style={{ flex: 1 }}
+            />
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: '#6B7280', whiteSpace: 'nowrap' }}>
+              Step {step} of 2
+            </span>
           </div>
 
-          {/* ─── STEP 1: Profile ─────────────────────────────────────────── */}
+          {/* STEP 1: Profile */}
           {step === 1 && (
             <>
-              <h1 className="text-[24px] font-bold tracking-tight mb-2" style={{ color: '#1E2D3D' }}>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, fontWeight: 700, color: '#1E2D3D', marginBottom: 8 }}>
                 Tell us a little about you
               </h1>
-              <p className="text-[14px] mb-8" style={{ color: '#6B7280' }}>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: '#6B7280', marginBottom: 32 }}>
                 This helps us tailor your AI coaching insights to your genre, audience, and publishing goals.
               </p>
 
-              {/* Pen Name */}
-              <div className="mb-6">
-                <label className="block text-[12px] font-medium uppercase mb-2" style={{ color: '#374151', letterSpacing: '0.5px' }}>
-                  What name do you write under?
-                </label>
-                <input
-                  type="text"
-                  value={penName}
-                  onChange={e => setPenName(e.target.value)}
-                  placeholder="e.g. Elle Wilder"
-                  className="w-full px-4 py-3 rounded-lg text-[14px] outline-none transition-all focus:ring-2 focus:ring-amber-200"
-                  style={{ border: '1px solid #EEEBE6', color: '#1E2D3D' }}
-                />
-              </div>
+              <BoutiqueInput
+                label="What name do you write under?"
+                value={penName}
+                onChange={e => setPenName(e.target.value)}
+                placeholder="e.g. Elle Wilder"
+                style={{ marginBottom: 24 }}
+              />
 
-              {/* Genre Category */}
-              <div className="mb-4">
-                <label className="block text-[12px] font-medium uppercase mb-2" style={{ color: '#374151', letterSpacing: '0.5px' }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B7280', marginBottom: 8 }}>
                   Primary genre
-                </label>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {GENRES.map(g => (
                     <button
                       key={g.category}
                       onClick={() => { setCategory(g.category); setSubgenre('') }}
-                      className="px-3 py-2 rounded-lg text-[13px] font-medium transition-all"
-                      style={{
-                        background: category === g.category ? '#E9A020' : 'white',
-                        color: category === g.category ? 'white' : '#1E2D3D',
-                        border: `1px solid ${category === g.category ? '#E9A020' : '#EEEBE6'}`,
-                        cursor: 'pointer',
-                      }}
+                      style={toggleStyle(category === g.category)}
                     >
                       {g.category}
                     </button>
@@ -161,39 +159,26 @@ export default function WelcomePage() {
                 </div>
               </div>
 
-              {/* Sub-genre */}
               {selectedGenre && selectedGenre.subs.length === 0 && (
-                <div className="mb-6">
-                  <label className="block text-[12px] font-medium uppercase mb-2" style={{ color: '#374151', letterSpacing: '0.5px' }}>
-                    What genre do you write?
-                  </label>
-                  <input
-                    type="text"
-                    value={subgenre}
-                    onChange={e => setSubgenre(e.target.value)}
-                    placeholder="e.g. Historical Fiction, Horror, LitRPG"
-                    className="w-full px-4 py-3 rounded-lg text-[14px] outline-none transition-all focus:ring-2 focus:ring-amber-200"
-                    style={{ border: '1px solid #EEEBE6', color: '#1E2D3D' }}
-                  />
-                </div>
+                <BoutiqueInput
+                  label="What genre do you write?"
+                  value={subgenre}
+                  onChange={e => setSubgenre(e.target.value)}
+                  placeholder="e.g. Historical Fiction, Horror, LitRPG"
+                  style={{ marginBottom: 24 }}
+                />
               )}
               {selectedGenre && selectedGenre.subs.length > 0 && (
-                <div className="mb-6">
-                  <label className="block text-[12px] font-medium uppercase mb-2" style={{ color: '#374151', letterSpacing: '0.5px' }}>
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B7280', marginBottom: 8 }}>
                     Sub-genre (optional)
-                  </label>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {selectedGenre.subs.map(s => (
                       <button
                         key={s}
                         onClick={() => setSubgenre(subgenre === s ? '' : s)}
-                        className="px-2.5 py-1.5 rounded-full text-[12px] font-medium transition-all"
-                        style={{
-                          background: subgenre === s ? '#E9A020' : '#FFF8F0',
-                          color: subgenre === s ? 'white' : '#1E2D3D',
-                          border: `0.5px solid ${subgenre === s ? '#E9A020' : '#EEEBE6'}`,
-                          cursor: 'pointer',
-                        }}
+                        style={toggleStyle(subgenre === s)}
                       >
                         {s}
                       </button>
@@ -202,23 +187,16 @@ export default function WelcomePage() {
                 </div>
               )}
 
-              {/* Referral */}
-              <div className="mb-8">
-                <label className="block text-[12px] font-medium uppercase mb-2" style={{ color: '#374151', letterSpacing: '0.5px' }}>
-                  How did you hear about us? <span style={{ color: '#6B7280' }}>(optional)</span>
-                </label>
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B7280', marginBottom: 8 }}>
+                  How did you hear about us? <span style={{ textTransform: 'none', fontWeight: 400 }}>(optional)</span>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {REFERRALS.map(r => (
                     <button
                       key={r}
                       onClick={() => setReferral(referral === r ? '' : r)}
-                      className="px-2.5 py-1.5 rounded-full text-[12px] font-medium transition-all"
-                      style={{
-                        background: referral === r ? '#1E2D3D' : '#FFF8F0',
-                        color: referral === r ? 'white' : '#1E2D3D',
-                        border: `0.5px solid ${referral === r ? '#1E2D3D' : '#EEEBE6'}`,
-                        cursor: 'pointer',
-                      }}
+                      style={toggleStyle(referral === r)}
                     >
                       {r}
                     </button>
@@ -226,114 +204,122 @@ export default function WelcomePage() {
                 </div>
               </div>
 
-              <button
+              <BoutiqueButton
+                variant="amber"
                 onClick={handleStep1}
                 disabled={!canSubmitStep1 || saving}
-                className="w-full py-3.5 rounded-xl text-[15px] font-bold transition-all disabled:opacity-40"
-                style={{
-                  background: canSubmitStep1 ? '#E9A020' : '#EEEBE6',
-                  color: canSubmitStep1 ? '#0d1f35' : '#6B7280',
-                  border: 'none',
-                  cursor: canSubmitStep1 ? 'pointer' : 'not-allowed',
-                }}
+                style={{ width: '100%', justifyContent: 'center', padding: '12px 16px' }}
               >
                 {saving ? 'Saving...' : 'Next: Connect your tools →'}
-              </button>
+              </BoutiqueButton>
 
               <button
                 onClick={() => router.push('/dashboard')}
-                className="w-full mt-3 text-[12px] font-medium bg-transparent border-none cursor-pointer"
-                style={{ color: '#6B7280' }}
+                style={{ display: 'block', width: '100%', marginTop: 12, fontSize: 12, fontFamily: 'var(--font-sans)', color: '#6B7280', background: 'transparent', border: 'none', cursor: 'pointer' }}
               >
                 I&apos;ll do this later
               </button>
             </>
           )}
 
-          {/* ─── STEP 2: Integrations ─────────────────────────────────────── */}
+          {/* STEP 2: Integrations */}
           {step === 2 && (
             <>
-              <h1 className="text-[24px] font-bold tracking-tight mb-2" style={{ color: '#1E2D3D' }}>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, fontWeight: 700, color: '#1E2D3D', marginBottom: 8 }}>
                 Connect your tools
               </h1>
-              <p className="text-[14px] mb-8" style={{ color: '#6B7280' }}>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: '#6B7280', marginBottom: 32 }}>
                 Connect your email list and ad account to unlock your full dashboard. You can always do this later in Settings.
               </p>
 
               {/* MailerLite */}
-              <div className="rounded-xl p-5 mb-4" style={{ border: '1px solid #EEEBE6', background: mlSaved ? 'rgba(110,191,139,0.04)' : 'white' }}>
+              <div style={{
+                border: mlSaved ? '1px solid rgba(110,191,139,0.3)' : '1px solid #E8E1D3',
+                borderRadius: 0,
+                background: mlSaved ? 'rgba(110,191,139,0.04)' : 'white',
+                padding: 20,
+                marginBottom: 16,
+              }}>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg"
-                    style={{ background: 'rgba(52,211,153,0.1)' }}>📧</div>
-                  <div className="flex-1">
-                    <div className="text-[14px] font-bold" style={{ color: '#1E2D3D' }}>MailerLite</div>
-                    <div className="text-[11.5px]" style={{ color: '#6B7280' }}>Email list size, open rates, automations</div>
+                  <div style={{
+                    width: 36, height: 36,
+                    border: '1px solid #E8E1D3',
+                    borderRadius: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: 16, color: '#6EBF8B', fontWeight: 600 }}>M</span>
                   </div>
-                  {mlSaved && (
-                    <span className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full"
-                      style={{ background: 'rgba(110,191,139,0.12)', color: '#6EBF8B' }}>
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#6EBF8B' }} />
-                      Connected
-                    </span>
-                  )}
+                  <div className="flex-1">
+                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 700, color: '#1E2D3D' }}>MailerLite</div>
+                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11.5, color: '#6B7280' }}>Email list size, open rates, automations</div>
+                  </div>
+                  {mlSaved && <BoutiqueStatusChip tone="green" label="Connected" />}
                 </div>
                 {!mlSaved && (
                   <>
-                    <input
+                    <BoutiqueInput
                       type="password"
+                      mono
                       value={mailerLiteKey}
                       onChange={e => setMailerLiteKey(e.target.value)}
                       placeholder="Paste your MailerLite API key…"
-                      className="w-full px-3 py-2.5 rounded-lg text-[13px] font-mono outline-none mb-2"
-                      style={{ border: '1px solid #EEEBE6', color: '#1E2D3D', background: '#FAFAF9' }}
+                      style={{ marginBottom: 8 }}
                     />
-                    {mlError && <p className="text-[12px] mb-2" style={{ color: '#F97B6B' }}>{mlError}</p>}
-                    <p className="text-[11px] mb-3" style={{ color: '#9CA3AF' }}>
+                    {mlError && <p style={{ fontSize: 12, color: '#F97B6B', marginBottom: 8, fontFamily: 'var(--font-sans)' }}>{mlError}</p>}
+                    <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
                       MailerLite → Integrations → API → Create token
                     </p>
-                    <button
+                    <BoutiqueButton
+                      variant="amber"
                       onClick={handleSaveMailerLite}
                       disabled={!mailerLiteKey.trim() || mlSaving}
-                      className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-all disabled:opacity-40"
-                      style={{ background: '#E9A020', color: '#0d1f35', border: 'none', cursor: 'pointer' }}
                     >
                       {mlSaving ? 'Saving…' : 'Save Key'}
-                    </button>
+                    </BoutiqueButton>
                   </>
                 )}
               </div>
 
               {/* Meta Ads */}
-              <div className="rounded-xl p-5 mb-8" style={{ border: '1px solid #EEEBE6', background: 'white' }}>
+              <div style={{
+                border: '1px solid #E8E1D3',
+                borderRadius: 0,
+                background: 'white',
+                padding: 20,
+                marginBottom: 32,
+              }}>
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg"
-                    style={{ background: 'rgba(96,165,250,0.1)' }}>📣</div>
-                  <div className="flex-1">
-                    <div className="text-[14px] font-bold" style={{ color: '#1E2D3D' }}>Meta Ads</div>
-                    <div className="text-[11.5px]" style={{ color: '#6B7280' }}>CTR, CPC, spend — synced daily automatically</div>
+                  <div style={{
+                    width: 36, height: 36,
+                    border: '1px solid #E8E1D3',
+                    borderRadius: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: 16, color: '#60A5FA', fontWeight: 600 }}>f</span>
                   </div>
-                  <a
-                    href="/api/meta/connect"
-                    className="px-4 py-2 rounded-lg text-[12px] font-semibold no-underline transition-all hover:opacity-90"
-                    style={{ background: '#60A5FA', color: 'white' }}
-                  >
-                    Connect →
+                  <div className="flex-1">
+                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 700, color: '#1E2D3D' }}>Meta Ads</div>
+                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11.5, color: '#6B7280' }}>CTR, CPC, spend — synced daily automatically</div>
+                  </div>
+                  <a href="/api/meta/connect">
+                    <BoutiqueButton variant="primary">Connect →</BoutiqueButton>
                   </a>
                 </div>
               </div>
 
-              <button
+              <BoutiqueButton
+                variant="amber"
                 onClick={() => router.push('/dashboard')}
-                className="w-full py-3.5 rounded-xl text-[15px] font-bold transition-all"
-                style={{ background: '#E9A020', color: '#0d1f35', border: 'none', cursor: 'pointer' }}
+                style={{ width: '100%', justifyContent: 'center', padding: '12px 16px' }}
               >
                 Go to my dashboard →
-              </button>
+              </BoutiqueButton>
 
               <button
                 onClick={() => setStep(1)}
-                className="w-full mt-3 text-[12px] font-medium bg-transparent border-none cursor-pointer"
-                style={{ color: '#6B7280' }}
+                style={{ display: 'block', width: '100%', marginTop: 12, fontSize: 12, fontFamily: 'var(--font-sans)', color: '#6B7280', background: 'transparent', border: 'none', cursor: 'pointer' }}
               >
                 ← Back
               </button>

@@ -88,13 +88,13 @@ export function Sidebar() {
     return (
       <Link
         href={href}
-        className="flex items-center gap-2.5 w-full rounded-xl no-underline mb-0.5 transition-all duration-150"
-        style={{ padding: '7px 8px', background: active ? 'var(--ink)' : 'transparent' }}
+        className="flex items-center gap-2.5 w-full no-underline mb-0.5 transition-all duration-150"
+        style={{ borderRadius: 2, padding: '7px 8px', background: active ? 'var(--ink)' : 'transparent' }}
         onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--paper2)' }}
         onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
       >
         <div style={{
-          width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+          width: 36, height: 36, borderRadius: 2, flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: active ? 'var(--amber-boutique)' : 'var(--paper2)',
         }}>
@@ -120,7 +120,7 @@ export function Sidebar() {
           <span style={{
             fontFamily: 'var(--font-mono, ui-monospace, monospace)',
             fontSize: 10, fontWeight: 600, flexShrink: 0,
-            padding: '2px 6px', borderRadius: 99,
+            padding: '2px 6px', borderRadius: 2,
             background: badgeType === 'amber' ? 'var(--amber-soft)' : 'var(--amber-boutique)',
             color: badgeType === 'amber' ? 'var(--amber-text)' : '#fff',
           }}>
@@ -171,7 +171,7 @@ export function Sidebar() {
             key={m}
             onClick={() => toggleMode(m)}
             style={{
-              flex: 1, padding: '5px 0', borderRadius: 8,
+              flex: 1, padding: '5px 0', borderRadius: 2,
               fontSize: 11.5, fontWeight: 500,
               fontFamily: "'Plus Jakarta Sans', sans-serif",
               border: mode === m ? 'none' : '1px solid var(--line)',
@@ -214,7 +214,7 @@ export function Sidebar() {
               key={size}
               onClick={() => setFontSize(size)}
               style={{
-                flex: 1, padding: '4px 0', borderRadius: 6,
+                flex: 1, padding: '4px 0', borderRadius: 2,
                 fontFamily: 'var(--font-serif, Georgia, serif)',
                 fontSize: [13, 15, 17][i],
                 fontWeight: 500,
@@ -245,7 +245,7 @@ export function Sidebar() {
           onClick={() => signOut({ callbackUrl: '/login' })}
           style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 6,
-            padding: '6px 8px', borderRadius: 8, fontSize: 11.5,
+            padding: '6px 8px', borderRadius: 2, fontSize: 11.5,
             fontFamily: "'Plus Jakarta Sans', sans-serif",
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--ink4)', transition: 'background 0.15s',
