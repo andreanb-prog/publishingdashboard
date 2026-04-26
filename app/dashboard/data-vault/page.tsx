@@ -129,7 +129,7 @@ export default function DataVaultPage() {
                 {formatMonth(active.month)}
               </div>
               <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
-                Analyzed {formatDate(active.createdAt)} at {formatTime(active.createdAt)}
+                Analyzed {formatDate((active.data as any).generatedAt ?? active.createdAt)} at {formatTime((active.data as any).generatedAt ?? active.createdAt)}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                 <div style={{ background: '#FFF8F0', border: '1px solid #EEEBE6', padding: '8px 12px' }}>
@@ -179,7 +179,7 @@ export default function DataVaultPage() {
                 return (
                   <tr key={rec.id} style={{ borderTop: '1px solid #EEEBE6' }}>
                     <td style={{ padding: '12px 16px', fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12, color: '#6B7280' }}>
-                      {formatDate(rec.createdAt)}
+                      {formatDate((rec.data as any).generatedAt ?? rec.createdAt)}
                     </td>
                     <td style={{ padding: '12px 16px', fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: 14, color: '#1E2D3D' }}>
                       {formatMonth(rec.month)}
