@@ -94,7 +94,7 @@ function PricingContent() {
 
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="text-[16px] font-medium mb-3" style={{ color: '#4A7290', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 }}>
+          <div className="text-[16px] font-medium mb-3" style={{ color: '#4A7290', fontFamily: "var(--font-sans)", fontWeight: 700 }}>
             Author<span style={{ color: '#E9A020' }}>Dash</span>
           </div>
           <h1 className="text-[32px] font-bold tracking-tight mb-3" style={{ color: '#1E2D3D' }}>

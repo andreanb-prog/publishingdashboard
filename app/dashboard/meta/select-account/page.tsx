@@ -21,7 +21,7 @@ export default function SelectMetaAccountPage() {
   }, [])
 
   return (
-    <div style={{ minHeight: '100vh', background: '#FFF8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Plus Jakarta Sans', sans-serif", padding: '24px' }}>
+    <div style={{ minHeight: '100vh', background: '#FFF8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "var(--font-sans)", padding: '24px' }}>
       <div style={{ background: '#fff', borderRadius: '16px', border: '0.5px solid #E8E4DC', padding: '40px', maxWidth: '480px', width: '100%' }}>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>

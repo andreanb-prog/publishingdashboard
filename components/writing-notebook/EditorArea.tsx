@@ -346,7 +346,7 @@ function ProseTextarea({
         border: 'none',
         background: 'transparent',
         minHeight: 300,
-        fontFamily: 'Plus Jakarta Sans, sans-serif',
+        fontFamily: 'var(--font-sans)',
       }}
     />
   )
@@ -502,7 +502,7 @@ function ManuscriptView({
                     fontSize: 20,
                     fontWeight: 600,
                     color: '#1E2D3D',
-                    fontFamily: 'Plus Jakarta Sans, sans-serif',
+                    fontFamily: 'var(--font-sans)',
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
@@ -512,7 +512,7 @@ function ManuscriptView({
                   Chapter {i + 1}{title ? ` — ${title}` : ' — Untitled'}
                 </button>
                 {content.trim() ? (
-                  <p style={{ fontSize: 15, lineHeight: '1.8', color: '#1E2D3D', whiteSpace: 'pre-wrap', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                  <p style={{ fontSize: 15, lineHeight: '1.8', color: '#1E2D3D', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-sans)' }}>
                     {content}
                   </p>
                 ) : (
@@ -816,7 +816,7 @@ export function EditorArea({
                 fontWeight: 500,
                 color: '#1E2D3D',
                 border: 'none',
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                fontFamily: 'var(--font-sans)',
               }}
             />
             {chapterLastEditedTs && (
@@ -855,7 +855,7 @@ export function EditorArea({
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2
-                  style={{ fontSize: 24, fontWeight: 500, color: '#1E2D3D', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                  style={{ fontSize: 24, fontWeight: 500, color: '#1E2D3D', fontFamily: 'var(--font-sans)' }}
                 >
                   {meta.title}
                 </h2>

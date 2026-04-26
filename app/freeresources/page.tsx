@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function FreeResourcesPage() {
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif", background: '#FFF8F0', minHeight: '100vh', color: '#1E2D3D' }}>
+    <div style={{ fontFamily: "var(--font-sans)", background: '#FFF8F0', minHeight: '100vh', color: '#1E2D3D' }}>
 
       {/* Header */}
       <div style={{ background: '#1E2D3D', padding: '20px 24px 22px' }}>

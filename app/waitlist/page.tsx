@@ -134,7 +134,7 @@ export default function WaitlistPage() {
   const [submitted, setSubmitted] = useState(false)
 
   return (
-    <div className="min-h-screen" style={{ background: '#ffffff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="min-h-screen" style={{ background: '#ffffff', fontFamily: "var(--font-sans)" }}>
 
       {/* Top band */}
       <div style={{

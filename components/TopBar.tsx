@@ -202,7 +202,7 @@ export function TopBar({ user }: TopBarProps) {
 
         {/* Left zone: greeting */}
         <div className="flex-1">
-          <div className="text-[16px] font-medium leading-none" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <div className="text-[16px] font-medium leading-none" style={{ color: '#1E2D3D', fontFamily: "var(--font-sans)" }}>
             {greeting}{greeting && (user.preferredGreetingName ?? user.name) ? `, ${user.preferredGreetingName ?? user.name!.split(' ')[0]}` : ''}
           </div>
           <div className="text-[11px] mt-1" style={{ color: '#6B7280' }}>
@@ -214,7 +214,7 @@ export function TopBar({ user }: TopBarProps) {
         {pathname === '/dashboard' && (
           <div className="flex items-center mx-4 flex-shrink-0">
             <div>
-              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(30,45,61,0.5)', fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: 3 }}>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(30,45,61,0.5)', fontFamily: "var(--font-sans)", marginBottom: 3 }}>
                 Date Range
               </div>
               <div className="flex items-center gap-1.5">
@@ -229,7 +229,7 @@ export function TopBar({ user }: TopBarProps) {
                     border: '0.5px solid #1E2D3D',
                     background: 'white',
                     color: '#1E2D3D',
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     outline: 'none',
                     cursor: 'pointer',
                   }}
@@ -246,7 +246,7 @@ export function TopBar({ user }: TopBarProps) {
                     border: '0.5px solid #1E2D3D',
                     background: 'white',
                     color: '#1E2D3D',
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     outline: 'none',
                     cursor: 'pointer',
                   }}
@@ -261,7 +261,7 @@ export function TopBar({ user }: TopBarProps) {
                     color: 'white',
                     border: 'none',
                     cursor: 'pointer',
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     fontWeight: 600,
                     whiteSpace: 'nowrap',
                   }}
@@ -391,7 +391,7 @@ export function TopBar({ user }: TopBarProps) {
             transform: 'translateX(-50%)',
             background: '#6EBF8B',
             color: 'white',
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontFamily: "var(--font-sans)",
             fontSize: 13,
             fontWeight: 600,
           }}

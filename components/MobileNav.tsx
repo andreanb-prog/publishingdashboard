@@ -80,7 +80,7 @@ export function MobileNav() {
         >
           <List size={24} />
         </button>
-        <div className="text-[15px]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <div className="text-[15px]" style={{ fontFamily: "var(--font-sans)" }}>
           <span style={{ color: '#4A7290', fontWeight: 700 }}>Author</span>
           <span style={{ color: '#E9A020', fontWeight: 700 }}>Dash</span>
         </div>
@@ -110,7 +110,7 @@ export function MobileNav() {
             {/* Drawer header */}
             <div className="flex items-center justify-between px-5 py-4"
               style={{ borderBottom: '1px solid #EEEBE6' }}>
-              <div className="text-[16px]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <div className="text-[16px]" style={{ fontFamily: "var(--font-sans)" }}>
                 <span style={{ color: '#4A7290', fontWeight: 700 }}>Author</span>
                 <span style={{ color: '#E9A020', fontWeight: 700 }}>Dash</span>
               </div>

@@ -207,7 +207,7 @@ export function ConnectionStatus() {
       <button
         onClick={() => { setOpen(o => { if (!o) refreshHealth(); return !o }) }}
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all hover:bg-stone-50"
-        style={{ background: 'white', border: '0.5px solid #EEEBE6', cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        style={{ background: 'white', border: '0.5px solid #EEEBE6', cursor: 'pointer', fontFamily: "var(--font-sans)" }}
       >
         <span className="rounded-full flex-shrink-0" style={{ width: 8, height: 8, background: dotColor }} />
         <span className="text-[12px]" style={{ color: '#6B7280' }}>
@@ -221,7 +221,7 @@ export function ConnectionStatus() {
           style={{ width: 290, background: 'white', border: '0.5px solid #EEEBE6', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}
         >
           <div className="px-4 pt-3.5 pb-1">
-            <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <div className="text-[13px] font-semibold" style={{ color: '#1E2D3D', fontFamily: "var(--font-sans)" }}>
               Connections
             </div>
           </div>
@@ -290,7 +290,7 @@ export function ConnectionStatus() {
                     className="rounded-full flex-shrink-0"
                     style={{ width: 8, height: 8, background: DOT_COLORS[item.status], marginTop: 3 }}
                   />
-                  <div className="flex-1" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  <div className="flex-1" style={{ fontFamily: "var(--font-sans)" }}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[13px] font-medium" style={{ color: '#1E2D3D' }}>{label}</span>
                       {syncBtn}

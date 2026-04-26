@@ -95,7 +95,7 @@ export default function WelcomePage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="text-[18px] mb-1" style={{ color: '#4A7290', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 }}>
+          <div className="text-[18px] mb-1" style={{ color: '#4A7290', fontFamily: "var(--font-sans)", fontWeight: 700 }}>
             Author<span style={{ color: '#E9A020' }}>Dash</span>
           </div>
         </div>

@@ -70,7 +70,7 @@ export function FirstRunBanner({ hasBooks, hasKdpData, hasMailerLite, onUploadCl
       style={{
         background: '#FFF8F0',
         border: '0.5px solid #E9D8C0',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontFamily: "var(--font-sans)",
       }}
     >
       {/* Amber top accent */}

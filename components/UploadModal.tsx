@@ -362,7 +362,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
       {open && (
         <div
           className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', fontFamily: "var(--font-sans)" }}
           onClick={e => { if (e.target === e.currentTarget && !uploading) onClose() }}
         >
           <div

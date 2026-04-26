@@ -120,7 +120,7 @@ function Toast({ msg, ok, onDone }: { msg: string; ok: boolean; onDone: () => vo
         transform: 'translateX(-50%)',
         background: ok ? '#6EBF8B' : '#F97B6B',
         color: '#fff',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontFamily: "var(--font-sans)",
       }}
     >
       {msg}
@@ -225,7 +225,7 @@ function LogPerformanceForm({
     borderRadius: 6,
     padding: '4px 8px',
     fontSize: 12,
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontFamily: "var(--font-sans)",
     outline: 'none',
     background: '#FAFAFA',
   }
@@ -334,7 +334,7 @@ function CreativeCard({
         background: '#FFFFFF',
         border: '0.5px solid #E5DDD5',
         opacity: isCut ? 0.5 : 1,
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontFamily: "var(--font-sans)",
         cursor: 'pointer',
       }}
       onClick={onEdit}
@@ -602,11 +602,11 @@ function NewCreativeModal({
 
   const labelStyle: React.CSSProperties = {
     display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#1E2D3D',
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontFamily: "var(--font-sans)",
   }
   const inputStyle: React.CSSProperties = {
     width: '100%', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 12px',
-    fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none',
+    fontSize: 13, fontFamily: "var(--font-sans)", outline: 'none',
     background: '#FAFAFA', color: '#1E2D3D', boxSizing: 'border-box',
   }
   const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer' }
@@ -619,7 +619,7 @@ function NewCreativeModal({
     >
       <div
         className="w-full max-w-lg rounded-2xl overflow-y-auto"
-        style={{ background: '#FFFFFF', maxHeight: '90vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        style={{ background: '#FFFFFF', maxHeight: '90vh', fontFamily: "var(--font-sans)" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5"
@@ -877,11 +877,11 @@ function EditCreativeModal({
 
   const labelStyle: React.CSSProperties = {
     display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#1E2D3D',
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontFamily: "var(--font-sans)",
   }
   const inputStyle: React.CSSProperties = {
     width: '100%', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 12px',
-    fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none',
+    fontSize: 13, fontFamily: "var(--font-sans)", outline: 'none',
     background: '#FAFAFA', color: '#1E2D3D', boxSizing: 'border-box',
   }
   const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer' }
@@ -894,7 +894,7 @@ function EditCreativeModal({
     >
       <div
         className="w-full max-w-lg rounded-2xl overflow-y-auto"
-        style={{ background: '#FFFFFF', maxHeight: '90vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        style={{ background: '#FFFFFF', maxHeight: '90vh', fontFamily: "var(--font-sans)" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5"
@@ -1120,7 +1120,7 @@ function KanbanColumn({
                 border: '2px dashed #E5E7EB',
                 color: '#9CA3AF',
                 fontSize: 12,
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontFamily: "var(--font-sans)",
               }}
             >
               Nothing here yet
@@ -1283,7 +1283,7 @@ export function CreativeClient({
   const selectedBookObj = books.find(b => b.id === selectedBook)
 
   return (
-    <div style={{ background: '#FFF8F0', minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ background: '#FFF8F0', minHeight: '100vh', fontFamily: "var(--font-sans)" }}>
       {/* Header */}
       <div
         className="flex items-center justify-between px-6 py-5"

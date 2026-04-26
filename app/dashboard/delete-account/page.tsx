@@ -48,7 +48,7 @@ export default function DeleteAccountPage() {
 
         <Link href="/dashboard/settings"
           className="inline-flex items-center gap-1.5 text-[13px] font-medium no-underline hover:underline mb-10"
-          style={{ color: '#6B7280', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          style={{ color: '#6B7280', fontFamily: "var(--font-sans)" }}>
           ← Back to Settings
         </Link>
 
@@ -73,7 +73,7 @@ export default function DeleteAccountPage() {
                     border: `1.5px solid ${reason === r ? '#E9A020' : '#EEEBE6'}`,
                     color: reason === r ? '#1E2D3D' : '#374151',
                     cursor: 'pointer',
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontFamily: "var(--font-sans)",
                   }}
                 >
                   <span className="inline-flex items-center gap-3">
@@ -104,7 +104,7 @@ export default function DeleteAccountPage() {
                   border: '1.5px solid #EEEBE6',
                   color: '#1E2D3D',
                   background: 'white',
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontFamily: "var(--font-sans)",
                 }}
               />
             </div>

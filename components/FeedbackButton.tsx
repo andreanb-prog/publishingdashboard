@@ -192,7 +192,7 @@ export function FeedbackButton() {
             opacity: 0,
             pointerEvents: 'none',
             transition: 'opacity 0.15s',
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontFamily: "var(--font-sans)",
           }}>
             Something feel off?
           </span>

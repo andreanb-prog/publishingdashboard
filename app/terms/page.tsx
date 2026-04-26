@@ -7,7 +7,7 @@ export default function TermsPage() {
       <div className="max-w-2xl mx-auto">
 
         <Link href="/dashboard" className="text-[14px] font-medium no-underline hover:underline mb-8 inline-flex items-center gap-1"
-          style={{ color: '#4A7290', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 }}>
+          style={{ color: '#4A7290', fontFamily: "var(--font-sans)", fontWeight: 700 }}>
           Author<span style={{ color: '#E9A020' }}>Dash</span>
         </Link>
 

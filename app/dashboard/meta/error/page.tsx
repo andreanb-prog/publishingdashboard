@@ -24,25 +24,25 @@ function MetaErrorContent() {
           </svg>
         </div>
 
-        <h1 className="text-[22px] font-semibold mb-2" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <h1 className="text-[22px] font-semibold mb-2" style={{ color: '#1E2D3D', fontFamily: "var(--font-sans)" }}>
           Couldn't connect Meta Ads
         </h1>
 
-        <p className="text-[13px] mb-6 leading-relaxed" style={{ color: '#6B7280', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <p className="text-[13px] mb-6 leading-relaxed" style={{ color: '#6B7280', fontFamily: "var(--font-sans)" }}>
           {reason}
         </p>
 
         <button
           onClick={tryAgain}
           className="px-6 py-2.5 rounded-lg text-[13px] font-semibold transition-all hover:opacity-90 border-none cursor-pointer"
-          style={{ background: '#E9A020', color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          style={{ background: '#E9A020', color: '#1E2D3D', fontFamily: "var(--font-sans)" }}>
           Try again →
         </button>
 
         <div className="mt-4">
           <a href="/dashboard/settings"
             className="text-[12px] no-underline hover:underline"
-            style={{ color: '#9CA3AF', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            style={{ color: '#9CA3AF', fontFamily: "var(--font-sans)" }}>
             Back to Settings
           </a>
         </div>

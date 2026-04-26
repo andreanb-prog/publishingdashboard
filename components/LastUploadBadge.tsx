@@ -49,7 +49,7 @@ export function LastUploadBadge({
 
   const muted: React.CSSProperties = {
     color: 'rgba(30, 45, 61, 0.55)',
-    fontFamily: 'Plus Jakarta Sans, sans-serif',
+    fontFamily: 'var(--font-sans)',
     fontSize: 11.5,
     display: 'inline-flex',
     alignItems: 'center',

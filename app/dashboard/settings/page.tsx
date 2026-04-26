@@ -1702,7 +1702,7 @@ export default function SettingsPage() {
         flexDirection: 'column',
         height: '100%',
         overflow: 'hidden',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontFamily: "var(--font-sans)",
       }}
     >
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}

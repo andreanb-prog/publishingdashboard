@@ -116,7 +116,7 @@ export function PrioritiesPanel({ dashboard }: { dashboard: DashboardState }) {
                       </button>
                       <div style={{ overflow: 'hidden', transition: 'max-height 0.3s ease-out, opacity 0.3s ease-out', maxHeight: isOpen && !isDone ? '360px' : '0px', opacity: isOpen && !isDone ? 1 : 0 }}>
                         <div style={{ padding: '0 20px 18px 58px' }}>
-                          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, lineHeight: 1.6, color: 'var(--ink2, #2a2520)', marginBottom: 14 }}>
+                          <div style={{ fontFamily: "var(--font-sans)", fontSize: 14, lineHeight: 1.6, color: 'var(--ink2, #2a2520)', marginBottom: 14 }}>
                             {item.body}
                             {item.action && <span style={{ marginLeft: 4 }}><strong style={{ color: 'var(--ink, #14110f)' }}>Next step:</strong> {item.action}</span>}
                           </div>

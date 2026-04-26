@@ -154,14 +154,14 @@ function DateRangePicker({
             onSelect={setPendingRange}
             numberOfMonths={2}
             className="not-prose"
-            style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 13 }}
+            style={{ fontFamily: 'var(--font-sans)', fontSize: 13 }}
           />
           <div className="flex items-center justify-end gap-4 pt-3 mt-1"
             style={{ borderTop: '1px solid #EEEBE6' }}>
             <button
               onClick={() => setCalOpen(false)}
               style={{ background: 'none', border: 'none', cursor: 'pointer',
-                       color: '#6B7280', fontSize: 12.5, fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                       color: '#6B7280', fontSize: 12.5, fontFamily: 'var(--font-sans)' }}
             >
               Cancel
             </button>

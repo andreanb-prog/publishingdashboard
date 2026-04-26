@@ -116,7 +116,7 @@ function Toast({ msg, ok, onDone }: { msg: string; ok: boolean; onDone: () => vo
         transform: 'translateX(-50%)',
         background: ok ? '#E9A020' : '#F97B6B',
         color: '#fff',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontFamily: "var(--font-sans)",
       }}
     >
       {msg}
@@ -189,7 +189,7 @@ function InlineEditableName({
           background: '#FFFDF7',
           minWidth: 80,
           width: '100%',
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontFamily: "var(--font-sans)",
         }}
       />
     )
@@ -242,7 +242,7 @@ function AddAdForm({
 
   const sel: React.CSSProperties = {
     border: '1px solid #E5E7EB', borderRadius: 6, padding: '4px 8px',
-    fontSize: 11, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none',
+    fontSize: 11, fontFamily: "var(--font-sans)", outline: 'none',
     background: '#FAFAFA', color: '#1E2D3D', cursor: 'pointer',
   }
 
@@ -295,7 +295,7 @@ function AddAdSetForm({
 
   const inp: React.CSSProperties = {
     border: '1px solid #E5E7EB', borderRadius: 8, padding: '6px 10px',
-    fontSize: 12, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none',
+    fontSize: 12, fontFamily: "var(--font-sans)", outline: 'none',
     background: '#FAFAFA', color: '#1E2D3D', width: '100%',
   }
 
@@ -379,7 +379,7 @@ function LinkCreativePicker({
             <button key={c.id}
               onClick={async () => { setLinking(c.id); await onLink(c.id); onClose() }}
               className="w-full text-left px-3 py-2.5 flex items-center gap-2 transition-colors hover:bg-gray-50"
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: "var(--font-sans)" }}>
               <div className="flex-1 min-w-0">
                 <div className="text-[12px] font-semibold truncate" style={{ color: '#1E2D3D' }}>{c.name}</div>
                 <div className="text-[10px]" style={{ color: '#9CA3AF' }}>
@@ -545,12 +545,12 @@ function GenerateModal({
     border: active ? '2px solid #E9A020' : '1.5px solid #E5E7EB',
     background: active ? '#FFF8EC' : '#FFFFFF',
     borderRadius: 12, padding: '12px 16px', cursor: 'pointer', textAlign: 'left',
-    width: '100%', fontFamily: "'Plus Jakarta Sans', sans-serif",
+    width: '100%', fontFamily: "var(--font-sans)",
   })
 
   const selStyle: React.CSSProperties = {
     border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 12px',
-    fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif", outline: 'none',
+    fontSize: 13, fontFamily: "var(--font-sans)", outline: 'none',
     background: '#FAFAFA', color: '#1E2D3D', cursor: 'pointer', width: '100%',
   }
 
@@ -559,7 +559,7 @@ function GenerateModal({
       style={{ background: 'rgba(30,45,61,0.4)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="w-full max-w-md rounded-2xl overflow-hidden"
-        style={{ background: '#FFFFFF', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        style={{ background: '#FFFFFF', fontFamily: "var(--font-sans)" }}>
         <div className="flex items-center justify-between px-6 py-5"
           style={{ borderBottom: '1px solid #EEEBE6' }}>
           <h2 className="font-bold text-[18px] m-0" style={{ color: '#1E2D3D' }}>
@@ -659,7 +659,7 @@ function ConfirmDialog({
       style={{ background: 'rgba(30,45,61,0.4)' }}
       onClick={e => { if (e.target === e.currentTarget) onCancel() }}>
       <div className="w-full max-w-sm rounded-2xl p-6 flex flex-col gap-4"
-        style={{ background: '#FFFFFF', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        style={{ background: '#FFFFFF', fontFamily: "var(--font-sans)" }}>
         <p className="text-[14px] m-0 leading-relaxed" style={{ color: '#1E2D3D' }}>{message}</p>
         <div className="flex gap-2 justify-end">
           <button onClick={onCancel}
@@ -705,13 +705,13 @@ function ThreeDotMenu({
             <button
               onClick={e => { e.stopPropagation(); setOpen(false); onRename() }}
               className="w-full text-left px-3 py-2.5 text-[12px] font-semibold flex items-center gap-2 hover:bg-gray-50"
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#1E2D3D', fontFamily: "var(--font-sans)" }}>
               <Pencil size={11} /> Rename
             </button>
             <button
               onClick={e => { e.stopPropagation(); setOpen(false); onDelete() }}
               className="w-full text-left px-3 py-2.5 text-[12px] font-semibold flex items-center gap-2"
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#F97B6B', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#F97B6B', fontFamily: "var(--font-sans)" }}>
               <Trash2 size={11} /> Delete
             </button>
           </div>
@@ -1015,7 +1015,7 @@ export function CampaignClient({
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ background: '#FFF8F0', minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ background: '#FFF8F0', minHeight: '100vh', fontFamily: "var(--font-sans)" }}>
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-5"
         style={{ background: '#FFFFFF', borderBottom: '1px solid #EEEBE6' }}>

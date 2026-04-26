@@ -64,7 +64,7 @@ export function OnboardingBanner({ bookCount, hasKdpData, hasMailerLiteKey }: Pr
       style={{
         background: '#FFF8F0',
         border: '0.5px solid #E8DDD0',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontFamily: "var(--font-sans)",
         opacity: fading ? 0 : 1,
         transition: 'opacity 0.3s ease',
       }}

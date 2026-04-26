@@ -104,14 +104,14 @@ export function Sidebar() {
           <div style={{
             fontSize: 14, fontWeight: 500, lineHeight: 1.2,
             color: active ? 'var(--paper)' : 'var(--ink)',
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontFamily: "var(--font-sans)",
           }}>
             {label}
           </div>
           <div style={{
             fontSize: 11, lineHeight: 1.2, marginTop: 1,
             color: active ? 'rgba(247,241,229,0.65)' : 'var(--ink4)',
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontFamily: "var(--font-sans)",
           }}>
             {desc}
           </div>
@@ -173,7 +173,7 @@ export function Sidebar() {
             style={{
               flex: 1, padding: '5px 0', borderRadius: 8,
               fontSize: 11.5, fontWeight: 500,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontFamily: "var(--font-sans)",
               border: mode === m ? 'none' : '1px solid var(--line)',
               background: mode === m ? 'var(--ink)' : 'var(--paper)',
               color: mode === m ? 'var(--paper)' : 'var(--ink3)',
@@ -231,7 +231,7 @@ export function Sidebar() {
 
         {/* Contact */}
         <div style={{ marginBottom: 8 }}>
-          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11.5, color: 'var(--ink3)', marginBottom: 1 }}>
+          <div style={{ fontFamily: "var(--font-sans)", fontSize: 11.5, color: 'var(--ink3)', marginBottom: 1 }}>
             Need a hand? Call{' '}
             <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontWeight: 700, color: 'var(--ink)' }}>Andrea</span>
           </div>
@@ -246,7 +246,7 @@ export function Sidebar() {
           style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 6,
             padding: '6px 8px', borderRadius: 8, fontSize: 11.5,
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontFamily: "var(--font-sans)",
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--ink4)', transition: 'background 0.15s',
           }}

@@ -29,7 +29,7 @@ export function CreativeHubTabs({
   const [activeTab, setActiveTab] = useState<TabKey>('creatives')
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ fontFamily: "var(--font-sans)" }}>
       {/* Tab bar */}
       <div
         className="flex items-end gap-0 px-6"

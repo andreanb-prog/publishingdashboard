@@ -213,7 +213,7 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
             <div key={stat.label} style={{ textAlign: 'center' }}>
               <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink4, #8a8076)', marginBottom: 3 }}>{stat.label}</div>
               {stat.value != null ? (
-                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 600, color: 'var(--ink, #14110f)' }}>{stat.value}</div>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: 20, fontWeight: 600, color: 'var(--ink, #14110f)' }}>{stat.value}</div>
               ) : (
                 <div>
                   <div style={{ fontSize: 13, color: 'var(--ink4, #8a8076)', marginBottom: 2 }}>No data</div>

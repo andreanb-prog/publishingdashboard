@@ -231,7 +231,7 @@ function InlineAIPanel({
               <polyline points="2,3.5 5,6.5 8,3.5" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          <span className="text-[11px] font-bold" style={{ color: '#E9A020', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <span className="text-[11px] font-bold" style={{ color: '#E9A020', fontFamily: "var(--font-sans)" }}>
             {title}
           </span>
         </div>
@@ -257,7 +257,7 @@ function InlineAIPanel({
 
       {/* Content — hidden when collapsed */}
       {!collapsed && (
-        <div className="px-3 py-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <div className="px-3 py-3" style={{ fontFamily: "var(--font-sans)" }}>
           {loading && !content && (
             <div className="flex items-center gap-2 text-[12px]" style={{ color: '#9CA3AF' }}>
               <span className="inline-block w-3 h-3 border-2 border-amber-300 border-t-amber-500 rounded-full animate-spin" />
@@ -738,7 +738,7 @@ function InlineTextField({
   }
 
   const fieldStyle: React.CSSProperties = {
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontFamily: "var(--font-sans)",
     ...style,
   }
 
@@ -798,7 +798,7 @@ function InlineDateField({
         }}
         onKeyDown={e => { if (e.key === 'Escape') setEditing(false) }}
         className="text-[11px] bg-transparent outline-none border-b"
-        style={{ borderColor: '#E9A020', color: '#6B7280', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        style={{ borderColor: '#E9A020', color: '#6B7280', fontFamily: "var(--font-sans)" }}
       />
     )
   }
@@ -831,7 +831,7 @@ function InlinePhaseSelect({
         onBlur={async e => { await onSave(e.target.value); setEditing(false) }}
         onChange={async e => { await onSave(e.target.value); setEditing(false) }}
         className="text-[10px] font-bold px-2 py-0.5 rounded-full outline-none cursor-pointer"
-        style={{ background: pc.bg, color: pc.color, border: 'none', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        style={{ background: pc.bg, color: pc.color, border: 'none', fontFamily: "var(--font-sans)" }}
       >
         {PHASE_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
       </select>
@@ -945,14 +945,14 @@ function LaunchesPanel({ initialLaunches, activeLaunch, onActiveLaunchTitleChang
 
   const inp: React.CSSProperties = {
     border: '1px solid #E5E7EB', borderRadius: 8, padding: '6px 10px',
-    fontSize: 12, fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontSize: 12, fontFamily: "var(--font-sans)",
     outline: 'none', background: '#FAFAFA', color: '#1E2D3D', width: '100%',
   }
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 px-5 py-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold text-[14px] m-0" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <h3 className="font-bold text-[14px] m-0" style={{ color: '#1E2D3D', fontFamily: "var(--font-sans)" }}>
           My Launches
         </h3>
         {!showAdd && (
@@ -1089,7 +1089,7 @@ function SetupCard({ onSetup }: { onSetup: (launchDate: string, bookTitle: strin
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-md">
         <div className="mb-6 text-center">
           <div className="text-3xl mb-3">🚀</div>
-          <h1 className="text-2xl font-bold mb-1" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <h1 className="text-2xl font-bold mb-1" style={{ color: '#1E2D3D', fontFamily: "var(--font-sans)" }}>
             When does your book launch?
           </h1>
           <p className="text-sm text-gray-500">

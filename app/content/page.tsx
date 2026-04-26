@@ -1409,7 +1409,7 @@ export default function ContentPlannerPage() {
           onClick={e => { if (e.target === e.currentTarget) setBrandGuideModal(false) }}
         >
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
-            <h2 className="text-[20px] font-bold mb-1" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <h2 className="text-[20px] font-bold mb-1" style={{ color: '#1E2D3D', fontFamily: "var(--font-sans)" }}>
               Let&apos;s skip the small talk.
             </h2>
             <p className="text-[13px] mb-5" style={{ color: '#6B7280' }}>
@@ -1543,7 +1543,7 @@ export default function ContentPlannerPage() {
           onClick={e => { if (e.target === e.currentTarget) setTailwindModal(false) }}
         >
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-[18px] font-bold mb-1" style={{ color: '#1E2D3D', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Connect Tailwind</h2>
+            <h2 className="text-[18px] font-bold mb-1" style={{ color: '#1E2D3D', fontFamily: "var(--font-sans)" }}>Connect Tailwind</h2>
             <p className="text-[13px] mb-4" style={{ color: '#6B7280' }}>
               Paste your Tailwind API key to enable one-click scheduling.{' '}
               <a href="https://api-docs.tailwind.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#E9A020' }}>Get your API key →</a>

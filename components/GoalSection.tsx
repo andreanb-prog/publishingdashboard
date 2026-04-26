@@ -47,8 +47,8 @@ function GoalBar({ current, goal, unit }: { current?: number; goal: number; unit
   return (
     <div>
       <div className="flex items-center gap-2">
-        <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#EEEBE6' }}>
-          <div className="h-full rounded-full transition-all duration-500"
+        <div className="flex-1 h-1.5 overflow-hidden" style={{ background: '#EEEBE6' }}>
+          <div className="h-full transition-all duration-500"
             style={{ width: `${displayPct}%`, background: color }} />
         </div>
         <span className="text-[10.5px] font-mono font-semibold" style={{ color, minWidth: 40, textAlign: 'right' }}>
@@ -137,8 +137,8 @@ export function GoalSection({
   const hasGoals = fields.some(f => goals[f.key] != null)
 
   return (
-    <div className="rounded-xl mb-5 overflow-hidden"
-      style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+    <div className="mb-5 overflow-hidden"
+      style={{ background: 'white', border: '1px solid var(--line, #d8cfbd)' }}>
       {/* Header */}
       <button
         onClick={toggleCollapsed}
@@ -187,8 +187,8 @@ export function GoalSection({
                       placeholder={f.placeholder}
                       value={draft[f.key] ?? ''}
                       onChange={e => setDraft(d => ({ ...d, [f.key]: e.target.value }))}
-                      className="flex-1 rounded-lg px-3 py-1.5 text-[13px] font-mono outline-none"
-                      style={{ background: 'white', border: '1px solid #EEEBE6', color: '#1E2D3D' }}
+                      className="flex-1 px-3 py-1.5 text-[13px] font-mono outline-none"
+                      style={{ background: 'white', border: '1px solid var(--line, #d8cfbd)', color: '#1E2D3D' }}
                     />
                     {f.unit === 'percent' && (
                       <span className="text-[13px]" style={{ color: '#6B7280' }}>%</span>
@@ -209,7 +209,7 @@ export function GoalSection({
             <button
               onClick={save}
               disabled={saving}
-              className="px-4 py-1.5 rounded-lg text-[12.5px] font-semibold transition-all disabled:opacity-50 border-none cursor-pointer"
+              className="px-4 py-1.5 text-[12.5px] font-semibold transition-all disabled:opacity-50 border-none cursor-pointer"
               style={{ background: '#e9a020', color: '#0d1f35' }}
             >
               {saving ? 'Saving…' : 'Save Goals'}

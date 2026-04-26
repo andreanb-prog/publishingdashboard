@@ -135,7 +135,7 @@ function InsightCard({ insight, index }: { insight: Insight; index: number }) {
   const cardBg      = isAlarm ? 'rgba(233,160,32,0.06)' : 'rgba(110,191,139,0.06)'
 
   return (
-    <div className="rounded-xl overflow-hidden transition-all duration-200"
+    <div className="transition-all duration-200"
       style={{
         background: cardBg,
         border: '1px solid #EEEBE6',
@@ -146,18 +146,18 @@ function InsightCard({ insight, index }: { insight: Insight; index: number }) {
         className="w-full flex items-center justify-between px-4 py-3 text-left bg-transparent border-none cursor-pointer"
       >
         <div className="flex items-center gap-2">
-          <span style={{
-            background: pillBg,
-            color: '#ffffff',
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.05em',
-            padding: '2px 8px',
-            borderRadius: 4,
-            textTransform: 'uppercase',
-            flexShrink: 0,
-          }}>
-            {isAlarm ? 'Watch This' : 'Nice Work'}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: borderColor, display: 'inline-block' }} />
+            <span style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 9,
+              fontStyle: 'italic',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              color: isAlarm ? 'var(--amber-text, #a56b13)' : 'var(--green-text, #245c3f)',
+            }}>
+              {isAlarm ? 'Watch This' : 'Nice Work'}
+            </span>
           </span>
           {collapsed && (
             <span className="text-[11px] truncate max-w-[300px]" style={{ color: '#6B7280' }}>
@@ -234,11 +234,10 @@ function PepTalkCard({ analysis }: { analysis: Analysis }) {
   return (
     <div style={{
       background: '#FFF8F0',
-      borderLeft: '4px solid #E9A020',
-      borderRadius: '0.75rem',
+      borderLeft: '3px solid var(--amber-boutique, #c2831f)',
       padding: '16px 20px',
     }}>
-      <p style={{ margin: 0, fontSize: 17, fontStyle: 'italic', fontFamily: 'Georgia, serif', color: '#1E2D3D', lineHeight: 1.65 }}>
+      <p style={{ margin: 0, fontSize: 17, fontStyle: 'italic', fontFamily: 'var(--font-serif)', color: 'var(--ink, #14110f)', lineHeight: 1.65 }}>
         &ldquo;{entry.quote}&rdquo;
       </p>
       <p style={{ margin: '8px 0 0', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(30,45,61,0.4)', fontStyle: 'normal' }}>

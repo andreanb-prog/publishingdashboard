@@ -44,7 +44,7 @@
   --color-book-5: var(--color-sky);
   --color-book-6: var(--color-rose);
 
-  --font-sans:   'Plus Jakarta Sans', sans-serif;
+  --font-sans:   var(--font-plus-jakarta), sans-serif;
   --radius-sm:   6px;
   --radius-md:   8px;
   --radius-lg:   10px;
@@ -91,7 +91,7 @@
   --rdp-range_end-date-background-color: #D97706;
   --rdp-range_middle-background-color: rgba(233, 160, 32, 0.12);
   --rdp-today-color: #D97706;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-sans);
 }
 /* hide scrollbar on pill rows */
 .hide-scrollbar::-webkit-scrollbar { display: none; }

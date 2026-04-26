@@ -248,7 +248,7 @@ function CopyButton({ text, label = "Copy prompt" }: { text: string; label?: str
       fontSize: 13,
       fontWeight: 600,
       cursor: "pointer",
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
+      fontFamily: "var(--font-sans)",
       transition: "all 0.2s",
       display: "flex",
       alignItems: "center",
@@ -276,7 +276,7 @@ function ClaudeButton({ prompt }: { prompt: string }) {
       display: "flex",
       alignItems: "center",
       gap: 6,
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
+      fontFamily: "var(--font-sans)",
     }}>
       ✦ Open in Claude
     </a>
@@ -294,7 +294,7 @@ function AIHelper({ prompt, outputLabel }: { prompt: string; outputLabel: string
         fontSize: 13,
         fontWeight: 700,
         cursor: "pointer",
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontFamily: "var(--font-sans)",
         padding: 0,
         display: "flex",
         alignItems: "center",
@@ -458,7 +458,7 @@ function Step({ step }: { step: StepData }) {
 
 export default function AuthorContentGuide() {
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif", background: C.cream, minHeight: "100vh" }}>
+    <div style={{ fontFamily: "var(--font-sans)", background: C.cream, minHeight: "100vh" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,400&display=swap');
         @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }

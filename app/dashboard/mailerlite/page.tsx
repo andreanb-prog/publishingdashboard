@@ -623,7 +623,7 @@ export default function MailerLitePage() {
           {/* ── Group selector (shown only when 2+ groups exist) ─────── */}
           {groups.length >= 2 && (
             <div className="flex items-center gap-2 mb-3">
-              <span style={{ color: 'rgba(30,45,61,0.5)', fontSize: 12, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Viewing:</span>
+              <span style={{ color: 'rgba(30,45,61,0.5)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Viewing:</span>
               <select
                 value={selectedGroupId ?? ''}
                 onChange={e => handleGroupChange(e.target.value)}
