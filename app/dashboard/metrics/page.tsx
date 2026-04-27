@@ -274,38 +274,83 @@ export default function MetricsPage() {
   const meta = analysis?.meta
   const ml   = analysis?.mailerLite
 
-  // Merge catalog books (full list, series order) with KDP activity data for the current month.
-  // Catalog is the source of truth for which books exist; KDP fills in KENP/units/royalties.
+  // Build a comprehensive book list from:
+  // 1. Book catalog (manually curated, series order)
+  // 2. All books ever seen across all historical KDP analyses
+  // Then fill in current month's KENP/units/royalties where available.
   const booksSorted = (() => {
-    const kdpBooks = kdp?.books ?? []
-    if (catalogBooks.length === 0) return [...kdpBooks].sort((a, b) => b.kenp - a.kenp)
+    const currentKdp = kdp?.books ?? []
 
-    const byAsin  = new Map(kdpBooks.map(b => [b.asin?.toUpperCase() ?? '', b]))
-    const byTitle = new Map(kdpBooks.map(b => [b.title.toLowerCase(), b]))
+    // Collect every unique book seen across all historical analyses
+    const allHistorical = analyses.flatMap(a => a.kdp?.books ?? [])
 
-    const merged = catalogBooks.map(cb => {
-      const match = (cb.asin && byAsin.get(cb.asin.toUpperCase())) || byTitle.get(cb.title.toLowerCase())
-      const short = cb.title.split(' ').slice(0, 4).join(' ')
-      return {
-        title: cb.title,
-        asin: cb.asin ?? '',
-        shortTitle: match?.shortTitle ?? short,
-        units: match?.units ?? 0,
-        kenp: match?.kenp ?? 0,
-        royalties: match?.royalties ?? 0,
+    // Deduplicate by ASIN (preferred) then title — keep the richest entry
+    const seenByAsin  = new Map<string, typeof allHistorical[0]>()
+    const seenByTitle = new Map<string, typeof allHistorical[0]>()
+    for (const b of allHistorical) {
+      const asinKey = b.asin?.toUpperCase()
+      if (asinKey) {
+        if (!seenByAsin.has(asinKey)) seenByAsin.set(asinKey, b)
+      } else {
+        const titleKey = b.title.toLowerCase()
+        if (!seenByTitle.has(titleKey)) seenByTitle.set(titleKey, b)
       }
-    })
+    }
+    const historicalBooks = Array.from(seenByAsin.values()).concat(Array.from(seenByTitle.values()))
 
-    // Include any KDP books not found in the catalog (edge case)
-    for (const kdpBook of kdpBooks) {
-      const inCatalog = catalogBooks.some(cb =>
-        (cb.asin && cb.asin.toUpperCase() === kdpBook.asin?.toUpperCase()) ||
-        cb.title.toLowerCase() === kdpBook.title.toLowerCase()
-      )
-      if (!inCatalog) merged.push(kdpBook)
+    // Current month lookup for filling in live data
+    const currentByAsin  = new Map(currentKdp.map(b => [b.asin?.toUpperCase() ?? '', b]))
+    const currentByTitle = new Map(currentKdp.map(b => [b.title.toLowerCase(), b]))
+
+    // Start from catalog if available; else fall back to historical books
+    type BookEntry = { title: string; asin: string; shortTitle: string; units: number; kenp: number; royalties: number }
+    const result: BookEntry[] = []
+    const addedKeys = new Set<string>()
+
+    function bookKey(b: { asin?: string | null; title: string }) {
+      return b.asin?.toUpperCase() || b.title.toLowerCase()
     }
 
-    return merged
+    function fillCurrent(base: { title: string; asin?: string | null; shortTitle?: string }): BookEntry {
+      const live = (base.asin && currentByAsin.get(base.asin.toUpperCase())) || currentByTitle.get(base.title.toLowerCase())
+      const short = base.shortTitle ?? base.title.split(' ').slice(0, 4).join(' ')
+      return {
+        title: base.title,
+        asin: base.asin ?? '',
+        shortTitle: live?.shortTitle ?? short,
+        units: live?.units ?? 0,
+        kenp: live?.kenp ?? 0,
+        royalties: live?.royalties ?? 0,
+      }
+    }
+
+    // First: catalog books (series order is correct)
+    for (const cb of catalogBooks) {
+      const key = bookKey(cb)
+      if (!addedKeys.has(key)) {
+        result.push(fillCurrent(cb))
+        addedKeys.add(key)
+      }
+    }
+
+    // Second: any historical book not already added (sorted by all-time KENP desc)
+    const extraHistorical = historicalBooks
+      .filter(b => !addedKeys.has(bookKey(b)))
+      .sort((a, b) => b.kenp - a.kenp)
+    for (const b of extraHistorical) {
+      result.push(fillCurrent(b))
+      addedKeys.add(bookKey(b))
+    }
+
+    // Third: any current-month books still not captured
+    for (const b of currentKdp) {
+      if (!addedKeys.has(bookKey(b))) {
+        result.push(fillCurrent(b))
+        addedKeys.add(bookKey(b))
+      }
+    }
+
+    return result
   })()
 
   const readThrough = booksSorted.map((book, i) => ({
