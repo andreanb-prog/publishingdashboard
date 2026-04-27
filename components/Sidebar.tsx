@@ -69,12 +69,23 @@ export function Sidebar() {
     try {
       const m = localStorage.getItem('sidebar-mode')
       if (m === 'all' || m === 'simple') setMode(m as 'simple' | 'all')
+      const fs = localStorage.getItem('text-size') as 'sm' | 'md' | 'lg' | null
+      if (fs === 'sm' || fs === 'md' || fs === 'lg') {
+        setFontSize(fs)
+        document.documentElement.setAttribute('data-text-size', fs)
+      }
     } catch {}
   }, [])
 
   function toggleMode(next: 'simple' | 'all') {
     setMode(next)
     try { localStorage.setItem('sidebar-mode', next) } catch {}
+  }
+
+  function handleFontSize(size: 'sm' | 'md' | 'lg') {
+    setFontSize(size)
+    try { localStorage.setItem('text-size', size) } catch {}
+    document.documentElement.setAttribute('data-text-size', size)
   }
 
   const isActive = (href: string) => {
@@ -212,7 +223,7 @@ export function Sidebar() {
           {(['sm', 'md', 'lg'] as const).map((size, i) => (
             <button
               key={size}
-              onClick={() => setFontSize(size)}
+              onClick={() => handleFontSize(size)}
               style={{
                 flex: 1, padding: '4px 0', borderRadius: 6,
                 fontFamily: 'var(--font-serif, Georgia, serif)',

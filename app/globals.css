@@ -283,6 +283,10 @@
 }
 .wn-prose hr { border: none; border-top: 1px solid #EEEBE6; margin: 0.75em 0; }
 
+/* Text size scaling — applied to main content only, sidebar unaffected */
+html[data-text-size="sm"] main { zoom: 0.9; }
+html[data-text-size="lg"] main { zoom: 1.12; }
+
 /* Swaps coming soon banner — CTA button visible on desktop only */
 @media (min-width: 768px) {
   .swaps-cta-btn { display: inline-block !important; }
