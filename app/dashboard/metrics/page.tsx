@@ -246,6 +246,7 @@ export default function MetricsPage() {
   const [analyses,    setAnalyses]    = useState<Analysis[]>([])
   const [rankLogs,    setRankLogs]    = useState<RankLog[]>([])
   const [roasLogs,    setRoasLogs]    = useState<RoasLog[]>([])
+  const [catalogBooks, setCatalogBooks] = useState<Array<{ title: string; asin: string | null; sortOrder: number; excludeFromDashboard?: boolean }>>([])
   const [loading,     setLoading]     = useState(true)
   const [arcSent,     setArcSent]     = useState('')
   const [arcReceived, setArcReceived] = useState('')
@@ -255,13 +256,15 @@ export default function MetricsPage() {
       fetch('/api/analyze').then(r => r.json()).catch(() => ({})),
       fetch('/api/rank').then(r => r.ok ? r.json() : { logs: [] }).catch(() => ({ logs: [] })),
       fetch('/api/roas').then(r => r.ok ? r.json() : { logs: [] }).catch(() => ({ logs: [] })),
-    ]).then(([analyzeData, rankData, roasData]) => {
+      fetch('/api/books').then(r => r.ok ? r.json() : { books: [] }).catch(() => ({ books: [] })),
+    ]).then(([analyzeData, rankData, roasData, booksData]) => {
       const rows: Analysis[] = (analyzeData.analyses ?? [])
         .map((a: { data?: Analysis }) => a.data)
         .filter((x: unknown): x is Analysis => !!x && typeof x === 'object' && 'month' in (x as object))
       setAnalyses(rows)
       setRankLogs(rankData.logs ?? [])
       setRoasLogs(roasData.logs ?? [])
+      setCatalogBooks((booksData.books ?? []).filter((b: { excludeFromDashboard?: boolean }) => !b.excludeFromDashboard))
     }).catch(console.error).finally(() => setLoading(false))
   }, [])
 
@@ -271,7 +274,40 @@ export default function MetricsPage() {
   const meta = analysis?.meta
   const ml   = analysis?.mailerLite
 
-  const booksSorted = [...(kdp?.books ?? [])].sort((a, b) => b.kenp - a.kenp)
+  // Merge catalog books (full list, series order) with KDP activity data for the current month.
+  // Catalog is the source of truth for which books exist; KDP fills in KENP/units/royalties.
+  const booksSorted = (() => {
+    const kdpBooks = kdp?.books ?? []
+    if (catalogBooks.length === 0) return [...kdpBooks].sort((a, b) => b.kenp - a.kenp)
+
+    const byAsin  = new Map(kdpBooks.map(b => [b.asin?.toUpperCase() ?? '', b]))
+    const byTitle = new Map(kdpBooks.map(b => [b.title.toLowerCase(), b]))
+
+    const merged = catalogBooks.map(cb => {
+      const match = (cb.asin && byAsin.get(cb.asin.toUpperCase())) || byTitle.get(cb.title.toLowerCase())
+      const short = cb.title.split(' ').slice(0, 4).join(' ')
+      return {
+        title: cb.title,
+        asin: cb.asin ?? '',
+        shortTitle: match?.shortTitle ?? short,
+        units: match?.units ?? 0,
+        kenp: match?.kenp ?? 0,
+        royalties: match?.royalties ?? 0,
+      }
+    })
+
+    // Include any KDP books not found in the catalog (edge case)
+    for (const kdpBook of kdpBooks) {
+      const inCatalog = catalogBooks.some(cb =>
+        (cb.asin && cb.asin.toUpperCase() === kdpBook.asin?.toUpperCase()) ||
+        cb.title.toLowerCase() === kdpBook.title.toLowerCase()
+      )
+      if (!inCatalog) merged.push(kdpBook)
+    }
+
+    return merged
+  })()
+
   const readThrough = booksSorted.map((book, i) => ({
     book,
     pct:   i === 0 ? 100 : booksSorted[0].kenp > 0 ? (book.kenp / booksSorted[0].kenp) * 100 : 0,
