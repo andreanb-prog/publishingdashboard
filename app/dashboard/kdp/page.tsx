@@ -971,6 +971,7 @@ export default function KDPPage() {
   const [excludedAsins, setExcludedAsins] = useState<Set<string>>(new Set())
   // ASINs the user has registered in Settings → My Books (used to filter out unknown titles)
   const [knownAsins,   setKnownAsins]   = useState<Set<string>>(new Set())
+  const [addingAsins,  setAddingAsins]  = useState<Set<string>>(new Set())
   // My Books list sorted by sortOrder — used for stable ASIN-based color assignment
   const [myBooksList,  setMyBooksList]  = useState<any[]>([])
   const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(null)
@@ -1131,6 +1132,21 @@ export default function KDPPage() {
       return asinUpper && !knownAsins.has(asinUpper)
     })
   }, [displayBooks, knownAsins, excludedAsins])
+
+  const handleAddToCatalog = async (b: { asin: string; title: string }) => {
+    setAddingAsins(prev => new Set(prev).add(b.asin))
+    try {
+      await fetch('/api/books', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: b.title, asin: b.asin }),
+      })
+      // Refresh so the book moves out of unmatchedBooks into the visible list
+      fetchData()
+    } finally {
+      setAddingAsins(prev => { const s = new Set(prev); s.delete(b.asin); return s })
+    }
+  }
 
   const handlePreset = (p: Preset) => {
     setPreset(p)
@@ -1402,13 +1418,14 @@ export default function KDPPage() {
                         {b.units.toLocaleString()} units · {b.kenp.toLocaleString()} KENP
                       </div>
                     </div>
-                    <a
-                      href="/dashboard/settings"
-                      className="text-[11px] font-semibold whitespace-nowrap ml-4"
-                      style={{ color: '#E9A020', textDecoration: 'none' }}
+                    <button
+                      onClick={() => handleAddToCatalog(b)}
+                      disabled={addingAsins.has(b.asin)}
+                      className="text-[11px] font-semibold whitespace-nowrap ml-4 disabled:opacity-50"
+                      style={{ color: '#E9A020', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                     >
-                      Add to catalog →
-                    </a>
+                      {addingAsins.has(b.asin) ? 'Adding…' : 'Add to catalog →'}
+                    </button>
                   </div>
                 ))}
               </div>
