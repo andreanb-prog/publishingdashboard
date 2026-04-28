@@ -1014,6 +1014,8 @@ export default function KDPPage() {
   // My Books list sorted by sortOrder — used for stable ASIN-based color assignment
   const [myBooksList,  setMyBooksList]  = useState<any[]>([])
   const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(null)
+  const [showPurchased, setShowPurchased] = useState(true)
+  const [showKU, setShowKU] = useState(true)
   const [kdpSalesData, setKdpSalesData] = useState<{
     dailyUnits:     { date: string; value: number }[]
     dailyKENP:      { date: string; value: number }[]
@@ -1384,6 +1386,47 @@ export default function KDPPage() {
             </div>
           )}
 
+          {/* Format Filter Pills */}
+          {displayBooks.filter(isBookVisible).length > 0 && (
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <span className="text-[11px] font-medium uppercase" style={{ color: '#6B7280', letterSpacing: '0.3px' }}>Format:</span>
+              <button
+                onClick={() => {
+                  const next = !showPurchased
+                  if (!next && !showKU) { setShowPurchased(true); setShowKU(true) } else setShowPurchased(next)
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] transition-all"
+                style={{
+                  background: showPurchased ? '#E9A020' : '#FFF8F0',
+                  color: showPurchased ? '#1E2D3D' : 'rgba(30,45,61,0.4)',
+                  fontWeight: showPurchased ? 700 : 500,
+                  border: `0.5px solid ${showPurchased ? '#E9A020' : '#EEEBE6'}`,
+                  cursor: 'pointer',
+                }}
+              >
+                <BookOpen size={10} style={{ flexShrink: 0 }} />
+                Purchased
+              </button>
+              <button
+                onClick={() => {
+                  const next = !showKU
+                  if (!next && !showPurchased) { setShowPurchased(true); setShowKU(true) } else setShowKU(next)
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] transition-all"
+                style={{
+                  background: showKU ? '#E9A020' : '#FFF8F0',
+                  color: showKU ? '#1E2D3D' : 'rgba(30,45,61,0.4)',
+                  fontWeight: showKU ? 700 : 500,
+                  border: `0.5px solid ${showKU ? '#E9A020' : '#EEEBE6'}`,
+                  cursor: 'pointer',
+                }}
+              >
+                <Repeat size={10} style={{ flexShrink: 0 }} />
+                KU / Borrowed
+              </button>
+            </div>
+          )}
+
           {/* Book Performance Charts */}
           {(() => {
             const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
@@ -1392,8 +1435,9 @@ export default function KDPPage() {
               ? dashboardBooks.filter(b => selectedBooks.has(b.asin))
               : dashboardBooks
 
-            function BookBar({ books, metric, title }: { books: typeof visibleBooks; metric: 'units' | 'kenp'; title: string }) {
-              const maxVal = Math.max(...books.map(b => b[metric]), 1)
+            function BookBar({ books, title }: { books: typeof visibleBooks; title: string }) {
+              // Bar sizing always uses combined total so widths don't shift on filter toggle
+              const maxTotal = Math.max(...books.map(b => (b.units ?? 0) + (b.kenp ?? 0)), 1)
               return (
                 <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   <h3 className="text-[14px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>{title}</h3>
@@ -1401,7 +1445,22 @@ export default function KDPPage() {
                     {books.map((b, visibleIdx) => {
                       const colorIdx = bookColorMap[b.asin?.trim().toUpperCase() ?? ''] ?? visibleIdx
                       const color = BOOK_COLORS[colorIdx] || '#6B7280'
-                      const val = b[metric]
+                      const purchasedVal = b.units ?? 0
+                      const kuVal = b.kenp ?? 0
+                      const totalVal = purchasedVal + kuVal
+                      const barWidthPct = (totalVal / maxTotal) * 100
+                      const purchasedFrac = totalVal > 0 ? purchasedVal / totalVal : 0
+
+                      // Per-book insight
+                      const purPct = totalVal > 0 ? purchasedVal / totalVal : 0
+                      const kuPct  = totalVal > 0 ? kuVal / totalVal : 0
+                      let insight = ''
+                      if (purchasedVal === 0 && kuVal > 0) insight = 'KU only — no direct sales data'
+                      else if (kuVal === 0 && purchasedVal > 0) insight = 'Purchased only — not in KU or no borrows yet'
+                      else if (kuPct > 0.75) insight = 'KU-dominant — optimize for page reads, not conversions'
+                      else if (purPct > 0.75) insight = 'Strong buy signal — good candidate for paid ads'
+                      else if (purPct >= 0.4 && purPct <= 0.6) insight = 'Balanced — performing well in both channels'
+
                       return (
                         <div key={b.asin || b.shortTitle}>
                           <div className="flex items-center justify-between mb-1">
@@ -1412,10 +1471,52 @@ export default function KDPPage() {
                                 <FormatBadge key={type} type={type} />
                               ))}
                             </span>
-                            <span className="text-[13px] font-bold flex-shrink-0 ml-2" style={{ color: '#1E2D3D' }}>{val.toLocaleString()}</span>
+                            <span className="flex-shrink-0 ml-2 flex items-center">
+                              {showPurchased && showKU ? (
+                                <>
+                                  <span style={{ color: '#1E2D3D', fontWeight: 600, fontSize: 12 }}>{purchasedVal.toLocaleString()} purchased</span>
+                                  <span style={{ color: 'rgba(30,45,61,0.3)', fontSize: 12 }}> · </span>
+                                  <span style={{ color: '#E9A020', fontWeight: 600, fontSize: 12 }}>{kuVal.toLocaleString()} KU</span>
+                                </>
+                              ) : showPurchased ? (
+                                <span style={{ color: '#1E2D3D', fontWeight: 600, fontSize: 12 }}>{purchasedVal.toLocaleString()} purchased</span>
+                              ) : (
+                                <span style={{ color: '#E9A020', fontWeight: 600, fontSize: 12 }}>{kuVal.toLocaleString()} KU</span>
+                              )}
+                            </span>
                           </div>
+                          {insight && (
+                            <div className="ml-4 mb-1.5 leading-snug" style={{ fontSize: 12, color: 'rgba(30,45,61,0.5)' }}>
+                              {insight}
+                            </div>
+                          )}
+                          {/* Two-tone split bar */}
                           <div className="rounded-full overflow-hidden" style={{ height: 24, background: '#F5F5F4' }}>
-                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(val / maxVal) * 100}%`, background: color }} />
+                            {totalVal > 0 && (
+                              <div className="h-full flex" style={{ width: `${barWidthPct}%` }}>
+                                {purchasedVal > 0 && (
+                                  <div
+                                    style={{
+                                      width: `${purchasedFrac * 100}%`,
+                                      background: showPurchased ? '#1E2D3D' : '#D1D5DB',
+                                      flexShrink: 0,
+                                      transition: 'background 0.2s',
+                                    }}
+                                    title={`${purchasedVal.toLocaleString()} Purchased (${Math.round(purchasedFrac * 100)}%)`}
+                                  />
+                                )}
+                                {kuVal > 0 && (
+                                  <div
+                                    style={{
+                                      flex: 1,
+                                      background: showKU ? '#E9A020' : '#FDE68A',
+                                      transition: 'background 0.2s',
+                                    }}
+                                    title={`${kuVal.toLocaleString()} KU (${Math.round((1 - purchasedFrac) * 100)}%)`}
+                                  />
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )
@@ -1427,8 +1528,8 @@ export default function KDPPage() {
 
             return (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <BookBar books={visibleBooks} metric="units" title="Sales by Title" />
-                <BookBar books={visibleBooks} metric="kenp" title="Reader Engagement by Title" />
+                <BookBar books={visibleBooks} title="Sales by Title" />
+                <BookBar books={visibleBooks} title="Reader Engagement by Title" />
               </div>
             )
           })()}
