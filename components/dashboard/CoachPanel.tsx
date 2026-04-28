@@ -47,7 +47,7 @@ function CoachPromotedPanel({ analysis }: { analysis: any }) {
           )}
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Link href={href} style={{ display: 'inline-block', textDecoration: 'none', background: 'var(--navy, #1E2D3D)', color: 'var(--paper, #f7f1e5)', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '8px 16px' }}>Fix this →</Link>
+          <Link href={href} style={{ display: 'inline-block', textDecoration: 'none', background: 'var(--navy, #1E2D3D)', color: 'var(--paper, #f7f1e5)', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '8px 16px' }}>Opportunity →</Link>
           <Link href={href} style={{ display: 'inline-block', textDecoration: 'none', background: 'transparent', color: 'var(--ink3, #564e46)', border: '1px solid var(--line, #d8cfbd)', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '8px 16px' }}>See full report</Link>
         </div>
       </div>
