@@ -11,10 +11,14 @@ async function respondFromDB(userId: string, startDate: string, endDate: string)
   const start = new Date(startDate + 'T00:00:00.000Z')
   const end   = new Date(endDate   + 'T23:59:59.999Z')
 
+  console.log('[Meta data] querying DB:', { startDate, endDate, startUTC: start.toISOString(), endUTC: end.toISOString() })
+
   const dbRows = await db.metaAdData.findMany({
     where: { userId, date: { gte: start, lte: end } },
     orderBy: { date: 'asc' },
   })
+
+  console.log(`[Meta data] DB returned ${dbRows.length} rows`)
 
   if (dbRows.length === 0) {
     return NextResponse.json({ data: null, message: 'No data for this date range.' })

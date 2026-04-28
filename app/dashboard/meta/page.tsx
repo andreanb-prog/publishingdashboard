@@ -29,7 +29,13 @@ import type { Analysis, MetaAd } from '@/types'
 
 
 // ── Date range helpers ────────────────────────────────────────────────────────
-function fmt(d: Date) { return d.toISOString().split('T')[0] }
+// Use local date parts (not toISOString/UTC) so the range reflects the user's timezone
+function fmt(d: Date) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
 function formatShortDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
@@ -727,8 +733,20 @@ export default function MetaPage() {
     // Refresh data when a sync completes from the ConnectionStatus popover
     function onSynced() { loadMetaData() }
     window.addEventListener('meta:synced', onSynced)
-    return () => window.removeEventListener('meta:synced', onSynced)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Re-fetch when a file is uploaded via the TopBar direct-upload button
+    function onUpload() {
+      const range = getPresetRange('last30')
+      fetchDateRange(range.start, range.end)
+      loadMetaData()
+    }
+    window.addEventListener('dashboard-data-refresh', onUpload)
+
+    return () => {
+      window.removeEventListener('meta:synced', onSynced)
+      window.removeEventListener('dashboard-data-refresh', onUpload)
+    }
+  }, [fetchDateRange]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handlePreset(p: Preset) {
     setPreset(p)
