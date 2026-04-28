@@ -38,8 +38,21 @@ async function saveMetaRowsToDB(userId: string, csvText: string): Promise<number
 
   if (validRows.length === 0) return 0
 
+  // Log the first row's date fields so we can see what the export contains
+  const firstRow = validRows[0]
+  console.log('[Meta upload] first row date fields:', {
+    'Reporting starts': firstRow['Reporting starts'],
+    'Reporting ends':   firstRow['Reporting ends'],
+    'Date':             firstRow['Date'],
+    'Report start':     firstRow['Report start'],
+  })
+
   const toInsert = validRows.map((r: any) => {
-    const rawDate = r['Reporting starts'] ?? r['Date'] ?? r['Report start'] ?? ''
+    // Prefer "Reporting ends" over "Reporting starts":
+    // Summary exports have Reporting starts = period start (e.g. Mar 1) but
+    // Reporting ends = period end (e.g. Apr 27). Using the end date ensures
+    // the row lands inside the user's recent date range query window.
+    const rawDate = r['Reporting ends'] ?? r['Reporting starts'] ?? r['Date'] ?? r['Report start'] ?? ''
     let date: Date
     try {
       date = rawDate ? new Date(String(rawDate)) : new Date()
