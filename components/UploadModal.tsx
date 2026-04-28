@@ -209,7 +209,8 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           const metaSheet = wb.SheetNames.includes('Worksheet') ? 'Worksheet' : wb.SheetNames[0]
           const csv = XLSX.utils.sheet_to_csv(wb.Sheets[metaSheet], { blankrows: false })
           const parsedData = parseMetaFile(csv)
-          update({ type: 'meta', status: 'done', data: parsedData })
+          const metaSummary = [parsedData.campaignName, parsedData.dateStart && parsedData.dateEnd ? `${parsedData.dateStart} – ${parsedData.dateEnd}` : null].filter(Boolean).join(' · ') || `${parsedData.ads.length} ad${parsedData.ads.length !== 1 ? 's' : ''} parsed`
+          update({ type: 'meta', status: 'done', data: parsedData, summary: metaSummary })
         } else {
           update({
             type: 'unknown', status: 'error', data: null,
@@ -230,7 +231,9 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           update({ type: 'pinterest', status: 'done', data: parsePinterestFile(text) })
         } else if (metaHits >= 2) {
           const { parseMetaFile } = await import('@/lib/parsers/meta')
-          update({ type: 'meta', status: 'done', data: parseMetaFile(text) })
+          const parsedMetaData = parseMetaFile(text)
+          const metaSummary2 = [parsedMetaData.campaignName, parsedMetaData.dateStart && parsedMetaData.dateEnd ? `${parsedMetaData.dateStart} – ${parsedMetaData.dateEnd}` : null].filter(Boolean).join(' · ') || `${parsedMetaData.ads.length} ad${parsedMetaData.ads.length !== 1 ? 's' : ''} parsed`
+          update({ type: 'meta', status: 'done', data: parsedMetaData, summary: metaSummary2 })
         } else if (kdpCsvHits >= 2) {
           const { parseKDPFile } = await import('@/lib/parsers/kdp')
           const buf = await file.arrayBuffer()

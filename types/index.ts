@@ -71,6 +71,9 @@ export interface MetaAd {
   frequency?: number
   results?: number
   costPerResult?: number
+  landingPageViews?: number
+  cpm?: number
+  costPerLPV?: number
 }
 
 export interface MetaData {
@@ -82,6 +85,9 @@ export interface MetaData {
   ads: MetaAd[]
   bestAd: MetaAd | null
   worstAds: MetaAd[]
+  dateStart?: string
+  dateEnd?: string
+  campaignName?: string
 }
 
 export interface MailerLiteAutomation {

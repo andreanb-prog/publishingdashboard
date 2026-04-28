@@ -33,8 +33,15 @@ export function parseMetaFile(csvText: string): MetaData {
 
   // Group by ad name, sum across date ranges
   const adMap = new Map<string, {
-    spend: number; clicks: number; impressions: number; reach: number; ctrs: number[]; cpcs: number[]
+    spend: number; clicks: number; impressions: number; reach: number
+    ctrs: number[]; cpcs: number[]; landingPageViews: number; cpms: number[]; costPerLPVs: number[]
   }>()
+
+  // Extract date range and campaign name from the first data row
+  const firstRow = adRows[0] ?? rows[0]
+  const dateStart = firstRow ? String(firstRow['Reporting starts'] ?? '').trim() || undefined : undefined
+  const dateEnd   = firstRow ? String(firstRow['Reporting ends']   ?? '').trim() || undefined : undefined
+  const campaignName = firstRow ? String(firstRow['Campaign name'] ?? firstRow['Ad set name'] ?? '').trim() || undefined : undefined
 
   for (const row of adRows) {
     const name = String(col(row, 'Ad name', 'Ad Name', 'Ad set name', 'Campaign name')).trim()
@@ -48,17 +55,23 @@ export function parseMetaFile(csvText: string): MetaData {
       'CTR (all)', 'CTR (link click-through rate)', 'CTR'))
     const cpc = Number(col(row,
       'CPC (all) (USD)', 'CPC (cost per link click) (USD)', 'CPC (all)', 'CPC'))
+    const landingPageViews = Number(col(row, 'Landing page views')) || 0
+    const cpm = Number(col(row, 'CPM (cost per 1,000 impressions) (USD)', 'CPM')) || 0
+    const costPerLPV = Number(col(row, 'Cost per landing page view (USD)', 'Cost per landing page view')) || 0
 
     if (!adMap.has(name)) {
-      adMap.set(name, { spend: 0, clicks: 0, impressions: 0, reach: 0, ctrs: [], cpcs: [] })
+      adMap.set(name, { spend: 0, clicks: 0, impressions: 0, reach: 0, ctrs: [], cpcs: [], landingPageViews: 0, cpms: [], costPerLPVs: [] })
     }
     const ad = adMap.get(name)!
     ad.spend += spend
     ad.clicks += clicks
     ad.impressions += impressions
     ad.reach = Math.max(ad.reach, reach)
+    ad.landingPageViews += landingPageViews
     if (ctr > 0) ad.ctrs.push(ctr)
     if (cpc > 0) ad.cpcs.push(cpc)
+    if (cpm > 0) ad.cpms.push(cpm)
+    if (costPerLPV > 0) ad.costPerLPVs.push(costPerLPV)
   }
 
   const ads: MetaAd[] = Array.from(adMap.entries()).map(([name, data]) => {
@@ -81,6 +94,9 @@ export function parseMetaFile(csvText: string): MetaData {
       status = 'CUT'
     }
 
+    const avgCPM = data.cpms.length > 0 ? data.cpms.reduce((s, v) => s + v, 0) / data.cpms.length : undefined
+    const avgCostPerLPV = data.costPerLPVs.length > 0 ? data.costPerLPVs.reduce((s, v) => s + v, 0) / data.costPerLPVs.length : undefined
+
     return {
       name,
       spend: Math.round(data.spend * 100) / 100,
@@ -90,6 +106,9 @@ export function parseMetaFile(csvText: string): MetaData {
       cpc: Math.round(avgCPC * 100) / 100,
       reach: data.reach,
       status,
+      ...(data.landingPageViews > 0 && { landingPageViews: data.landingPageViews }),
+      ...(avgCPM != null && { cpm: Math.round(avgCPM * 100) / 100 }),
+      ...(avgCostPerLPV != null && { costPerLPV: Math.round(avgCostPerLPV * 100) / 100 }),
     }
   }).sort((a, b) => b.ctr - a.ctr)
 
@@ -111,5 +130,8 @@ export function parseMetaFile(csvText: string): MetaData {
     ads,
     bestAd,
     worstAds,
+    ...(dateStart && { dateStart }),
+    ...(dateEnd   && { dateEnd }),
+    ...(campaignName && { campaignName }),
   }
 }
