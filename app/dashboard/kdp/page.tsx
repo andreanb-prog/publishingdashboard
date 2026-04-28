@@ -958,10 +958,10 @@ function EmailVsSalesChart({
 type FormatBadgeType = 'purchased' | 'ku' | 'paperback' | 'translation'
 
 const FORMAT_BADGE_CONFIG: Record<FormatBadgeType, { icon: LucideIcon; label: string; color: string }> = {
-  purchased:   { icon: BookOpen, label: 'Purchased',    color: '#1E2D3D' },
-  ku:          { icon: Repeat,   label: 'KU / Borrowed', color: '#E9A020' },
-  paperback:   { icon: Book,     label: 'Paperback',    color: '#6EBF8B' },
-  translation: { icon: Globe,    label: 'Translation',  color: '#5BBFB5' },
+  purchased:   { icon: BookOpen, label: 'Units Sold',  color: '#1E2D3D' },
+  ku:          { icon: Repeat,   label: 'Page Reads',  color: '#E9A020' },
+  paperback:   { icon: Book,     label: 'Paperback',   color: '#6EBF8B' },
+  translation: { icon: Globe,    label: 'Translation', color: '#5BBFB5' },
 }
 
 function getFormatBadges(b: { units: number; kenp: number; format?: string }): FormatBadgeType[] {
@@ -1405,7 +1405,7 @@ export default function KDPPage() {
                 }}
               >
                 <BookOpen size={10} style={{ flexShrink: 0 }} />
-                Purchased
+                Units Sold
               </button>
               <button
                 onClick={() => {
@@ -1422,7 +1422,7 @@ export default function KDPPage() {
                 }}
               >
                 <Repeat size={10} style={{ flexShrink: 0 }} />
-                KU / Borrowed
+                Page Reads
               </button>
             </div>
           )}

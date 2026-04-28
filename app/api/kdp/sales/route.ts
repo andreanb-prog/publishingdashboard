@@ -21,33 +21,52 @@ export async function GET(req: NextRequest) {
     orderBy: { date: 'asc' },
   })
 
+  // Detect format from ASIN pattern
+  function detectFormat(asin: string): 'ebook' | 'paperback' {
+    const s = (asin ?? '').replace(/\s/g, '').toUpperCase()
+    if (/^97[89]/.test(s)) return 'paperback'
+    return 'ebook'
+  }
+
+  // Returns true if ASIN is a real Amazon ASIN (starts with B0), not an ISBN
+  function isRealAsin(asin: string): boolean {
+    const s = (asin ?? '').replace(/\s/g, '').toUpperCase()
+    return /^B0/.test(s)
+  }
+
   const dailyUnitsMap = new Map<string, number>()
   const dailyKENPMap  = new Map<string, number>()
-  const bookMap       = new Map<string, {
-    asin:      string
-    title:     string
-    units:     number
-    kenp:      number
-    royalties: number
-    format?:   string
-  }>()
+
+  // Key by normalized title so ebook (B0...) and paperback (978/979...) rows for
+  // the same book are merged into a single entry
+  type BookEntry = { asin: string; title: string; units: number; kenp: number; royalties: number; format?: string }
+  const titleMap = new Map<string, BookEntry>()
 
   for (const row of rows) {
     dailyUnitsMap.set(row.date, (dailyUnitsMap.get(row.date) ?? 0) + row.units)
     dailyKENPMap.set(row.date,  (dailyKENPMap.get(row.date) ?? 0) + row.kenp)
-    const b = bookMap.get(row.asin)
-    if (b) {
-      b.units     += row.units
-      b.kenp      += row.kenp
-      b.royalties += row.royalties
+
+    const titleKey = row.title.toLowerCase().trim()
+    const rowFormat = row.format ?? detectFormat(row.asin)
+
+    const existing = titleMap.get(titleKey)
+    if (existing) {
+      existing.units     += row.units
+      existing.kenp      += row.kenp
+      existing.royalties += row.royalties
+      // Upgrade to real ASIN (B0...) if current entry uses an ISBN
+      if (isRealAsin(row.asin) && !isRealAsin(existing.asin)) {
+        existing.asin   = row.asin
+        existing.format = 'ebook'
+      }
     } else {
-      bookMap.set(row.asin, {
+      titleMap.set(titleKey, {
         asin:      row.asin,
         title:     row.title,
         units:     row.units,
         kenp:      row.kenp,
         royalties: row.royalties,
-        format:    row.format ?? undefined,
+        format:    rowFormat,
       })
     }
   }
@@ -60,7 +79,7 @@ export async function GET(req: NextRequest) {
     .map(([date, value]) => ({ date, value }))
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const books = Array.from(bookMap.values())
+  const books = Array.from(titleMap.values())
     .sort((a, b) => b.units - a.units)
     .map(b => ({
       ...b,
