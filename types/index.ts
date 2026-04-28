@@ -178,6 +178,7 @@ export interface PinterestLog {
 export interface CoachingInsight {
   priority: number
   type: 'RED' | 'AMBER' | 'GREEN'
+  subtype?: 'MOMENTUM' | 'CONSIDER'
   title: string
   body: string
   action?: string

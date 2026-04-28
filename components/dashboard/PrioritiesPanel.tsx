@@ -43,10 +43,13 @@ export function PrioritiesPanel({ dashboard }: { dashboard: DashboardState }) {
 
   const getPriorityLabel = (item: CoachingInsight, idx: number): { text: string; color: string } => {
     if (item.type === 'RED') return { text: 'Fix This', color: '#dc2626' }
-    if (item.type === 'AMBER' || item.confidence === 'medium') return { text: 'Worth Checking', color: 'var(--amber-text, #a56b13)' }
+    if (item.type === 'AMBER' || item.confidence === 'medium') {
+      if (item.subtype === 'MOMENTUM') return { text: 'Momentum', color: '#2d6b4f' }
+      return { text: 'Consider', color: 'var(--amber-text, #a56b13)' }
+    }
     if (item.type === 'GREEN') return { text: 'Keep Doing This', color: 'var(--green-text, #245c3f)' }
     return idx === 0 ? { text: 'Fix This', color: '#dc2626' }
-      : idx === 1 ? { text: 'Worth Checking', color: 'var(--amber-text, #a56b13)' }
+      : idx === 1 ? { text: 'Consider', color: 'var(--amber-text, #a56b13)' }
       : { text: 'Keep Doing This', color: 'var(--green-text, #245c3f)' }
   }
 

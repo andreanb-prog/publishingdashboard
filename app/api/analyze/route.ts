@@ -171,6 +171,7 @@ Respond with a JSON object in exactly this structure (no markdown, raw JSON only
     {
       "priority": 1,
       "type": "RED",
+      "subtype": "MOMENTUM | CONSIDER | omit for RED and GREEN — for AMBER items only: use MOMENTUM when the finding is a positive signal (strong engagement, good retention, growing trend) the author should capitalise on; use CONSIDER when the finding is a strategic nudge or pricing/testing decision. Example MOMENTUM title: 'Strong KU engagement — readers are finishing your books. Keep releasing.' Example CONSIDER title: '99¢ pricing — you're leaving royalties on the table. Test $2.99 next launch.'",
       "title": "action title following the pattern: [what we're seeing] — [what to do]",
       "body": "plain English explanation following the pattern: [what we're seeing] — [what it might mean] — [what to check or do]. Must include the actual metric value. Must end with the specific action, never a hedge.",
       "action": "Start with Send/Test/Cut/Scale/Fix/Upload/Pause/Launch/Schedule + specific platform (e.g. 'Go to Meta Ads Manager and pause the low-CTR ad')",
