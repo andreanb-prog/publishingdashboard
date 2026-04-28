@@ -181,8 +181,9 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
             for (const sheetName of wb.SheetNames) {
               const csv = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName], { blankrows: false })
               if (csv.includes('KENP') || csv.includes('Royalty Date') || csv.includes('Est. KU Royalty')) { detectedType = 'kdp'; break }
-              const hits = ['Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'Campaign name', 'Ad set name']
-                .filter(s => csv.includes(s)).length
+              const xlsxMetaSignals = ['Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'CPC (cost', 'Campaign name', 'Ad set name', 'Impressions', 'Link clicks', 'Reporting starts', 'Landing page views']
+              const hits = xlsxMetaSignals.filter(s => csv.includes(s)).length
+              console.log('[UploadModal] XLSX sheet detection:', { fileName: file.name, mimeType: file.type, sheetName, hits, matched: xlsxMetaSignals.filter(s => csv.includes(s)) })
               if (hits >= 2) { detectedType = 'meta'; break }
             }
           }
@@ -220,8 +221,9 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
       } else {
         const text = await file.text()
         const isPin = (text.trimStart().startsWith('Analytics overview') || text.includes('"Analytics overview"')) && text.includes('Impressions')
-        const metaHits = ['Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'Campaign name', 'Ad set name', 'Impressions']
-          .filter(s => text.includes(s)).length
+        const metaSignals = ['Ad name', 'Amount spent', 'CTR (all)', 'CTR (link', 'CPC (all)', 'CPC (cost', 'Campaign name', 'Ad set name', 'Impressions', 'Link clicks', 'Reporting starts', 'Landing page views']
+        const metaHits = metaSignals.filter(s => text.includes(s)).length
+        console.log('[UploadModal] CSV meta detection:', { fileName: file.name, mimeType: file.type, metaHits, matched: metaSignals.filter(s => text.includes(s)) })
 
         const lowerText = text.toLowerCase()
         const kdpCsvHits = ['kenp', 'royalt', 'units sold', 'asin', 'marketplace'].filter(s => lowerText.includes(s)).length
