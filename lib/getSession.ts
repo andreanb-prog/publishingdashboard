@@ -23,7 +23,16 @@ export async function getAugmentedSession() {
   try {
     const targetUser = await db.user.findUnique({
       where: { email: impersonating },
-      select: { id: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        penName: true,
+        preferredGreetingName: true,
+        subscriptionStatus: true,
+        subscriptionPlan: true,
+        trialEndsAt: true,
+      },
     })
     if (!targetUser) return session
 
@@ -32,6 +41,13 @@ export async function getAugmentedSession() {
       user: {
         ...session.user,
         id: targetUser.id,
+        email: targetUser.email,
+        name: targetUser.penName ?? targetUser.name,
+        penName: targetUser.penName ?? null,
+        preferredGreetingName: targetUser.preferredGreetingName ?? null,
+        subscriptionStatus: targetUser.subscriptionStatus ?? null,
+        subscriptionPlan: targetUser.subscriptionPlan ?? null,
+        trialEndsAt: targetUser.trialEndsAt ? targetUser.trialEndsAt.toISOString() : null,
         adminImpersonating: impersonating,
         adminRealEmail: realEmail,
       },
