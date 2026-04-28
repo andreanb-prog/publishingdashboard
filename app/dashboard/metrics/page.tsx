@@ -313,11 +313,13 @@ export default function MetricsPage() {
 
     function fillCurrent(base: { title: string; asin?: string | null; shortTitle?: string }): BookEntry {
       const live = (base.asin && currentByAsin.get(base.asin.toUpperCase())) || currentByTitle.get(base.title.toLowerCase())
+      // Always derive shortTitle from the catalog title — never from KDP data — to prevent
+      // a wrong ASIN or duplicate title on a placeholder book from bleeding in another book's name.
       const short = base.shortTitle ?? base.title.split(' ').slice(0, 4).join(' ')
       return {
         title: base.title,
         asin: base.asin ?? '',
-        shortTitle: live?.shortTitle ?? short,
+        shortTitle: short,
         units: live?.units ?? 0,
         kenp: live?.kenp ?? 0,
         royalties: live?.royalties ?? 0,
@@ -353,10 +355,32 @@ export default function MetricsPage() {
     return result
   })()
 
-  const readThrough = booksSorted.map((book, i) => ({
-    book,
-    pct:   i === 0 ? 100 : booksSorted[0].kenp > 0 ? (book.kenp / booksSorted[0].kenp) * 100 : 0,
-    color: BOOK_COLORS[i] || '#6B7280',
+  // Cumulative all-time KENP per book across all historical analyses.
+  // Current-month kenp alone produces inflated read-through for recently launched books.
+  const cumulativeKenpMap = new Map<string, number>()
+  for (const a of analyses) {
+    for (const b of (a.kdp?.books ?? [])) {
+      const key = b.asin?.toUpperCase() || b.title.toLowerCase()
+      cumulativeKenpMap.set(key, (cumulativeKenpMap.get(key) ?? 0) + b.kenp)
+    }
+  }
+  function bookCumKey(book: { asin?: string | null; title: string }) {
+    return book.asin?.toUpperCase() || book.title.toLowerCase()
+  }
+
+  // Filter to books with real all-time KENP (hides empty placeholder slots),
+  // then compute sequential read-through: each book vs the one before it.
+  const booksWithKenp = booksSorted
+    .map((book, origIdx) => ({
+      book,
+      cumKenp: cumulativeKenpMap.get(bookCumKey(book)) ?? 0,
+      color: BOOK_COLORS[origIdx] || '#6B7280',
+    }))
+    .filter(b => b.cumKenp > 0)
+
+  const readThrough = booksWithKenp.map((rt, i) => ({
+    ...rt,
+    pct: i === 0 ? 100 : booksWithKenp[i - 1].cumKenp > 0 ? (rt.cumKenp / booksWithKenp[i - 1].cumKenp) * 100 : 0,
   }))
 
   // ── Cross-channel correlation data ─────────────────────────────────────────
@@ -541,7 +565,7 @@ export default function MetricsPage() {
                 key={rt.book.asin || i}
                 label={`${rt.book.shortTitle} — Book ${i + 1}`}
                 pct={rt.pct}
-                count={rt.book.kenp}
+                count={rt.cumKenp}
                 color={rt.color}
                 benchmark={i > 0 ? 40 : undefined}
               />
