@@ -8,63 +8,66 @@ import { parsePinterestFile } from '@/lib/parsers/pinterest'
 import { logAdminAction } from '@/lib/adminAudit'
 
 // Save raw per-row Meta data to MetaAdData table for date-range filtering
+// Throws on DB error so callers can surface the failure — does NOT swallow errors
 async function saveMetaRowsToDB(userId: string, csvText: string): Promise<number> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Papa = require('papaparse')
-    const result = Papa.parse(csvText, { header: true, skipEmptyLines: true, dynamicTyping: true })
-    const rows = result.data as any[]
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Papa = require('papaparse')
+  const result = Papa.parse(csvText, { header: true, skipEmptyLines: true, dynamicTyping: true })
+  const rows = result.data as any[]
 
-    if (rows.length === 0) return 0
-
-    console.log('[Meta upload] CSV headers:', Object.keys(rows[0]))
-
-    const col = (row: any, ...keys: string[]): string | number => {
-      for (const k of keys) {
-        if (row[k] != null && row[k] !== '') return row[k]
-      }
-      return 0
-    }
-
-    const validRows = rows.filter((r: any) => {
-      const name = r['Campaign name'] ?? r['Ad name'] ?? r['Ad Name'] ?? r['Ad set name'] ?? ''
-      return String(name).trim() !== ''
-    })
-
-    if (validRows.length === 0) return 0
-
-    // Delete existing rows for this user before upserting (replace on re-upload)
-    await db.metaAdData.deleteMany({ where: { userId } })
-
-    const toInsert = validRows.map((r: any) => {
-      const rawDate = r['Reporting starts'] ?? r['Date'] ?? r['Report start'] ?? ''
-      let date: Date
-      try {
-        date = rawDate ? new Date(String(rawDate)) : new Date()
-        if (isNaN(date.getTime())) date = new Date()
-      } catch { date = new Date() }
-
-      return {
-        userId,
-        date,
-        campaignName: String(col(r, 'Campaign name', 'Ad name', 'Ad Name', 'Ad set name')).trim(),
-        spend:        Number(col(r, 'Amount spent (USD)', 'Amount spent', 'Spend', 'Cost')) || 0,
-        impressions:  Math.round(Number(col(r, 'Impressions')) || 0),
-        clicks:       Math.round(Number(col(r, 'Link clicks', 'Clicks (all)', 'Clicks', 'Results')) || 0),
-        ctr:          Number(col(r, 'CTR (link click-through rate)', 'CTR (all)', 'CTR')) || 0,
-        cpc:          Number(col(r, 'CPC (cost per link click) (USD)', 'CPC (all) (USD)', 'CPC (all)', 'CPC')) || 0,
-        results:      r['Results'] != null ? Number(r['Results']) : null,
-        costPerResult: r['Cost per results'] != null ? Number(r['Cost per results']) : null,
-      }
-    })
-
-    await db.metaAdData.createMany({ data: toInsert })
-    console.log(`[Meta upload] Parsed ${rows.length} rows, saved ${toInsert.length} to MetaAdData`)
-    return toInsert.length
-  } catch (err) {
-    console.error('[Meta upload] Failed to save MetaAdData rows:', err)
+  if (rows.length === 0) {
+    console.log('[Meta upload] No rows found in CSV')
     return 0
   }
+
+  console.log('[Meta upload] CSV headers:', Object.keys(rows[0]))
+
+  const col = (row: any, ...keys: string[]): string | number => {
+    for (const k of keys) {
+      if (row[k] != null && row[k] !== '') return row[k]
+    }
+    return 0
+  }
+
+  const validRows = rows.filter((r: any) => {
+    const name = r['Campaign name'] ?? r['Ad name'] ?? r['Ad Name'] ?? r['Ad set name'] ?? ''
+    return String(name).trim() !== ''
+  })
+
+  console.log(`[Meta upload] ${validRows.length} valid rows (of ${rows.length} total)`)
+
+  if (validRows.length === 0) return 0
+
+  const toInsert = validRows.map((r: any) => {
+    const rawDate = r['Reporting starts'] ?? r['Date'] ?? r['Report start'] ?? ''
+    let date: Date
+    try {
+      date = rawDate ? new Date(String(rawDate)) : new Date()
+      if (isNaN(date.getTime())) date = new Date()
+    } catch { date = new Date() }
+
+    return {
+      userId,
+      date,
+      campaignName: String(col(r, 'Campaign name', 'Ad name', 'Ad Name', 'Ad set name')).trim(),
+      spend:        Number(col(r, 'Amount spent (USD)', 'Amount spent', 'Spend', 'Cost')) || 0,
+      impressions:  Math.round(Number(col(r, 'Impressions')) || 0),
+      clicks:       Math.round(Number(col(r, 'Link clicks', 'Clicks (all)', 'Clicks', 'Results')) || 0),
+      ctr:          Number(col(r, 'CTR (link click-through rate)', 'CTR (all)', 'CTR')) || 0,
+      cpc:          Number(col(r, 'CPC (cost per link click) (USD)', 'CPC (all) (USD)', 'CPC (all)', 'CPC')) || 0,
+      results:      r['Results'] != null ? Number(r['Results']) : null,
+      costPerResult: r['Cost per results'] != null ? Number(r['Cost per results']) : null,
+    }
+  })
+
+  console.log('[Meta upload] Attempting deleteMany for userId:', userId)
+  // Delete existing rows for this user before inserting (replace on re-upload)
+  await db.metaAdData.deleteMany({ where: { userId } })
+  console.log('[Meta upload] deleteMany done, starting createMany with', toInsert.length, 'rows')
+
+  await db.metaAdData.createMany({ data: toInsert })
+  console.log(`[Meta upload] createMany done — saved ${toInsert.length} rows to MetaAdData`)
+  return toInsert.length
 }
 
 async function logUpload(
@@ -172,9 +175,18 @@ export async function POST(req: NextRequest) {
         const sheetName = wb.SheetNames.includes('Worksheet') ? 'Worksheet' : wb.SheetNames[0]
         const csvText: string = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName], { blankrows: false })
         const data = parseMetaFile(csvText)
-        // Save each row to MetaAdData for date-range filtering
-        const savedRows = await saveMetaRowsToDB(session.user.id, csvText)
-        const rowCount = savedRows > 0 ? savedRows : data.ads.length
+        let savedRows = 0
+        let dbError: string | null = null
+        try {
+          savedRows = await saveMetaRowsToDB(session.user.id, csvText)
+        } catch (err) {
+          dbError = err instanceof Error ? err.message : String(err)
+          console.error('[parse-auto] Meta DB write failed:', dbError)
+        }
+        if (dbError) {
+          return NextResponse.json({ error: `DB write failed: ${dbError}` }, { status: 500 })
+        }
+        const rowCount = savedRows
         const metaDiag = {
           rowCount, sheetsFound: wb.SheetNames, sheetUsed: sheetName,
           columnsDetected: [], skippedRows: 0, skipReasons: [],
@@ -199,8 +211,18 @@ export async function POST(req: NextRequest) {
 
     if (csvType === 'meta') {
       const data = parseMetaFile(text)
-      const savedRows = await saveMetaRowsToDB(session.user.id, text)
-      const rowCount = savedRows > 0 ? savedRows : data.ads.length
+      let savedRows = 0
+      let dbError: string | null = null
+      try {
+        savedRows = await saveMetaRowsToDB(session.user.id, text)
+      } catch (err) {
+        dbError = err instanceof Error ? err.message : String(err)
+        console.error('[parse-auto] Meta DB write failed:', dbError)
+      }
+      if (dbError) {
+        return NextResponse.json({ error: `DB write failed: ${dbError}` }, { status: 500 })
+      }
+      const rowCount = savedRows
       const csvDiag = { rowCount, sheetsFound: ['CSV'], sheetUsed: 'CSV', columnsDetected: [], skippedRows: 0, skipReasons: [], firstParsedRow: null, error: rowCount === 0 ? 'No rows parsed' : null }
       await logUpload(session.user.id, 'meta', file.name, rowCount, rowCount > 0 ? 'success' : 'error', csvDiag)
       auditUploadIfImpersonating(session, file.name, rowCount, 'meta')
