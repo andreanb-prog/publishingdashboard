@@ -47,14 +47,24 @@ export async function GET() {
   }
   const totalSpendOrNull = totalSpend > 0 ? totalSpend : null
 
-  // Best BSR today: lowest rank logged today
+  // Best BSR: lowest rank logged today, falling back to most recent log ever
   const todayWithRank = todayLogs.filter((r): r is typeof r & { rank: number } => r.rank != null)
-  const bestBsrRow = todayWithRank.reduce<typeof todayWithRank[0] | null>(
+  let bestBsrRow: (typeof todayWithRank[0]) | null = todayWithRank.reduce<typeof todayWithRank[0] | null>(
     (best, r) => (best === null || r.rank < best.rank ? r : best),
     null
   )
+  if (!bestBsrRow) {
+    const mostRecentRankLog = await db.bsrLog.findFirst({
+      where: { userId, rank: { not: null } },
+      orderBy: { date: 'desc' },
+    })
+    if (mostRecentRankLog?.rank != null) {
+      bestBsrRow = mostRecentRankLog as typeof todayWithRank[0]
+    }
+  }
   const bestBsr = bestBsrRow?.rank ?? null
   const bestBsrTitle = bestBsrRow?.bookTitle ?? null
+  const bestBsrDate = bestBsrRow?.date ? (bestBsrRow.date as Date).toISOString().split('T')[0] : null
 
   // Overall ROAS last 7 days: total revenue ÷ total spend (all books)
   const totalRevenue = last7.reduce((s, r) => s + (r.revenue ?? 0), 0)
@@ -71,6 +81,7 @@ export async function GET() {
     totalSpend: totalSpendOrNull !== null ? parseFloat(totalSpendOrNull.toFixed(2)) : null,
     bestBsr,
     bestBsrTitle,
+    bestBsrDate,
     overallRoas: overallRoas !== null ? parseFloat(overallRoas.toFixed(2)) : null,
     costPerSub: costPerSub !== null ? parseFloat(costPerSub.toFixed(2)) : null,
   })

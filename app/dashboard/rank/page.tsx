@@ -38,6 +38,7 @@ interface SummaryData {
   totalSpend: number | null
   bestBsr: number | null
   bestBsrTitle: string | null
+  bestBsrDate: string | null
   overallRoas: number | null
   costPerSub: number | null
 }
@@ -113,34 +114,24 @@ function SummaryStrip({ refreshKey }: { refreshKey: number }) {
       .finally(() => setLoading(false))
   }, [refreshKey])
 
-  const tiles: { label: string; value: string | null; sublabel?: string | null }[] = [
+  const bsrValue   = data?.bestBsr != null ? `#${data.bestBsr.toLocaleString()}` : null
+  const bsrDate    = data?.bestBsrDate
+    ? new Date(data.bestBsrDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : null
+
+  type Tile = {
+    label: string
+    value: string | null
+    sublabel?: string | null
+    isBsr?: boolean
+  }
+
+  const tiles: Tile[] = [
     { label: "Today's Total Spend", value: data?.totalSpend != null ? `$${data.totalSpend.toFixed(2)}` : null },
-    {
-      label: 'Best BSR Today',
-      value: data?.bestBsr != null ? `#${data.bestBsr.toLocaleString()}` : null,
-      sublabel: data?.bestBsrTitle ?? null,
-    },
+    { label: 'Best BSR', value: bsrValue, sublabel: data?.bestBsrTitle ?? null, isBsr: true },
     { label: 'Overall ROAS (7d)',   value: data?.overallRoas != null ? `${data.overallRoas.toFixed(2)}x` : null },
     { label: 'Cost Per Subscriber', value: data?.costPerSub  != null ? `$${data.costPerSub.toFixed(2)}` : null },
   ]
-
-  const isEmptyState = !loading && tiles.every(t => t.value == null)
-
-  if (isEmptyState) {
-    return (
-      <div className="mb-6">
-        <div className="rounded-lg p-6" style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}>
-          <div className="rounded-lg p-5" style={{ background: '#FFF8F0', border: '1px dashed #D1CBC2' }}>
-            <div className="font-semibold mb-2" style={{ fontSize: 16, color: '#1E2D3D' }}>No rank data yet</div>
-            <p className="text-[14px] mb-3" style={{ color: 'rgba(30,45,61,0.6)', maxWidth: 320 }}>
-              Select a book tab and click Refresh Rank to start tracking your BSR.
-            </p>
-            <span className="text-[20px]" style={{ color: '#E9A020' }}>→</span>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="flex flex-wrap gap-3 mb-6">
@@ -152,15 +143,31 @@ function SummaryStrip({ refreshKey }: { refreshKey: number }) {
         >
           {loading ? (
             <div className="animate-pulse rounded h-7 w-20 mb-1" style={{ background: '#EEEBE6' }} />
-          ) : (
-            <div
-              className="font-semibold leading-none mb-1"
-              style={{ fontSize: 28, color: tile.value ? '#1E2D3D' : '#9CA3AF' }}
-            >
-              {tile.value ?? (
-                <span className="text-[14px] font-normal" style={{ color: '#E9A020' }}>⚠ No data</span>
-              )}
+          ) : tile.isBsr ? (
+            /* BSR tile — last logged rank or friendly empty state */
+            tile.value ? (
+              <>
+                <div className="font-semibold leading-none mb-0.5" style={{ fontSize: 28, color: '#1E2D3D' }}>
+                  {tile.value}
+                </div>
+                {bsrDate && (
+                  <div className="text-[11px] mb-1" style={{ color: '#9CA3AF' }}>Last checked: {bsrDate}</div>
+                )}
+              </>
+            ) : (
+              <div className="text-[12px] leading-snug mb-1" style={{ color: '#9CA3AF' }}>
+                No rank logged yet —<br />check your Amazon listing
+              </div>
+            )
+          ) : tile.value ? (
+            <div className="font-semibold leading-none mb-1" style={{ fontSize: 28, color: '#1E2D3D' }}>
+              {tile.value}
             </div>
+          ) : (
+            <>
+              <div className="font-semibold leading-none mb-0.5" style={{ fontSize: 28, color: '#D1CBC2' }}>—</div>
+              <div className="text-[10.5px] mb-1" style={{ color: '#9CA3AF' }}>Available after 7 days of data</div>
+            </>
           )}
           <div className="text-[12px]" style={{ color: '#9CA3AF' }}>
             {tile.label}{tile.sublabel ? ` · ${tile.sublabel}` : ''}
@@ -1051,22 +1058,45 @@ function LeadMagnetTab() {
       {/* Top metric tiles */}
       <div className="flex flex-wrap gap-3 mb-5">
         <div className="flex-1 min-w-[140px] rounded-lg px-5 py-4" style={{ background: GOALS_BG }}>
-          <div className="font-bold leading-none mb-1" style={{ fontSize: 28, color: costPerSubColor(costPerSub7) }}>
-            {costPerSub7 != null ? `$${costPerSub7.toFixed(2)}` : '—'}
-          </div>
+          {costPerSub7 != null ? (
+            <>
+              <div className="font-bold leading-none mb-1" style={{ fontSize: 28, color: costPerSubColor(costPerSub7) }}>
+                ${costPerSub7.toFixed(2)}
+              </div>
+              <div className="text-[11px] mb-1" style={{ color: '#9CA3AF' }}>Goal: &lt;$2.00</div>
+            </>
+          ) : (
+            <>
+              <div className="font-semibold leading-none mb-0.5" style={{ fontSize: 28, color: '#D1CBC2' }}>—</div>
+              <div className="text-[10.5px] mb-1" style={{ color: '#9CA3AF' }}>Available after 7 days of data</div>
+            </>
+          )}
           <div className="text-[12px]" style={{ color: '#9CA3AF' }}>Cost Per Sub (7d)</div>
-          <div className="text-[11px] mt-1" style={{ color: '#9CA3AF' }}>Goal: &lt;$2.00</div>
         </div>
         <div className="flex-1 min-w-[140px] rounded-lg px-5 py-4" style={{ background: GOALS_BG }}>
-          <div className="font-semibold leading-none mb-1" style={{ fontSize: 28, color: '#1E2D3D' }}>
-            {totalSpend7 > 0 ? `$${totalSpend7.toFixed(2)}` : '—'}
-          </div>
+          {totalSpend7 > 0 ? (
+            <div className="font-semibold leading-none mb-1" style={{ fontSize: 28, color: '#1E2D3D' }}>
+              ${totalSpend7.toFixed(2)}
+            </div>
+          ) : (
+            <>
+              <div className="font-semibold leading-none mb-0.5" style={{ fontSize: 28, color: '#D1CBC2' }}>—</div>
+              <div className="text-[10.5px] mb-1" style={{ color: '#9CA3AF' }}>Available after 7 days of data</div>
+            </>
+          )}
           <div className="text-[12px]" style={{ color: '#9CA3AF' }}>Total Spend (7d)</div>
         </div>
         <div className="flex-1 min-w-[140px] rounded-lg px-5 py-4" style={{ background: GOALS_BG }}>
-          <div className="font-semibold leading-none mb-1" style={{ fontSize: 28, color: '#1E2D3D' }}>
-            {totalSubs7 > 0 ? totalSubs7.toLocaleString() : '—'}
-          </div>
+          {totalSubs7 > 0 ? (
+            <div className="font-semibold leading-none mb-1" style={{ fontSize: 28, color: '#1E2D3D' }}>
+              {totalSubs7.toLocaleString()}
+            </div>
+          ) : (
+            <>
+              <div className="font-semibold leading-none mb-0.5" style={{ fontSize: 28, color: '#D1CBC2' }}>—</div>
+              <div className="text-[10.5px] mb-1" style={{ color: '#9CA3AF' }}>Available after 7 days of data</div>
+            </>
+          )}
           <div className="text-[12px]" style={{ color: '#9CA3AF' }}>New Subs (7d)</div>
         </div>
       </div>
