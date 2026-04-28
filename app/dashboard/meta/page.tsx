@@ -265,7 +265,7 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
       num: '2',
       title: 'Upload those screenshots for analysis',
       body: 'Drop competitor screenshots into the Upload page. Your AI coach will break down what\'s working in your genre — hook type, image style, emotional pull — that you might not be doing yet.',
-      link: { label: 'Upload competitor ads →', href: '/dashboard?upload=1' },
+      link: { label: 'Explore Creative Intelligence →', href: '/dashboard/creative', comingSoon: true },
     },
     {
       num: '3',
@@ -313,12 +313,19 @@ function RescuePanel({ ad }: { ad: MetaAd }) {
                 <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 600, color: '#1E2D3D', marginBottom: 2 }}>{step.title}</div>
                 <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12, lineHeight: 1.6, color: '#6B7280', margin: '0 0 6px' }}>{step.body}</p>
                 {step.link && (
-                  <a href={step.link.href}
-                    target={step.link.href.startsWith('http') ? '_blank' : undefined}
-                    rel={step.link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                    style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#D97706', textDecoration: 'none' }}>
-                    {step.link.label}
-                  </a>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <a href={step.link.href}
+                      target={step.link.href.startsWith('http') ? '_blank' : undefined}
+                      rel={step.link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                      style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#D97706', textDecoration: 'none' }}>
+                      {step.link.label}
+                    </a>
+                    {step.link.comingSoon && (
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '2px 5px', background: 'rgba(233,160,32,0.12)', color: '#E9A020', borderRadius: 3 }}>
+                        Coming Soon
+                      </span>
+                    )}
+                  </span>
                 )}
               </div>
             </div>
@@ -1109,8 +1116,8 @@ export default function MetaPage() {
                               {ad.name}
                             </span>
                             {needsRescue && (
-                              <span style={{ display: 'inline-block', marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9, fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '2px 6px', background: 'rgba(249,123,107,0.12)', color: '#F97B6B' }}>
-                                needs rescue
+                              <span style={{ display: 'inline-block', marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9, fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '2px 6px', background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>
+                                opportunity
                               </span>
                             )}
                           </div>
