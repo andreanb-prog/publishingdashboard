@@ -933,9 +933,9 @@ export default function MailerLitePage() {
                 transition: 'opacity 200ms ease-in',
               }}>
                 <BoutiqueDataGrid cols={3}>
-                  <BoutiqueMetricCard label="Open Rate" value={fmtPct(performanceMetrics.openRate)} colorDot="#5BBFB5" subtext={openSub} />
+                  <BoutiqueMetricCard label="Open Rate" value={fmtPct(performanceMetrics.openRate)} colorDot="#5BBFB5" subtext={openSub} tooltipContent={selectedGroupId ? "Lifetime average for this list. MailerLite doesn't support 30-day filtering by group." : undefined} />
                   <BoutiqueMetricCard label="List Size" value={performanceMetrics.listSize.toLocaleString()} colorDot="#5BBFB5" subtext="Active subscribers" />
-                  <BoutiqueMetricCard label="Click Rate" value={fmtPct(performanceMetrics.clickRate)} colorDot="#5BBFB5" subtext={clickSub} />
+                  <BoutiqueMetricCard label="Click Rate" value={fmtPct(performanceMetrics.clickRate)} colorDot="#5BBFB5" subtext={clickSub} tooltipContent={selectedGroupId ? "Lifetime average for this list. MailerLite doesn't support 30-day filtering by group." : undefined} />
                 </BoutiqueDataGrid>
                 <div style={{ marginTop: 1 }}>
                   <BoutiqueDataGrid cols={2}>
