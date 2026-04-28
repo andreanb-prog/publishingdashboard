@@ -1,7 +1,7 @@
 'use client'
 // components/TopBar.tsx — three-zone header: greeting | date range (dashboard only) | check-in + status + upload
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { ConnectionStatus } from './ConnectionStatus'
 import { UploadModal } from './UploadModal'
 
@@ -43,6 +43,7 @@ function getGreeting(): string {
 
 export function TopBar({ user }: TopBarProps) {
   const pathname = usePathname()
+  const router = useRouter()
 
   // Client-only time-derived values (avoid server/client timezone mismatch)
   const [greeting, setGreeting] = useState('')
@@ -193,7 +194,10 @@ export function TopBar({ user }: TopBarProps) {
     } else {
       setUploadStatus('success')
       setUploadMessage(`✓ Uploaded — ${totalRows} row${totalRows !== 1 ? 's' : ''} imported`)
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 4000)
       try { window.dispatchEvent(new CustomEvent('dashboard-data-refresh')) } catch {}
+      router.refresh()
       setTimeout(() => setUploadStatus('idle'), 5000)
     }
   }
