@@ -381,7 +381,146 @@ function UnsubNote({ analysis }: { analysis: UnsubAnalysis | null }) {
 }
 
 interface MLList { id: string; mailerliteId: string; name: string; activeCount: number; unsubCount: number; lastSyncedAt: string | null }
-interface Group { id: string; name: string; active_subscribers_count: number }
+interface Group {
+  id: string
+  name: string
+  active_subscribers_count: number
+  openRate: number
+  clickRate: number
+  unsubscribedCount: number
+}
+
+// ── Multi-select group dropdown ───────────────────────────────────────────────
+function GroupMultiSelect({
+  groups,
+  selectedIds,
+  onChange,
+}: {
+  groups: Group[]
+  selectedIds: string[]
+  onChange: (ids: string[]) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onMouseDown(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [])
+
+  const allSelected = selectedIds.length === 0 || selectedIds.length === groups.length
+
+  function toggleAll() { onChange([]) }
+
+  function toggleGroup(id: string) {
+    if (selectedIds.includes(id)) {
+      onChange(selectedIds.filter(x => x !== id))
+    } else {
+      onChange([...selectedIds, id])
+    }
+  }
+
+  const label = allSelected ? 'All Lists' : `${selectedIds.length} list${selectedIds.length !== 1 ? 's' : ''} selected`
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          background: 'white',
+          border: '1px solid #E8E1D3',
+          borderRadius: 0,
+          padding: '8px 12px',
+          fontSize: 13,
+          color: '#1E2D3D',
+          fontFamily: 'inherit',
+          cursor: 'pointer',
+          outline: 'none',
+          minWidth: 180,
+          justifyContent: 'space-between',
+        }}
+      >
+        <span>{label}</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+          style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s', flexShrink: 0 }}>
+          <path d="M2 4l4 4 4-4" stroke="#1E2D3D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute',
+          top: 'calc(100% + 4px)',
+          left: 0,
+          zIndex: 50,
+          background: 'white',
+          border: '0.5px solid rgba(30,45,61,0.1)',
+          borderRadius: 8,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          maxHeight: 320,
+          overflowY: 'auto',
+          minWidth: '100%',
+          width: 'max-content',
+        }}>
+          {/* All Lists */}
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 14px', cursor: 'pointer',
+            fontWeight: 700, fontSize: 13, color: '#1E2D3D',
+            borderBottom: '1px solid rgba(30,45,61,0.1)',
+            background: allSelected ? '#FFF8F0' : 'white',
+          }}>
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={toggleAll}
+              style={{ accentColor: '#E9A020', cursor: 'pointer', width: 14, height: 14 }}
+            />
+            All Lists
+          </label>
+
+          {groups.map(g => {
+            const checked = selectedIds.includes(g.id)
+            return (
+              <label
+                key={g.id}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 14px', cursor: 'pointer',
+                  fontSize: 13, color: '#1E2D3D',
+                  fontFamily: 'var(--font-sans)',
+                  background: checked ? '#FFF8F0' : 'white',
+                  borderBottom: '0.5px solid rgba(30,45,61,0.05)',
+                }}
+                onMouseEnter={e => { if (!checked) (e.currentTarget as HTMLElement).style.background = '#FFF8F0' }}
+                onMouseLeave={e => { if (!checked) (e.currentTarget as HTMLElement).style.background = 'white' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleGroup(g.id)}
+                  style={{ accentColor: '#E9A020', cursor: 'pointer', width: 14, height: 14 }}
+                />
+                <span style={{ flex: 1 }}>{g.name}</span>
+                <span style={{ color: 'rgba(30,45,61,0.5)', fontSize: 12, marginLeft: 8 }}>
+                  {g.active_subscribers_count.toLocaleString()} subs
+                </span>
+              </label>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function MailerLitePage() {
   const [coachTitle, setCoachTitle] = useState('Your marketing coach says')
@@ -403,7 +542,7 @@ export default function MailerLitePage() {
 
   // Group selector state
   const [groups, setGroups] = useState<Group[]>([])
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([])
 
   useEffect(() => {
     Promise.all([
@@ -431,12 +570,23 @@ export default function MailerLitePage() {
       fetch('/api/mailerlite/groups')
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(d => {
-          const loadedGroups: Group[] = d.groups ?? []
+          const loadedGroups: Group[] = (d.groups ?? []).map((g: any) => ({
+            id: String(g.id),
+            name: g.name ?? 'Unnamed Group',
+            active_subscribers_count: Number(g.active_subscribers_count ?? 0),
+            openRate: Number(g.openRate ?? 0),
+            clickRate: Number(g.clickRate ?? 0),
+            unsubscribedCount: Number(g.unsubscribedCount ?? 0),
+          }))
           setGroups(loadedGroups)
-          const stored = localStorage.getItem('mailerlite-selected-group')
-          if (stored && loadedGroups.find(g => g.id === stored)) {
-            setSelectedGroupId(stored)
-          }
+          try {
+            const stored = localStorage.getItem('mailerlite_selected_groups')
+            if (stored) {
+              const parsed: string[] = JSON.parse(stored)
+              const valid = parsed.filter(id => loadedGroups.find(g => g.id === id))
+              if (valid.length > 0) setSelectedGroupIds(valid)
+            }
+          } catch {}
         })
         .catch(() => {}),
     ]).finally(() => setLoading(false))
@@ -451,18 +601,18 @@ export default function MailerLitePage() {
       .finally(() => setCampaignsLoading(false))
   }, [])
 
-  // Stats fetch — reruns when selected group changes
+  // Stats fetch — reruns when selected groups change
   useEffect(() => {
     let cancelled = false
-    const url = selectedGroupId
-      ? `/api/mailerlite?groupId=${encodeURIComponent(selectedGroupId)}`
+    const url = selectedGroupIds.length === 1
+      ? `/api/mailerlite?groupId=${encodeURIComponent(selectedGroupIds[0])}`
       : '/api/mailerlite'
     fetch(url)
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(d => { if (!cancelled && d.data) setLiveml(d.data as MailerLiteData) })
       .catch(err => { if (!cancelled) console.warn('[MailerLite page] live fetch failed:', err) })
     return () => { cancelled = true }
-  }, [selectedGroupId])
+  }, [selectedGroupIds])
 
   // Fetch unsub analysis after liveml is available (non-blocking, client-side)
   useEffect(() => {
@@ -473,8 +623,30 @@ export default function MailerLitePage() {
       .catch(() => {})
   }, [liveml])
 
-  // Prefer live data from API; fall back to stored analysis snapshot
-  const ml = liveml ?? analysis?.mailerLite ?? null
+  // Prefer live data from API; fall back to stored analysis snapshot.
+  // When 2+ groups selected, aggregate the 4 key metrics client-side from group data.
+  const baseml = liveml ?? analysis?.mailerLite ?? null
+  let ml = baseml
+  if (baseml && selectedGroupIds.length >= 2) {
+    const selected = groups.filter(g => selectedGroupIds.includes(g.id))
+    if (selected.length >= 2) {
+      const totalSubs = selected.reduce((s, g) => s + (g.active_subscribers_count ?? 0), 0)
+      const totalUnsubs = selected.reduce((s, g) => s + (g.unsubscribedCount ?? 0), 0)
+      const weightedOpen = totalSubs > 0
+        ? selected.reduce((s, g) => s + (g.openRate ?? 0) * (g.active_subscribers_count ?? 0), 0) / totalSubs
+        : 0
+      const weightedClick = totalSubs > 0
+        ? selected.reduce((s, g) => s + (g.clickRate ?? 0) * (g.active_subscribers_count ?? 0), 0) / totalSubs
+        : 0
+      ml = {
+        ...baseml,
+        listSize: totalSubs,
+        unsubscribes: totalUnsubs,
+        openRate: Math.round(weightedOpen * 10) / 10,
+        clickRate: Math.round(weightedClick * 10) / 10,
+      }
+    }
+  }
 
   // Top campaigns sorted by open rate for coach copy
   const topCampaigns = [...liveCampaigns].sort((a, b) => b.openRate - a.openRate)
@@ -497,13 +669,12 @@ export default function MailerLitePage() {
     { metric: 'Unsubscribes (recent)', yours: ml?.unsubscribes ?? 0, avg: null, unit: '', good: (v: number) => v < 30 },
   ]
 
-  function handleGroupChange(value: string) {
-    const newId = value || null
-    setSelectedGroupId(newId)
-    if (newId) {
-      localStorage.setItem('mailerlite-selected-group', newId)
+  function handleGroupsChange(ids: string[]) {
+    setSelectedGroupIds(ids)
+    if (ids.length > 0) {
+      localStorage.setItem('mailerlite_selected_groups', JSON.stringify(ids))
     } else {
-      localStorage.removeItem('mailerlite-selected-group')
+      localStorage.removeItem('mailerlite_selected_groups')
     }
   }
 
@@ -624,28 +795,11 @@ export default function MailerLitePage() {
           {groups.length >= 2 && (
             <div className="flex items-center gap-2 mb-3">
               <span style={{ color: 'rgba(30,45,61,0.5)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Viewing:</span>
-              <select
-                value={selectedGroupId ?? ''}
-                onChange={e => handleGroupChange(e.target.value)}
-                style={{
-                  background: 'white',
-                  border: '1px solid #E8E1D3',
-                  borderRadius: 0,
-                  padding: '8px 12px',
-                  fontSize: 13,
-                  color: '#1E2D3D',
-                  fontFamily: 'inherit',
-                  cursor: 'pointer',
-                  outline: 'none',
-                }}
-              >
-                <option value="">All Lists</option>
-                {groups.map(g => (
-                  <option key={g.id} value={g.id}>
-                    {g.name} — {g.active_subscribers_count.toLocaleString()} subs
-                  </option>
-                ))}
-              </select>
+              <GroupMultiSelect
+                groups={groups}
+                selectedIds={selectedGroupIds}
+                onChange={handleGroupsChange}
+              />
             </div>
           )}
 

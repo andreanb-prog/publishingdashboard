@@ -27,11 +27,26 @@ export async function GET() {
     })
     if (!res.ok) return NextResponse.json({ groups: [] })
     const json = await res.json()
-    const groups = (json.data ?? []).map((g: { id: unknown; name?: string; active_count?: unknown; active_subscribers_count?: unknown }) => ({
-      id: String(g.id),
-      name: g.name ?? 'Unnamed Group',
-      active_subscribers_count: Number(g.active_count ?? g.active_subscribers_count ?? 0),
-    }))
+    const groups = (json.data ?? []).map((g: {
+      id: unknown
+      name?: string
+      active_count?: unknown
+      active_subscribers_count?: unknown
+      open_rate?: { float?: unknown } | number | null
+      click_rate?: { float?: unknown } | number | null
+      unsubscribed_count?: unknown
+    }) => {
+      const rawOpen = (g.open_rate as any)?.float ?? g.open_rate ?? 0
+      const rawClick = (g.click_rate as any)?.float ?? g.click_rate ?? 0
+      return {
+        id: String(g.id),
+        name: g.name ?? 'Unnamed Group',
+        active_subscribers_count: Number(g.active_count ?? g.active_subscribers_count ?? 0),
+        openRate: Math.round(Number(rawOpen) * 1000) / 10,
+        clickRate: Math.round(Number(rawClick) * 1000) / 10,
+        unsubscribedCount: Number(g.unsubscribed_count ?? 0),
+      }
+    })
     return NextResponse.json({ groups })
   } catch {
     return NextResponse.json({ groups: [] })
