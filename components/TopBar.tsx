@@ -169,10 +169,12 @@ export function TopBar({ user }: TopBarProps) {
     let errorMsg = ''
 
     for (const file of files) {
+      const name = file.name.toLowerCase()
+      console.log('[TopBar] direct upload:', { fileName: file.name, mimeType: file.type, ext: name.split('.').pop() })
       try {
         const form = new FormData()
         form.append('file', file)
-        const res = await fetch('/api/parse-kdp', { method: 'POST', body: form })
+        const res = await fetch('/api/parse-auto', { method: 'POST', body: form })
         const json = await res.json()
 
         if (!res.ok) {
