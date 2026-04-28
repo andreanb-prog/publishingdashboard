@@ -389,16 +389,43 @@ interface Group {
   clickRate: number
   unsubscribedCount: number
 }
+interface GroupStats {
+  id: string
+  name: string
+  listSize: number
+  openRate: number
+  clickRate: number
+  unsubscribes: number
+  sentCount: number
+}
 
-// ── Multi-select group dropdown ───────────────────────────────────────────────
-function GroupMultiSelect({
+// ── Metric card skeleton ──────────────────────────────────────────────────────
+function MetricCardSkeleton() {
+  return (
+    <div className="animate-pulse" style={{
+      background: '#FFF8F0',
+      border: '1px solid #EEEBE6',
+      padding: '20px 22px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8,
+    }}>
+      <div style={{ background: '#E8E2D8', height: 10, width: '40%', borderRadius: 2 }} />
+      <div style={{ background: '#E8E2D8', height: 30, width: '55%', borderRadius: 2, marginTop: 2 }} />
+      <div style={{ background: '#E8E2D8', height: 9, width: '75%', borderRadius: 2 }} />
+    </div>
+  )
+}
+
+// ── Single-select group dropdown ──────────────────────────────────────────────
+function GroupSingleSelect({
   groups,
-  selectedIds,
+  selectedId,
   onChange,
 }: {
   groups: Group[]
-  selectedIds: string[]
-  onChange: (ids: string[]) => void
+  selectedId: string | null | undefined
+  onChange: (id: string | null) => void
 }) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -413,19 +440,10 @@ function GroupMultiSelect({
     return () => document.removeEventListener('mousedown', onMouseDown)
   }, [])
 
-  const allSelected = selectedIds.length === 0 || selectedIds.length === groups.length
-
-  function toggleAll() { onChange([]) }
-
-  function toggleGroup(id: string) {
-    if (selectedIds.includes(id)) {
-      onChange(selectedIds.filter(x => x !== id))
-    } else {
-      onChange([...selectedIds, id])
-    }
-  }
-
-  const label = allSelected ? 'All Lists' : `${selectedIds.length} list${selectedIds.length !== 1 ? 's' : ''} selected`
+  const selectedGroup = groups.find(g => g.id === selectedId)
+  const label = selectedId === null
+    ? 'All Lists'
+    : selectedGroup?.name ?? 'Select a list...'
 
   return (
     <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
@@ -471,51 +489,60 @@ function GroupMultiSelect({
           width: 'max-content',
         }}>
           {/* All Lists */}
-          <label style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 14px', cursor: 'pointer',
-            fontWeight: 700, fontSize: 13, color: '#1E2D3D',
-            borderBottom: '1px solid rgba(30,45,61,0.1)',
-            background: allSelected ? '#FFF8F0' : 'white',
-          }}>
-            <input
-              type="checkbox"
-              checked={allSelected}
-              onChange={toggleAll}
-              style={{ accentColor: '#E9A020', cursor: 'pointer', width: 14, height: 14 }}
-            />
+          <button
+            onClick={() => { onChange(null); setOpen(false) }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '10px 14px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: 13,
+              color: '#1E2D3D',
+              borderTop: 'none',
+              borderLeft: 'none',
+              borderRight: 'none',
+              borderBottom: '1px solid rgba(30,45,61,0.1)',
+              background: selectedId === null ? '#FFF8F0' : 'white',
+              width: '100%',
+              textAlign: 'left',
+              fontFamily: 'inherit',
+            }}
+          >
             All Lists
-          </label>
+          </button>
 
-          {groups.map(g => {
-            const checked = selectedIds.includes(g.id)
-            return (
-              <label
-                key={g.id}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 14px', cursor: 'pointer',
-                  fontSize: 13, color: '#1E2D3D',
-                  fontFamily: 'var(--font-sans)',
-                  background: checked ? '#FFF8F0' : 'white',
-                  borderBottom: '0.5px solid rgba(30,45,61,0.05)',
-                }}
-                onMouseEnter={e => { if (!checked) (e.currentTarget as HTMLElement).style.background = '#FFF8F0' }}
-                onMouseLeave={e => { if (!checked) (e.currentTarget as HTMLElement).style.background = 'white' }}
-              >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => toggleGroup(g.id)}
-                  style={{ accentColor: '#E9A020', cursor: 'pointer', width: 14, height: 14 }}
-                />
-                <span style={{ flex: 1 }}>{g.name}</span>
-                <span style={{ color: 'rgba(30,45,61,0.5)', fontSize: 12, marginLeft: 8 }}>
-                  {g.active_subscribers_count.toLocaleString()} subs
-                </span>
-              </label>
-            )
-          })}
+          {groups.map(g => (
+            <button
+              key={g.id}
+              onClick={() => { onChange(g.id); setOpen(false) }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 14px',
+                cursor: 'pointer',
+                fontSize: 13,
+                color: '#1E2D3D',
+                fontFamily: 'var(--font-sans)',
+                background: selectedId === g.id ? '#FFF8F0' : 'white',
+                borderTop: 'none',
+                borderLeft: 'none',
+                borderRight: 'none',
+                borderBottom: '0.5px solid rgba(30,45,61,0.05)',
+                width: '100%',
+                textAlign: 'left',
+              }}
+              onMouseEnter={e => { if (selectedId !== g.id) (e.currentTarget as HTMLElement).style.background = '#FFF8F0' }}
+              onMouseLeave={e => { if (selectedId !== g.id) (e.currentTarget as HTMLElement).style.background = 'white' }}
+            >
+              <span style={{ flex: 1 }}>{g.name}</span>
+              <span style={{ color: 'rgba(30,45,61,0.5)', fontSize: 12, marginLeft: 8 }}>
+                {g.active_subscribers_count.toLocaleString()} subs
+              </span>
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -542,7 +569,11 @@ export default function MailerLitePage() {
 
   // Group selector state
   const [groups, setGroups] = useState<Group[]>([])
-  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([])
+  // undefined = nothing chosen yet | null = All Lists | string = specific group ID
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null | undefined>(undefined)
+  const [groupStats, setGroupStats] = useState<GroupStats | null>(null)
+  const [groupStatsLoading, setGroupStatsLoading] = useState(false)
+  const [metricsVisible, setMetricsVisible] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -580,12 +611,13 @@ export default function MailerLitePage() {
           }))
           setGroups(loadedGroups)
           try {
-            const stored = localStorage.getItem('mailerlite_selected_groups')
-            if (stored) {
-              const parsed: string[] = JSON.parse(stored)
-              const valid = parsed.filter(id => loadedGroups.find(g => g.id === id))
-              if (valid.length > 0) setSelectedGroupIds(valid)
+            const stored = localStorage.getItem('mailerlite_selected_group')
+            if (stored === 'all') {
+              setSelectedGroupId(null)
+            } else if (stored && loadedGroups.find(g => g.id === stored)) {
+              setSelectedGroupId(stored)
             }
+            // else leave as undefined (unselected) — show empty state
           } catch {}
         })
         .catch(() => {}),
@@ -601,18 +633,61 @@ export default function MailerLitePage() {
       .finally(() => setCampaignsLoading(false))
   }, [])
 
-  // Stats fetch — reruns when selected groups change
+  // Fetch account-wide stats once on mount (campaigns, automations, etc.)
   useEffect(() => {
     let cancelled = false
-    const url = selectedGroupIds.length === 1
-      ? `/api/mailerlite?groupId=${encodeURIComponent(selectedGroupIds[0])}`
-      : '/api/mailerlite'
-    fetch(url)
+    fetch('/api/mailerlite')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(d => { if (!cancelled && d.data) setLiveml(d.data as MailerLiteData) })
       .catch(err => { if (!cancelled) console.warn('[MailerLite page] live fetch failed:', err) })
     return () => { cancelled = true }
-  }, [selectedGroupIds])
+  }, [])
+
+  // Fetch group-specific stats when a group is selected
+  useEffect(() => {
+    if (selectedGroupId === undefined) {
+      setGroupStats(null)
+      setGroupStatsLoading(false)
+      return
+    }
+    if (selectedGroupId === null) {
+      // All Lists — use liveml metrics
+      setGroupStats(null)
+      setGroupStatsLoading(false)
+      return
+    }
+    let cancelled = false
+    setGroupStatsLoading(true)
+    setGroupStats(null)
+    setMetricsVisible(false)
+    fetch(`/api/mailerlite/groups/${encodeURIComponent(selectedGroupId)}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => {
+        if (!cancelled) {
+          setGroupStats(d as GroupStats)
+          setGroupStatsLoading(false)
+        }
+      })
+      .catch(err => {
+        if (!cancelled) {
+          console.warn('[MailerLite page] group stats fetch failed:', err)
+          setGroupStatsLoading(false)
+        }
+      })
+    return () => { cancelled = true }
+  }, [selectedGroupId])
+
+  // Trigger fade-in when metrics become available
+  useEffect(() => {
+    const showingAccountWide = selectedGroupId === null || groups.length === 0
+    if (showingAccountWide && liveml) {
+      setMetricsVisible(false)
+      requestAnimationFrame(() => requestAnimationFrame(() => setMetricsVisible(true)))
+    } else if (!showingAccountWide && selectedGroupId !== undefined && groupStats) {
+      setMetricsVisible(false)
+      requestAnimationFrame(() => requestAnimationFrame(() => setMetricsVisible(true)))
+    }
+  }, [groupStats, liveml, selectedGroupId, groups.length])
 
   // Fetch unsub analysis after liveml is available (non-blocking, client-side)
   useEffect(() => {
@@ -623,30 +698,14 @@ export default function MailerLitePage() {
       .catch(() => {})
   }, [liveml])
 
-  // Prefer live data from API; fall back to stored analysis snapshot.
-  // When 2+ groups selected, aggregate the 4 key metrics client-side from group data.
-  const baseml = liveml ?? analysis?.mailerLite ?? null
-  let ml = baseml
-  if (baseml && selectedGroupIds.length >= 2) {
-    const selected = groups.filter(g => selectedGroupIds.includes(g.id))
-    if (selected.length >= 2) {
-      const totalSubs = selected.reduce((s, g) => s + (g.active_subscribers_count ?? 0), 0)
-      const totalUnsubs = selected.reduce((s, g) => s + (g.unsubscribedCount ?? 0), 0)
-      const weightedOpen = totalSubs > 0
-        ? selected.reduce((s, g) => s + (g.openRate ?? 0) * (g.active_subscribers_count ?? 0), 0) / totalSubs
-        : 0
-      const weightedClick = totalSubs > 0
-        ? selected.reduce((s, g) => s + (g.clickRate ?? 0) * (g.active_subscribers_count ?? 0), 0) / totalSubs
-        : 0
-      ml = {
-        ...baseml,
-        listSize: totalSubs,
-        unsubscribes: totalUnsubs,
-        openRate: Math.round(weightedOpen * 10) / 10,
-        clickRate: Math.round(weightedClick * 10) / 10,
-      }
-    }
-  }
+  // Full account-wide data (campaigns, automations, benchmarks etc.)
+  const ml = liveml ?? analysis?.mailerLite ?? null
+
+  // Metrics to show in the Performance cards — group-specific or account-wide
+  // If no groups exist, always show account-wide stats
+  const performanceMetrics = (selectedGroupId === null || groups.length === 0)
+    ? ml   // All Lists or no groups
+    : groupStats  // Specific group (or null if unselected/loading)
 
   // Top campaigns sorted by open rate for coach copy
   const topCampaigns = [...liveCampaigns].sort((a, b) => b.openRate - a.openRate)
@@ -669,12 +728,12 @@ export default function MailerLitePage() {
     { metric: 'Unsubscribes (recent)', yours: ml?.unsubscribes ?? 0, avg: null, unit: '', good: (v: number) => v < 30 },
   ]
 
-  function handleGroupsChange(ids: string[]) {
-    setSelectedGroupIds(ids)
-    if (ids.length > 0) {
-      localStorage.setItem('mailerlite_selected_groups', JSON.stringify(ids))
+  function handleGroupChange(id: string | null) {
+    setSelectedGroupId(id)
+    if (id === null) {
+      localStorage.setItem('mailerlite_selected_group', 'all')
     } else {
-      localStorage.removeItem('mailerlite_selected_groups')
+      localStorage.setItem('mailerlite_selected_group', id)
     }
   }
 
@@ -791,31 +850,101 @@ export default function MailerLitePage() {
           </div>
 
 
-          {/* ── Group selector (shown only when 2+ groups exist) ─────── */}
-          {groups.length >= 2 && (
+          {/* ── Group selector ────────────────────────────────────────── */}
+          {groups.length >= 1 && (
             <div className="flex items-center gap-2 mb-3">
               <span style={{ color: 'rgba(30,45,61,0.5)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Viewing:</span>
-              <GroupMultiSelect
+              <GroupSingleSelect
                 groups={groups}
-                selectedIds={selectedGroupIds}
-                onChange={handleGroupsChange}
+                selectedId={selectedGroupId}
+                onChange={handleGroupChange}
               />
             </div>
           )}
 
-          <BoutiqueSectionLabel label="Performance" />
-          <div style={{ marginBottom: 32 }}>
-            <BoutiqueDataGrid cols={3}>
-              <BoutiqueMetricCard label="Open Rate" value={fmtPct(ml.openRate)} colorDot="#5BBFB5" subtext={openSub} />
-              <BoutiqueMetricCard label="List Size" value={ml.listSize.toLocaleString()} colorDot="#5BBFB5" subtext="Active subscribers" />
-              <BoutiqueMetricCard label="Click Rate" value={fmtPct(ml.clickRate)} colorDot="#5BBFB5" subtext={clickSub} />
-            </BoutiqueDataGrid>
-            <div style={{ marginTop: 1 }}>
-              <BoutiqueDataGrid cols={2}>
-                <BoutiqueMetricCard label="Unsubscribes" value={String(ml.unsubscribes)} colorDot="#5BBFB5" subtext="Total unsubscribed" />
-                <BoutiqueMetricCard label="Total Sent" value={ml.sentCount != null ? ml.sentCount.toLocaleString() : '—'} colorDot="#5BBFB5" subtext="Emails sent (list lifetime)" />
-              </BoutiqueDataGrid>
+          {/* Amber pill: shown when a specific group is selected */}
+          {selectedGroupId && groupStats && (
+            <div className="mb-2">
+              <span style={{
+                background: '#E9A020',
+                color: '#1E2D3D',
+                fontSize: 11,
+                fontWeight: 600,
+                padding: '3px 10px',
+                borderRadius: 9999,
+                fontFamily: 'var(--font-sans)',
+                display: 'inline-block',
+              }}>
+                Viewing: {groupStats.name}
+              </span>
             </div>
+          )}
+
+          <BoutiqueSectionLabel label="Performance" />
+
+          {/* Performance metric cards — empty state / skeleton / real data */}
+          <div style={{ marginBottom: 32 }}>
+            {(selectedGroupId === undefined && groups.length >= 1) ? (
+              /* No selection yet */
+              <div style={{
+                padding: '48px 24px',
+                textAlign: 'center',
+                background: 'white',
+                border: '1px solid #EEEBE6',
+              }}>
+                <p style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: '#1E2D3D',
+                  marginBottom: 8,
+                }}>
+                  Pick a list to see how she&apos;s doing.
+                </p>
+                <p style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 13,
+                  fontStyle: 'italic',
+                  color: '#1E2D3D',
+                  opacity: 0.65,
+                }}>
+                  Your readers are in here somewhere. Let&apos;s find out what they love.
+                </p>
+              </div>
+            ) : groupStatsLoading ? (
+              /* Loading skeleton */
+              <>
+                <BoutiqueDataGrid cols={3}>
+                  <MetricCardSkeleton />
+                  <MetricCardSkeleton />
+                  <MetricCardSkeleton />
+                </BoutiqueDataGrid>
+                <div style={{ marginTop: 1 }}>
+                  <BoutiqueDataGrid cols={2}>
+                    <MetricCardSkeleton />
+                    <MetricCardSkeleton />
+                  </BoutiqueDataGrid>
+                </div>
+              </>
+            ) : performanceMetrics ? (
+              /* Real data with fade-in */
+              <div style={{
+                opacity: metricsVisible ? 1 : 0,
+                transition: 'opacity 200ms ease-in',
+              }}>
+                <BoutiqueDataGrid cols={3}>
+                  <BoutiqueMetricCard label="Open Rate" value={fmtPct(performanceMetrics.openRate)} colorDot="#5BBFB5" subtext={openSub} />
+                  <BoutiqueMetricCard label="List Size" value={performanceMetrics.listSize.toLocaleString()} colorDot="#5BBFB5" subtext="Active subscribers" />
+                  <BoutiqueMetricCard label="Click Rate" value={fmtPct(performanceMetrics.clickRate)} colorDot="#5BBFB5" subtext={clickSub} />
+                </BoutiqueDataGrid>
+                <div style={{ marginTop: 1 }}>
+                  <BoutiqueDataGrid cols={2}>
+                    <BoutiqueMetricCard label="Unsubscribes" value={String(performanceMetrics.unsubscribes)} colorDot="#5BBFB5" subtext="Total unsubscribed" />
+                    <BoutiqueMetricCard label="Total Sent" value={performanceMetrics.sentCount != null ? performanceMetrics.sentCount.toLocaleString() : '—'} colorDot="#5BBFB5" subtext="Emails sent (list lifetime)" />
+                  </BoutiqueDataGrid>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {analysis && <InsightCallouts analysis={{ ...analysis, meta: undefined, kdp: undefined, pinterest: undefined }} page="mailerlite" />}
