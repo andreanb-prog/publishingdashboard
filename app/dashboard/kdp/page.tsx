@@ -34,6 +34,7 @@ import { LastUploadBadge } from '@/components/LastUploadBadge'
 import CategoryIntelligence from '@/components/CategoryIntelligence'
 import BsrTracker from '@/components/BsrTracker'
 import type { Analysis, DailyData, RoasLog, MailerLiteCampaign } from '@/types'
+import { BookOpen, Repeat, Book, Globe, type LucideIcon } from 'lucide-react'
 
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -953,6 +954,44 @@ function EmailVsSalesChart({
   )
 }
 
+// ── Format Badges ─────────────────────────────────────────────────────────────
+type FormatBadgeType = 'purchased' | 'ku' | 'paperback' | 'translation'
+
+const FORMAT_BADGE_CONFIG: Record<FormatBadgeType, { icon: LucideIcon; label: string; color: string }> = {
+  purchased:   { icon: BookOpen, label: 'Purchased',    color: '#1E2D3D' },
+  ku:          { icon: Repeat,   label: 'KU / Borrowed', color: '#E9A020' },
+  paperback:   { icon: Book,     label: 'Paperback',    color: '#6EBF8B' },
+  translation: { icon: Globe,    label: 'Translation',  color: '#5BBFB5' },
+}
+
+function getFormatBadges(b: { units: number; kenp: number; format?: string }): FormatBadgeType[] {
+  const badges: FormatBadgeType[] = []
+  const isPaperback = b?.format === 'paperback'
+  if (isPaperback) badges.push('paperback')
+  if (!isPaperback && (b?.units ?? 0) > 0) badges.push('purchased')
+  if ((b?.kenp ?? 0) > 0) badges.push('ku')
+  // 'translation' requires marketplace data not stored in current schema
+  return badges
+}
+
+function FormatBadge({ type, faded }: { type: FormatBadgeType; faded?: boolean }) {
+  const { icon: Icon, label, color } = FORMAT_BADGE_CONFIG[type]
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      background: faded ? 'rgba(255,255,255,0.25)' : '#FFF8F0',
+      border: `0.5px solid ${faded ? 'rgba(255,255,255,0.4)' : 'rgba(30,45,61,0.15)'}`,
+      borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 600,
+      color: faded ? 'white' : color,
+      flexShrink: 0,
+      whiteSpace: 'nowrap',
+    }}>
+      <Icon size={10} style={{ flexShrink: 0 }} />
+      {label}
+    </span>
+  )
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function KDPPage() {
   const [coachTitle, setCoachTitle] = useState('Your marketing coach says')
@@ -1319,7 +1358,7 @@ export default function KDPPage() {
                 const colorIdx = bookColorMap[b.asin?.trim().toUpperCase() ?? ''] ?? visibleIdx
                 const c = BOOK_COLORS[colorIdx] || '#6B7280'
                 const isSelected = selectedBooks.has(b.asin)
-                const isPB = (b as any).format === 'paperback'
+                const formatBadges = getFormatBadges(b)
                 return (
                   <button key={b.asin || b.shortTitle}
                     onClick={() => setSelectedBooks(prev => {
@@ -1334,14 +1373,11 @@ export default function KDPPage() {
                       border: `0.5px solid ${isSelected ? c : '#EEEBE6'}`,
                       cursor: 'pointer',
                     }}>
-                    <span className="w-2 h-2 rounded-full" style={{ background: isSelected ? 'white' : c }} />
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: isSelected ? 'white' : c }} />
                     {b.shortTitle}
-                    {isPB && (
-                      <span className="text-[9px] font-bold px-1 py-0.5 rounded"
-                        style={{ background: isSelected ? 'rgba(255,255,255,0.25)' : '#F5F5F4', color: isSelected ? 'white' : '#6B7280', lineHeight: 1 }}>
-                        PB
-                      </span>
-                    )}
+                    {formatBadges.map(type => (
+                      <FormatBadge key={type} type={type} faded={isSelected} />
+                    ))}
                   </button>
                 )
               })}
@@ -1369,11 +1405,14 @@ export default function KDPPage() {
                       return (
                         <div key={b.asin || b.shortTitle}>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="flex items-center gap-1.5 text-[12px]" style={{ color: '#374151' }}>
+                            <span className="flex items-center gap-1.5 text-[12px] flex-wrap" style={{ color: '#374151' }}>
                               <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
                               {b.shortTitle}
+                              {getFormatBadges(b).map(type => (
+                                <FormatBadge key={type} type={type} />
+                              ))}
                             </span>
-                            <span className="text-[13px] font-bold" style={{ color: '#1E2D3D' }}>{val.toLocaleString()}</span>
+                            <span className="text-[13px] font-bold flex-shrink-0 ml-2" style={{ color: '#1E2D3D' }}>{val.toLocaleString()}</span>
                           </div>
                           <div className="rounded-full overflow-hidden" style={{ height: 24, background: '#F5F5F4' }}>
                             <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(val / maxVal) * 100}%`, background: color }} />
