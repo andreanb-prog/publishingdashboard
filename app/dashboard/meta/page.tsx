@@ -713,11 +713,13 @@ export default function MetaPage() {
     window.location.replace('/api/meta/connect')
   }
 
+  // Single fetch path: any change to activeRange triggers a re-fetch
   useEffect(() => {
-    // Fetch date-filtered data immediately for the default preset
-    const initRange = getPresetRange('last30')
-    fetchDateRange(initRange.start, initRange.end)
+    if (!activeRange.start || !activeRange.end) return
+    fetchDateRange(activeRange.start, activeRange.end)
+  }, [activeRange, fetchDateRange])
 
+  useEffect(() => {
     Promise.all([
       loadMetaData(),
       fetch('/api/prefs')
@@ -738,8 +740,8 @@ export default function MetaPage() {
 
     // Re-fetch when a file is uploaded via the TopBar direct-upload button
     function onUpload() {
-      const range = getPresetRange('last30')
-      fetchDateRange(range.start, range.end)
+      setPreset('last30')
+      setActiveRange(getPresetRange('last30'))
       loadMetaData()
     }
     window.addEventListener('dashboard-data-refresh', onUpload)
@@ -748,20 +750,17 @@ export default function MetaPage() {
       window.removeEventListener('meta:synced', onSynced)
       window.removeEventListener('dashboard-data-refresh', onUpload)
     }
-  }, [fetchDateRange]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handlePreset(p: Preset) {
     setPreset(p)
     if (p !== 'custom') {
-      const range = getPresetRange(p)
-      setActiveRange(range)
-      fetchDateRange(range.start, range.end)
+      setActiveRange(getPresetRange(p))
     }
   }
 
   function handleCustomApply(start: string, end: string) {
     setActiveRange({ start, end })
-    fetchDateRange(start, end)
   }
 
   // Close picker when clicking outside
