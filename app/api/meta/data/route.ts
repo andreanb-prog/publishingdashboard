@@ -21,7 +21,16 @@ async function respondFromDB(userId: string, startDate: string, endDate: string)
   console.log(`[Meta data] DB returned ${dbRows.length} rows`)
 
   if (dbRows.length === 0) {
-    return NextResponse.json({ data: null, message: 'No data for this date range.' })
+    // Return the actual date range of stored data so the UI can offer a one-click switch
+    const [oldest, newest] = await Promise.all([
+      db.metaAdData.findFirst({ where: { userId }, orderBy: { date: 'asc' },  select: { date: true } }),
+      db.metaAdData.findFirst({ where: { userId }, orderBy: { date: 'desc' }, select: { date: true } }),
+    ])
+    const availableRange = oldest && newest ? {
+      start: oldest.date.toISOString().split('T')[0],
+      end:   newest.date.toISOString().split('T')[0],
+    } : null
+    return NextResponse.json({ data: null, message: 'No data for this date range.', availableRange })
   }
 
   // Group by campaignName, summing spend/clicks/impressions across days

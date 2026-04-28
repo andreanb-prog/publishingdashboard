@@ -652,6 +652,7 @@ export default function MetaPage() {
   const [metaLastSync, setMetaLastSync] = useState<string | null>(null)
   // undefined = no date range fetch yet (show analysis cache); null = fetch returned no data for range
   const [metaOverride, setMetaOverride] = useState<import('@/types').MetaData | null | undefined>(undefined)
+  const [availableRange, setAvailableRange] = useState<{ start: string; end: string } | null>(null)
 
   // Date range state
   const [preset,      setPreset]      = useState<Preset>('last30')
@@ -677,6 +678,7 @@ export default function MetaPage() {
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(d => {
         setMetaOverride(d.data ?? null)
+        setAvailableRange(d.data ? null : (d.availableRange ?? null))
       })
       .catch(() => { setMetaOverride(null) })
       .finally(() => setDateLoading(false))
@@ -903,9 +905,32 @@ export default function MetaPage() {
 
       {!meta ? (
         metaOverride === null ? (
-          <BoutiqueEmptyState
-            message={preset === 'today' ? 'No data for today yet' : 'No data for this date range'}
-          />
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-12 h-12 rounded-full border-2 border-dashed flex items-center justify-center" style={{ borderColor: '#D1D5DB' }}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#9CA3AF" strokeWidth="1.5"/><path d="M10 7v3.5M10 13h.01" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </div>
+            <p className="text-[13px]" style={{ color: '#6B7280' }}>
+              {preset === 'today' ? 'No data for today yet' : 'No data for this date range'}
+            </p>
+            {availableRange && (
+              <div className="flex flex-col items-center gap-2 mt-1">
+                <p className="text-[12px]" style={{ color: '#9CA3AF' }}>
+                  Your uploaded data covers {formatDisplayRange(availableRange.start, availableRange.end)}
+                </p>
+                <button
+                  onClick={() => {
+                    setPreset('custom')
+                    setActiveRange(availableRange)
+                    fetchDateRange(availableRange.start, availableRange.end)
+                  }}
+                  className="px-4 py-1.5 rounded-lg text-[12px] font-semibold transition-all hover:opacity-90"
+                  style={{ background: '#E9A020', color: '#0d1f35', border: 'none', cursor: 'pointer' }}
+                >
+                  Switch to this range →
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
           <BoutiqueEmptyState
             message="No Meta data yet"
