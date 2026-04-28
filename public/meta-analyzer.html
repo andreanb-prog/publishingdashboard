@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Meta Ads Analyzer · AuthorDash</title>
-<script src="/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1096,20 +1095,18 @@ dropZone.addEventListener('drop', e => {
 });
 fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
 
-function handleFile(file) {
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const wb = XLSX.read(e.target.result, { type:'binary' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
-      if (!rows.length) throw new Error('No data rows found.');
-      processData(rows);
-    } catch(err) {
-      showError('Could not read this file. Make sure it\'s a Meta Ads export (.xlsx or .csv). ' + err.message);
-    }
-  };
-  reader.readAsBinaryString(file);
+async function handleFile(file) {
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const resp = await fetch('/api/meta-parse', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    if (!data.rows || !data.rows.length) throw new Error('No data rows found.');
+    processData(data.rows);
+  } catch(err) {
+    showError('Could not read this file. Make sure it\'s a Meta Ads export (.xlsx or .csv). ' + err.message);
+  }
 }
 
 function processData(rows) {
