@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta Ads Analyzer · AuthorDash</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --cream: #FFF8F0;
+  --navy: #1E2D3D;
+  --amber: #E9A020;
+  --coral: #F97B6B;
+  --sage:  #6EBF8B;
+  --peach: #F4A261;
+  --muted: rgba(30,45,61,0.42);
+  --muted-light: rgba(30,45,61,0.2);
+  --border: rgba(30,45,61,0.08);
+  --border-mid: rgba(30,45,61,0.13);
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--cream);
+  color: var(--navy);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 52px 28px 100px;
+}
+
+/* ── WORDMARK ── */
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  margin-bottom: 40px;
+}
+.wordmark-author {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--navy);
+  letter-spacing: -.01em;
+}
+.wordmark-dash {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 18px;
+  color: var(--amber);
+}
+.wordmark-byline {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted-light);
+  letter-spacing: .04em;
+}
+
+/* ── PAGE HEADER ── */
+.page-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.page-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--navy);
+  margin-bottom: 10px;
+}
+
+.page-sub {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.68;
+  max-width: 480px;
+  margin-bottom: 44px;
+  font-weight: 300;
+}
+
+/* ── PRE-FLIGHT ── */
+.preflight {
+  margin-bottom: 36px;
+}
+
+.preflight-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.preflight-rules {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.rule-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 18px 16px;
+}
+
+.rule-icon {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 12px;
+  color: var(--amber);
+}
+
+.rule-icon svg {
+  width: 28px;
+  height: 28px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rule-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 5px;
+  line-height: 1.2;
+}
+
+.rule-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+.dollar-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 22px;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.dollar-amount {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 52px;
+  color: var(--amber);
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+
+.dollar-text {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.72;
+  font-weight: 300;
+  padding-top: 4px;
+}
+
+.dollar-text strong {
+  color: var(--navy);
+  font-weight: 500;
+}
+
+/* ── UPLOAD ── */
+.upload-wrap {
+  margin-bottom: 10px;
+}
+
+.upload-zone {
+  border: 1.5px dashed var(--border-mid);
+  border-radius: 16px;
+  padding: 40px 28px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  background: white;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--amber);
+  background: #fffcf7;
+}
+
+.upload-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.upload-icon-wrap {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 14px;
+  background: var(--cream);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-icon-wrap svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--amber);
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.upload-cta {
+  font-family: 'Playfair Display', serif;
+  font-size: 17px;
+  color: var(--navy);
+  margin-bottom: 3px;
+}
+
+.upload-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 14px;
+  font-weight: 300;
+}
+
+.upload-note {
+  font-size: 11px;
+  color: var(--muted-light);
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  letter-spacing: .02em;
+}
+
+/* ── DETAILS ── */
+details {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+summary {
+  padding: 13px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--navy);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+}
+
+summary::-webkit-details-marker { display: none; }
+summary::after { content: '+'; font-size: 16px; color: var(--amber); font-weight: 300; }
+details[open] summary::after { content: '−'; }
+
+.detail-body {
+  padding: 0 16px 16px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.75;
+  border-top: 1px solid var(--border);
+  font-weight: 300;
+}
+.detail-body ol { padding-left: 18px; margin-top: 11px; }
+.detail-body li { margin-bottom: 5px; }
+.detail-body strong { color: var(--navy); font-weight: 500; }
+
+/* ── LOADING ── */
+#loading { display: none; }
+
+.loading-head {
+  text-align: center;
+  padding: 36px 0 36px;
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--border-mid);
+  border-top-color: var(--amber);
+  border-radius: 50%;
+  animation: spin .9s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-serif {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 22px;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+
+.loading-sub {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: .04em;
+  font-weight: 300;
+}
+
+/* ── COACH CARDS (loading) ── */
+.coach-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  margin-bottom: 10px;
+  position: relative;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .5s ease, transform .5s ease;
+}
+
+.coach-card.visible { opacity: 1; transform: translateY(0); }
+
+.coach-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+}
+
+.coach-card.amber::before { background: var(--amber); }
+.coach-card.sage::before  { background: var(--sage); }
+.coach-card.navy::before  { background: var(--navy); }
+.coach-card.peach::before { background: var(--peach); }
+
+.coach-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  margin-bottom: 7px;
+}
+
+.coach-card.amber .coach-label { color: #a06a00; }
+.coach-card.sage  .coach-label { color: #3a8a5a; }
+.coach-card.navy  .coach-label { color: var(--muted); }
+.coach-card.peach .coach-label { color: #b05e1a; }
+
+.coach-headline {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 10px;
+  line-height: 1.25;
+}
+
+.coach-body {
+  font-size: 13px;
+  color: rgba(30,45,61,0.68);
+  line-height: 1.8;
+  font-weight: 300;
+}
+
+.coach-body strong { color: var(--navy); font-weight: 500; }
+.coach-body em { font-style: italic; }
+
+/* Benchmark table */
+.bench-table {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.bench-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-left: 2px solid transparent;
+  font-size: 12px;
+}
+
+.bench-row + .bench-row { border-top: 1px solid var(--border); }
+.bench-row:nth-child(odd) { background: var(--cream); }
+.bench-row:nth-child(even) { background: white; }
+
+.bench-pct {
+  font-family: 'Playfair Display', serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy);
+  width: 68px;
+  flex-shrink: 0;
+}
+
+.bench-desc { color: var(--muted); flex: 1; line-height: 1.5; font-weight: 300; }
+
+/* ── RESULTS ── */
+#results { display: none; }
+
+.results-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.results-hero {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 26px;
+  color: var(--navy);
+  line-height: 1.3;
+  margin-bottom: 28px;
+}
+
+.results-hero span { color: var(--amber); }
+
+/* Summary tiles */
+.summary-bar {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.summary-tile {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 13px;
+}
+
+.tile-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: 6px;
+}
+
+.tile-value {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.tile-bench {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+
+.bench-good  { color: #3a8a5a; }
+.bench-mid   { color: #b05e1a; }
+.bench-watch { color: #c04a38; }
+
+/* Campaign table */
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.table-wrap {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 28px;
+  overflow-x: auto;
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }
+
+thead th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  border-bottom: 1px solid var(--border);
+  background: var(--cream);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 13px 14px;
+  color: var(--navy);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  font-weight: 300;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: #fffcf7; }
+
+.ctr-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+  display: inline-block;
+  letter-spacing: .04em;
+}
+
+.badge-strong { background: rgba(110,191,139,0.14); color: #2d7a4a; }
+.badge-good   { background: rgba(110,191,139,0.09); color: #3a8a5a; }
+.badge-mid    { background: rgba(233,160,32,0.12);  color: #a06a00; }
+.badge-low    { background: rgba(244,162,97,0.14);  color: #b05e1a; }
+.badge-weak   { background: rgba(249,123,107,0.12); color: #c04a38; }
+.badge-wait   { background: rgba(30,45,61,0.06);    color: var(--muted); }
+
+.ctr-bar-wrap { display: flex; align-items: center; gap: 7px; }
+.ctr-bar { width: 46px; height: 2px; background: var(--border); border-radius: 1px; overflow: hidden; flex-shrink: 0; }
+.ctr-fill { height: 100%; border-radius: 1px; }
+.fill-strong { background: var(--sage); }
+.fill-good   { background: #8ed4a8; }
+.fill-mid    { background: var(--amber); }
+.fill-low    { background: var(--peach); }
+.fill-weak   { background: var(--coral); }
+.fill-wait   { background: rgba(30,45,61,0.15); }
+
+.name-cell { font-weight: 400; }
+
+/* Insight cards */
+.insight-block { margin-bottom: 10px; }
+
+.insight-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  display: inline-block;
+  margin-bottom: 9px;
+}
+
+.pill-scale { background: rgba(110,191,139,0.12); color: #2d7a4a; }
+.pill-cut   { background: rgba(249,123,107,0.12); color: #c04a38; }
+.pill-today { background: rgba(233,160,32,0.12);  color: #a06a00; }
+.pill-watch { background: rgba(30,45,61,0.06);    color: var(--muted); }
+
+.insight-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+}
+
+.insight-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+}
+
+.card-scale::before { background: var(--sage); }
+.card-cut::before   { background: var(--coral); }
+.card-today::before { background: var(--amber); }
+.card-watch::before { background: rgba(30,45,61,0.2); }
+
+.insight-text {
+  font-size: 14px;
+  line-height: 1.82;
+  color: var(--navy);
+  white-space: pre-wrap;
+  font-weight: 300;
+}
+
+/* Go deeper */
+.deeper-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+  margin-top: 36px;
+}
+
+.guide-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.guide-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--navy);
+  text-align: left;
+  gap: 12px;
+}
+
+.guide-arrow { font-size: 16px; color: var(--amber); font-weight: 300; flex-shrink: 0; }
+.guide-body  { display: none; padding: 0 18px 18px; border-top: 1px solid var(--border); }
+.guide-body.open { display: block; }
+
+.naming-formula {
+  background: var(--cream);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-family: 'Plus Jakarta Sans', monospace;
+  color: var(--navy);
+  margin: 12px 0 12px;
+  letter-spacing: .01em;
+  font-weight: 400;
+}
+
+.genre-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--amber);
+  margin: 12px 0 7px;
+}
+
+.naming-examples { display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; }
+
+.naming-example {
+  background: var(--cream);
+  border-radius: 7px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--navy);
+  font-weight: 400;
+}
+
+.tip-box {
+  background: rgba(233,160,32,0.07);
+  border: 1px solid rgba(233,160,32,0.18);
+  border-radius: 9px;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: #7a5000;
+  line-height: 1.72;
+  margin-top: 8px;
+  font-weight: 300;
+}
+
+.hook-example {
+  background: var(--cream);
+  border-radius: 9px;
+  padding: 13px 14px;
+  margin-bottom: 8px;
+}
+
+.hook-verdict {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: 6px;
+}
+
+.hook-copy {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 14px;
+  color: var(--navy);
+  margin-bottom: 5px;
+  line-height: 1.45;
+}
+
+.hook-note {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.55;
+  font-weight: 300;
+}
+
+/* CTA */
+.cta-block {
+  background: var(--navy);
+  border-radius: 16px;
+  padding: 28px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 36px;
+  margin-bottom: 12px;
+}
+
+.cta-serif {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  color: white;
+  font-size: 20px;
+  margin-bottom: 5px;
+  line-height: 1.25;
+}
+
+.cta-sub {
+  font-size: 13px;
+  color: rgba(255,255,255,0.38);
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+.cta-btn {
+  background: var(--amber);
+  color: var(--navy);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 12px 22px;
+  border-radius: 10px;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: .01em;
+}
+
+.reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted-light);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  margin-top: 8px;
+  font-weight: 400;
+}
+.reset-btn:hover { color: var(--muted); }
+
+/* Footer */
+.footer {
+  margin-top: 60px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-left { font-size: 11px; color: var(--muted-light); font-weight: 300; }
+.footer-right { display: flex; align-items: baseline; gap: 0; }
+.footer-author { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 13px; color: var(--navy); }
+.footer-dash   { font-family: 'Playfair Display', serif; font-style: italic; font-size: 13px; color: var(--amber); }
+
+.error-card {
+  background: rgba(249,123,107,0.07);
+  border: 1px solid rgba(249,123,107,0.2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--coral);
+  margin-bottom: 16px;
+  font-weight: 300;
+}
+
+@media (max-width: 480px) {
+  .summary-bar { grid-template-columns: repeat(2,1fr); }
+  .preflight-rules { grid-template-columns: 1fr; }
+  .page-title { font-size: 30px; }
+  .dollar-amount { font-size: 40px; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Wordmark -->
+  <div class="wordmark">
+    <span class="wordmark-author">Author</span><span class="wordmark-dash">Dash</span>
+    <span class="wordmark-byline">by Andrea Bonilla</span>
+  </div>
+
+  <!-- ══════════════════════════════
+       UPLOAD SECTION
+  ══════════════════════════════ -->
+  <div id="upload-section">
+
+    <div class="page-label">Meta Ads Analyzer</div>
+    <h1 class="page-title">Know what your<br>ads are telling you.</h1>
+    <p class="page-sub">Upload your Meta export and get a plain-English read on what's working, what to fix, and exactly what to do next — built for independent romance and mystery authors.</p>
+
+    <!-- Pre-flight -->
+    <div class="preflight">
+      <div class="preflight-label">Before you analyze</div>
+      <div class="preflight-rules">
+        <div class="rule-card">
+          <div class="rule-icon">
+            <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="rule-title">500 impressions first</div>
+          <div class="rule-desc">Until 500 people have seen your ad, you don't have enough data. Meta is still learning who your readers are.</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="rule-title">3 days minimum</div>
+          <div class="rule-desc">Day one numbers almost always look rough. The algorithm needs time to find your readers. Hold on.</div>
+        </div>
+      </div>
+
+      <div class="dollar-card">
+        <div class="dollar-amount">$30</div>
+        <div class="dollar-text">
+          At $10 a day, three days costs $30. Think of that $30 not as ad spend — think of it as <strong>market research</strong>. You are paying $30 to find out exactly how your readers respond to your hook, your image, your cover. No focus group gives you that for $30. If you're nervous, redirect that energy — go work on your next creative while the data comes in.
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload -->
+    <div class="upload-wrap">
+      <div class="upload-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".xlsx,.csv" />
+        <div class="upload-icon-wrap">
+          <svg viewBox="0 0 24 24"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12M8 8l4-4 4 4"/></svg>
+        </div>
+        <div class="upload-cta">Drop your Meta export here</div>
+        <div class="upload-sub">or click to select a file</div>
+        <div class="upload-note">Accepts .xlsx or .csv &nbsp;·&nbsp; Your data never leaves your browser</div>
+      </div>
+
+      <details>
+        <summary>How to export from Meta Ads Manager</summary>
+        <div class="detail-body">
+          <ol>
+            <li>Open <strong>Meta Ads Manager</strong> at business.facebook.com/adsmanager</li>
+            <li>Set your date range at the top right — last 30 days is a good start</li>
+            <li>Make sure you're on the <strong>Campaigns</strong> tab, not Ad Sets or Ads</li>
+            <li>Click <strong>Export → Export Table Data</strong></li>
+            <li>Choose <strong>Excel (.xlsx)</strong> and download</li>
+            <li>Drop that file above</li>
+          </ol>
+        </div>
+      </details>
+    </div>
+
+    <div id="error-section"></div>
+  </div>
+
+  <!-- ══════════════════════════════
+       LOADING + COACHING
+  ══════════════════════════════ -->
+  <div id="loading">
+    <div class="loading-head">
+      <div class="spinner"></div>
+      <div class="loading-serif">Reading your campaigns…</div>
+      <div class="loading-sub">While you wait — a quick guide</div>
+    </div>
+
+    <div class="coach-card amber" id="coach-1">
+      <div class="coach-label">The number that matters most</div>
+      <div class="coach-headline">CTR (link click-through rate) is your report card.</div>
+      <div class="coach-body">
+        CTR is the percentage of people who saw your ad and clicked the link to your book. It tells you whether your hook, image, and copy are connecting with your target readers. Everything else is secondary until this number is healthy.
+        <div class="bench-table">
+          <div class="bench-row" style="border-left:2px solid var(--coral)">
+            <div class="bench-pct">Under 5%</div>
+            <div class="bench-desc">Something is wrong with the creative. Fix the hook or image before spending more.</div>
+          </div>
+          <div class="bench-row" style="border-left:2px solid var(--peach)">
+            <div class="bench-pct">5–10%</div>
+            <div class="bench-desc">You're building something. Look at your copy — a small tweak might push it over.</div>
+          </div>
+          <div class="bench-row" style="border-left:2px solid var(--amber)">
+            <div class="bench-pct">10–15%</div>
+            <div class="bench-desc">On track. Keep running. Watch it a few more days before scaling.</div>
+          </div>
+          <div class="bench-row" style="border-left:2px solid var(--sage)">
+            <div class="bench-pct">15%+</div>
+            <div class="bench-desc">This is the target. Your hook is landing. Hold and consider increasing your budget.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="coach-card sage" id="coach-2">
+      <div class="coach-label">Why romance and mystery ads work differently</div>
+      <div class="coach-headline">Your readers buy tropes, not summaries.</div>
+      <div class="coach-body">
+        Romance and mystery readers know exactly what emotional experience they're looking for before they click. An ad that leads with the trope — <em>"forbidden romance," "mafia protector," "grumpy/sunshine"</em> — will almost always outperform one that describes the plot. <strong>Your hook is doing the heaviest lifting.</strong> If your CTR is low, the first thing to look at is whether your first line signals the trope clearly and fast.
+      </div>
+    </div>
+
+    <div class="coach-card navy" id="coach-3">
+      <div class="coach-label">What "still learning" means</div>
+      <div class="coach-headline">Under 500 impressions? Don't touch it.</div>
+      <div class="coach-body">
+        When you first launch, Meta is in a <strong>learning phase</strong> — testing your ad against different slices of your audience to find readers most likely to click. Day-one numbers almost always look rough. <strong>They almost always improve by day three.</strong> Any campaign under 500 impressions in your results today is not ready to judge — this tool will tell you that clearly.
+      </div>
+    </div>
+
+    <div class="coach-card peach" id="coach-4">
+      <div class="coach-label">On naming your campaigns</div>
+      <div class="coach-headline">Good names unlock better insights over time.</div>
+      <div class="coach-body">
+        If your campaigns are named "Campaign 1" or "August Ad," it's nearly impossible to learn anything across months of data. When you include the trope, hook, and audience in the name, patterns emerge: <em>"Forbidden romance hooks outperform grumpy/sunshine 2:1 with BookTok audiences."</em> You'll find the full naming guide in your results below.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       RESULTS
+  ══════════════════════════════ -->
+  <div id="results">
+
+    <div class="results-label">Analysis complete</div>
+    <div class="results-hero" id="results-hero">Your campaigns are ready.</div>
+
+    <div class="summary-bar" id="summary-bar"></div>
+
+    <div class="section-label">Campaign breakdown</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campaign</th>
+            <th>Spend</th>
+            <th>Impressions</th>
+            <th>Link CTR</th>
+            <th>Cost / result</th>
+            <th>Reading</th>
+          </tr>
+        </thead>
+        <tbody id="campaigns-body"></tbody>
+      </table>
+    </div>
+
+    <div class="insight-block">
+      <div class="insight-pill pill-scale">What's working</div>
+      <div class="insight-card card-scale"><div class="insight-text" id="scale-text"></div></div>
+    </div>
+
+    <div class="insight-block">
+      <div class="insight-pill pill-cut">What to turn off</div>
+      <div class="insight-card card-cut"><div class="insight-text" id="cut-text"></div></div>
+    </div>
+
+    <div class="insight-block">
+      <div class="insight-pill pill-today">Do this today</div>
+      <div class="insight-card card-today"><div class="insight-text" id="today-text"></div></div>
+    </div>
+
+    <div class="insight-block">
+      <div class="insight-pill pill-watch">Keep an eye on</div>
+      <div class="insight-card card-watch"><div class="insight-text" id="watch-text"></div></div>
+    </div>
+
+    <!-- Go deeper -->
+    <div class="deeper-label">Go deeper</div>
+
+    <div class="guide-card">
+      <button class="guide-btn" onclick="toggleGuide('naming-body',this)">
+        <span>Campaign naming convention — unlock better insights over time</span>
+        <span class="guide-arrow">+</span>
+      </button>
+      <div class="guide-body" id="naming-body">
+        <p style="margin:14px 0 10px;font-size:13px;color:rgba(30,45,61,0.65);line-height:1.78;font-weight:300;">Name each campaign to include the trope, hook, and audience. Over time, patterns emerge that are invisible with generic names.</p>
+        <div class="naming-formula">[Book] – [Trope/Hook] – [Audience] – [Format]</div>
+        <div class="genre-label">Romance</div>
+        <div class="naming-examples">
+          <div class="naming-example">MOLR – ForbiddenRomance – ColleenHooverFans – Static</div>
+          <div class="naming-example">FDBP – MafiaProtector – DarkRomanceBookTok – Video</div>
+          <div class="naming-example">B3 – GrumpySunshine – KindleUnlimitedReaders – Carousel</div>
+        </div>
+        <div class="genre-label">Mystery &amp; Thriller</div>
+        <div class="naming-examples">
+          <div class="naming-example">CozyMystery – FemaleDetective – AgathaChristieFans – Static</div>
+          <div class="naming-example">PsychThriller – UnreliableNarrator – GoneGirlReaders – Video</div>
+        </div>
+        <div class="tip-box">When names include trope and audience, AuthorDash can surface patterns like: <em>"Forbidden romance hooks outperform grumpy/sunshine 2:1 with BookTok audiences for your catalog."</em></div>
+      </div>
+    </div>
+
+    <div class="guide-card">
+      <button class="guide-btn" onclick="toggleGuide('hook-body',this)">
+        <span>Writing hooks that convert — what romance readers actually click</span>
+        <span class="guide-arrow">+</span>
+      </button>
+      <div class="guide-body" id="hook-body">
+        <p style="margin:14px 0 14px;font-size:13px;color:rgba(30,45,61,0.65);line-height:1.78;font-weight:300;">If your CTR is under 10%, the creative is usually the culprit. Here's what makes romance and mystery readers stop scrolling.</p>
+        <div class="hook-example">
+          <div class="hook-verdict" style="color:#c04a38">Don't do this</div>
+          <div class="hook-copy">"A story of love, betrayal, and second chances."</div>
+          <div class="hook-note">Tells the reader nothing. Every romance is a story of love and something. No trope, no hook, no reason to click.</div>
+        </div>
+        <div class="hook-example">
+          <div class="hook-verdict" style="color:#3a8a5a">Do this instead — enemies to lovers / protector</div>
+          <div class="hook-copy">"He's her enemy. He's her boss. And he's the only one keeping her alive."</div>
+          <div class="hook-note">Signals enemies-to-lovers and protector romance in three lines. The reader knows immediately if this is for her.</div>
+        </div>
+        <div class="hook-example">
+          <div class="hook-verdict" style="color:#3a8a5a">Mafia / dark romance</div>
+          <div class="hook-copy">"He doesn't ask. He takes. And she's next."</div>
+          <div class="hook-note">Direct, dangerous, on-genre. Dark romance readers know exactly what this is.</div>
+        </div>
+        <div class="tip-box">The fastest diagnostic: read your hook out loud. Does it tell your reader the trope in the first line? If not, that's the rewrite.</div>
+      </div>
+    </div>
+
+    <div class="cta-block">
+      <div>
+        <div class="cta-serif">Want this every day, automatically?</div>
+        <div class="cta-sub">AuthorDash connects directly to your Meta account and tracks your campaigns over time — no exports, no manual work.</div>
+      </div>
+      <a href="https://authordash.io" target="_blank" class="cta-btn">Try AuthorDash →</a>
+    </div>
+
+    <button class="reset-btn" onclick="resetTool()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+      </svg>
+      Analyze another file
+    </button>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-left">Your data never leaves your browser</span>
+    <a href="https://authordash.io/meta" target="_blank" style="text-decoration:none;display:flex;align-items:baseline;gap:0;">
+      <span class="footer-author">Author</span><span class="footer-dash">Dash</span>
+    </a>
+  </div>
+
+</div>
+<script>
+const fileInput = document.getElementById('file-input');
+const dropZone  = document.getElementById('drop-zone');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0]; if (f) handleFile(f);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type:'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      if (!rows.length) throw new Error('No data rows found.');
+      processData(rows);
+    } catch(err) {
+      showError('Could not read this file. Make sure it\'s a Meta Ads export (.xlsx or .csv). ' + err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function processData(rows) {
+  const keys = Object.keys(rows[0]);
+  const find = (...candidates) => {
+    for (const c of candidates) {
+      const m = keys.find(k => k.toLowerCase().includes(c.toLowerCase()));
+      if (m) return m;
+    }
+    return null;
+  };
+
+  const COL = {
+    name:    find('campaign name','ad set name','campaign'),
+    spend:   find('amount spent','spend'),
+    impr:    find('impressions'),
+    clicks:  find('link clicks'),
+    ctr:     find('ctr (link click-through rate)','link click-through rate','ctr (link)','ctr'),
+    results: find('results'),
+    cpr:     find('cost per result','cost per results','cost/result'),
+  };
+
+  const parse = (v, stripPct) => {
+    let s = String(v||0).replace(/[$,\s]/g,'');
+    if (stripPct) s = s.replace(/%/g,'');
+    return parseFloat(s) || 0;
+  };
+
+  const campaigns = rows.map(r => {
+    const spend   = parse(r[COL.spend]);
+    const impr    = parse(r[COL.impr]);
+    const clicks  = parse(r[COL.clicks]);
+    const ctr     = parse(r[COL.ctr], true);
+    const results = parse(r[COL.results]);
+    const cpr     = parse(r[COL.cpr]);
+    const linkCtr = impr > 0 ? (clicks/impr*100) : ctr;
+    return {
+      name: (r[COL.name]||'Unnamed').toString().trim(),
+      spend, impr, clicks, results, cpr,
+      ctr: linkCtr,
+      ready: impr >= 500,
+    };
+  }).filter(c => (c.spend>0||c.impr>0) && c.name && c.name!=='Unnamed');
+
+  if (!campaigns.length) {
+    showError('No campaign data found. Make sure you exported the Campaigns view from Meta Ads Manager.');
+    return;
+  }
+
+  const ts = campaigns.reduce((a,c)=>a+c.spend,0);
+  const tr = campaigns.reduce((a,c)=>a+c.results,0);
+  const ti = campaigns.reduce((a,c)=>a+c.impr,0);
+  const tc = campaigns.reduce((a,c)=>a+c.clicks,0);
+  const avgCtr = ti>0 ? tc/ti*100 : 0;
+  const avgCpr = tr>0 ? ts/tr : 0;
+  const readyN = campaigns.filter(c=>c.ready).length;
+
+  showLoading();
+  analyze(campaigns, { ts, tr, ti, avgCtr, avgCpr, readyN });
+}
+
+function showLoading() {
+  document.getElementById('upload-section').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  ['coach-1','coach-2','coach-3','coach-4'].forEach((id,i) => {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('visible');
+    }, 300 + i*550);
+  });
+}
+
+async function analyze(campaigns, s) {
+  const top8 = [...campaigns].sort((a,b)=>b.spend-a.spend).slice(0,8);
+  const rows = top8.map(c =>
+    `- "${c.name}": spend $${c.spend.toFixed(2)}, impressions ${Math.round(c.impr)}, link CTR ${c.ctr.toFixed(2)}%, results ${c.results}, cost/result ${c.cpr>0?'$'+c.cpr.toFixed(2):'unknown'}, status: ${c.ready?'READY TO JUDGE':'STILL LEARNING — under 500 impressions, do not recommend pausing'}`
+  ).join('\n');
+
+  const prompt = `You are a calm, experienced guide helping indie romance and mystery authors understand their Meta ads for the first time. Most have never run ads before. They are nervous. Give them clear, warm, empowering guidance — not jargon.
+
+CRITICAL BENCHMARKS — calibrated specifically for indie romance and mystery book ads:
+- Link CTR under 5%: creative needs attention. Hook or image isn't connecting.
+- Link CTR 5–10%: building. Worth looking at copy for improvements.
+- Link CTR 10–15%: on track. Keep running. Watch before scaling.
+- Link CTR 15%+: strong. This is the FPA-recommended target. Hold and consider scaling.
+
+Genre context:
+- Authors writing mafia romance, dark romance, billionaire romance, small-town romance, enemies-to-lovers, grumpy/sunshine, cozy mystery, psychological thriller
+- Romance readers respond to tropes and emotional hooks — not plot summaries
+- If campaign names include trope language (forbidden, mafia, grumpy, falls first, second chance, billionaire, dark), note what that signal tells us
+
+Rules:
+- NEVER recommend pausing a campaign marked STILL LEARNING. Redirect their energy to creative work instead.
+- Never use jargon without a plain-English explanation in the same sentence.
+- Never say "consider" or "you might want to." Say "do this" or "leave this alone for now."
+- If they're just nervous, encourage them to hold. The data is worth $30.
+- Tone: warm, direct, experienced author-friend over coffee.
+
+Account: Spend $${s.ts.toFixed(2)}, impressions ${Math.round(s.ti).toLocaleString()}, results ${s.tr}, avg link CTR ${s.avgCtr.toFixed(2)}%, avg cost/result ${s.avgCpr>0?'$'+s.avgCpr.toFixed(2):'unknown'}. Campaigns ready to judge: ${s.readyN} of ${campaigns.length}.
+
+Campaigns:
+${rows}
+
+Write exactly 4 sections. Each 3–5 sentences. Name actual campaigns. No bullet points. No markdown. Plain paragraphs.
+
+SCALE: [Best signal — plain English, what to do. If nothing has enough data, say so honestly.]
+CUT: [What to pause — only READY TO JUDGE campaigns with CTR under 5%. If none qualify, say so and give the threshold.]
+TODAY: [Single most important action. If the answer is wait, say so warmly and redirect their energy.]
+WATCH: [One campaign or metric in progress — what to look for and when to decide.]`;
+
+  try {
+    const resp = await fetch('/api/meta-analyze', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt })
+    });
+    const data = await resp.json();
+    const text = data.text || '';
+    render(text, campaigns, s);
+  } catch(e) {
+    render('', campaigns, s);
+  }
+}
+
+function ctrClass(ctr, ready) {
+  if (!ready) return { badge:'badge-wait', fill:'fill-wait', label:'Still learning' };
+  if (ctr>=15) return { badge:'badge-strong', fill:'fill-strong', label:'Strong ✦' };
+  if (ctr>=10) return { badge:'badge-good',   fill:'fill-good',   label:'On track' };
+  if (ctr>=5)  return { badge:'badge-mid',    fill:'fill-mid',    label:'Building' };
+  return         { badge:'badge-weak',   fill:'fill-weak',   label:'Needs work' };
+}
+
+function render(aiText, campaigns, s) {
+  document.getElementById('loading').style.display = 'none';
+
+  const extract = label => {
+    const m = aiText.match(new RegExp(`${label}:\\s*([\\s\\S]*?)(?=\\n[A-Z]+:|$)`,'i'));
+    return m ? m[1].trim() : '';
+  };
+
+  // Hero line
+  const ctrBenchText = s.avgCtr>=15 ? 'hitting the FPA target' : s.avgCtr>=10 ? 'on track' : s.avgCtr>=5 ? 'building' : 'needs attention';
+  document.getElementById('results-hero').innerHTML =
+    `Your avg link CTR is <span>${s.avgCtr.toFixed(1)}%</span> — ${ctrBenchText} across ${campaigns.length} campaign${campaigns.length!==1?'s':''}.`;
+
+  // Summary
+  const ctrBenchClass = s.avgCtr>=10?'bench-good':s.avgCtr>=5?'bench-mid':'bench-watch';
+  const ctrBenchLabel = s.avgCtr>=15?'Hitting target':s.avgCtr>=10?'On track':s.avgCtr>=5?'Building':'Needs attention';
+  document.getElementById('summary-bar').innerHTML = `
+    <div class="summary-tile">
+      <div class="tile-label">Total spend</div>
+      <div class="tile-value">$${s.ts.toLocaleString('en-US',{maximumFractionDigits:0})}</div>
+    </div>
+    <div class="summary-tile">
+      <div class="tile-label">Impressions</div>
+      <div class="tile-value">${Math.round(s.ti).toLocaleString()}</div>
+    </div>
+    <div class="summary-tile">
+      <div class="tile-label">Avg link CTR</div>
+      <div class="tile-value">${s.avgCtr.toFixed(1)}%</div>
+      <div class="tile-bench ${ctrBenchClass}">${ctrBenchLabel}</div>
+    </div>
+    <div class="summary-tile">
+      <div class="tile-label">Cost / result</div>
+      <div class="tile-value">${s.avgCpr>0?'$'+s.avgCpr.toFixed(2):'—'}</div>
+    </div>`;
+
+  // Table
+  const sorted = [...campaigns].sort((a,b)=>b.spend-a.spend).slice(0,8);
+  const maxCtr = Math.max(...sorted.map(c=>c.ctr), 15);
+  document.getElementById('campaigns-body').innerHTML = sorted.map(c => {
+    const cls = ctrClass(c.ctr, c.ready);
+    const pct = Math.min(c.ctr/maxCtr*100,100).toFixed(0);
+    const name = c.name.length>36 ? c.name.slice(0,34)+'…' : c.name;
+    const imprStr = c.impr>=1000 ? (c.impr/1000).toFixed(1)+'k' : Math.round(c.impr).toString();
+    return `<tr>
+      <td class="name-cell" title="${c.name}">${name}</td>
+      <td>$${c.spend.toFixed(0)}</td>
+      <td>${imprStr}</td>
+      <td><div class="ctr-bar-wrap"><div class="ctr-bar"><div class="ctr-fill ${cls.fill}" style="width:${pct}%"></div></div><span>${c.ctr.toFixed(1)}%</span></div></td>
+      <td>${c.cpr>0?'$'+c.cpr.toFixed(2):'—'}</td>
+      <td><span class="ctr-badge ${cls.badge}">${cls.label}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('scale-text').textContent = extract('SCALE') || 'Analysis unavailable — check your connection and try again.';
+  document.getElementById('cut-text').textContent   = extract('CUT')   || '—';
+  document.getElementById('today-text').textContent = extract('TODAY') || '—';
+  document.getElementById('watch-text').textContent = extract('WATCH') || '—';
+
+  document.getElementById('results').style.display = 'block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function toggleGuide(id, btn) {
+  const body = document.getElementById(id);
+  const arrow = btn.querySelector('.guide-arrow');
+  body.classList.toggle('open');
+  arrow.textContent = body.classList.contains('open') ? '−' : '+';
+}
+
+function showError(msg) {
+  document.getElementById('error-section').innerHTML = `<div class="error-card">${msg}</div>`;
+}
+
+function resetTool() {
+  document.getElementById('error-section').innerHTML = '';
+  fileInput.value = '';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('upload-section').style.display = 'block';
+  ['coach-1','coach-2','coach-3','coach-4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('visible');
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
