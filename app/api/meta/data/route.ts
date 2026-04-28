@@ -13,24 +13,33 @@ async function respondFromDB(userId: string, startDate: string, endDate: string)
 
   console.log('[Meta data] querying DB:', { startDate, endDate, startUTC: start.toISOString(), endUTC: end.toISOString() })
 
+  // Check if the user's entire MetaAdData has only 1 distinct date (aggregated/summary upload)
+  const allUserDates = await db.metaAdData.findMany({
+    where: { userId },
+    select: { date: true },
+    orderBy: { date: 'asc' },
+  })
+  const distinctDates = new Set(allUserDates.map(r => r.date.toISOString().split('T')[0]))
+  const isAggregated = distinctDates.size <= 1 && allUserDates.length > 0
+
   const dbRows = await db.metaAdData.findMany({
     where: { userId, date: { gte: start, lte: end } },
     orderBy: { date: 'asc' },
   })
 
-  console.log(`[Meta data] DB returned ${dbRows.length} rows`)
+  console.log(`[Meta data] DB returned ${dbRows.length} rows, isAggregated=${isAggregated}`)
 
   if (dbRows.length === 0) {
     // Return the actual date range of stored data so the UI can offer a one-click switch
-    const [oldest, newest] = await Promise.all([
-      db.metaAdData.findFirst({ where: { userId }, orderBy: { date: 'asc' },  select: { date: true } }),
-      db.metaAdData.findFirst({ where: { userId }, orderBy: { date: 'desc' }, select: { date: true } }),
-    ])
+    const [oldest, newest] = [
+      allUserDates[0] ?? null,
+      allUserDates[allUserDates.length - 1] ?? null,
+    ]
     const availableRange = oldest && newest ? {
       start: oldest.date.toISOString().split('T')[0],
       end:   newest.date.toISOString().split('T')[0],
     } : null
-    return NextResponse.json({ data: null, message: 'No data for this date range.', availableRange })
+    return NextResponse.json({ data: null, message: 'No data for this date range.', availableRange, isAggregated })
   }
 
   // Group by campaignName, summing spend/clicks/impressions across days
@@ -95,7 +104,7 @@ async function respondFromDB(userId: string, startDate: string, endDate: string)
     worstAds,
   }
 
-  return NextResponse.json({ data })
+  return NextResponse.json({ data, isAggregated })
 }
 
 const INSIGHTS_FIELDS = [

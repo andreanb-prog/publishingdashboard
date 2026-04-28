@@ -81,11 +81,12 @@ const PRESETS: { key: Preset; label: string }[] = [
 
 // ── Date range picker ─────────────────────────────────────────────────────────
 function DateRangePicker({
-  preset, onPreset, onCustomApply,
+  preset, onPreset, onCustomApply, disabled,
 }: {
   preset: Preset
   onPreset: (p: Preset) => void
   onCustomApply: (start: string, end: string) => void
+  disabled?: boolean
 }) {
   const [calOpen,      setCalOpen]      = useState(false)
   const [pendingRange, setPendingRange] = useState<DateRange | undefined>()
@@ -103,6 +104,7 @@ function DateRangePicker({
   }, [calOpen])
 
   function handlePill(p: Preset) {
+    if (disabled) return
     if (p === 'custom') {
       setCalOpen(c => !c)
     } else {
@@ -121,6 +123,8 @@ function DateRangePicker({
     }
   }
 
+  const disabledTooltip = 'Date filtering unavailable — upload daily export for filtering'
+
   return (
     <div className="relative">
       {/* Horizontally scrollable pill row */}
@@ -129,17 +133,19 @@ function DateRangePicker({
           <button
             key={p.key}
             onClick={() => handlePill(p.key)}
+            title={disabled ? disabledTooltip : undefined}
             style={{
               flexShrink: 0,
               padding: '5px 12px',
               fontFamily: 'var(--font-sans)',
               fontSize: 12,
-              fontWeight: preset === p.key ? 600 : 500,
+              fontWeight: !disabled && preset === p.key ? 600 : 500,
               whiteSpace: 'nowrap',
-              background: preset === p.key ? '#1E2D3D' : 'white',
-              color: preset === p.key ? 'white' : 'rgba(30,45,61,0.6)',
-              border: `1px solid ${preset === p.key ? '#1E2D3D' : '#E8E1D3'}`,
-              cursor: 'pointer',
+              background: disabled ? '#F7F4F0' : preset === p.key ? '#1E2D3D' : 'white',
+              color: disabled ? 'rgba(30,45,61,0.3)' : preset === p.key ? 'white' : 'rgba(30,45,61,0.6)',
+              border: `1px solid ${disabled ? '#E8E1D3' : preset === p.key ? '#1E2D3D' : '#E8E1D3'}`,
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              opacity: disabled ? 0.7 : 1,
             }}
           >
             {p.label}
@@ -148,7 +154,7 @@ function DateRangePicker({
       </div>
 
       {/* Calendar popover */}
-      {calOpen && (
+      {calOpen && !disabled && (
         <div
           ref={popoverRef}
           className="absolute left-0 z-30 mt-2 p-4"
@@ -653,6 +659,7 @@ export default function MetaPage() {
   // undefined = no date range fetch yet (show analysis cache); null = fetch returned no data for range
   const [metaOverride, setMetaOverride] = useState<import('@/types').MetaData | null | undefined>(undefined)
   const [availableRange, setAvailableRange] = useState<{ start: string; end: string } | null>(null)
+  const [isAggregated, setIsAggregated] = useState(false)
 
   // Date range state
   const [preset,      setPreset]      = useState<Preset>('last30')
@@ -677,8 +684,16 @@ export default function MetaPage() {
     fetch(`/api/meta/data?startDate=${start}&endDate=${end}`)
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(d => {
-        setMetaOverride(d.data ?? null)
-        setAvailableRange(d.data ? null : (d.availableRange ?? null))
+        if (d.isAggregated) {
+          // Aggregated/summary CSV upload — date filtering doesn't work. Use analysis cache instead.
+          setIsAggregated(true)
+          setMetaOverride(undefined)
+          setAvailableRange(null)
+        } else {
+          setIsAggregated(false)
+          setMetaOverride(d.data ?? null)
+          setAvailableRange(d.data ? null : (d.availableRange ?? null))
+        }
       })
       .catch(() => { setMetaOverride(null) })
       .finally(() => setDateLoading(false))
@@ -896,10 +911,21 @@ export default function MetaPage() {
           preset={preset}
           onPreset={handlePreset}
           onCustomApply={handleCustomApply}
+          disabled={isAggregated}
         />
         {dateLoading && (
           <p className="mt-2 text-[11.5px]" style={{ color: '#6B7280' }}>Loading…</p>
         )}
+        {isAggregated && (() => {
+          const ds = analysis?.meta?.dateStart
+          const de = analysis?.meta?.dateEnd
+          const rangeLabel = ds && de ? ` · ${formatDisplayRange(ds, de)}` : ''
+          return (
+            <p className="mt-2 text-[11.5px]" style={{ color: '#9CA3AF', fontStyle: 'italic' }}>
+              Showing full campaign data{rangeLabel}
+            </p>
+          )
+        })()}
       </div>
 
       {!meta ? (
