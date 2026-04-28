@@ -1223,11 +1223,22 @@ WATCH: [One campaign or metric in progress — what to look for and when to deci
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ prompt })
     });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error('meta-analyze error:', resp.status, errText);
+      showError('Analysis failed (' + resp.status + '): ' + errText);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('upload-section').style.display = 'block';
+      return;
+    }
     const data = await resp.json();
     const text = data.text || '';
     render(text, campaigns, s);
   } catch(e) {
-    render('', campaigns, s);
+    console.error('meta-analyze fetch error:', e);
+    showError('Analysis failed: ' + e.message + '. Check the browser console for details.');
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('upload-section').style.display = 'block';
   }
 }
 
