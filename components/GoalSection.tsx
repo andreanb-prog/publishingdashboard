@@ -3,7 +3,6 @@
 // Collapsible per-page goal tracker with progress bars
 
 import { useEffect, useState } from 'react'
-import { IconStar } from '@/components/icons'
 
 type Goals = Record<string, number>
 
@@ -43,7 +42,7 @@ function GoalBar({ current, goal, unit }: { current?: number; goal: number; unit
   const pct = goal > 0 && current != null ? Math.min((current / goal) * 100, 120) : 0
   const displayPct = Math.min(pct, 100)
   const isOver = pct >= 100
-  const color = isOver ? '#34d399' : pct >= 80 ? '#34d399' : pct >= 50 ? '#fbbf24' : '#fb7185'
+  const color = isOver ? '#6EBF8B' : pct >= 80 ? '#6EBF8B' : pct >= 50 ? '#E9A020' : '#F97B6B'
   return (
     <div>
       <div className="flex items-center gap-2">
@@ -52,12 +51,12 @@ function GoalBar({ current, goal, unit }: { current?: number; goal: number; unit
             style={{ width: `${displayPct}%`, background: color }} />
         </div>
         <span className="text-[10.5px] font-mono font-semibold" style={{ color, minWidth: 40, textAlign: 'right' }}>
-          {isOver ? '✓' : `${Math.round(pct)}%`}
+          {Math.round(pct)}%
         </span>
       </div>
       <div className="text-[10.5px] mt-1" style={{ color: '#6B7280' }}>
         {current != null ? fmtVal(current, unit) : '—'} of {fmtVal(goal, unit)} goal
-        {isOver && <span className="ml-1 font-semibold" style={{ color: '#34d399' }}>Goal reached!</span>}
+        {isOver && <span className="ml-1 font-semibold" style={{ color: '#6EBF8B' }}>Goal reached</span>}
       </div>
     </div>
   )
@@ -131,7 +130,7 @@ export function GoalSection({
       const goal    = goals[f.key]!
       const pct     = current != null && goal > 0 ? (current / goal) * 100 : 0
       const ok      = pct >= 80
-      return `${f.label.replace('Target ', '')}: ${current != null ? fmtVal(current, f.unit) : '—'} of ${fmtVal(goal, f.unit)} ${ok ? '✓' : ''}`
+      return `${f.label.replace('Target ', '')}: ${current != null ? fmtVal(current, f.unit) : '—'} of ${fmtVal(goal, f.unit)}${ok ? ' done' : ''}`
     })
 
   const hasGoals = fields.some(f => goals[f.key] != null)
@@ -145,8 +144,7 @@ export function GoalSection({
         className="w-full flex items-center justify-between px-5 py-3.5 text-left bg-transparent border-none cursor-pointer"
       >
         <div className="flex items-center gap-2">
-          <IconStar size={16} />
-          <span className="text-[12.5px] font-bold" style={{ color: '#1E2D3D' }}>My Goals</span>
+          <span className="text-[10px] font-mono font-semibold uppercase tracking-[1px]" style={{ color: '#1E2D3D' }}>My Goals</span>
           {collapsed && hasGoals && summaryParts.length > 0 && (
             <span className="text-[11px] ml-2" style={{ color: '#6B7280' }}>
               {summaryParts.join(' · ')}
@@ -215,7 +213,7 @@ export function GoalSection({
               {saving ? 'Saving…' : 'Save Goals'}
             </button>
             {saved && (
-              <span className="text-[12px] font-semibold" style={{ color: '#34d399' }}>✓ Saved</span>
+              <span className="text-[12px] font-semibold" style={{ color: '#6EBF8B' }}>Saved</span>
             )}
           </div>
         </div>

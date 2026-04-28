@@ -1239,14 +1239,10 @@ export default function KDPPage() {
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <LastUploadBadge channel="kdp" />
       {unmatchedBooks.length > 0 && (
-        <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl"
-          style={{ background: 'rgba(233,160,32,0.08)', border: '1px solid rgba(233,160,32,0.25)' }}>
-          <span>📚</span>
-          <p className="text-[13px] m-0" style={{ color: '#92400E' }}>
-            We found data for <strong>{unmatchedBooks.length} title{unmatchedBooks.length !== 1 ? 's' : ''}</strong> not in your catalog.{' '}
-            <a href="/dashboard/settings" style={{ color: '#E9A020', textDecoration: 'underline', fontWeight: 600 }}>
-              Add them to see full insights →
-            </a>
+        <div className="mb-4 px-4 py-3"
+          style={{ background: 'rgba(233,160,32,0.06)', borderLeft: '2px solid #E9A020' }}>
+          <p className="text-[12.5px] m-0" style={{ color: '#92400E' }}>
+            <span style={{ fontWeight: 600 }}>{unmatchedBooks.length} title{unmatchedBooks.length !== 1 ? 's' : ''}</span> found in your upload but not yet in your catalog — scroll down to add them.
           </p>
         </div>
       )}
