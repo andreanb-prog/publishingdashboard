@@ -957,11 +957,11 @@ function EmailVsSalesChart({
 // ── Format Badges ─────────────────────────────────────────────────────────────
 type FormatBadgeType = 'purchased' | 'ku' | 'paperback' | 'translation'
 
-const FORMAT_BADGE_CONFIG: Record<FormatBadgeType, { icon: LucideIcon; label: string; color: string }> = {
-  purchased:   { icon: BookOpen, label: 'Units Sold',  color: '#1E2D3D' },
-  ku:          { icon: Repeat,   label: 'Page Reads',  color: '#E9A020' },
-  paperback:   { icon: Book,     label: 'Paperback',   color: '#6EBF8B' },
-  translation: { icon: Globe,    label: 'Translation', color: '#5BBFB5' },
+const FORMAT_BADGE_CONFIG: Record<FormatBadgeType, { icon: LucideIcon; label: string }> = {
+  purchased:   { icon: BookOpen, label: 'Units Sold'  },
+  ku:          { icon: Repeat,   label: 'Page Reads'  },
+  paperback:   { icon: Book,     label: 'Paperback'   },
+  translation: { icon: Globe,    label: 'Translation' },
 }
 
 function getFormatBadges(b: { units: number; kenp: number; format?: string }): FormatBadgeType[] {
@@ -975,18 +975,18 @@ function getFormatBadges(b: { units: number; kenp: number; format?: string }): F
 }
 
 function FormatBadge({ type, faded }: { type: FormatBadgeType; faded?: boolean }) {
-  const { icon: Icon, label, color } = FORMAT_BADGE_CONFIG[type]
+  const { icon: Icon, label } = FORMAT_BADGE_CONFIG[type]
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
       background: faded ? 'rgba(255,255,255,0.25)' : '#FFF8F0',
-      border: `0.5px solid ${faded ? 'rgba(255,255,255,0.4)' : 'rgba(30,45,61,0.15)'}`,
-      borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 600,
-      color: faded ? 'white' : color,
+      border: `1px solid ${faded ? 'rgba(255,255,255,0.4)' : 'rgba(30,45,61,0.1)'}`,
+      borderRadius: 999, padding: '2px 8px', fontSize: 12, fontWeight: 600,
+      color: faded ? 'white' : '#1E2D3D',
       flexShrink: 0,
       whiteSpace: 'nowrap',
     }}>
-      <Icon size={10} style={{ flexShrink: 0 }} />
+      <Icon size={12} style={{ flexShrink: 0 }} />
       {label}
     </span>
   )

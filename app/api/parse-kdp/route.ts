@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       await Promise.all(rawRows.map(row =>
         db.kdpSale.upsert({
           where: { userId_asin_date: { userId: session.user.id, asin: row.asin, date: row.date } },
-          update: { units: row.units, kenp: row.kenp, royalties: row.royalties, title: row.title },
+          update: { units: row.units, kenp: row.kenp, royalties: row.royalties, title: row.title, format: row.format },
           create: {
             userId:    session.user.id,
             asin:      row.asin,
