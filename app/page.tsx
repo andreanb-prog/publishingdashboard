@@ -76,6 +76,19 @@ export default function LandingPage() {
             Pricing
           </a>
           <Link
+            href="/demo"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 11,
+              color: 'var(--amber-boutique)',
+              textDecoration: 'none',
+              letterSpacing: '0.04em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            View Demo →
+          </Link>
+          <Link
             href="/login"
             style={{
               fontFamily: 'var(--font-mono)',
