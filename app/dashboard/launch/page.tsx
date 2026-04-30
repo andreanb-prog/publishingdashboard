@@ -82,12 +82,15 @@ export default async function LaunchPage() {
     updatedAt: l.updatedAt.toISOString(),
   }))
 
+  const calendarToken = Buffer.from(session.user.id).toString('base64url')
+
   return (
     <LaunchClient
       initialTasks={initialTasks}
       initialLaunchDate={launchDate}
       initialBookTitle={bookTitle}
       initialLaunches={initialLaunches}
+      calendarToken={calendarToken}
     />
   )
 }
