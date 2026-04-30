@@ -200,7 +200,7 @@ function DemoSidebar({ bannerVisible }: { bannerVisible: boolean }) {
         )}
       </nav>
 
-      {/* Footer — sign-out replaced with sign-up CTA */}
+      {/* Footer — mirrors real sidebar; sign-out swapped for subtle sign-up link */}
       <div style={{ padding: '12px', borderTop: '1px solid var(--line)' }}>
         <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
           {(['sm', 'md', 'lg'] as const).map((size, i) => (
@@ -219,11 +219,22 @@ function DemoSidebar({ bannerVisible }: { bannerVisible: boolean }) {
             </button>
           ))}
         </div>
+
+        {/* Contact block — matches real sidebar */}
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11.5, color: 'var(--ink3)', marginBottom: 1 }}>
+            Need a hand? Call{' '}
+            <span style={{ fontFamily: 'var(--font-serif)', fontWeight: 700, color: 'var(--ink)' }}>Andrea</span>
+          </div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--ink4)' }}>(555) 000-0000</div>
+        </div>
+
+        {/* Sign-up link — same position/style as real sign-out button */}
         <Link href="/login" style={{
-          display: 'block', textAlign: 'center', textDecoration: 'none',
-          fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
-          letterSpacing: '0.04em', background: '#E9A020', color: '#1E2D3D',
-          padding: '9px 14px', borderRadius: 8,
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '6px 8px', borderRadius: 8, fontSize: 11.5, textDecoration: 'none',
+          fontFamily: 'var(--font-sans)', color: 'var(--amber-boutique)',
+          fontWeight: 600,
         }}>
           Get Started Free →
         </Link>
