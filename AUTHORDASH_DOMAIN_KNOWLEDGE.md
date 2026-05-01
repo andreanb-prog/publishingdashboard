@@ -30,17 +30,17 @@ A spike in KENP with no unit sales is normal for KU — readers are borrowing, n
 ## EMAIL MARKETING FOR AUTHORS
 
 **Open rate benchmarks (romance/fiction):**
-- Under 22%: below average
-- 22–35%: average
+- Under 22%: room to grow — here's the fastest lever
+- 22–35%: healthy range
 - 38%+: strong
 
 **Click rate benchmarks:**
-- Under 2%: below average
-- 2–4%: average
+- Under 2%: a starting point — the CTA or content has room to move
+- 2–4%: healthy range
 - 5%+: strong
 
 **Unsubscribe rate per send:**
-- Over 0.5%: worth noting
+- Over 0.5%: worth a closer look
 - 0.1–0.3%: normal
 - Under 0.1%: healthy
 
@@ -66,8 +66,8 @@ There is no universal correct frequency. Romance readers who opted in to a favor
 
 | Promo Lift % | Context |
 |---|---|
-| Under 1% | Below average |
-| 1–3% | Average |
+| Under 1% | Room to grow |
+| 1–3% | Healthy range |
 | 3–5% | Strong |
 | 5%+ | Exceptional |
 
@@ -83,8 +83,8 @@ Heat level compatibility is the most critical policy filter. A sweet/clean autho
 Paid promos differ from swaps — no reciprocal obligation, no ARM record for a partner, cost is always > $0.
 
 **Cost per subscriber benchmarks:**
-- Over $5: below average
-- $2–5: average
+- Over $5: room to optimize
+- $2–5: healthy range
 - Under $2: strong
 
 Giveaway-sourced subscribers (BookSweeps model) often cost less but may show lower engagement — they signed up for a prize. Targeted genre newsletter subscribers often cost more but show higher engagement. Cost per subscriber should always be evaluated alongside the open rate trend of subscribers gained.
@@ -94,13 +94,13 @@ Giveaway-sourced subscribers (BookSweeps model) often cost less but may show low
 ## META ADS FOR AUTHORS
 
 **CTR (link click-through rate):**
-- Under 1%: below average
-- 1–3%: average
+- Under 1%: room to grow — the ad creative or audience has a faster lever
+- 1–3%: healthy range
 - 4%+: strong
 
 **CPC (cost per link click):**
-- Over $1.50: below average
-- $0.50–$1.50: average
+- Over $1.50: room to optimize
+- $0.50–$1.50: healthy range
 - Under $0.50: strong
 
 **ROAS for KU authors is always an estimate.** KU page reads cannot be directly attributed to a specific ad click. AuthorDash surfaces the correlation when ad spend increases and page reads increase together — always flagged as estimated, not proven.
