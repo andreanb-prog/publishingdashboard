@@ -30,6 +30,10 @@ interface Book {
   id: string
   title: string
   asin: string | null
+  asinPaperback: string | null
+  asinAudiobook: string | null
+  isbnPaperback: string | null
+  isbnHardcover: string | null
   seriesName: string | null
   seriesOrder: number | null
   isLeadMagnet: boolean
@@ -43,6 +47,10 @@ interface Book {
 interface BookForm {
   title: string
   asin: string
+  asinPaperback: string
+  asinAudiobook: string
+  isbnPaperback: string
+  isbnHardcover: string
   seriesName: string
   seriesOrder: string
   isLeadMagnet: boolean
@@ -55,6 +63,10 @@ function blankForm(): BookForm {
   return {
     title: '',
     asin: '',
+    asinPaperback: '',
+    asinAudiobook: '',
+    isbnPaperback: '',
+    isbnHardcover: '',
     seriesName: '',
     seriesOrder: '',
     isLeadMagnet: false,
@@ -73,6 +85,10 @@ function bookToForm(b: Book): BookForm {
   return {
     title: b.title,
     asin: b.asin ?? '',
+    asinPaperback: b.asinPaperback ?? '',
+    asinAudiobook: b.asinAudiobook ?? '',
+    isbnPaperback: b.isbnPaperback ?? '',
+    isbnHardcover: b.isbnHardcover ?? '',
     seriesName: b.seriesName ?? '',
     seriesOrder: b.seriesOrder != null ? String(b.seriesOrder) : '',
     isLeadMagnet: b.isLeadMagnet,
@@ -345,6 +361,9 @@ function BookModal({
   const [asinStatus, setAsinStatus] = useState<'idle' | 'found' | 'not-found'>('idle')
   const [lookupStatus, setLookupStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [howToFindOpen, setHowToFindOpen] = useState(false)
+  const [editionsOpen, setEditionsOpen] = useState(
+    !!(editing?.asinPaperback || editing?.asinAudiobook || editing?.isbnPaperback || editing?.isbnHardcover)
+  )
 
   async function handleManuscriptUpload(file: File) {
     if (!editing) return
@@ -662,6 +681,71 @@ function BookModal({
                 className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
               />
             </div>
+          </div>
+
+          {/* Format Editions (collapsible) */}
+          <div className="border-t border-stone-100 pt-3">
+            <button
+              type="button"
+              onClick={() => setEditionsOpen(v => !v)}
+              className="flex items-center justify-between w-full text-left border-none bg-transparent cursor-pointer p-0"
+            >
+              <span className="text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500">
+                Format Editions <span className="normal-case font-normal text-stone-400">(optional)</span>
+              </span>
+              <span className="text-[11px] text-stone-400">{editionsOpen ? '▲' : '▼'}</span>
+            </button>
+            {editionsOpen && (
+              <div className="mt-3 flex flex-col gap-3">
+                <p className="text-[11px] text-stone-400 -mt-1">
+                  Add ASINs and ISBNs for other formats so AuthorDash can match your KDP sales report rows correctly.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-stone-500 mb-1">Paperback ASIN</label>
+                    <input
+                      type="text"
+                      value={form.asinPaperback}
+                      onChange={e => set('asinPaperback', e.target.value.toUpperCase().trim())}
+                      placeholder="B0XXXXXXXXXX"
+                      maxLength={10}
+                      className="w-full border border-stone-200 rounded-lg px-3 py-2 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-stone-500 mb-1">Audiobook ASIN</label>
+                    <input
+                      type="text"
+                      value={form.asinAudiobook}
+                      onChange={e => set('asinAudiobook', e.target.value.toUpperCase().trim())}
+                      placeholder="B0XXXXXXXXXX"
+                      maxLength={10}
+                      className="w-full border border-stone-200 rounded-lg px-3 py-2 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-stone-500 mb-1">Paperback ISBN</label>
+                    <input
+                      type="text"
+                      value={form.isbnPaperback}
+                      onChange={e => set('isbnPaperback', e.target.value.trim())}
+                      placeholder="978-XXXXXXXXX"
+                      className="w-full border border-stone-200 rounded-lg px-3 py-2 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-stone-500 mb-1">Hardcover ISBN</label>
+                    <input
+                      type="text"
+                      value={form.isbnHardcover}
+                      onChange={e => set('isbnHardcover', e.target.value.trim())}
+                      placeholder="978-XXXXXXXXX"
+                      className="w-full border border-stone-200 rounded-lg px-3 py-2 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Lead magnet toggle */}
@@ -993,6 +1077,10 @@ export function BookCatalog() {
       const payload = {
         title: form.title.trim(),
         asin: form.asin.trim() || null,
+        asinPaperback: form.asinPaperback.trim() || null,
+        asinAudiobook: form.asinAudiobook.trim() || null,
+        isbnPaperback: form.isbnPaperback.trim() || null,
+        isbnHardcover: form.isbnHardcover.trim() || null,
         seriesName: form.seriesName.trim() || null,
         seriesOrder: form.seriesOrder ? parseInt(form.seriesOrder) : null,
         isLeadMagnet: form.isLeadMagnet,

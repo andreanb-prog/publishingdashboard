@@ -20,6 +20,13 @@ export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
   const _a1raw = _firstSheet0?.['A1']?.v
   console.log('[KDP parser] A1 raw value:', JSON.stringify(_a1raw))
 
+  // NEW: KDP v3 10-sheet format — has "eBook Royalty" or "Audiobook Royalty" sheet
+  // This is the current KDP export format as of 2026.
+  if (sheetNames.includes('eBook Royalty') || sheetNames.includes('Audiobook Royalty')) {
+    console.log('[KDP parser] Detected: KDP v3 10-sheet format (eBook Royalty / Audiobook Royalty)')
+    return parseV3Format(workbook)
+  }
+
   // Distinguish KDP Sales Dashboard (has "Paperback Royalty" with data rows) from
   // KDP Royalties Estimator (has "Combined Sales" — "Paperback Royalty" absent or empty)
   if (sheetNames.includes('Combined Sales')) {
@@ -474,7 +481,7 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
     const key = `${na}::${rDate(row.date)}`
     const e = rawMap.get(key)
     if (e) { e.units += row.units; e.royalties += isUSD ? row.royalties : 0 }
-    else rawMap.set(key, { asin: na, title: row.title, date: rDate(row.date), units: row.units, kenp: 0, royalties: isUSD ? row.royalties : 0, format: 'ebook' })
+    else rawMap.set(key, { asin: na, title: row.title, date: rDate(row.date), marketplace: '', format: 'ebook', transactionType: '', units: row.units, kenp: 0, royalties: isUSD ? row.royalties : 0 })
   }
 
   for (const row of paperbackData) {
@@ -489,7 +496,7 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
     const key = `${na}::${rDate(date)}`
     const e = rawMap.get(key)
     if (e) { e.units += units; e.royalties += isUSD ? royalty : 0 }
-    else rawMap.set(key, { asin: na, title, date: rDate(date), units, kenp: 0, royalties: isUSD ? royalty : 0, format: 'paperback' })
+    else rawMap.set(key, { asin: na, title, date: rDate(date), marketplace: '', format: 'paperback', transactionType: '', units, kenp: 0, royalties: isUSD ? royalty : 0 })
   }
 
   for (const row of kenpData) {
@@ -501,7 +508,7 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
     const na = norm(rawAsin); const key = `${na}::${rDate(date)}`
     const e = rawMap.get(key)
     if (e) { e.kenp += kenp }
-    else rawMap.set(key, { asin: na, title, date: rDate(date), units: 0, kenp, royalties: 0, format: 'ebook' })
+    else rawMap.set(key, { asin: na, title, date: rDate(date), marketplace: '', format: 'ebook', transactionType: '', units: 0, kenp, royalties: 0 })
   }
 
   const rawSaleRows = Array.from(rawMap.values()).filter(r => r.units > 0 || r.kenp > 0)
@@ -704,7 +711,7 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
     const key = `${na}::${d}`
     const e = mRawMap.get(key)
     if (e) { e.units += units; e.royalties += isUSD ? royalty : 0 }
-    else mRawMap.set(key, { asin: na, title, date: d, units, kenp: 0, royalties: isUSD ? royalty : 0, format: 'ebook' })
+    else mRawMap.set(key, { asin: na, title, date: d, marketplace: '', format: 'ebook', transactionType: '', units, kenp: 0, royalties: isUSD ? royalty : 0 })
   }
 
   for (const row of kenpData) {
@@ -716,7 +723,7 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
     const key = `${na}::${d}`
     const e = mRawMap.get(key)
     if (e) { e.kenp += kenp }
-    else mRawMap.set(key, { asin: na, title: '', date: d, units: 0, kenp, royalties: 0, format: 'ebook' })
+    else mRawMap.set(key, { asin: na, title: '', date: d, marketplace: '', format: 'ebook', transactionType: '', units: 0, kenp, royalties: 0 })
   }
 
   const rawSaleRows = Array.from(mRawMap.values()).filter(r => r.units > 0 || r.kenp > 0)
@@ -852,7 +859,7 @@ function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
     const key = `${na}::${reRDate(row.date)}`
     const e = reRawMap.get(key)
     if (e) { e.units += row.units; e.royalties += isUSD ? row.royalties : 0 }
-    else reRawMap.set(key, { asin: na, title: row.title, date: reRDate(row.date), units: row.units, kenp: 0, royalties: isUSD ? row.royalties : 0, format: 'ebook' })
+    else reRawMap.set(key, { asin: na, title: row.title, date: reRDate(row.date), marketplace: '', format: 'ebook', transactionType: '', units: row.units, kenp: 0, royalties: isUSD ? row.royalties : 0 })
   }
 
   for (const row of kenpData) {
@@ -864,7 +871,7 @@ function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
     const na = reNorm(rawAsin); const key = `${na}::${reRDate(date)}`
     const e = reRawMap.get(key)
     if (e) { e.kenp += kenp }
-    else reRawMap.set(key, { asin: na, title, date: reRDate(date), units: 0, kenp, royalties: 0, format: 'ebook' })
+    else reRawMap.set(key, { asin: na, title, date: reRDate(date), marketplace: '', format: 'ebook', transactionType: '', units: 0, kenp, royalties: 0 })
   }
 
   const rawSaleRows = Array.from(reRawMap.values()).filter(r => r.units > 0 || r.kenp > 0)
@@ -1001,7 +1008,7 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
   const flatNorm = (s: string) => s.replace(/\s/g, '').toUpperCase()
   const rawSaleRows: KdpRawRow[] = Array.from(bookMap.values())
     .filter(b => b.units > 0 || b.kenp > 0)
-    .map(b => ({ asin: flatNorm(b.asin || b.title), title: b.title, date: month + '-01', units: b.units, kenp: b.kenp, royalties: b.royalties, format: b.format }))
+    .map(b => ({ asin: flatNorm(b.asin || b.title), title: b.title, date: month + '-01', marketplace: '', format: b.format ?? 'ebook', transactionType: '', units: b.units, kenp: b.kenp, royalties: b.royalties }))
 
   return {
     month, totalRoyaltiesUSD, totalUnits, totalKENP,
@@ -1098,7 +1105,7 @@ function parsePriorMonthRoyaltiesFormat(workbook: XLSX.WorkBook): KDPData {
   const priorNorm = (s: string) => s.replace(/\s/g, '').toUpperCase()
   const rawSaleRows: KdpRawRow[] = Array.from(bookMap.values())
     .filter(b => b.units > 0)
-    .map(b => ({ asin: priorNorm(b.asin || b.title), title: b.title, date: month + '-01', units: b.units, kenp: 0, royalties: b.royalties, format: b.format }))
+    .map(b => ({ asin: priorNorm(b.asin || b.title), title: b.title, date: month + '-01', marketplace: '', format: b.format ?? 'ebook', transactionType: '', units: b.units, kenp: 0, royalties: b.royalties }))
 
   return {
     month, totalRoyaltiesUSD, totalUnits, totalKENP: 0,
@@ -1106,6 +1113,270 @@ function parsePriorMonthRoyaltiesFormat(workbook: XLSX.WorkBook): KDPData {
     summary: { paidUnits, freeUnits: 0, paperbackUnits: 0 },
     rowCount,
     diagnostics,
+    rawSaleRows,
+  }
+}
+
+// ── KDP v3 10-sheet format (current as of 2026) ───────────────────────────────
+// Sheets: Report Definitions, Summary, Combined Sales, eBook Royalty,
+//         Paperback Royalty, Hardcover Royalty, Audiobook Royalty,
+//         Orders Processed, eBook Orders Placed, KENP
+//
+// We parse: eBook Royalty (4), Paperback Royalty (5), Hardcover Royalty (6),
+//           Audiobook Royalty (7), KENP (10).
+// We skip: Report Definitions, Summary, Combined Sales, Orders Processed, eBook Orders Placed.
+function parseV3Format(workbook: XLSX.WorkBook): KDPData {
+  const sheetsFound = workbook.SheetNames
+
+  // ── Raw-array sheet reader with header-row auto-detection ─────────────────
+  function readSheetRaw(sheetName: string): unknown[][] {
+    const sheet = workbook.Sheets[sheetName]
+    if (!sheet) return []
+    return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][]
+  }
+
+  function findHeaderRow(raw: unknown[][], signals: string[]): number {
+    for (let i = 0; i < Math.min(raw.length, 10); i++) {
+      const cells = (raw[i] ?? []).map(c => String(c ?? '').toLowerCase().trim())
+      if (signals.some(s => cells.includes(s) || cells.some(c => c.includes(s)))) return i
+    }
+    return -1
+  }
+
+  // Build per-col-index row objects from raw after headerIdx
+  function buildRows(raw: unknown[][], headerIdx: number): { headers: string[]; rows: unknown[][] } {
+    const headers = (raw[headerIdx] ?? []).map(c => String(c ?? '').trim())
+    const rows = raw.slice(headerIdx + 1)
+      .filter(row => (row ?? []).some(c => c !== '' && c !== null && c !== undefined))
+    return { headers, rows }
+  }
+
+  const bookMap = new Map<string, BookData>()
+  const dailyUnitsMap = new Map<string, number>()
+  const dailyKENPMap  = new Map<string, number>()
+  let totalRoyaltiesUSD = 0
+  let paidUnits = 0
+  let paperbackUnits = 0
+  let audiobookUnits = 0
+  let totalKENP = 0
+
+  const rawSaleRowsMap = new Map<string, KdpRawRow>()
+
+  function addOrMergeBook(key: string, entry: Omit<BookData, 'shortTitle'>) {
+    if (!bookMap.has(key)) {
+      bookMap.set(key, {
+        ...entry,
+        shortTitle: entry.title.length > 35 ? entry.title.substring(0, 35) + '...' : entry.title,
+      })
+    } else {
+      const b = bookMap.get(key)!
+      b.units     += entry.units
+      b.kenp      += entry.kenp
+      b.royalties += entry.royalties
+    }
+  }
+
+  function addRawRow(row: KdpRawRow) {
+    const key = `${row.asin}::${row.date}::${row.marketplace}::${row.format}::${row.transactionType}`
+    const e = rawSaleRowsMap.get(key)
+    if (e) {
+      e.units     += row.units
+      e.kenp      += row.kenp
+      e.royalties += row.royalties
+    } else {
+      rawSaleRowsMap.set(key, { ...row })
+    }
+  }
+
+  // ── eBook Royalty (16 cols, 0-indexed) ───────────────────────────────────
+  // 0:Royalty Date 1:Title 2:Author Name 3:ASIN 4:Marketplace 5:Royalty Type
+  // 6:Transaction Type 7:Units Sold 8:Units Refunded 9:Net Units Sold
+  // 10:Avg List Price 11:Avg Offer Price 12:Avg File Size MB 13:Avg Delivery Cost
+  // 14:Royalty 15:Currency
+  const ebookRaw = readSheetRaw('eBook Royalty')
+  const ebookHeaderIdx = findHeaderRow(ebookRaw, ['royalty date', 'asin', 'title'])
+  if (ebookHeaderIdx >= 0) {
+    const { rows } = buildRows(ebookRaw, ebookHeaderIdx)
+    console.log(`[KDP parser v3] eBook Royalty: ${rows.length} data rows`)
+    for (const row of rows) {
+      const r = row as unknown[]
+      const date        = toISODate(r[0])
+      const title       = str(r[1])
+      const asin        = str(r[3]).trim().toUpperCase()
+      const marketplace = str(r[4]).trim()
+      const txType      = str(r[6]).trim()
+      const netUnits    = num(r[9])
+      const royalty     = num(r[14])
+      const currency    = str(r[15]).toUpperCase().trim()
+      if (!asin && !title) continue
+      const isUSD = currency === 'USD' || currency === ''
+      const key = asin || title.toLowerCase().trim()
+      addOrMergeBook(key, { title, asin, units: netUnits, kenp: 0, royalties: isUSD ? royalty : 0, format: 'ebook' })
+      if (isUSD) totalRoyaltiesUSD += royalty
+      paidUnits += netUnits
+      if (date) dailyUnitsMap.set(date + ':ebook', (dailyUnitsMap.get(date + ':ebook') ?? 0) + netUnits)
+      addRawRow({ asin: asin || title.toLowerCase().trim(), title, date: date || '', marketplace, format: 'ebook', transactionType: txType, units: netUnits, kenp: 0, royalties: isUSD ? royalty : 0 })
+    }
+  }
+
+  // Aggregate daily units (strip format suffix for chart)
+  function mergeDailyUnits() {
+    const merged = new Map<string, number>()
+    Array.from(dailyUnitsMap.entries()).forEach(([key, val]) => {
+      const date = key.split(':')[0]
+      merged.set(date, (merged.get(date) ?? 0) + val)
+    })
+    return merged
+  }
+
+  // ── Paperback Royalty (17 cols) ───────────────────────────────────────────
+  // 0:Royalty Date 1:Order Date 2:Title 3:Author Name 4:ISBN 5:Marketplace
+  // 6:Royalty Type 7:Transaction Type 8:Units Sold 9:Units Refunded 10:Net Units Sold
+  // 11:Avg List Price 12:Avg Offer Price 13:Avg Manufacturing Cost 14:Royalty
+  // 15:Currency 16:ASIN
+  function parsePrintSheet(sheetName: string, formatName: 'paperback' | 'hardcover') {
+    const raw = readSheetRaw(sheetName)
+    if (!raw.length) return
+    const headerIdx = findHeaderRow(raw, ['royalty date', 'isbn', 'asin'])
+    if (headerIdx < 0) { console.warn(`[KDP parser v3] ${sheetName}: no header row found`); return }
+    const { rows } = buildRows(raw, headerIdx)
+    console.log(`[KDP parser v3] ${sheetName}: ${rows.length} data rows`)
+    for (const row of rows) {
+      const r = row as unknown[]
+      const date        = toISODate(r[0])
+      const orderDate   = toISODate(r[1])
+      const title       = str(r[2])
+      const isbn        = str(r[4]).trim()
+      const marketplace = str(r[5]).trim()
+      const txType      = str(r[7]).trim()
+      const netUnits    = num(r[10])
+      const mfgCost     = num(r[13])
+      const royalty     = num(r[14])
+      const currency    = str(r[15]).toUpperCase().trim()
+      const asin        = str(r[16]).trim().toUpperCase()
+      if (!asin && !title && !isbn) continue
+      const isUSD = currency === 'USD' || currency === ''
+      const key = asin || isbn || title.toLowerCase().trim()
+      addOrMergeBook(key, { title, asin: asin || isbn, units: netUnits, kenp: 0, royalties: isUSD ? royalty : 0, format: formatName })
+      if (isUSD) totalRoyaltiesUSD += royalty
+      paperbackUnits += netUnits
+      if (date) dailyUnitsMap.set(date + ':' + formatName, (dailyUnitsMap.get(date + ':' + formatName) ?? 0) + netUnits)
+      addRawRow({
+        asin: asin || isbn || title.toLowerCase().trim(), title, date: date || '', marketplace, format: formatName,
+        transactionType: txType, units: netUnits, kenp: 0, royalties: isUSD ? royalty : 0,
+        isbn: isbn || undefined, orderDate: orderDate || undefined, manufacturingCost: mfgCost || undefined,
+      })
+    }
+  }
+
+  parsePrintSheet('Paperback Royalty', 'paperback')
+  parsePrintSheet('Hardcover Royalty', 'hardcover')
+
+  // ── Audiobook Royalty (14 cols) — NEW ─────────────────────────────────────
+  // 0:Royalty Date 1:Title 2:Author Name 3:ASIN 4:Marketplace 5:Royalty Type
+  // 6:Transaction Type 7:Units Sold 8:Units Refunded 9:Net Units Sold
+  // 10:Avg List Price 11:Avg Offer Price 12:Royalty 13:Currency
+  const abRaw = readSheetRaw('Audiobook Royalty')
+  const abHeaderIdx = findHeaderRow(abRaw, ['royalty date', 'asin', 'title'])
+  if (abHeaderIdx >= 0) {
+    const { rows } = buildRows(abRaw, abHeaderIdx)
+    console.log(`[KDP parser v3] Audiobook Royalty: ${rows.length} data rows`)
+    for (const row of rows) {
+      const r = row as unknown[]
+      const date        = toISODate(r[0])
+      const title       = str(r[1])
+      const asin        = str(r[3]).trim().toUpperCase()
+      const marketplace = str(r[4]).trim()
+      const txType      = str(r[6]).trim()
+      const netUnits    = num(r[9])
+      const royalty     = num(r[12])
+      const currency    = str(r[13]).toUpperCase().trim()
+      if (!asin && !title) continue
+      const isUSD = currency === 'USD' || currency === ''
+      const key = asin || title.toLowerCase().trim()
+      addOrMergeBook(key, { title, asin, units: netUnits, kenp: 0, royalties: isUSD ? royalty : 0, format: 'audiobook' })
+      if (isUSD) totalRoyaltiesUSD += royalty
+      audiobookUnits += netUnits
+      if (date) dailyUnitsMap.set(date + ':audiobook', (dailyUnitsMap.get(date + ':audiobook') ?? 0) + netUnits)
+      addRawRow({ asin: asin || title.toLowerCase().trim(), title, date: date || '', marketplace, format: 'audiobook', transactionType: txType, units: netUnits, kenp: 0, royalties: isUSD ? royalty : 0 })
+    }
+  }
+
+  // ── KENP (8 cols) — 3-ASIN format ────────────────────────────────────────
+  // 0:Date 1:Title 2:Author Name 3:eBook ASIN 4:Audiobook ASIN 5:Audible ASIN
+  // 6:Marketplace 7:KENP count
+  const kenpRaw = readSheetRaw('KENP')
+  const kenpHeaderIdx = findHeaderRow(kenpRaw, ['date', 'ebook asin', 'kenp'])
+  if (kenpHeaderIdx >= 0) {
+    const { rows } = buildRows(kenpRaw, kenpHeaderIdx)
+    console.log(`[KDP parser v3] KENP: ${rows.length} data rows`)
+    for (const row of rows) {
+      const r = row as unknown[]
+      const date          = toISODate(r[0])
+      const title         = str(r[1])
+      const ebookAsin     = str(r[3]).trim().toUpperCase()
+      const audiobookAsin = str(r[4]).trim().toUpperCase()
+      const audibleAsin   = str(r[5]).trim().toUpperCase()
+      const marketplace   = str(r[6]).trim()
+      const kenp          = num(r[7])
+      if (!ebookAsin && !title) continue
+      const key = ebookAsin || title.toLowerCase().trim()
+      const b = bookMap.get(key)
+      if (b) b.kenp += kenp
+      else addOrMergeBook(key, { title, asin: ebookAsin, units: 0, kenp, royalties: 0, format: 'ku' })
+      totalKENP += kenp
+      if (date) dailyKENPMap.set(date, (dailyKENPMap.get(date) ?? 0) + kenp)
+      addRawRow({
+        asin: ebookAsin || title.toLowerCase().trim(), title, date: date || '', marketplace,
+        format: 'ku', transactionType: '', units: 0, kenp, royalties: 0,
+        audiobookAsin: audiobookAsin || undefined, audibleAsin: audibleAsin || undefined,
+      })
+    }
+  }
+
+  // ── Aggregate daily unit data from per-format keys ────────────────────────
+  const mergedDailyUnits = mergeDailyUnits()
+
+  // Derive month from first date found across any sheet
+  const allDates = [
+    ...Array.from(mergedDailyUnits.keys()),
+    ...Array.from(dailyKENPMap.keys()),
+  ].filter(Boolean).sort()
+  const month = allDates[0] ? allDates[0].substring(0, 7) : new Date().toISOString().substring(0, 7)
+
+  const books = deduplicateBooks(Array.from(bookMap.values()))
+  const totalUnits = books.reduce((s, b) => s + b.units, 0)
+  const kenpFromBooks = books.reduce((s, b) => s + b.kenp, 0)
+  const resolvedKENP = kenpFromBooks > totalKENP ? kenpFromBooks : totalKENP
+
+  const dailyUnits: DailyData[] = Array.from(mergedDailyUnits.entries())
+    .map(([date, value]) => ({ date, value }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  const dailyKENP: DailyData[] = Array.from(dailyKENPMap.entries())
+    .map(([date, value]) => ({ date, value }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  const rawSaleRows = Array.from(rawSaleRowsMap.values()).filter(r => r.units > 0 || r.kenp > 0)
+
+  const diagnostics: ParseDiagnostics = {
+    rowCount:        rawSaleRows.length,
+    sheetsFound,
+    sheetUsed:       'eBook Royalty + Paperback Royalty + Hardcover Royalty + Audiobook Royalty + KENP',
+    columnsDetected: [],
+    skippedRows:     0,
+    skipReasons:     [],
+    firstParsedRow:  rawSaleRows[0] ? { ...rawSaleRows[0] } as Record<string, unknown> : null,
+    error:           rawSaleRows.length === 0 ? 'No data rows found across all format sheets' : null,
+    strategyUsed:    'v3-positional',
+  }
+
+  return {
+    month, totalRoyaltiesUSD, totalUnits, totalKENP: resolvedKENP,
+    books, dailyUnits, dailyKENP,
+    rowCount: rawSaleRows.length,
+    diagnostics,
+    summary: { paidUnits, freeUnits: 0, paperbackUnits: paperbackUnits + audiobookUnits },
     rawSaleRows,
   }
 }

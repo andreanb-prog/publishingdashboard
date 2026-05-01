@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import { parseKDPFile } from '@/lib/parsers/kdp'
+import { saveKdpDataToDB } from '@/app/api/parse-kdp/route'
 import { parseMetaFile } from '@/lib/parsers/meta'
 import { parsePinterestFile } from '@/lib/parsers/pinterest'
 import { logAdminAction } from '@/lib/adminAudit'
@@ -123,7 +124,11 @@ function detectExcelType(buffer: Buffer): 'kdp' | 'meta' | 'unknown' {
     const wb = XLSX.read(buffer, { type: 'buffer' })
 
     // Sheet names are the most reliable KDP signal — check first
-    if (wb.SheetNames.some((n: string) => n === 'Orders Processed' || n === 'KENP Read' || n === 'Summary')) {
+    // v3 10-sheet format has 'eBook Royalty' / 'Audiobook Royalty'; older formats have 'Orders Processed' etc.
+    if (wb.SheetNames.some((n: string) =>
+      n === 'Orders Processed' || n === 'KENP Read' || n === 'Summary' ||
+      n === 'eBook Royalty' || n === 'Audiobook Royalty' || n === 'Paperback Royalty'
+    )) {
       return 'kdp'
     }
 
@@ -165,18 +170,98 @@ export async function POST(req: NextRequest) {
       const excelType = detectExcelType(buffer)
 
       if (excelType === 'kdp') {
-        const data = parseKDPFile(buffer)
+        let data
+        try {
+          data = parseKDPFile(buffer)
+        } catch (parseErr) {
+          console.error('[parse-auto] KDP parse failed:', parseErr, { name: file.name })
+          return NextResponse.json(
+            { error: 'Unrecognized file format. Please upload a KDP Sales & Royalties report.' },
+            { status: 422 }
+          )
+        }
+
+        const rawRows = data.rawSaleRows ?? []
         const diag = data.diagnostics ?? null
-        const uploadStatus = !diag ? 'success'
-          : diag.rowCount === 0 ? 'error'
-          : diag.skippedRows > 0 ? 'partial'
-          : 'success'
-        await logUpload(session.user.id, 'kdp', file.name, data.rowCount ?? data.books.length, uploadStatus, diag ?? {})
-        auditUploadIfImpersonating(session, file.name, data.rowCount ?? data.books.length, 'kdp')
+
+        // Load user's book catalog for matching
+        const userBooks = await db.book.findMany({
+          where:  { userId: session.user.id },
+          select: { asin: true, asinPaperback: true, asinAudiobook: true, isbnPaperback: true, isbnHardcover: true },
+        })
+
+        let saved = 0
+        let skipped = 0
+        if (rawRows.length > 0) {
+          const result = await saveKdpDataToDB(session.user.id, rawRows, userBooks)
+          saved   = result.saved
+          skipped = result.skipped
+          console.log(`[parse-auto] KDP: ${saved} saved, ${skipped} skipped, ${rawRows.length} parsed`)
+        }
+
+        // Refresh Analysis record for the month covered
+        try {
+          const month = data.month
+          const [yr, mo] = month.split('-').map(Number)
+          const nextMo = mo === 12 ? `${yr + 1}-01` : `${yr}-${String(mo + 1).padStart(2, '0')}`
+          const accRows = await db.kdpSale.findMany({
+            where: { userId: session.user.id, date: { gte: `${month}-01`, lt: `${nextMo}-01` } },
+          })
+
+          const bookMap       = new Map<string, { asin: string; title: string; units: number; kenp: number; royalties: number; format: string }>()
+          const dailyUnitsMap = new Map<string, number>()
+          const dailyKENPMap  = new Map<string, number>()
+          for (const row of accRows) {
+            const b = bookMap.get(row.asin)
+            if (b) { b.units += row.units; b.kenp += row.kenp; b.royalties += row.royalties }
+            else bookMap.set(row.asin, { asin: row.asin, title: row.title, units: row.units, kenp: row.kenp, royalties: row.royalties, format: row.format })
+            dailyUnitsMap.set(row.date, (dailyUnitsMap.get(row.date) ?? 0) + row.units)
+            dailyKENPMap.set(row.date,  (dailyKENPMap.get(row.date)  ?? 0) + row.kenp)
+          }
+
+          const books = Array.from(bookMap.values()).sort((a, b) => b.units - a.units).map(b => ({
+            ...b,
+            shortTitle: b.title.length > 35 ? b.title.substring(0, 35) + '...' : b.title,
+            format: b.format as 'ebook' | 'paperback' | 'hardcover' | 'audiobook' | 'ku' | undefined,
+          }))
+          const dailyUnits = Array.from(dailyUnitsMap.entries()).map(([date, value]) => ({ date, value })).sort((a, b) => a.date.localeCompare(b.date))
+          const dailyKENP  = Array.from(dailyKENPMap.entries()).map(([date, value]) => ({ date, value })).sort((a, b) => a.date.localeCompare(b.date))
+          const totalUnits        = books.reduce((s, b) => s + b.units, 0)
+          const totalKENP         = books.reduce((s, b) => s + b.kenp, 0)
+          const totalRoyaltiesUSD = books.reduce((s, b) => s + b.royalties, 0)
+          const paperbackUnits    = books.filter(b => b.format === 'paperback' || b.format === 'hardcover').reduce((s, b) => s + b.units, 0)
+          const accumulatedData   = {
+            ...data,
+            rawSaleRows: undefined,
+            totalUnits, totalKENP, totalRoyaltiesUSD, books, dailyUnits, dailyKENP,
+            summary: { paidUnits: totalUnits - paperbackUnits, freeUnits: 0, paperbackUnits },
+          }
+
+          const existing = await db.analysis.findFirst({ where: { userId: session.user.id, month } })
+          if (existing) {
+            const existingData = (existing.data as Record<string, unknown>) ?? {}
+            const { storySentence: _ss, actionPlan: _ap, channelScores: _cs, insights: _ins, fingerprint: _fp,
+                    kdpCoach: _kc, metaCoach: _mc, emailCoach: _ec, pinterestCoach: _pc, swapsCoach: _sc,
+                    overallVerdict: _ov, confidenceNote: _cn, ...preservedData } = existingData
+            await db.analysis.update({ where: { id: existing.id }, data: { data: { ...preservedData, kdp: accumulatedData } as object } })
+          } else {
+            await db.analysis.create({ data: { userId: session.user.id, month, data: { month, kdp: accumulatedData } as object } })
+          }
+        } catch (dbErr) {
+          console.error('[parse-auto] KDP analysis refresh failed:', dbErr)
+        }
+
+        const uploadStatus = diag?.rowCount === 0 ? 'error' : skipped > 0 && saved === 0 ? 'partial' : 'success'
+        await logUpload(session.user.id, 'kdp', file.name, saved, uploadStatus, diag ?? {})
+        auditUploadIfImpersonating(session, file.name, saved, 'kdp')
         return NextResponse.json({
           success: true, type: 'kdp', data,
+          rowCount: saved,
+          parsed:  rawRows.length,
+          saved,
+          skipped,
           diagnostics: diag,
-          summary: `${data.totalUnits} units · ${data.totalKENP?.toLocaleString()} KENP · $${data.totalRoyaltiesUSD} royalties`,
+          summary: `${saved} rows saved · ${data.totalUnits} units · ${data.totalKENP?.toLocaleString()} KENP · $${data.totalRoyaltiesUSD} royalties`,
         })
       }
 

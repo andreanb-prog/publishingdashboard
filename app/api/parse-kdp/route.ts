@@ -8,6 +8,101 @@ import type { KDPData } from '@/types'
 
 export const maxDuration = 60
 
+// Shared logic for saving KDP data — called from both parse-kdp and parse-auto
+export async function saveKdpDataToDB(
+  userId: string,
+  rawRows: NonNullable<KDPData['rawSaleRows']>,
+  userBooks: { asin: string | null; asinPaperback: string | null; asinAudiobook: string | null; isbnPaperback: string | null; isbnHardcover: string | null }[],
+): Promise<{ saved: number; skipped: number }> {
+  // Build lookup sets for fast ASIN/ISBN matching
+  const ebookAsins      = new Set(userBooks.map(b => b.asin?.trim().toUpperCase()).filter(Boolean) as string[])
+  const paperbackAsins  = new Set(userBooks.map(b => b.asinPaperback?.trim().toUpperCase()).filter(Boolean) as string[])
+  const audiobookAsins  = new Set(userBooks.map(b => b.asinAudiobook?.trim().toUpperCase()).filter(Boolean) as string[])
+  const isbnPaperbacks  = new Set(userBooks.map(b => b.isbnPaperback?.trim()).filter(Boolean) as string[])
+  const isbnHardcovers  = new Set(userBooks.map(b => b.isbnHardcover?.trim()).filter(Boolean) as string[])
+  // Also include ebook ASINs in a combined set for KENP/audiobook fallback matching
+  const allKnownAsins   = new Set(
+    Array.from(ebookAsins).concat(Array.from(paperbackAsins)).concat(Array.from(audiobookAsins))
+  )
+
+  // If user has no books registered at all, skip matching entirely and save everything
+  const hasBooks = userBooks.length > 0
+
+  let saved = 0
+  let skipped = 0
+
+  for (const row of rawRows) {
+    const asinUpper = row.asin?.trim().toUpperCase() ?? ''
+
+    // Book matching — skip rows that don't belong to user's catalog
+    if (hasBooks) {
+      let matched = false
+      if (row.format === 'ebook' || row.format === 'ku') {
+        matched = ebookAsins.has(asinUpper) || allKnownAsins.has(asinUpper)
+      } else if (row.format === 'paperback') {
+        matched = paperbackAsins.has(asinUpper) || ebookAsins.has(asinUpper) ||
+          (row.isbn ? isbnPaperbacks.has(row.isbn.trim()) : false)
+      } else if (row.format === 'hardcover') {
+        matched = ebookAsins.has(asinUpper) ||
+          (row.isbn ? isbnHardcovers.has(row.isbn.trim()) : false)
+      } else if (row.format === 'audiobook') {
+        matched = audiobookAsins.has(asinUpper) || ebookAsins.has(asinUpper)
+      } else {
+        matched = allKnownAsins.has(asinUpper) || ebookAsins.has(asinUpper)
+      }
+      if (!matched) { skipped++; continue }
+    }
+
+    try {
+      await db.kdpSale.upsert({
+        where: {
+          userId_asin_date_marketplace_format_transactionType: {
+            userId,
+            asin:            row.asin,
+            date:            row.date,
+            marketplace:     row.marketplace ?? '',
+            format:          row.format ?? 'ebook',
+            transactionType: row.transactionType ?? '',
+          },
+        },
+        update: {
+          units:            row.units,
+          kenp:             row.kenp,
+          royalties:        row.royalties,
+          title:            row.title,
+          isbn:             row.isbn ?? null,
+          orderDate:        row.orderDate ? new Date(row.orderDate) : null,
+          manufacturingCost: row.manufacturingCost ?? null,
+          audiobookAsin:    row.audiobookAsin ?? null,
+          audibleAsin:      row.audibleAsin ?? null,
+        },
+        create: {
+          userId,
+          asin:            row.asin,
+          title:           row.title,
+          date:            row.date,
+          marketplace:     row.marketplace ?? '',
+          format:          row.format ?? 'ebook',
+          transactionType: row.transactionType ?? '',
+          units:           row.units,
+          kenp:            row.kenp,
+          royalties:       row.royalties,
+          isbn:            row.isbn ?? null,
+          orderDate:       row.orderDate ? new Date(row.orderDate) : null,
+          manufacturingCost: row.manufacturingCost ?? null,
+          audiobookAsin:   row.audiobookAsin ?? null,
+          audibleAsin:     row.audibleAsin ?? null,
+        },
+      })
+      saved++
+    } catch (err) {
+      console.error('[parse-kdp] upsert error:', err, { asin: row.asin, date: row.date, format: row.format })
+    }
+  }
+
+  return { saved, skipped }
+}
+
 export async function POST(req: NextRequest) {
   const session = await getAugmentedSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -23,11 +118,7 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
-
-    // Debug: log file info and first 500 bytes to trace format detection issues
-    const preview = buffer.slice(0, 500).toString('utf8').replace(/\r\n/g, '\n')
     console.log('[parse-kdp] file:', file.name, '| size:', file.size, 'bytes')
-    console.log('[parse-kdp] first 500 bytes:', preview)
 
     let data
     try {
@@ -40,7 +131,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (!data.books || data.books.length === 0) {
+    const rawRows = data.rawSaleRows ?? []
+
+    if (rawRows.length === 0 && (!data.books || data.books.length === 0)) {
       console.error('KDP upload: no rows parsed', { name: file.name })
       return NextResponse.json(
         { error: "No data found in this file. Make sure you're uploading a KDP Sales & Royalties report." },
@@ -48,45 +141,42 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Log upload attempt
     try {
       await db.uploadLog.create({
         data: {
           userId:   session.user.id,
           fileType: 'kdp',
           fileName: file.name,
-          rowCount: data.books.length,
+          rowCount: rawRows.length,
           status:   'success',
           details:  {},
         },
       })
     } catch (dbErr) {
-      console.error('KDP upload: DB write failed:', dbErr)
-      return NextResponse.json({ error: 'Upload failed to save. Please try again.' }, { status: 500 })
+      console.error('KDP upload: upload log write failed:', dbErr)
     }
 
-    // ── Upsert raw per-ASIN+date rows — accumulate across uploads ───────────
-    const rawRows = data.rawSaleRows ?? []
+    // Load user's books for matching
+    const userBooks = await db.book.findMany({
+      where:  { userId: session.user.id },
+      select: { asin: true, asinPaperback: true, asinAudiobook: true, isbnPaperback: true, isbnHardcover: true },
+    })
+
+    // Save matched rows to DB
+    let saved = 0
+    let skipped = 0
     if (rawRows.length > 0) {
-      await Promise.all(rawRows.map(row =>
-        db.kdpSale.upsert({
-          where: { userId_asin_date: { userId: session.user.id, asin: row.asin, date: row.date } },
-          update: { units: row.units, kenp: row.kenp, royalties: row.royalties, title: row.title, format: row.format },
-          create: {
-            userId:    session.user.id,
-            asin:      row.asin,
-            date:      row.date,
-            title:     row.title,
-            units:     row.units,
-            kenp:      row.kenp,
-            royalties: row.royalties,
-            format:    row.format,
-          },
-        })
-      ))
-      console.log(`KDP upload: upserted ${rawRows.length} rows for month ${data.month}`)
+      const result = await saveKdpDataToDB(session.user.id, rawRows, userBooks)
+      saved   = result.saved
+      skipped = result.skipped
+      console.log(`KDP upload: ${saved} saved, ${skipped} skipped (no book match), ${rawRows.length} parsed`)
     }
 
-    // ── Read back accumulated totals for this month from DB ────────────────
+    // ── Read back accumulated totals for all months in this file ──────────────
+    const months = Array.from(new Set(rawRows.map(r => r.date.substring(0, 7)))).sort()
+
+    // Build accumulated data from the rows we just saved (or from DB for the months covered)
     const month = data.month
     const [yr, mo] = month.split('-').map(Number)
     const nextMo = mo === 12 ? `${yr + 1}-01` : `${yr}-${String(mo + 1).padStart(2, '0')}`
@@ -94,8 +184,8 @@ export async function POST(req: NextRequest) {
       where: { userId: session.user.id, date: { gte: `${month}-01`, lt: `${nextMo}-01` } },
     })
 
-    // ── Reconstruct accumulated KDPData from DB rows ───────────────────────
-    const bookMap        = new Map<string, { asin: string; title: string; units: number; kenp: number; royalties: number; format?: string }>()
+    // Reconstruct accumulated KDPData from DB rows
+    const bookMap        = new Map<string, { asin: string; title: string; units: number; kenp: number; royalties: number; format: string }>()
     const dailyUnitsMap  = new Map<string, number>()
     const dailyKENPMap   = new Map<string, number>()
 
@@ -106,15 +196,19 @@ export async function POST(req: NextRequest) {
         b.kenp      += row.kenp
         b.royalties += row.royalties
       } else {
-        bookMap.set(row.asin, { asin: row.asin, title: row.title, units: row.units, kenp: row.kenp, royalties: row.royalties, format: row.format ?? undefined })
+        bookMap.set(row.asin, { asin: row.asin, title: row.title, units: row.units, kenp: row.kenp, royalties: row.royalties, format: row.format })
       }
       dailyUnitsMap.set(row.date, (dailyUnitsMap.get(row.date) ?? 0) + row.units)
-      dailyKENPMap.set(row.date,  (dailyKENPMap.get(row.date) ?? 0) + row.kenp)
+      dailyKENPMap.set(row.date,  (dailyKENPMap.get(row.date)  ?? 0) + row.kenp)
     }
 
     const books = Array.from(bookMap.values())
       .sort((a, b) => b.units - a.units)
-      .map(b => ({ ...b, shortTitle: b.title.length > 35 ? b.title.substring(0, 35) + '...' : b.title, format: b.format as 'ebook' | 'paperback' | undefined }))
+      .map(b => ({
+        ...b,
+        shortTitle: b.title.length > 35 ? b.title.substring(0, 35) + '...' : b.title,
+        format: b.format as 'ebook' | 'paperback' | 'hardcover' | 'audiobook' | 'ku' | undefined,
+      }))
 
     const dailyUnits = Array.from(dailyUnitsMap.entries())
       .map(([date, value]) => ({ date, value }))
@@ -127,8 +221,17 @@ export async function POST(req: NextRequest) {
     const totalUnits        = books.reduce((s, b) => s + b.units, 0)
     const totalKENP         = books.reduce((s, b) => s + b.kenp, 0)
     const totalRoyaltiesUSD = books.reduce((s, b) => s + b.royalties, 0)
-    const paperbackUnits    = books.filter(b => b.format === 'paperback').reduce((s, b) => s + b.units, 0)
+    const paperbackUnits    = books.filter(b => b.format === 'paperback' || b.format === 'hardcover').reduce((s, b) => s + b.units, 0)
     const paidUnits         = totalUnits - paperbackUnits
+
+    // Count formats present
+    const formatCounts = {
+      ebook:     accRows.filter(r => r.format === 'ebook').reduce((s, r) => s + r.units, 0),
+      paperback: accRows.filter(r => r.format === 'paperback').reduce((s, r) => s + r.units, 0),
+      hardcover: accRows.filter(r => r.format === 'hardcover').reduce((s, r) => s + r.units, 0),
+      audiobook: accRows.filter(r => r.format === 'audiobook').reduce((s, r) => s + r.units, 0),
+      ku:        accRows.filter(r => r.format === 'ku').reduce((s, r) => s + r.kenp, 0),
+    }
 
     const { rawSaleRows: _stripped, ...baseData } = data
     const accumulatedData: KDPData = {
@@ -144,18 +247,11 @@ export async function POST(req: NextRequest) {
 
     console.log(`KDP upload: accumulated totals — ${totalUnits} units, ${totalKENP} KENP, $${totalRoyaltiesUSD.toFixed(2)} royalties`)
 
-    // ── Refresh the Analysis record's KDP data so the dashboard reflects this upload ──
-    // The dashboard reads from db.analysis, not from kdpSale. Without this, re-uploads
-    // update the raw rows but the displayed numbers stay stuck on the previous analysis.
+    // ── Refresh Analysis record ───────────────────────────────────────────────
     try {
-      const existing = await db.analysis.findFirst({
-        where: { userId: session.user.id, month },
-      })
+      const existing = await db.analysis.findFirst({ where: { userId: session.user.id, month } })
       if (existing) {
         const existingData = (existing.data as Record<string, unknown>) ?? {}
-        // Spread new KDP data and clear AI-generated fields so the dashboard
-        // never shows coaching copy that contradicts the freshly uploaded numbers.
-        // The next analyze POST (triggered by OverviewClient) will regenerate them.
         const {
           storySentence: _ss, actionPlan: _ap, channelScores: _cs,
           insights: _ins, fingerprint: _fp, kdpCoach: _kc,
@@ -169,11 +265,7 @@ export async function POST(req: NextRequest) {
         })
       } else {
         await db.analysis.create({
-          data: {
-            userId: session.user.id,
-            month,
-            data: { month, kdp: accumulatedData } as object,
-          },
+          data: { userId: session.user.id, month, data: { month, kdp: accumulatedData } as object },
         })
       }
     } catch (dbErr) {
@@ -182,13 +274,45 @@ export async function POST(req: NextRequest) {
 
     if (session.user.adminImpersonating && session.user.adminRealEmail) {
       logAdminAction(session.user.adminRealEmail, session.user.adminImpersonating, 'upload', {
-        filename: file.name,
-        rowCount: data.books.length,
-        fileType: 'kdp',
+        filename: file.name, rowCount: rawRows.length, fileType: 'kdp',
       })
     }
 
-    return NextResponse.json({ success: true, data: accumulatedData, rowCount: accumulatedData.books.length })
+    // Build human-readable months list for toast
+    const monthNames = months.map(m => {
+      const [y, mo2] = m.split('-').map(Number)
+      return new Date(y, mo2 - 1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' })
+    })
+    const formatsPresent = [
+      formatCounts.ebook     > 0 ? 'Ebook'     : null,
+      formatCounts.paperback > 0 ? 'Paperback'  : null,
+      formatCounts.hardcover > 0 ? 'Hardcover'  : null,
+      formatCounts.audiobook > 0 ? 'Audiobook'  : null,
+      formatCounts.ku        > 0 ? 'KU'         : null,
+    ].filter(Boolean) as string[]
+
+    // Determine warning/success status
+    let toast: string
+    if (saved === 0 && skipped > 0) {
+      toast = `File uploaded but no matching books found. Check your ASINs in Settings > My Books.`
+    } else {
+      const monthPart   = monthNames.join(' + ')
+      const formatPart  = formatsPresent.join(', ')
+      toast = `Saved ${saved} rows — ${monthPart}${formatPart ? ` · ${formatPart}` : ''}`
+    }
+
+    return NextResponse.json({
+      success: true,
+      data:    accumulatedData,
+      rowCount: accumulatedData.books.length,
+      parsed:  rawRows.length,
+      saved,
+      skipped,
+      months,
+      formats: formatCounts,
+      errors:  [],
+      toast,
+    })
   } catch (error) {
     console.error('KDP upload: unexpected error:', error)
     return NextResponse.json({ error: 'Failed to parse KDP file. Please try again.' }, { status: 500 })

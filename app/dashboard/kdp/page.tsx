@@ -34,7 +34,7 @@ import { LastUploadBadge } from '@/components/LastUploadBadge'
 import CategoryIntelligence from '@/components/CategoryIntelligence'
 import BsrTracker from '@/components/BsrTracker'
 import type { Analysis, DailyData, RoasLog, MailerLiteCampaign } from '@/types'
-import { BookOpen, Repeat, Book, Globe, type LucideIcon } from 'lucide-react'
+import { BookOpen, Repeat, Book, Globe, Headphones, type LucideIcon } from 'lucide-react'
 
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -955,20 +955,24 @@ function EmailVsSalesChart({
 }
 
 // ── Format Badges ─────────────────────────────────────────────────────────────
-type FormatBadgeType = 'purchased' | 'ku' | 'paperback' | 'translation'
+type FormatBadgeType = 'purchased' | 'ku' | 'paperback' | 'hardcover' | 'audiobook' | 'translation'
 
 const FORMAT_BADGE_CONFIG: Record<FormatBadgeType, { icon: LucideIcon; label: string }> = {
-  purchased:   { icon: BookOpen, label: 'Units Sold'  },
-  ku:          { icon: Repeat,   label: 'Page Reads'  },
-  paperback:   { icon: Book,     label: 'Paperback'   },
-  translation: { icon: Globe,    label: 'Translation' },
+  purchased:   { icon: BookOpen,    label: 'Units Sold'  },
+  ku:          { icon: Repeat,      label: 'Page Reads'  },
+  paperback:   { icon: Book,        label: 'Paperback'   },
+  hardcover:   { icon: Book,        label: 'Hardcover'   },
+  audiobook:   { icon: Headphones,  label: 'Audiobook'   },
+  translation: { icon: Globe,       label: 'Translation' },
 }
 
 function getFormatBadges(b: { units: number; kenp: number; format?: string }): FormatBadgeType[] {
   const badges: FormatBadgeType[] = []
-  const isPaperback = b?.format === 'paperback'
-  if (isPaperback) badges.push('paperback')
-  if (!isPaperback && (b?.units ?? 0) > 0) badges.push('purchased')
+  const fmt = b?.format
+  if (fmt === 'paperback') badges.push('paperback')
+  else if (fmt === 'hardcover') badges.push('hardcover')
+  else if (fmt === 'audiobook') badges.push('audiobook')
+  else if ((b?.units ?? 0) > 0) badges.push('purchased')
   if ((b?.kenp ?? 0) > 0) badges.push('ku')
   // 'translation' requires marketplace data not stored in current schema
   return badges

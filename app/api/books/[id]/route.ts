@@ -20,6 +20,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       data: {
         title: body.title != null ? String(body.title).trim() : existing.title,
         asin: body.asin !== undefined ? (body.asin ? String(body.asin).trim() : null) : existing.asin,
+        asinPaperback: body.asinPaperback !== undefined ? (body.asinPaperback ? String(body.asinPaperback).trim() : null) : existing.asinPaperback,
+        asinAudiobook: body.asinAudiobook !== undefined ? (body.asinAudiobook ? String(body.asinAudiobook).trim() : null) : existing.asinAudiobook,
+        isbnPaperback: body.isbnPaperback !== undefined ? (body.isbnPaperback ? String(body.isbnPaperback).trim() : null) : existing.isbnPaperback,
+        isbnHardcover: body.isbnHardcover !== undefined ? (body.isbnHardcover ? String(body.isbnHardcover).trim() : null) : existing.isbnHardcover,
         seriesName: body.seriesName !== undefined ? (body.seriesName ? String(body.seriesName).trim() : null) : existing.seriesName,
         seriesOrder: body.seriesOrder !== undefined ? (body.seriesOrder != null ? Number(body.seriesOrder) : null) : existing.seriesOrder,
         isLeadMagnet: body.isLeadMagnet !== undefined ? Boolean(body.isLeadMagnet) : existing.isLeadMagnet,

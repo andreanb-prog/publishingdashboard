@@ -15,11 +15,18 @@ export interface ParseDiagnostics {
 export interface KdpRawRow {
   asin: string
   title: string
-  date: string   // YYYY-MM-DD
+  date: string           // YYYY-MM-DD
+  marketplace: string
+  format: string         // 'ebook' | 'paperback' | 'hardcover' | 'audiobook' | 'ku'
+  transactionType: string
   units: number
   kenp: number
   royalties: number
-  format?: string
+  isbn?: string
+  orderDate?: string     // YYYY-MM-DD
+  manufacturingCost?: number
+  audiobookAsin?: string
+  audibleAsin?: string
 }
 
 export interface KDPData {
@@ -47,7 +54,7 @@ export interface BookData {
   units: number
   kenp: number
   royalties: number
-  format?: 'ebook' | 'paperback'
+  format?: 'ebook' | 'paperback' | 'hardcover' | 'audiobook' | 'ku'
 }
 
 export interface DailyData {

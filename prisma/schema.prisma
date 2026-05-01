@@ -151,6 +151,11 @@ model Book {
   bibleUpdatedAt       DateTime? @updatedAt
   storyContent            String?
   storyContentUpdatedAt   DateTime?
+  // Format edition identifiers (for KDP multi-format matching)
+  asinPaperback   String?   // separate paperback ASIN if different from ebook
+  asinAudiobook   String?   // Audible ASIN for audiobook edition
+  isbnPaperback   String?   // ISBN-13 for paperback
+  isbnHardcover   String?   // ISBN-13 for hardcover
   createdAt             DateTime  @default(now())
 
   @@index([userId])
@@ -651,19 +656,27 @@ model CategoryCache {
 }
 
 model KdpSale {
-  id        String   @id @default(cuid())
-  userId    String
-  asin      String
-  title     String
-  date      String   // YYYY-MM-DD (per-day granularity for accumulation across uploads)
-  units     Int      @default(0)
-  kenp      Int      @default(0)
-  royalties Float    @default(0)
-  format    String?  // 'ebook' | 'paperback'
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String    @id @default(cuid())
+  userId           String
+  asin             String
+  title            String
+  date             String    // YYYY-MM-DD (royalty date)
+  marketplace      String    @default("")
+  format           String    @default("ebook")  // 'ebook' | 'paperback' | 'hardcover' | 'audiobook' | 'ku'
+  transactionType  String    @default("")
+  units            Int       @default(0)
+  kenp             Int       @default(0)
+  royalties        Float     @default(0)
+  isbn             String?   // paperback/hardcover ISBN-13
+  orderDate        DateTime? // paperback/hardcover order date
+  manufacturingCost Float?   // paperback/hardcover manufacturing cost
+  audiobookAsin    String?   // from KENP sheet col 4
+  audibleAsin      String?   // from KENP sheet col 5
+  uploadedAt       DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  @@unique([userId, asin, date])
+  @@unique([userId, asin, date, marketplace, format, transactionType])
   @@index([userId])
   @@index([userId, date])
 }
