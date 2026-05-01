@@ -15,31 +15,7 @@ const BookSchema = z.object({
   pubDate: z.string().optional().nullable(),
 })
 
-// Default books to pre-populate when a user has none
-const DEFAULT_BOOKS = [
-  {
-    title: 'My Off-Limits Roommate',
-    asin: 'B0GSC2RTF8',
-    seriesName: null,
-    seriesOrder: null,
-    isLeadMagnet: false,
-    coverUrl: null,
-    pubDate: null,
-    sortOrder: 0,
-  },
-  {
-    title: 'Fake Dating My Billionaire Protector',
-    asin: 'B0GQD4J6VT',
-    seriesName: null,
-    seriesOrder: null,
-    isLeadMagnet: false,
-    coverUrl: null,
-    pubDate: null,
-    sortOrder: 1,
-  },
-]
-
-// ASINs that must always be at their canonical positions.
+// ASINs that must always be at their canonical positions (Andrea's books).
 // B0GSC2RTF8 = My Off-Limits Roommate  → B1 (sortOrder 0, coral)
 // B0GQD4J6VT = Fake Dating My Billionaire Protector → B2 (sortOrder 1, peach)
 const CANONICAL_ORDER: Record<string, number> = {
@@ -47,7 +23,7 @@ const CANONICAL_ORDER: Record<string, number> = {
   B0GQD4J6VT: 1,
 }
 
-// GET — list user's books; auto-seed defaults if none exist
+// GET — list the current user's books
 export async function GET() {
   const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -59,11 +35,6 @@ export async function GET() {
     })
 
     console.log('[GET /api/books] userId:', session.user.id, '| books found:', existing.length)
-
-    // Never auto-seed default books into an impersonated user's account
-    if (existing.length === 0 && session.user.adminImpersonating) {
-      return NextResponse.json({ books: [] })
-    }
 
     // Fetch KdpSale format counts for all ASINs belonging to this user
     const formatGroups = await db.kdpSale.groupBy({
@@ -85,8 +56,8 @@ export async function GET() {
       return { ...book, formatBadges: formats }
     }
 
+    // One-time fix: ensure canonical books are at the right sortOrder positions.
     if (existing.length > 0) {
-      // One-time fix: ensure canonical books are at the right sortOrder positions.
       const fixes: Promise<unknown>[] = []
       for (const book of existing) {
         const asin = book.asin?.trim().toUpperCase()
@@ -100,21 +71,9 @@ export async function GET() {
         console.log('[GET /api/books] after canonical fix, returning:', fixed.length, 'books')
         return NextResponse.json({ books: fixed.map(attachFormats) })
       }
-      return NextResponse.json({ books: existing.map(attachFormats) })
     }
 
-    // Auto-seed defaults on first load
-    console.log('[GET /api/books] no books found — seeding defaults for userId:', session.user.id)
-    await db.book.createMany({
-      data: DEFAULT_BOOKS.map(b => ({ ...b, userId: session.user.id })),
-    })
-
-    const seeded = await db.book.findMany({
-      where: { userId: session.user.id },
-      orderBy: { sortOrder: 'asc' },
-    })
-    console.log('[GET /api/books] seeded', seeded.length, 'books')
-    return NextResponse.json({ books: seeded.map(attachFormats) })
+    return NextResponse.json({ books: existing.map(attachFormats) })
   } catch (err) {
     console.error('[GET /api/books] error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
