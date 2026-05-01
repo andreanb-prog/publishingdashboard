@@ -1666,7 +1666,11 @@ export default function KDPPage() {
             className="mb-5"
             subtitle="See every Amazon category your book is in and how you rank"
           >
-            <CategoryIntelligence />
+            <CategoryIntelligence
+              books={displayBooks.filter(isBookVisible)}
+              bookColorMap={bookColorMap}
+              myBooksList={myBooksList}
+            />
           </CollapsibleSection>
 
           {/* ── Sales Rank Tracker ── */}
