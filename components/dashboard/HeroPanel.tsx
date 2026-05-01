@@ -118,7 +118,11 @@ export function BoutiqueChannelCardsRow({
 }
 
 export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; userName?: string | null }) {
-  const { analysis, analyses, liveML, animRev, animUnits, animKenp, animCtr, _netVal, greeting } = dashboard
+  const { analysis, analyses, liveML, animRev, animUnits, animKenp, animCtr, _netVal, greeting, initialData, kdpLastUploadedAt } = dashboard
+
+  const hasMailerLiteKey = initialData?.hasMailerLiteKey ?? !!liveML
+  const hasKdpData = !!analysis?.kdp || !!kdpLastUploadedAt
+  const allRequiredConnected = hasKdpData && hasMailerLiteKey
 
   return (
     <>
@@ -139,8 +143,8 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
         </div>
       )}
 
-      {/* Empty state */}
-      {!analysis && (
+      {/* Empty state — hidden when both required channels (KDP + MailerLite) are connected */}
+      {!analysis && !allRequiredConnected && (
         <div className="mb-7">
           <div className="mb-1" style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: 500, lineHeight: 1.3, color: 'var(--ink, #1E2D3D)' }}>
             {greeting}{userName ? `, ${userName.split(' ')[0]}` : ''}. Your dashboard is ready — it just needs your data.
@@ -150,13 +154,36 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { icon: '📊', title: 'KDP',        desc: 'Upload your sales report',   cta: 'Upload →',  href: '/dashboard?upload=1',            border: '#F97B6B' },
-              { icon: '✉',  title: 'MailerLite', desc: 'Add your API key',           cta: 'Connect →', href: '/dashboard/settings#mailerlite', border: '#6EBF8B' },
-              { icon: '📘', title: 'Meta Ads',   desc: 'Connect your ad account',    cta: 'Connect →', href: '/dashboard/settings#meta',       border: '#60A5FA' },
+              {
+                icon: '📊', title: 'KDP', border: '#F97B6B',
+                desc: hasKdpData ? 'Sales report uploaded' : 'Upload your sales report',
+                cta: hasKdpData ? 'Upload again →' : 'Upload →',
+                href: '/dashboard?upload=1',
+                connected: hasKdpData,
+              },
+              {
+                icon: '✉', title: 'MailerLite', border: '#6EBF8B',
+                desc: hasMailerLiteKey ? 'API key connected' : 'Add your API key',
+                cta: hasMailerLiteKey ? 'View stats →' : 'Connect →',
+                href: hasMailerLiteKey ? '/dashboard/mailerlite' : '/dashboard/settings#mailerlite',
+                connected: hasMailerLiteKey,
+              },
+              {
+                icon: '📘', title: 'Meta Ads', border: '#60A5FA',
+                desc: 'Connect your ad account',
+                cta: 'Connect →',
+                href: '/dashboard/settings#meta',
+                connected: false,
+              },
             ].map(card => (
               <div key={card.title} className="p-5 flex flex-col gap-3"
                 style={{ background: 'white', border: '1px solid #EEEBE6', borderLeft: `3px solid ${card.border}` }}>
-                <div className="text-2xl">{card.icon}</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-2xl">{card.icon}</div>
+                  {card.connected && (
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#6EBF8B' }}>✓ Connected</span>
+                  )}
+                </div>
                 <div>
                   <div className="text-[13.5px] font-semibold mb-0.5" style={{ color: '#1E2D3D' }}>{card.title}</div>
                   <div className="text-[12.5px]" style={{ color: '#6B7280' }}>{card.desc}</div>
