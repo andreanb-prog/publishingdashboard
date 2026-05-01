@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "cleanup:books": "npx tsx scripts/cleanup-seeded-books.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
