@@ -22,7 +22,9 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { ChevronDown } from 'lucide-react'
 import { BOOK_COLORS } from '@/lib/bookColors'
+import { FormatBadge } from '@/components/FormatBadge'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,6 +40,13 @@ interface Book {
   pubDate: string | null
   sortOrder: number
   manuscriptUploadedAt: string | null
+  // Format edition identifiers
+  asinPaperback: string | null
+  isbnPaperback: string | null
+  isbnHardcover: string | null
+  asinAudiobook: string | null
+  // Derived from KdpSale — formats with at least 1 record
+  formatBadges: string[]
 }
 
 interface BookForm {
@@ -49,6 +58,10 @@ interface BookForm {
   coverUrl: string
   pubDate: string
   coverTab: 'upload' | 'url' | 'amazon'
+  asinPaperback: string
+  isbnPaperback: string
+  isbnHardcover: string
+  asinAudiobook: string
 }
 
 function blankForm(): BookForm {
@@ -61,6 +74,10 @@ function blankForm(): BookForm {
     coverUrl: '',
     pubDate: '',
     coverTab: 'url',
+    asinPaperback: '',
+    isbnPaperback: '',
+    isbnHardcover: '',
+    asinAudiobook: '',
   }
 }
 
@@ -79,6 +96,10 @@ function bookToForm(b: Book): BookForm {
     coverUrl: b.coverUrl ?? '',
     pubDate: b.pubDate ? b.pubDate.slice(0, 10) : '',
     coverTab,
+    asinPaperback: b.asinPaperback ?? '',
+    isbnPaperback: b.isbnPaperback ?? '',
+    isbnHardcover: b.isbnHardcover ?? '',
+    asinAudiobook: b.asinAudiobook ?? '',
   }
 }
 
@@ -252,6 +273,15 @@ function SortableBookCard({
         </div>
       </div>
 
+      {/* Format badges */}
+      {book.formatBadges?.length > 0 && (
+        <div className="flex items-center gap-1 shrink-0 flex-wrap">
+          {book.formatBadges.map(fmt => (
+            <FormatBadge key={fmt} format={fmt} />
+          ))}
+        </div>
+      )}
+
       {/* Color slot badge */}
       <div className="flex items-center gap-1 shrink-0">
         <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
@@ -340,6 +370,7 @@ function BookModal({
   const [manuscriptDragging, setManuscriptDragging] = useState(false)
 
   // ASIN input mode state
+  const [formatEditionsOpen, setFormatEditionsOpen] = useState(false)
   const [asinMode, setAsinMode] = useState<'link' | 'manual'>(editing?.asin ? 'manual' : 'link')
   const [amazonUrl, setAmazonUrl] = useState('')
   const [asinStatus, setAsinStatus] = useState<'idle' | 'found' | 'not-found'>('idle')
@@ -673,6 +704,95 @@ function BookModal({
             <Toggle checked={form.isLeadMagnet} onChange={v => set('isLeadMagnet', v)} />
           </div>
 
+          {/* Format Editions — collapsible */}
+          <div className="border-t border-stone-100 pt-3">
+            <button
+              type="button"
+              onClick={() => setFormatEditionsOpen(p => !p)}
+              className="w-full flex items-center justify-between border-none bg-transparent cursor-pointer p-0 mb-2"
+            >
+              <span
+                className="text-[11px] font-bold uppercase tracking-[0.8px]"
+                style={{ color: 'rgba(30,45,61,0.4)' }}
+              >
+                Format Editions
+              </span>
+              <ChevronDown
+                size={14}
+                strokeWidth={2}
+                style={{
+                  color: 'rgba(30,45,61,0.35)',
+                  transform: formatEditionsOpen ? 'rotate(180deg)' : 'rotate(0)',
+                  transition: 'transform 0.18s',
+                }}
+              />
+            </button>
+
+            {formatEditionsOpen && (
+              <div className="flex flex-col gap-3 mt-1">
+                {/* Paperback ASIN */}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
+                    Paperback ASIN <span className="normal-case font-normal text-stone-400">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.asinPaperback}
+                    onChange={e => set('asinPaperback', e.target.value.toUpperCase())}
+                    placeholder="e.g. B0ABC1234D"
+                    className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                  />
+                  <span className="block mt-1 text-[11px] text-stone-400">Found on your Amazon paperback listing</span>
+                </div>
+
+                {/* Paperback ISBN-13 */}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
+                    ISBN-13 (Paperback) <span className="normal-case font-normal text-stone-400">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.isbnPaperback}
+                    onChange={e => set('isbnPaperback', e.target.value)}
+                    placeholder="e.g. 9781234567890"
+                    className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                  />
+                  <span className="block mt-1 text-[11px] text-stone-400">13-digit number from your KDP print dashboard</span>
+                </div>
+
+                {/* Hardcover ISBN-13 */}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
+                    ISBN-13 (Hardcover) <span className="normal-case font-normal text-stone-400">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.isbnHardcover}
+                    onChange={e => set('isbnHardcover', e.target.value)}
+                    placeholder="e.g. 9781234567890"
+                    className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                  />
+                  <span className="block mt-1 text-[11px] text-stone-400">13-digit number from your KDP print dashboard</span>
+                </div>
+
+                {/* Audiobook ASIN */}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
+                    Audiobook ASIN (Audible) <span className="normal-case font-normal text-stone-400">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.asinAudiobook}
+                    onChange={e => set('asinAudiobook', e.target.value.toUpperCase())}
+                    placeholder="e.g. B0ABC1234D"
+                    className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                  />
+                  <span className="block mt-1 text-[11px] text-stone-400">Found on your ACX/Audible listing</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Cover image */}
           <div className="border-t border-stone-100 pt-3">
             <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-2">
@@ -932,6 +1052,11 @@ export function BookCatalog() {
           ...b,
           excludeFromDashboard: b.excludeFromDashboard ?? false,
           pubDate: b.pubDate ? new Date(b.pubDate).toISOString() : null,
+          formatBadges: b.formatBadges ?? [],
+          asinPaperback: b.asinPaperback ?? null,
+          isbnPaperback: b.isbnPaperback ?? null,
+          isbnHardcover: b.isbnHardcover ?? null,
+          asinAudiobook: b.asinAudiobook ?? null,
         })))
       } else {
         console.warn('[BookCatalog] GET /api/books — unexpected shape, no data.books array')
@@ -998,6 +1123,10 @@ export function BookCatalog() {
         isLeadMagnet: form.isLeadMagnet,
         coverUrl,
         pubDate: form.pubDate || null,
+        asinPaperback: form.asinPaperback.trim() || null,
+        isbnPaperback: form.isbnPaperback.trim() || null,
+        isbnHardcover: form.isbnHardcover.trim() || null,
+        asinAudiobook: form.asinAudiobook.trim() || null,
       }
 
       if (editingBook) {
@@ -1015,6 +1144,11 @@ export function BookCatalog() {
             ...data.book,
             excludeFromDashboard: data.book.excludeFromDashboard ?? false,
             pubDate: data.book.pubDate ? new Date(data.book.pubDate).toISOString() : null,
+            formatBadges: b.formatBadges ?? [],
+            asinPaperback: data.book.asinPaperback ?? null,
+            isbnPaperback: data.book.isbnPaperback ?? null,
+            isbnHardcover: data.book.isbnHardcover ?? null,
+            asinAudiobook: data.book.asinAudiobook ?? null,
           } : b))
         }
       } else {
@@ -1033,6 +1167,11 @@ export function BookCatalog() {
             ...data.book,
             excludeFromDashboard: data.book.excludeFromDashboard ?? false,
             pubDate: data.book.pubDate ? new Date(data.book.pubDate).toISOString() : null,
+            formatBadges: [],
+            asinPaperback: data.book.asinPaperback ?? null,
+            isbnPaperback: data.book.isbnPaperback ?? null,
+            isbnHardcover: data.book.isbnHardcover ?? null,
+            asinAudiobook: data.book.asinAudiobook ?? null,
           }])
         }
       }
@@ -1218,6 +1357,13 @@ export function BookCatalog() {
                       : <div className="text-[10px] font-semibold mt-0.5 px-1.5 py-0.5 rounded inline-block" style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>No ASIN</div>
                     }
                   </div>
+                  {book.formatBadges?.length > 0 && (
+                    <div className="flex items-center gap-1 shrink-0 flex-wrap">
+                      {book.formatBadges.map(fmt => (
+                        <FormatBadge key={fmt} format={fmt} />
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-center gap-1 shrink-0">
                     <div className="w-2 h-2 rounded-full" style={{ background: colorForIndex(posIdx >= 0 ? posIdx : i) }} />
                     <span className="text-[10px] font-bold" style={{ color: colorForIndex(posIdx >= 0 ? posIdx : i) }}>

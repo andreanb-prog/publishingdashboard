@@ -26,6 +26,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         coverUrl: body.coverUrl !== undefined ? (body.coverUrl || null) : existing.coverUrl,
         pubDate: body.pubDate !== undefined ? (body.pubDate ? new Date(body.pubDate) : null) : existing.pubDate,
         excludeFromDashboard: body.excludeFromDashboard !== undefined ? Boolean(body.excludeFromDashboard) : existing.excludeFromDashboard,
+        asinPaperback: body.asinPaperback !== undefined ? (body.asinPaperback?.trim() || null) : existing.asinPaperback,
+        isbnPaperback: body.isbnPaperback !== undefined ? (body.isbnPaperback?.trim() || null) : existing.isbnPaperback,
+        isbnHardcover: body.isbnHardcover !== undefined ? (body.isbnHardcover?.trim() || null) : existing.isbnHardcover,
+        asinAudiobook: body.asinAudiobook !== undefined ? (body.asinAudiobook?.trim() || null) : existing.asinAudiobook,
       },
     })
 

@@ -151,6 +151,11 @@ model Book {
   bibleUpdatedAt       DateTime? @updatedAt
   storyContent            String?
   storyContentUpdatedAt   DateTime?
+  // Format edition identifiers
+  asinPaperback  String?
+  isbnPaperback  String?
+  isbnHardcover  String?
+  asinAudiobook  String?
   createdAt             DateTime  @default(now())
 
   @@index([userId])

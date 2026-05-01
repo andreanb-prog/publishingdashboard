@@ -65,6 +65,26 @@ export async function GET() {
       return NextResponse.json({ books: [] })
     }
 
+    // Fetch KdpSale format counts for all ASINs belonging to this user
+    const formatGroups = await db.kdpSale.groupBy({
+      by: ['asin', 'format'],
+      where: { userId: session.user.id, format: { not: null } },
+      _count: { id: true },
+    })
+    // Build a map: asin -> Set of formats with at least 1 record
+    const asinFormats = new Map<string, Set<string>>()
+    for (const row of formatGroups) {
+      if (!row.format || row._count.id === 0) continue
+      const s = asinFormats.get(row.asin) ?? new Set<string>()
+      s.add(row.format.toLowerCase())
+      asinFormats.set(row.asin, s)
+    }
+
+    const attachFormats = <T extends { asin: string | null }>(book: T) => {
+      const formats = book.asin ? Array.from(asinFormats.get(book.asin) ?? []) : []
+      return { ...book, formatBadges: formats }
+    }
+
     if (existing.length > 0) {
       // One-time fix: ensure canonical books are at the right sortOrder positions.
       const fixes: Promise<unknown>[] = []
@@ -78,9 +98,9 @@ export async function GET() {
         await Promise.all(fixes)
         const fixed = await db.book.findMany({ where: { userId: session.user.id }, orderBy: { sortOrder: 'asc' } })
         console.log('[GET /api/books] after canonical fix, returning:', fixed.length, 'books')
-        return NextResponse.json({ books: fixed })
+        return NextResponse.json({ books: fixed.map(attachFormats) })
       }
-      return NextResponse.json({ books: existing })
+      return NextResponse.json({ books: existing.map(attachFormats) })
     }
 
     // Auto-seed defaults on first load
@@ -94,7 +114,7 @@ export async function GET() {
       orderBy: { sortOrder: 'asc' },
     })
     console.log('[GET /api/books] seeded', seeded.length, 'books')
-    return NextResponse.json({ books: seeded })
+    return NextResponse.json({ books: seeded.map(attachFormats) })
   } catch (err) {
     console.error('[GET /api/books] error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
