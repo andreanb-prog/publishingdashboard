@@ -22,18 +22,29 @@ export async function handleKDPUpload(
     throw new Error("No data found in this file. Make sure you're uploading a KDP Sales & Royalties report.")
   }
 
-  // 2. Log upload
-  await db.uploadLog.create({
-    data: { userId, fileType: 'kdp', fileName, rowCount: data.books.length, status: 'success', details: {} },
-  })
+  // 2. Log upload — wrapped so a missing log row never kills the upload
+  try {
+    await db.uploadLog.create({
+      data: { userId, fileType: 'kdp', fileName, rowCount: data.books.length, status: 'success', details: {} },
+    })
+  } catch (logErr) {
+    console.error('[handleKDPUpload] uploadLog.create failed (non-fatal):', logErr)
+  }
 
-  // 3. Upsert raw per-ASIN+date rows — accumulate across uploads
+  // 3. Upsert raw per-ASIN+date+format rows — accumulate across uploads
   const rawRows = (data.rawSaleRows ?? []) as KdpRawRow[]
   if (rawRows.length > 0) {
     await Promise.all(rawRows.map(row =>
       db.kdpSale.upsert({
-        where: { userId_asin_date: { userId, asin: row.asin, date: row.date } },
-        update: { units: row.units, kenp: row.kenp, royalties: row.royalties, title: row.title, format: row.format },
+        where: {
+          userId_asin_date_format: {
+            userId,
+            asin:   row.asin,
+            date:   row.date,
+            format: row.format ?? 'ebook',
+          },
+        },
+        update: { units: row.units, kenp: row.kenp, royalties: row.royalties, title: row.title },
         create: { userId, asin: row.asin, date: row.date, title: row.title, units: row.units, kenp: row.kenp, royalties: row.royalties, format: row.format },
       })
     ))

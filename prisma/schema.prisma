@@ -668,7 +668,7 @@ model KdpSale {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, asin, date])
+  @@unique([userId, asin, date, format])
   @@index([userId])
   @@index([userId, date])
 }
