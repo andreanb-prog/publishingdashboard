@@ -225,87 +225,43 @@ interface CombinedSalesMeta {
 }
 
 function parseCombinedSalesSheet(sheet: XLSX.WorkSheet): { rows: CombinedSalesRow[]; meta: CombinedSalesMeta } {
-  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][]
-  const strategiesUsed: string[] = []
+  // Row 0 is always the header — use it directly, no banner scan.
+  const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: null, raw: true, header: 0 }) as Record<string, unknown>[]
 
-  // ── Strategy 4: Banner row scan — check rows 0–10 for real header ──────────
-  let headerIdx = -1
-  for (let i = 0; i < Math.min(raw.length, 10); i++) {
-    const cells = (raw[i] ?? []).map(c => String(c ?? '').toLowerCase().trim())
-    if (cells.some(c => c === 'royalty date' || c === 'title' || c.includes('asin'))) {
-      headerIdx = i
-      break
-    }
-  }
-
-  if (headerIdx < 0) {
-    console.warn('[KDP parser] Combined Sales: could not find header row in first 10 rows')
-    strategiesUsed.push('S4-banner-scan:failed')
-    return { rows: [], meta: { headersFound: [], strategiesUsed, skippedCount: 0, firstRow: null } }
-  }
-
-  if (headerIdx > 0) {
-    strategiesUsed.push(`S4-banner-scan:header-at-row-${headerIdx}`)
-    console.log(`[KDP parser] Combined Sales — Strategy 4 succeeded: banner row at index ${headerIdx}`)
-  } else {
-    strategiesUsed.push('S1-direct-header:row-0')
-  }
-
-  const headers   = (raw[headerIdx] ?? []).map(c => String(c ?? '').trim())
-  const totalCols = headers.length
-
-  // ── Strategy 1: Exact column name match ─────────────────────────────────────
-  let iDate  = headers.findIndex(h => h.toLowerCase() === 'royalty date')
-  let iTitle = headers.findIndex(h => h.toLowerCase() === 'title')
-  let iAsin  = headers.findIndex(h => h.toLowerCase() === 'asin/isbn')
-  let iUnits = headers.findIndex(h => h.toLowerCase() === 'net units sold')
-
-  // ── Strategy 2: Fuzzy case-insensitive partial match ────────────────────────
-  if (iDate  < 0) { iDate  = headers.findIndex(h => h.toLowerCase().includes('royalty date') || h.toLowerCase().includes('date')); if (iDate  >= 0) strategiesUsed.push('S2-fuzzy:date') }
-  if (iAsin  < 0) { iAsin  = headers.findIndex(h => h.toLowerCase().includes('asin'));          if (iAsin  >= 0) strategiesUsed.push('S2-fuzzy:asin')  }
-  if (iUnits < 0) { iUnits = headers.findIndex(h => h.toLowerCase().includes('units sold') || h.toLowerCase().includes('units')); if (iUnits >= 0) strategiesUsed.push('S2-fuzzy:units') }
-
-  if (iDate  >= 0 && !strategiesUsed.some(s => s.includes('date')))  strategiesUsed.push('S1-exact:date')
-  if (iAsin  >= 0 && !strategiesUsed.some(s => s.includes('asin')))  strategiesUsed.push('S1-exact:asin')
-  if (iUnits >= 0 && !strategiesUsed.some(s => s.includes('units'))) strategiesUsed.push('S1-exact:units')
-
-  // ── Strategy 3: Positional fallback — royalty = iloc -2, currency = iloc -1 ─
-  const iRoyalty  = totalCols - 2  // unnamed royalty column
-  const iCurrency = totalCols - 1  // Royalty Currency is last column
-  strategiesUsed.push('S3-positional:royalty=iloc[-2],currency=iloc[-1]')
-
-  console.log(`[KDP parser] Combined Sales header row at index ${headerIdx}, ${totalCols} cols`)
-  console.log(`[KDP parser] Combined Sales col map — date:${iDate} asin:${iAsin} title:${iTitle} units:${iUnits} royalty(unnamed):${iRoyalty} currency:${iCurrency}`)
-  console.log(`[KDP parser] Combined Sales strategies: ${strategiesUsed.join(' | ')}`)
+  const headersFound = rawRows.length > 0 ? Object.keys(rawRows[0]) : []
+  console.log(`[KDP parser] Combined Sales columns (${headersFound.length}):`, headersFound)
 
   const results: CombinedSalesRow[] = []
   let skippedCount = 0
-  for (let i = headerIdx + 1; i < raw.length; i++) {
-    const row = raw[i] as unknown[]
-    if (!row || row.every(c => c === '' || c === null || c === undefined)) continue
 
-    const asin  = str(iAsin  >= 0 ? row[iAsin]  : '')
-    const title = str(iTitle >= 0 ? row[iTitle] : '')
+  for (const row of rawRows) {
+    const asin  = str(row['ASIN/ISBN'] ?? row['ASIN'] ?? '')
+    const title = str(row['Title'] ?? '')
     if (!asin && !title) { skippedCount++; continue }
 
-    results.push({
-      asin,
-      title,
-      date:      toISODate(iDate >= 0 ? row[iDate] : ''),
-      units:     num(iUnits >= 0 ? row[iUnits] : 0),
-      royalties: num(row[iRoyalty]),
-      currency:  str(iCurrency >= 0 ? row[iCurrency] : '').toUpperCase().trim(),
-    })
+    // "Net Units Sold" with fallback to "Units Sold" — exact key match
+    const units = num(row['Net Units Sold'] ?? row['Units Sold'] ?? 0)
+
+    // "Royalty" — exact match only, do NOT substring-match "Royalty Date" or "Royalty Type"
+    const royalties = num(row['Royalty'] ?? 0)
+
+    const currency = str(row['Currency'] ?? '').toUpperCase().trim()
+
+    // "Royalty Date" (Combined Sales) or "Date" (KENP) — exact key match
+    const dateRaw = row['Royalty Date'] ?? row['Date'] ?? ''
+    const date = toISODate(dateRaw)
+
+    results.push({ asin, title, date, units, royalties, currency })
   }
 
-  console.log(`[KDP parser] Combined Sales: ${results.length} data rows parsed, ${skippedCount} skipped`)
+  console.log(`[KDP parser] Combined Sales: ${results.length} data rows, ${skippedCount} skipped`)
 
   const firstRow = results[0] ?? null
   return {
     rows: results,
     meta: {
-      headersFound: headers,
-      strategiesUsed,
+      headersFound,
+      strategiesUsed: ['direct-header-row-0:exact-key-match'],
       skippedCount,
       firstRow,
     },
@@ -324,13 +280,17 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   const combinedData = combinedResult.rows
   const combinedMeta = combinedResult.meta
 
-  // ── Paperback Royalty sheet ───────────────────────────────────────────────
+  // ── Paperback Royalty sheet — row 0 is always the header ────────────────
   const paperbackSheet = workbook.Sheets['Paperback Royalty']
-  const paperbackData  = paperbackSheet ? sheetToRows(paperbackSheet) : []
+  const paperbackData  = paperbackSheet
+    ? (XLSX.utils.sheet_to_json(paperbackSheet, { defval: null, raw: true, header: 0 }) as Record<string, unknown>[])
+    : []
 
-  // ── KENP Read sheet (also handles "KENP" variant from some KDP exports) ──
+  // ── KENP Read sheet — row 0 is always the header ─────────────────────────
   const kenpSheet = workbook.Sheets['KENP Read'] ?? workbook.Sheets['KENP']
-  const kenpData  = kenpSheet ? sheetToRows(kenpSheet) : []
+  const kenpData  = kenpSheet
+    ? (XLSX.utils.sheet_to_json(kenpSheet, { defval: null, raw: true, header: 0 }) as Record<string, unknown>[])
+    : []
 
   console.log(`[KDP parser] Sheet row counts — Combined Sales: ${combinedData.length}, Paperback Royalty: ${paperbackData.length}, KENP Read: ${kenpData.length}`)
   if (paperbackData.length) console.log('[KDP parser] Paperback Royalty headers:', Object.keys(paperbackData[0]))
@@ -743,9 +703,11 @@ function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
   const combinedData = combinedResult.rows
   const combinedMeta = combinedResult.meta
 
-  // KENP Read sheet (also handles "KENP" variant from some KDP exports)
+  // KENP Read sheet — row 0 is always the header
   const kenpSheet = workbook.Sheets['KENP Read'] ?? workbook.Sheets['KENP']
-  const kenpData  = kenpSheet ? sheetToRows(kenpSheet) : []
+  const kenpData  = kenpSheet
+    ? (XLSX.utils.sheet_to_json(kenpSheet, { defval: null, raw: true, header: 0 }) as Record<string, unknown>[])
+    : []
 
   console.log(`[KDP parser] Royalties Estimator — Combined Sales: ${combinedData.length}, KENP Read: ${kenpData.length}`)
   if (kenpData.length) console.log('[KDP parser] Royalties Estimator KENP headers:', Object.keys(kenpData[0]))

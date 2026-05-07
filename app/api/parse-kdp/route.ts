@@ -168,13 +168,14 @@ export async function POST(req: NextRequest) {
           data: { data: { ...preservedData, kdp: accumulatedData } as object },
         })
       } else {
-        await db.analysis.create({
+        const newRecord = await db.analysis.create({
           data: {
             userId: session.user.id,
             month,
             data: { month, kdp: accumulatedData } as object,
           },
         })
+        console.log(`[Upload] New record created — userId: ${session.user.id}, period: ${month}, rows: ${accumulatedData.books.length}, id: ${newRecord.id}`)
       }
     } catch (dbErr) {
       console.error('KDP upload: failed to refresh analysis record:', dbErr)
