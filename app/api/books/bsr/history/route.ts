@@ -27,8 +27,15 @@ export async function GET(req: NextRequest) {
   since.setUTCHours(0, 0, 0, 0)
 
   const logs = await db.bsrLog.findMany({
-    where: { userId: session.user.id, asin, date: { gte: since } },
-    orderBy: { date: 'asc' },
+    where: {
+      userId: session.user.id,
+      asin,
+      OR: [
+        { date: { gte: since } },
+        { date: null, fetchedAt: { gte: since } },
+      ],
+    },
+    orderBy: { fetchedAt: 'asc' },
   })
 
   // ── Legacy format (used by old CorrelationGraph / BsrTracker) ────────────────

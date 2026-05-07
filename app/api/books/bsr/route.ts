@@ -165,12 +165,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid rank' }, { status: 400 })
   }
 
+  const today = new Date()
+  const date = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
+
   const log = await db.bsrLog.create({
     data: {
       userId: session.user.id,
       asin,
       bookTitle: bookTitle ?? null,
       rank: rankNum,
+      date,
+      fetchedAt: new Date(),
     },
   })
 
