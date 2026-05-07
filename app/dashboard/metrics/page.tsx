@@ -25,6 +25,33 @@ function statusColor(value: number, good: number, bad: number, higherIsBetter = 
   }
 }
 
+// ── Daily breakdown types & helpers ───────────────────────────────────────────
+type DailyRow = {
+  date: string; asin: string; title: string
+  units: number; kenp: number; rank: number | null
+  adSpend: number | null; revenue: number | null; roas: number | null
+}
+
+function shortTitle(title: string): string {
+  const words = title.split(' ')
+  return words.length > 4 ? words.slice(0, 4).join(' ') + '…' : title
+}
+
+function roasColor(roas: number): string {
+  if (roas >= 1.5) return '#E9A020'
+  if (roas < 1)    return '#F97B6B'
+  return '#1E2D3D'
+}
+
+function fmtDate(dateStr: string): string {
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function fmtMoney(n: number | null): string {
+  if (n == null) return '—'
+  return `$${n.toFixed(2)}`
+}
+
 // ── Sparkline ─────────────────────────────────────────────────────────────────
 function Sparkline({ data, color, width = 140, height = 32 }: {
   data: number[]; color: string; width?: number; height?: number
@@ -250,6 +277,11 @@ export default function MetricsPage() {
   const [loading,     setLoading]     = useState(true)
   const [arcSent,     setArcSent]     = useState('')
   const [arcReceived, setArcReceived] = useState('')
+  const [dailyRows,    setDailyRows]    = useState<DailyRow[]>([])
+  const [dailyBooks,   setDailyBooks]   = useState<{ asin: string; title: string }[]>([])
+  const [dailyRange,   setDailyRange]   = useState<7 | 30 | 90>(30)
+  const [dailyBook,    setDailyBook]    = useState('all')
+  const [dailyLoading, setDailyLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
@@ -267,6 +299,22 @@ export default function MetricsPage() {
       setCatalogBooks((booksData.books ?? []).filter((b: { excludeFromDashboard?: boolean }) => !b.excludeFromDashboard))
     }).catch(console.error).finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    setDailyLoading(true)
+    const today = new Date()
+    const end   = today.toISOString().substring(0, 10)
+    const start = new Date(today.getTime() - dailyRange * 24 * 60 * 60 * 1000).toISOString().substring(0, 10)
+    fetch(`/api/export/daily-breakdown?start=${start}&end=${end}`)
+      .then(r => r.ok ? r.json() : { rows: [], books: [] })
+      .then(data => {
+        setDailyRows(data.rows ?? [])
+        setDailyBooks(data.books ?? [])
+        setDailyBook('all')
+      })
+      .catch(() => {})
+      .finally(() => setDailyLoading(false))
+  }, [dailyRange])
 
   const analysis     = analyses[0] ?? null
   const prevAnalysis = analyses[1] ?? null
@@ -589,6 +637,115 @@ export default function MetricsPage() {
             : '15–25% is normal for romance ARC programs. Enter your numbers above.'}
         </div>
       </div>
+
+      {/* ── 5. DAILY BREAKDOWN ─────────────────────────────────────────────── */}
+      <BoutiqueSectionLabel label="Daily Breakdown" />
+
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="flex gap-1.5">
+          {([7, 30, 90] as const).map(d => (
+            <button key={d} onClick={() => setDailyRange(d)}
+              className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors"
+              style={{
+                background: dailyRange === d ? '#E9A020' : 'white',
+                color:      dailyRange === d ? 'white'    : '#6B7280',
+                border:     `1px solid ${dailyRange === d ? '#E9A020' : '#EEEBE6'}`,
+              }}>
+              Last {d} days
+            </button>
+          ))}
+        </div>
+
+        <select value={dailyBook} onChange={e => setDailyBook(e.target.value)}
+          className="px-3 py-1.5 rounded-full text-[12px] outline-none"
+          style={{ background: 'white', border: '1px solid #EEEBE6', color: '#1E2D3D', maxWidth: 220 }}>
+          <option value="all">All Books</option>
+          {dailyBooks.map(b => (
+            <option key={b.asin} value={b.asin}>{shortTitle(b.title)}</option>
+          ))}
+        </select>
+
+        <div className="ml-auto">
+          <button
+            onClick={() => {
+              const today = new Date()
+              const end   = today.toISOString().substring(0, 10)
+              const start = new Date(today.getTime() - dailyRange * 24 * 60 * 60 * 1000).toISOString().substring(0, 10)
+              window.location.href = `/api/export/daily-breakdown?format=xlsx&start=${start}&end=${end}`
+            }}
+            className="px-4 py-1.5 rounded-full text-[12px] font-semibold"
+            style={{ background: '#E9A020', color: 'white', border: 'none' }}>
+            Export to Excel
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      {dailyLoading ? (
+        <div className="text-center py-10 text-[13px]" style={{ color: '#6B7280' }}>Loading…</div>
+      ) : (() => {
+        const filtered = dailyBook === 'all' ? dailyRows : dailyRows.filter(r => r.asin === dailyBook)
+        const totalUnits   = filtered.reduce((a, r) => a + r.units, 0)
+        const totalKenp    = filtered.reduce((a, r) => a + r.kenp, 0)
+        const totalSpend   = filtered.reduce((a, r) => a + (r.adSpend ?? 0), 0)
+        const totalRevenue = filtered.reduce((a, r) => a + (r.revenue ?? 0), 0)
+        const avgRoas      = totalSpend > 0 ? totalRevenue / totalSpend : null
+
+        if (filtered.length === 0) {
+          return (
+            <div className="rounded-xl py-12 text-center text-[13px]"
+              style={{ border: '1.5px dashed #EEEBE6', color: '#6B7280' }}>
+              Upload your KDP report to see daily breakdowns
+            </div>
+          )
+        }
+
+        const COL_STYLE = { color: '#1E2D3D', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em' }
+
+        return (
+          <div className="overflow-x-auto rounded-xl mb-7" style={{ border: '1px solid #EEEBE6' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, fontWeight: 500 }}>
+              <thead>
+                <tr style={{ background: 'white', borderBottom: '1px solid #EEEBE6' }}>
+                  {(['DATE', 'TITLE', 'UNITS', 'PAGE READS', 'BSR RANK', 'AD SPEND', 'REVENUE', 'ROAS'] as const).map(h => (
+                    <th key={h} style={{ ...COL_STYLE, padding: '10px 12px', textAlign: h === 'DATE' || h === 'TITLE' ? 'left' : 'right' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((row, i) => (
+                  <tr key={`${row.asin}-${row.date}`} style={{ background: i % 2 === 0 ? 'white' : '#FFF8F0' }}>
+                    <td style={{ padding: '8px 12px', color: '#1E2D3D', whiteSpace: 'nowrap' }}>{fmtDate(row.date)}</td>
+                    <td style={{ padding: '8px 12px', color: '#1E2D3D', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortTitle(row.title)}</td>
+                    <td style={{ padding: '8px 12px', color: '#1E2D3D', textAlign: 'right' }}>{row.units}</td>
+                    <td style={{ padding: '8px 12px', color: '#1E2D3D', textAlign: 'right' }}>{row.kenp.toLocaleString()}</td>
+                    <td style={{ padding: '8px 12px', color: '#1E2D3D', textAlign: 'right' }}>{row.rank != null ? row.rank.toLocaleString() : '—'}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#1E2D3D' }}>{fmtMoney(row.adSpend)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#1E2D3D' }}>{fmtMoney(row.revenue)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: row.roas != null ? roasColor(row.roas) : '#6B7280', fontWeight: 600 }}>
+                      {row.roas != null ? `${row.roas.toFixed(1)}x` : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: '#F5F5F4', borderTop: '2px solid #EEEBE6' }}>
+                  <td colSpan={2} style={{ padding: '8px 12px', color: '#1E2D3D', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>TOTALS</td>
+                  <td style={{ padding: '8px 12px', color: '#1E2D3D', textAlign: 'right', fontWeight: 700 }}>{totalUnits.toLocaleString()}</td>
+                  <td style={{ padding: '8px 12px', color: '#1E2D3D', textAlign: 'right', fontWeight: 700 }}>{totalKenp.toLocaleString()}</td>
+                  <td style={{ padding: '8px 12px', color: '#6B7280', textAlign: 'right' }}>—</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#1E2D3D', fontWeight: 700 }}>{totalSpend > 0 ? fmtMoney(totalSpend) : '—'}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#1E2D3D', fontWeight: 700 }}>{totalRevenue > 0 ? fmtMoney(totalRevenue) : '—'}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', color: avgRoas != null ? roasColor(avgRoas) : '#6B7280', fontWeight: 700 }}>
+                    {avgRoas != null ? `${avgRoas.toFixed(1)}x` : '—'}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )
+      })()}
 
     </BoutiqueChannelPageLayout>
   )
