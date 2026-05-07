@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       asin,
       OR: [
         { date: { gte: since } },
-        { date: null, fetchedAt: { gte: since } },
+        { date: undefined, fetchedAt: { gte: since } },
       ],
     },
     orderBy: { fetchedAt: 'asc' },
