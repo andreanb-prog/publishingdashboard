@@ -15,10 +15,11 @@ export async function GET() {
 
   // Seed default list for new users
   if (lists.length === 0) {
+    const listName = session.user.name ?? session.user.email ?? 'My Books'
     await db.authorList.create({
       data: {
         userId:    session.user.id,
-        name:      'Elle Wilder Books',
+        name:      listName,
         isDefault: true,
       },
     })

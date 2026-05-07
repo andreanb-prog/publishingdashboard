@@ -15,14 +15,6 @@ const BookSchema = z.object({
   pubDate: z.string().optional().nullable(),
 })
 
-// ASINs that must always be at their canonical positions (Andrea's books).
-// B0GSC2RTF8 = My Off-Limits Roommate  → B1 (sortOrder 0, coral)
-// B0GQD4J6VT = Fake Dating My Billionaire Protector → B2 (sortOrder 1, peach)
-const CANONICAL_ORDER: Record<string, number> = {
-  B0GSC2RTF8: 0,
-  B0GQD4J6VT: 1,
-}
-
 // GET — list the current user's books
 export async function GET() {
   const session = await getAugmentedSession()
@@ -36,13 +28,11 @@ export async function GET() {
 
     console.log('[GET /api/books] userId:', session.user.id, '| books found:', existing.length)
 
-    // Fetch KdpSale format counts for all ASINs belonging to this user
     const formatGroups = await db.kdpSale.groupBy({
       by: ['asin', 'format'],
       where: { userId: session.user.id, format: { not: null } },
       _count: { id: true },
     })
-    // Build a map: asin -> Set of formats with at least 1 record
     const asinFormats = new Map<string, Set<string>>()
     for (const row of formatGroups) {
       if (!row.format || row._count.id === 0) continue
@@ -54,23 +44,6 @@ export async function GET() {
     const attachFormats = <T extends { asin: string | null }>(book: T) => {
       const formats = book.asin ? Array.from(asinFormats.get(book.asin) ?? []) : []
       return { ...book, formatBadges: formats }
-    }
-
-    // One-time fix: ensure canonical books are at the right sortOrder positions.
-    if (existing.length > 0) {
-      const fixes: Promise<unknown>[] = []
-      for (const book of existing) {
-        const asin = book.asin?.trim().toUpperCase()
-        if (asin && CANONICAL_ORDER[asin] !== undefined && book.sortOrder !== CANONICAL_ORDER[asin]) {
-          fixes.push(db.book.update({ where: { id: book.id }, data: { sortOrder: CANONICAL_ORDER[asin] } }))
-        }
-      }
-      if (fixes.length > 0) {
-        await Promise.all(fixes)
-        const fixed = await db.book.findMany({ where: { userId: session.user.id }, orderBy: { sortOrder: 'asc' } })
-        console.log('[GET /api/books] after canonical fix, returning:', fixed.length, 'books')
-        return NextResponse.json({ books: fixed.map(attachFormats) })
-      }
     }
 
     return NextResponse.json({ books: existing.map(attachFormats) })

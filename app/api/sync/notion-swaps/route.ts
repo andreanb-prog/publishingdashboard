@@ -102,7 +102,8 @@ export async function POST() {
   ])
 
   if (listCount === 0) {
-    await db.authorList.create({ data: { userId, name: 'Elle Wilder Books', isDefault: true } })
+    const listName = session.user.name ?? session.user.email ?? 'My Books'
+    await db.authorList.create({ data: { userId, name: listName, isDefault: true } })
   }
   if (policyCount === 0) {
     await db.swapPolicy.createMany({
@@ -169,7 +170,7 @@ export async function POST() {
       role,
       platform,
       partnerName,
-      myList:        'Elle Wilder Books',
+      myList:        session.user.name ?? session.user.email ?? 'My Books',
       promoDate,
       confirmation,
       paymentType,
