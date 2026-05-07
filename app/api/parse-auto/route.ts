@@ -2,10 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
-import { parseKDPFile } from '@/lib/parsers/kdp'
 import { parseMetaFile } from '@/lib/parsers/meta'
 import { parsePinterestFile } from '@/lib/parsers/pinterest'
 import { logAdminAction } from '@/lib/adminAudit'
+import { handleKDPUpload } from '@/lib/uploadHandlers'
 
 // Save raw per-row Meta data to MetaAdData table for date-range filtering
 // Throws on DB error so callers can surface the failure — does NOT swallow errors
@@ -165,116 +165,19 @@ export async function POST(req: NextRequest) {
       const excelType = detectExcelType(buffer)
 
       if (excelType === 'kdp') {
-        const data = parseKDPFile(buffer)
-        const diag = data.diagnostics ?? null
-        const uploadStatus = !diag ? 'success'
-          : diag.rowCount === 0 ? 'error'
-          : diag.skippedRows > 0 ? 'partial'
-          : 'success'
-        await logUpload(session.user.id, 'kdp', file.name, data.rowCount ?? data.books.length, uploadStatus, diag ?? {})
-        auditUploadIfImpersonating(session, file.name, data.rowCount ?? data.books.length, 'kdp')
-
-        // ── Upsert raw per-ASIN+date rows so data accumulates across uploads ─
-        const rawRows = data.rawSaleRows ?? []
-        if (rawRows.length > 0) {
-          await Promise.all(rawRows.map((row: import('@/types').KdpRawRow) =>
-            db.kdpSale.upsert({
-              where: { userId_asin_date: { userId: session.user.id, asin: row.asin, date: row.date } },
-              update: { units: row.units, kenp: row.kenp, royalties: row.royalties, title: row.title, format: row.format },
-              create: {
-                userId:    session.user.id,
-                asin:      row.asin,
-                date:      row.date,
-                title:     row.title,
-                units:     row.units,
-                kenp:      row.kenp,
-                royalties: row.royalties,
-                format:    row.format,
-              },
-            })
-          ))
-          console.log(`[parse-auto] KDP upserted ${rawRows.length} rows for month ${data.month}`)
-        }
-
-        // ── Read back accumulated totals for this month ───────────────────────
-        const month = data.month
-        const [yr, mo] = month.split('-').map(Number)
-        const nextMo = mo === 12 ? `${yr + 1}-01` : `${yr}-${String(mo + 1).padStart(2, '0')}`
-        const accRows = await db.kdpSale.findMany({
-          where: { userId: session.user.id, date: { gte: `${month}-01`, lt: `${nextMo}-01` } },
-        })
-
-        const bookMap        = new Map<string, { asin: string; title: string; units: number; kenp: number; royalties: number; format?: string }>()
-        const dailyUnitsMap  = new Map<string, number>()
-        const dailyKENPMap   = new Map<string, number>()
-        for (const row of accRows) {
-          const b = bookMap.get(row.asin)
-          if (b) {
-            b.units     += row.units
-            b.kenp      += row.kenp
-            b.royalties += row.royalties
-          } else {
-            bookMap.set(row.asin, { asin: row.asin, title: row.title, units: row.units, kenp: row.kenp, royalties: row.royalties, format: row.format ?? undefined })
-          }
-          dailyUnitsMap.set(row.date, (dailyUnitsMap.get(row.date) ?? 0) + row.units)
-          dailyKENPMap.set(row.date,  (dailyKENPMap.get(row.date) ?? 0) + row.kenp)
-        }
-
-        const books = Array.from(bookMap.values())
-          .sort((a, b) => b.units - a.units)
-          .map(b => ({ ...b, shortTitle: b.title.length > 35 ? b.title.substring(0, 35) + '...' : b.title, format: b.format as 'ebook' | 'paperback' | undefined }))
-        const dailyUnits = Array.from(dailyUnitsMap.entries()).map(([date, value]) => ({ date, value })).sort((a, b) => a.date.localeCompare(b.date))
-        const dailyKENP  = Array.from(dailyKENPMap.entries()).map(([date, value]) => ({ date, value })).sort((a, b) => a.date.localeCompare(b.date))
-        const totalUnits        = books.reduce((s, b) => s + b.units, 0)
-        const totalKENP         = books.reduce((s, b) => s + b.kenp,  0)
-        const totalRoyaltiesUSD = books.reduce((s, b) => s + b.royalties, 0)
-        const paperbackUnits    = books.filter(b => b.format === 'paperback').reduce((s, b) => s + b.units, 0)
-        const paidUnits         = totalUnits - paperbackUnits
-
-        const { rawSaleRows: _stripped, ...baseData } = data
-        const accumulatedData = {
-          ...baseData,
-          totalUnits,
-          totalKENP,
-          totalRoyaltiesUSD,
-          books,
-          dailyUnits,
-          dailyKENP,
-          summary: { paidUnits, freeUnits: 0, paperbackUnits },
-        }
-        console.log(`[parse-auto] KDP accumulated — ${totalUnits} units, ${totalKENP} KENP, $${totalRoyaltiesUSD.toFixed(2)} royalties`)
-
-        // ── Create or update db.analysis so the Data Vault reflects this upload ─
+        let result
         try {
-          const existing = await db.analysis.findFirst({ where: { userId: session.user.id, month } })
-          if (existing) {
-            const existingData = (existing.data as Record<string, unknown>) ?? {}
-            const {
-              storySentence: _ss, actionPlan: _ap, channelScores: _cs,
-              insights: _ins, fingerprint: _fp, kdpCoach: _kc,
-              metaCoach: _mc, emailCoach: _ec, pinterestCoach: _pc,
-              swapsCoach: _sc, overallVerdict: _ov, confidenceNote: _cn,
-              ...preservedData
-            } = existingData
-            await db.analysis.update({
-              where: { id: existing.id },
-              data: { data: { ...preservedData, kdp: accumulatedData } as object },
-            })
-            console.log(`[parse-auto] KDP analysis updated — userId: ${session.user.id}, period: ${month}`)
-          } else {
-            const newRecord = await db.analysis.create({
-              data: { userId: session.user.id, month, data: { month, kdp: accumulatedData } as object },
-            })
-            console.log(`[parse-auto] KDP new record created — userId: ${session.user.id}, period: ${month}, rows: ${accumulatedData.books.length}, id: ${newRecord.id}`)
-          }
-        } catch (dbErr) {
-          console.error('[parse-auto] KDP failed to save analysis record:', dbErr)
+          result = await handleKDPUpload(session.user.id, buffer, file.name)
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Failed to process KDP file.'
+          console.error('[parse-auto] KDP upload failed:', msg)
+          return NextResponse.json({ error: msg }, { status: 422 })
         }
-
+        auditUploadIfImpersonating(session, file.name, result.rawRowCount, 'kdp')
         return NextResponse.json({
-          success: true, type: 'kdp', data: accumulatedData,
-          diagnostics: diag,
-          summary: `${accumulatedData.totalUnits} units · ${accumulatedData.totalKENP?.toLocaleString()} KENP · $${accumulatedData.totalRoyaltiesUSD.toFixed(2)} royalties`,
+          success: true, type: 'kdp', data: result.accumulatedData,
+          diagnostics: result.diagnostics,
+          summary: result.summary,
         })
       }
 
