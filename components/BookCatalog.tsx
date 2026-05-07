@@ -22,7 +22,7 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ChevronDown } from 'lucide-react'
+import { Smartphone, Headphones, Globe, BookOpen as BookOpenIcon } from 'lucide-react'
 import { BOOK_COLORS } from '@/lib/bookColors'
 import { FormatBadge } from '@/components/FormatBadge'
 
@@ -273,14 +273,83 @@ function SortableBookCard({
         </div>
       </div>
 
-      {/* Format badges */}
-      {book.formatBadges?.length > 0 && (
-        <div className="flex items-center gap-1 shrink-0 flex-wrap">
-          {book.formatBadges.map(fmt => (
-            <FormatBadge key={fmt} format={fmt} />
-          ))}
-        </div>
-      )}
+      {/* Format edition pills */}
+      <div className="flex items-center gap-1 shrink-0 flex-wrap">
+        {/* Ebook — always show if asin exists */}
+        {book.asin && (
+          <span
+            className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md"
+            style={{
+              background: 'rgba(30,45,61,0.05)',
+              border: '0.5px solid rgba(30,45,61,0.12)',
+              color: '#6B7280',
+            }}
+          >
+            <Smartphone size={11} strokeWidth={1.5} />
+            Ebook
+          </span>
+        )}
+
+        {/* Paperback */}
+        {book.asinPaperback ? (
+          <span
+            className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md"
+            style={{
+              background: 'rgba(30,45,61,0.05)',
+              border: '0.5px solid rgba(30,45,61,0.12)',
+              color: '#6B7280',
+            }}
+          >
+            <BookOpenIcon size={11} strokeWidth={1.5} />
+            Paperback
+          </span>
+        ) : (
+          <button
+            onClick={() => onEdit(book)}
+            className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border-none cursor-pointer transition-colors"
+            style={{
+              background: 'transparent',
+              border: '0.5px dashed rgba(30,45,61,0.2)',
+              color: '#9CA3AF',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = '#E9A020')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(30,45,61,0.2)')}
+          >
+            <BookOpenIcon size={11} strokeWidth={1.5} />
+            + paperback
+          </button>
+        )}
+
+        {/* Audiobook */}
+        {book.asinAudiobook ? (
+          <span
+            className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md"
+            style={{
+              background: 'rgba(30,45,61,0.05)',
+              border: '0.5px solid rgba(30,45,61,0.12)',
+              color: '#6B7280',
+            }}
+          >
+            <Headphones size={11} strokeWidth={1.5} />
+            Audio
+          </span>
+        ) : (
+          <button
+            onClick={() => onEdit(book)}
+            className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md border-none cursor-pointer transition-colors"
+            style={{
+              background: 'transparent',
+              border: '0.5px dashed rgba(30,45,61,0.2)',
+              color: '#9CA3AF',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = '#E9A020')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(30,45,61,0.2)')}
+          >
+            <Headphones size={11} strokeWidth={1.5} />
+            + audio
+          </button>
+        )}
+      </div>
 
       {/* Color slot badge */}
       <div className="flex items-center gap-1 shrink-0">
@@ -370,7 +439,6 @@ function BookModal({
   const [manuscriptDragging, setManuscriptDragging] = useState(false)
 
   // ASIN input mode state
-  const [formatEditionsOpen, setFormatEditionsOpen] = useState(false)
   const [asinMode, setAsinMode] = useState<'link' | 'manual'>(editing?.asin ? 'manual' : 'link')
   const [amazonUrl, setAmazonUrl] = useState('')
   const [asinStatus, setAsinStatus] = useState<'idle' | 'found' | 'not-found'>('idle')
@@ -704,93 +772,76 @@ function BookModal({
             <Toggle checked={form.isLeadMagnet} onChange={v => set('isLeadMagnet', v)} />
           </div>
 
-          {/* Format Editions — collapsible */}
+          {/* Format Editions — always open */}
           <div className="border-t border-stone-100 pt-3">
-            <button
-              type="button"
-              onClick={() => setFormatEditionsOpen(p => !p)}
-              className="w-full flex items-center justify-between border-none bg-transparent cursor-pointer p-0 mb-2"
+            <span
+              className="text-[11px] font-bold uppercase tracking-[0.8px]"
+              style={{ color: 'rgba(30,45,61,0.4)' }}
             >
-              <span
-                className="text-[11px] font-bold uppercase tracking-[0.8px]"
-                style={{ color: 'rgba(30,45,61,0.4)' }}
-              >
-                Format Editions
-              </span>
-              <ChevronDown
-                size={14}
-                strokeWidth={2}
-                style={{
-                  color: 'rgba(30,45,61,0.35)',
-                  transform: formatEditionsOpen ? 'rotate(180deg)' : 'rotate(0)',
-                  transition: 'transform 0.18s',
-                }}
-              />
-            </button>
+              Format Editions
+            </span>
 
-            {formatEditionsOpen && (
-              <div className="flex flex-col gap-3 mt-1">
-                {/* Paperback ASIN */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
-                    Paperback ASIN <span className="normal-case font-normal text-stone-400">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.asinPaperback}
-                    onChange={e => set('asinPaperback', e.target.value.toUpperCase())}
-                    placeholder="e.g. B0ABC1234D"
-                    className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
-                  />
-                  <span className="block mt-1 text-[11px] text-stone-400">Found on your Amazon paperback listing</span>
-                </div>
-
-                {/* Paperback ISBN-13 */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
-                    ISBN-13 (Paperback) <span className="normal-case font-normal text-stone-400">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.isbnPaperback}
-                    onChange={e => set('isbnPaperback', e.target.value)}
-                    placeholder="e.g. 9781234567890"
-                    className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
-                  />
-                  <span className="block mt-1 text-[11px] text-stone-400">13-digit number from your KDP print dashboard</span>
-                </div>
-
-                {/* Hardcover ISBN-13 */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
-                    ISBN-13 (Hardcover) <span className="normal-case font-normal text-stone-400">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.isbnHardcover}
-                    onChange={e => set('isbnHardcover', e.target.value)}
-                    placeholder="e.g. 9781234567890"
-                    className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
-                  />
-                  <span className="block mt-1 text-[11px] text-stone-400">13-digit number from your KDP print dashboard</span>
-                </div>
-
-                {/* Audiobook ASIN */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
-                    Audiobook ASIN (Audible) <span className="normal-case font-normal text-stone-400">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.asinAudiobook}
-                    onChange={e => set('asinAudiobook', e.target.value.toUpperCase())}
-                    placeholder="e.g. B0ABC1234D"
-                    className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
-                  />
-                  <span className="block mt-1 text-[11px] text-stone-400">Found on your ACX/Audible listing</span>
-                </div>
+            <div className="flex flex-col gap-3 mt-1">
+              {/* Paperback ASIN */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
+                  Paperback ASIN <span className="normal-case font-normal text-stone-400">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.asinPaperback}
+                  onChange={e => set('asinPaperback', e.target.value.toUpperCase())}
+                  placeholder="e.g. B0ABC1234D"
+                  className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                />
+                <span className="block mt-1 text-[11px] text-stone-400">Found on your Amazon paperback listing</span>
               </div>
-            )}
+
+              {/* Paperback ISBN-13 */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
+                  ISBN-13 (Paperback) <span className="normal-case font-normal text-stone-400">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.isbnPaperback}
+                  onChange={e => set('isbnPaperback', e.target.value)}
+                  placeholder="e.g. 9781234567890"
+                  className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                />
+                <span className="block mt-1 text-[11px] text-stone-400">13-digit number from your KDP print dashboard</span>
+              </div>
+
+              {/* Hardcover ISBN-13 */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
+                  ISBN-13 (Hardcover) <span className="normal-case font-normal text-stone-400">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.isbnHardcover}
+                  onChange={e => set('isbnHardcover', e.target.value)}
+                  placeholder="e.g. 9781234567890"
+                  className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                />
+                <span className="block mt-1 text-[11px] text-stone-400">13-digit number from your KDP print dashboard</span>
+              </div>
+
+              {/* Audiobook ASIN */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
+                  Audiobook ASIN (Audible) <span className="normal-case font-normal text-stone-400">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.asinAudiobook}
+                  onChange={e => set('asinAudiobook', e.target.value.toUpperCase())}
+                  placeholder="e.g. B0ABC1234D"
+                  className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+                />
+                <span className="block mt-1 text-[11px] text-stone-400">Found on your ACX/Audible listing</span>
+              </div>
+            </div>
           </div>
 
           {/* Cover image */}
