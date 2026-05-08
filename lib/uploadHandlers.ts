@@ -1,6 +1,7 @@
 // lib/uploadHandlers.ts
 import { db } from '@/lib/db'
 import { parseKDPFile } from '@/lib/parsers/kdp'
+import { syncMailerLiteToAnalysis } from '@/lib/mailerlite'
 import type { KDPData, KdpRawRow } from '@/types'
 
 export interface KDPUploadResult {
@@ -135,6 +136,11 @@ export async function handleKDPUpload(
 
   // latestAccumulatedData is the most recent month (uploadedMonths is sorted asc)
   const primaryData = latestAccumulatedData ?? { ...baseData, month: data.month, totalUnits: 0, totalKENP: 0, totalRoyaltiesUSD: 0, books: [], dailyUnits: [], dailyKENP: [], summary: { paidUnits: 0, freeUnits: 0, paperbackUnits: 0 } } as KDPData
+
+  // Populate email data on the new/updated analysis record — fire-and-forget
+  syncMailerLiteToAnalysis(userId).catch(err =>
+    console.error('[handleKDPUpload] syncMailerLiteToAnalysis failed (non-fatal):', err)
+  )
 
   return {
     accumulatedData: primaryData,

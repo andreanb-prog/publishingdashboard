@@ -7,6 +7,7 @@
 // GET /subscribers?limit=0&filter[status]=unsubscribed → { total } for unsubs.
 // /subscribers/stats has rates/engagement, NOT counts.
 import type { MailerLiteData, MailerLiteAutomation } from '@/types'
+import { db } from '@/lib/db'
 
 const ML = 'https://connect.mailerlite.com/api'
 
@@ -158,5 +159,112 @@ export async function fetchMailerLiteStats(apiKey: string, groupId?: string): Pr
     automations,
     sentCount,
     bouncedCount,
+  }
+}
+
+async function getSubscriberCount(
+  apiKey: string,
+  status: 'active' | 'unsubscribed',
+  groupId: string,
+): Promise<number> {
+  const url = `${ML}/subscribers?limit=0&filter[status]=${status}&filter[group_id]=${groupId}`
+  try {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}` } })
+    if (!res.ok) return 0
+    const json = await res.json()
+    return json.total ?? 0
+  } catch {
+    return 0
+  }
+}
+
+/** Updates mailerLiteList records and writes aggregated email data into the
+ *  active analysis record for the current month. Safe to call fire-and-forget. */
+export async function syncMailerLiteToAnalysis(userId: string): Promise<void> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { mailerLiteKey: true, mailerLiteLists: true },
+  })
+
+  const apiKey = user?.mailerLiteKey
+  if (!apiKey) return
+
+  const lists = user?.mailerLiteLists ?? []
+
+  // Update per-list counts and aggregate totals
+  let totalActive = 0
+  let totalUnsub = 0
+  if (lists.length > 0) {
+    const results = await Promise.allSettled(
+      lists.map(async (list) => {
+        const [activeCount, unsubCount] = await Promise.all([
+          getSubscriberCount(apiKey, 'active', list.mailerliteId),
+          getSubscriberCount(apiKey, 'unsubscribed', list.mailerliteId),
+        ])
+        await db.mailerLiteList.update({
+          where: { id: list.id },
+          data: { activeCount, unsubCount, lastSyncedAt: new Date() },
+        })
+        return { activeCount, unsubCount }
+      }),
+    )
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        totalActive += r.value.activeCount
+        totalUnsub  += r.value.unsubCount
+      }
+    }
+  }
+
+  // Get open/click rates from the groups endpoint
+  let openRate: number | null = null
+  let clickRate: number | null = null
+  try {
+    const groupsRes = await fetch(`${ML}/groups?limit=100`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    })
+    if (groupsRes.ok) {
+      const groupsJson = await groupsRes.json()
+      const groupList: any[] = groupsJson.data ?? []
+      if (groupList.length > 0) {
+        const primary = [...groupList].sort(
+          (a, b) => Number(b.active_count ?? 0) - Number(a.active_count ?? 0),
+        )[0]
+        const rawOpen  = primary.open_rate?.float  ?? primary.open_rate  ?? 0
+        const rawClick = primary.click_rate?.float ?? primary.click_rate ?? 0
+        openRate  = Math.round(Number(rawOpen)  * 1000) / 10
+        clickRate = Math.round(Number(rawClick) * 1000) / 10
+      }
+    }
+  } catch {
+    // rates unavailable — continue without them
+  }
+
+  // Write to the current month's analysis record
+  const now = new Date()
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
+  const emailData = {
+    listSize: totalActive,
+    unsubscribes: totalUnsub,
+    openRate,
+    clickRate,
+    lastSyncedAt: now.toISOString(),
+  }
+
+  const existing = await db.analysis.findFirst({
+    where: { userId, month },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  if (existing) {
+    const existingData = (existing.data as Record<string, unknown>) ?? {}
+    await db.analysis.update({
+      where: { id: existing.id },
+      data: { data: { ...existingData, email: emailData } as object },
+    })
+    console.log(`[syncMailerLiteToAnalysis] wrote email data to analysis ${existing.id} (${month})`)
+  } else {
+    console.log(`[syncMailerLiteToAnalysis] no analysis record for ${month}, skipping`)
   }
 }
