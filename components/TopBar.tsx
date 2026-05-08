@@ -168,6 +168,7 @@ export function TopBar({ user }: TopBarProps) {
 
     let totalRows = 0
     let errorMsg = ''
+    let hasPinterest = false
 
     for (const file of files) {
       const name = file.name.toLowerCase()
@@ -175,11 +176,17 @@ export function TopBar({ user }: TopBarProps) {
       try {
         const form = new FormData()
         form.append('file', file)
-        const res = await fetch('/api/parse-auto', { method: 'POST', body: form })
+
+        const isPinterest = name.includes('pinterest')
+        if (isPinterest) hasPinterest = true
+        const endpoint = isPinterest ? '/api/upload/pinterest' : '/api/parse-auto'
+        const res = await fetch(endpoint, { method: 'POST', body: form })
         const json = await res.json()
 
         if (!res.ok) {
           errorMsg = json.error || 'Upload failed. Please try again.'
+        } else if (isPinterest) {
+          totalRows += json.data?.totalImpressions ?? 0
         } else {
           totalRows += json.rowCount ?? json.data?.books?.length ?? 0
         }
@@ -193,11 +200,18 @@ export function TopBar({ user }: TopBarProps) {
       setUploadMessage(errorMsg)
     } else {
       setUploadStatus('success')
-      setUploadMessage(`✓ Uploaded — ${totalRows} row${totalRows !== 1 ? 's' : ''} imported`)
+      const successMsg = hasPinterest
+        ? `✓ Pinterest uploaded — ${totalRows.toLocaleString()} impressions`
+        : `✓ Uploaded — ${totalRows} row${totalRows !== 1 ? 's' : ''} imported`
+      setUploadMessage(successMsg)
       setShowToast(true)
       setTimeout(() => setShowToast(false), 4000)
       try { window.dispatchEvent(new CustomEvent('dashboard-data-refresh')) } catch {}
-      router.refresh()
+      if (hasPinterest) {
+        router.push('/dashboard/pinterest?fresh=1')
+      } else {
+        router.refresh()
+      }
       setTimeout(() => setUploadStatus('idle'), 5000)
     }
   }
