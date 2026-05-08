@@ -1,5 +1,5 @@
 'use client'
-// app/(dashboard)/pinterest/page.tsx
+// app/dashboard/pinterest/page.tsx
 import { Suspense, useEffect, useState } from 'react'
 import {
   BoutiqueChannelPageLayout,
@@ -7,255 +7,264 @@ import {
   BoutiqueSectionLabel,
   BoutiqueDataGrid,
   BoutiqueMetricCard,
-  BoutiqueCoachBox,
   BoutiquePageSkeleton,
 } from '@/components/boutique'
 import { FreshBanner } from '@/components/FreshBanner'
-import { getCoachTitle } from '@/lib/coachTitle'
-import type { Analysis } from '@/types'
 
+interface PinData {
+  dateRange?: string
+  totalImpressions?: number
+  topBoards?: {
+    url: string
+    impressions: number
+    engagement: number
+    pinClicks: number
+    outboundClicks: number
+    saves: number
+  }[]
+  topPins?: {
+    url: string
+    impressions: number
+  }[]
+  uploadedAt?: string
+}
 
-const ROADMAP = [
-  {
-    week: 'Week 1 — Foundation',
-    title: 'Set up your boards',
-    body: 'Create 4 boards: one for your series, one for your main trope, one for "Romance Book Recommendations," and one for your book aesthetic. Add 10 saved pins to each to seed the algorithm before posting your own.',
-  },
-  {
-    week: 'Week 2–3 — Content',
-    title: 'Post your first original pins',
-    body: 'Create 3 pin types: (1) Book cover + trope hook text overlay, (2) "If you like X you\'ll love [your book]" comparison, (3) Aesthetic mood board for your story world. Post 3–5x per week using Canva templates.',
-  },
-  {
-    week: 'Week 4 — Optimize',
-    title: 'Double down on what gets saves',
-    body: 'After 4 weeks, check which pins got the most saves. Create 3 variations of those. Saves are the most important Pinterest metric — they mean readers are bookmarking your book for later.',
-  },
-]
+function boardNameFromUrl(url: string): string {
+  try {
+    const parts = new URL(url).pathname.replace(/\/$/, '').split('/')
+    const slug = parts[parts.length - 1] || parts[parts.length - 2] || ''
+    return slug
+      .split('-')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ')
+  } catch {
+    return url
+  }
+}
 
-const BENCHMARKS = [
-  { period: 'Month 1–2', range: '100–500 impressions/week', note: 'Focus on posting consistency, not numbers', color: '#E9A020' },
-  { period: 'Month 3–6', range: '1K–10K impressions/week', note: 'Save rate above 2% means your content resonates', color: '#E9A020' },
-  { period: 'Month 6–12', range: '10K–100K impressions/week', note: 'Old pins compound — this is when Pinterest pays off', color: '#E9A020' },
-]
+function pinIdFromUrl(url: string): string {
+  try {
+    const parts = new URL(url).pathname.replace(/\/$/, '').split('/')
+    const id = parts[parts.length - 1] || parts[parts.length - 2] || ''
+    return id.length > 12 ? id.slice(0, 12) + '…' : id
+  } catch {
+    return url
+  }
+}
+
+function fmt(n: number | undefined): string {
+  if (n == null) return '—'
+  return n.toLocaleString()
+}
 
 export default function PinterestPage() {
-  const [coachTitle, setCoachTitle] = useState('Your marketing coach says')
-  useEffect(() => { setCoachTitle(getCoachTitle()) }, [])
-  const [analysis, setAnalysis] = useState<Analysis | null>(null)
-  const [logForm, setLogForm] = useState({ weekEnding: '', impressions: '', saves: '', clicks: '', pinCount: '' })
-  const [logs, setLogs] = useState<any[]>([])
-  const [saving, setSaving] = useState(false)
-  const [verdict, setVerdict] = useState('')
+  const [pin, setPin] = useState<PinData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/analyze')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(d => { if (d.analysis) setAnalysis(d.analysis as Analysis) })
-        .catch(() => {}),
-      fetch('/api/pinterest-log')
-        .then(r => r.json())
-        .then(d => { if (d.logs) setLogs(d.logs) })
-        .catch(() => {}),
-    ]).finally(() => setLoading(false))
+    fetch('/api/analyze')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => {
+        const p = d?.analysis?.pinterest
+        if (p) setPin(p as PinData)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
-  const pin = analysis?.pinterest
-  const coach = (analysis as any)?.pinterestCoach
+  const hasData = !!(pin?.totalImpressions != null || pin?.topBoards?.length)
 
-  async function handleLog(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-    try {
-      const res = await fetch('/api/pinterest-log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logForm),
-      })
-      const json = await res.json()
-      if (json.success) {
-        setLogs(prev => [json.log, ...prev])
-        const imp = parseInt(logForm.impressions) || 0
-        const saves = parseInt(logForm.saves) || 0
-        const sr = imp > 0 ? (saves / imp * 100).toFixed(1) : 0
-        setVerdict(saves / imp > 0.02
-          ? `🟢 Great week! ${sr}% save rate — your content is resonating. Make more pins like your best.`
-          : imp === 0
-            ? '📌 Week logged. Keep posting — impressions will come with consistency.'
-            : `📌 ${imp} impressions logged. Normal for a new account. Keep posting 3–5x per week.`
-        )
-        setLogForm({ weekEnding: '', impressions: '', saves: '', clicks: '', pinCount: '' })
-      }
-    } finally {
-      setSaving(false)
-    }
-  }
+  const totalPinClicks    = pin?.topBoards?.reduce((s, b) => s + b.pinClicks, 0) ?? 0
+  const totalOutbound     = pin?.topBoards?.reduce((s, b) => s + b.outboundClicks, 0) ?? 0
+  const totalSaves        = pin?.topBoards?.reduce((s, b) => s + b.saves, 0) ?? 0
+  const topBoard          = pin?.topBoards?.[0] ?? null
+  const topBoardName      = topBoard ? boardNameFromUrl(topBoard.url) : ''
+  const displayPins       = (pin?.topPins ?? []).slice(0, 10)
+  const extraPins         = (pin?.topPins?.length ?? 0) - displayPins.length
 
   if (loading) {
     return (
       <BoutiqueChannelPageLayout>
-        <BoutiquePageHeader title="Pinterest" subtitle="Building from zero · Your 30-day plan" badge="BUILDING" badgeColor="#F472B6" />
-        <BoutiquePageSkeleton cols={3} rows={3} />
+        <BoutiquePageHeader title="Pinterest" subtitle="Impressions & discovery" badge="PINTEREST" badgeColor="#E60023" />
+        <BoutiquePageSkeleton cols={4} rows={2} />
+      </BoutiqueChannelPageLayout>
+    )
+  }
+
+  if (!hasData) {
+    return (
+      <BoutiqueChannelPageLayout>
+        <BoutiquePageHeader title="Pinterest" subtitle="Impressions & discovery" badge="PINTEREST" badgeColor="#E60023" />
+        <Suspense fallback={null}><FreshBanner /></Suspense>
+
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '80px 24px',
+          gap: 14,
+          background: '#FFF8F0',
+          borderRadius: 12,
+          border: '1.5px dashed #D4D0CB',
+          marginTop: 24,
+        }}>
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <circle cx="18" cy="18" r="15" stroke="#9CA3AF" strokeWidth="1.5" strokeDasharray="5 3" />
+          </svg>
+          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, color: '#1E2D3D', margin: 0, fontWeight: 600 }}>
+            No Pinterest data yet
+          </p>
+          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: '#E9A020', margin: 0, textAlign: 'center', fontWeight: 700 }}>
+            Upload your Pinterest Analytics CSV to unlock →
+          </p>
+        </div>
       </BoutiqueChannelPageLayout>
     )
   }
 
   return (
     <BoutiqueChannelPageLayout>
-      <BoutiquePageHeader title="Pinterest" subtitle="Building from zero · Your 30-day plan" badge="BUILDING" badgeColor="#F472B6" />
+      <BoutiquePageHeader
+        title="Pinterest"
+        subtitle={pin?.dateRange ?? 'Impressions & discovery'}
+        badge="PINTEREST"
+        badgeColor="#E60023"
+      />
       <Suspense fallback={null}><FreshBanner /></Suspense>
-      {/* KPI strip */}
+
+      {/* ── Metric tiles ── */}
       <BoutiqueSectionLabel label="Performance" />
       <div style={{ marginBottom: 32 }}>
-        <BoutiqueDataGrid cols={3}>
-          <BoutiqueMetricCard label="Total Impressions" value={pin?.totalImpressions != null ? String(pin.totalImpressions) : '—'} colorDot="#F472B6" subtext="From your uploaded data" />
-          <BoutiqueMetricCard label="Active Pins" value={pin?.pinCount != null ? String(pin.pinCount) : '—'} colorDot="#F472B6" subtext="From your uploaded data" />
-          <BoutiqueMetricCard label="Total Saves" value={pin?.totalSaves != null ? String(pin.totalSaves) : '—'} colorDot="#F472B6" subtext="From your uploaded data" />
+        <BoutiqueDataGrid cols={4}>
+          <BoutiqueMetricCard
+            label="Total Impressions"
+            value={fmt(pin?.totalImpressions)}
+            tooltipContent="Total number of times your pins were seen across Pinterest during this period."
+          />
+          <BoutiqueMetricCard
+            label="Pin Clicks"
+            value={fmt(totalPinClicks)}
+            tooltipContent="Total clicks on your pins (opens the pin detail page). Summed across all top boards."
+          />
+          <BoutiqueMetricCard
+            label="Outbound Clicks"
+            value={fmt(totalOutbound)}
+            tooltipContent="Clicks that sent people to your website from Pinterest. These are your most valuable traffic signals."
+          />
+          <BoutiqueMetricCard
+            label="Saves"
+            value={fmt(totalSaves)}
+            tooltipContent="Times readers saved your pins to their own boards. Saves amplify your reach to new audiences."
+          />
         </BoutiqueDataGrid>
       </div>
 
-      {/* Coach box */}
-      <BoutiqueCoachBox>
-        {coach || `Pinterest is one of the most powerful long-term channels for romance authors because pins keep working for months and years. A pin you create today about your tropes could still be driving readers to your book years from now. Upload your Pinterest CSV or log your weekly numbers below to get personalized coaching. Start posting consistently — that's the only thing that matters early on.`}
-      </BoutiqueCoachBox>
+      {/* ── Top Board ── */}
+      {topBoard && (
+        <>
+          <BoutiqueSectionLabel label="Top Board" />
+          <div style={{ marginBottom: 32 }}>
+            <a
+              href={topBoard.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: 'none' }}
+            >
+              <div style={{
+                background: 'white',
+                border: '1.5px solid #6EBF8B',
+                borderRadius: 12,
+                padding: '20px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <div>
+                    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6EBF8B', marginBottom: 4 }}>
+                      Top Board
+                    </div>
+                    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 18, fontWeight: 700, color: '#1E2D3D' }}>
+                      {topBoardName}
+                    </div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M3 13L13 3M13 3H7M13 3V9" stroke="#6EBF8B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
 
-      {/* 30-day roadmap */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <h2 className="font-sans text-[19px]" style={{ color: '#1E2D3D' }}>Your 30-Day Pinterest Launch Plan</h2>
-          <div className="flex-1 h-px" style={{ background: '#EEEBE6' }} />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {ROADMAP.map((step, i) => (
-            <div key={i} className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-              <div className="text-[10px] font-bold tracking-[1px] uppercase mb-2" style={{ color: '#e60023' }}>
-                {step.week}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+                  {[
+                    { label: 'Impressions',    value: fmt(topBoard.impressions) },
+                    { label: 'Engagement',     value: fmt(topBoard.engagement) },
+                    { label: 'Pin Clicks',     value: fmt(topBoard.pinClicks) },
+                    { label: 'Outbound Clicks', value: fmt(topBoard.outboundClicks) },
+                    { label: 'Saves',          value: fmt(topBoard.saves) },
+                  ].map(({ label, value }) => (
+                    <div key={label}>
+                      <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9CA3AF', marginBottom: 4 }}>
+                        {label}
+                      </div>
+                      <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 600, color: '#1E2D3D' }}>
+                        {value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="text-[13.5px] font-bold mb-2" style={{ color: '#1E2D3D' }}>{step.title}</div>
-              <div className="text-[12px] leading-[1.65]" style={{ color: '#6B7280' }}>{step.body}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+            </a>
+          </div>
+        </>
+      )}
 
-      {/* Weekly log form */}
-      <div className="rounded-xl p-5 mb-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-        <div className="text-[13px] font-bold mb-4" style={{ color: '#1E2D3D' }}>
-          Log your weekly Pinterest numbers — takes 30 seconds
-        </div>
-        <form onSubmit={handleLog}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-            {[
-              { key: 'weekEnding', label: 'Week ending', type: 'date' },
-              { key: 'impressions', label: 'Impressions', type: 'number', placeholder: '0' },
-              { key: 'saves', label: 'Saves', type: 'number', placeholder: '0' },
-              { key: 'clicks', label: 'Link clicks', type: 'number', placeholder: '0' },
-              { key: 'pinCount', label: 'Pins live', type: 'number', placeholder: '0' },
-            ].map(field => (
-              <div key={field.key}>
-                <label className="block text-[10.5px] font-semibold mb-1.5" style={{ color: '#6B7280' }}>
-                  {field.label}
-                </label>
-                <input
-                  type={field.type}
-                  placeholder={field.placeholder}
-                  value={logForm[field.key as keyof typeof logForm]}
-                  onChange={e => setLogForm(f => ({ ...f, [field.key]: e.target.value }))}
-                  className="w-full rounded-lg px-3 py-2 text-[13px] font-sans outline-none transition-colors"
-                  style={{
-                    background: 'white', border: '1.5px solid #D6D3D1',
-                    color: '#1E2D3D',
-                  }}
-                />
+      {/* ── Top Pins ── */}
+      {displayPins.length > 0 && (
+        <>
+          <BoutiqueSectionLabel label="Top Pins" />
+          <div style={{
+            background: 'white',
+            border: '0.5px solid #EEEBE6',
+            borderRadius: 12,
+            overflow: 'hidden',
+            marginBottom: 32,
+          }}>
+            {displayPins.map((pin, i) => (
+              <div
+                key={pin.url}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '13px 20px',
+                  borderBottom: i < displayPins.length - 1 ? '0.5px solid #EEEBE6' : 'none',
+                }}
+              >
+                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 700, color: '#9CA3AF', minWidth: 20, textAlign: 'right' }}>
+                  {i + 1}
+                </span>
+                <a
+                  href={pin.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 500, color: '#1E2D3D', textDecoration: 'none', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                >
+                  Pin {pinIdFromUrl(pin.url)}
+                </a>
+                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600, color: '#6B7280', flexShrink: 0 }}>
+                  {fmt(pin.impressions)} impressions
+                </span>
               </div>
             ))}
-          </div>
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-5 py-2.5 rounded-lg text-[13.5px] font-bold transition-all disabled:opacity-40"
-            style={{ background: '#E9A020', color: '#1E2D3D', border: 'none', cursor: 'pointer' }}
-          >
-            {saving ? 'Logging...' : 'Log This Week →'}
-          </button>
-        </form>
 
-        {verdict && (
-          <div className="mt-3 p-3 rounded-lg text-[13px] font-semibold"
-            style={{ background: 'rgba(244,114,182,0.1)', color: '#f472b6' }}>
-            {verdict}
-          </div>
-        )}
-      </div>
-
-      {/* History table */}
-      <div className="rounded-xl overflow-x-auto mb-6"
-        style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-        <table className="w-full border-collapse text-[12px]" style={{ minWidth: 580 }}>
-          <thead>
-            <tr style={{ background: '#F5F5F4' }}>
-              {['Period', 'Impressions', 'Saves', 'Link Clicks', 'Pins', 'Save Rate', 'Trend'].map(h => (
-                <th key={h} className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.8px]"
-                  style={{ color: '#6B7280' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {logs.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-[12px]" style={{ color: '#9CA3AF' }}>
-                  No weekly logs yet — use the form above to log your first week.
-                </td>
-              </tr>
+            {extraPins > 0 && (
+              <div style={{ padding: '12px 20px', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, color: '#9CA3AF' }}>
+                and {extraPins} more pin{extraPins !== 1 ? 's' : ''}
+              </div>
             )}
-            {logs.map((log, i) => {
-              const sr = log.saveRate || 0
-              const isGood = sr >= 2
-              return (
-                <tr key={i} className="border-t hover:bg-stone-50"
-                  style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-                  <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>
-                    {new Date(log.weekEnding).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 font-mono" style={{ color: '#1E2D3D' }}>{log.impressions}</td>
-                  <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>{log.saves}</td>
-                  <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>{log.clicks}</td>
-                  <td className="px-4 py-3 font-mono" style={{ color: '#6B7280' }}>{log.pinCount}</td>
-                  <td className="px-4 py-3 font-mono" style={{ color: isGood ? '#34d399' : '#a8a29e' }}>{sr}%</td>
-                  <td className="px-4 py-3">
-                    <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full"
-                      style={{
-                        background: isGood ? 'rgba(52,211,153,0.12)' : 'rgba(244,114,182,0.12)',
-                        color: isGood ? '#34d399' : '#f472b6',
-                      }}>
-                      {log.impressions > 100 ? '↑ Growing' : '🔵 Building'}
-                    </span>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Benchmarks */}
-      <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-        <div className="text-[11px] font-bold uppercase tracking-[1px] mb-3" style={{ color: '#6B7280' }}>
-          Pinterest Benchmarks for Romance Authors
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {BENCHMARKS.map((b, i) => (
-            <div key={i} className="rounded-lg p-3"
-              style={{ background: `${b.color}10` }}>
-              <div className="text-[11.5px] font-bold mb-1" style={{ color: b.color }}>{b.period}</div>
-              <div className="text-[12px] font-semibold mb-1" style={{ color: '#1E2D3D' }}>{b.range}</div>
-              <div className="text-[11px]" style={{ color: '#6B7280' }}>{b.note}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </BoutiqueChannelPageLayout>
   )
 }

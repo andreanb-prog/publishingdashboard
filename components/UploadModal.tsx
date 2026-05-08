@@ -323,6 +323,10 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           const form = new FormData()
           form.append('file', rawFile)
           fetch('/api/parse-auto', { method: 'POST', body: form }).catch(() => {})
+        } else if (f.type === 'pinterest') {
+          const form = new FormData()
+          form.append('file', rawFile)
+          await fetch('/api/upload/pinterest', { method: 'POST', body: form }).catch(() => {})
         }
         uploaded++
       }
