@@ -535,14 +535,14 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
     workbook.SheetNames.find(n => n !== 'Summary' && !KENP_NAMES.has(n))
   const ordersSheet = ordersSheetName ? workbook.Sheets[ordersSheetName] : null
   const ordersData  = ordersSheet
-    ? (XLSX.utils.sheet_to_json(ordersSheet) as Record<string, unknown>[])
+    ? sheetToRows(ordersSheet)
     : []
 
   // ── KENP Read sheet ───────────────────────────────────────────────────────
   const kenpSheetName = workbook.SheetNames.find(n => KENP_NAMES.has(n)) ?? 'KENP Read'
   const kenpSheet = workbook.Sheets[kenpSheetName]
   const kenpData  = kenpSheet
-    ? (XLSX.utils.sheet_to_json(kenpSheet) as Record<string, unknown>[])
+    ? sheetToRows(kenpSheet)
     : []
 
   // Log per-sheet headers so we can debug field mapping issues
