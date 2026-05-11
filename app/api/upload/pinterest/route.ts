@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
     console.log('[upload/pinterest] file received:', file.name, 'size:', file.size)
     const text = await file.text()
     const parsed = parsePinterest(text)
+    console.log('[upload/pinterest] userId:', session.user.id)
     console.log('[upload/pinterest] parsed:', {
       dateRange: parsed.dateRange,
       totalImpressions: parsed.totalImpressions,
@@ -30,31 +31,20 @@ export async function POST(req: NextRequest) {
     const month = new Date().toISOString().slice(0, 7)
     const pinterestData = { ...parsed, uploadedAt: new Date().toISOString() }
 
-    console.log('[upload/pinterest] attempting DB write for userId:', session.user.id, 'month:', month)
+    console.log('[upload/pinterest] attempting DB upsert for userId:', session.user.id, 'month:', month)
 
     try {
-      const existing = await db.analysis.findFirst({
-        where: { userId: session.user.id, month },
-        orderBy: { createdAt: 'desc' },
+      const existing = await db.analysis.findUnique({
+        where: { userId_month: { userId: session.user.id, month } },
       })
+      const existingData = (existing?.data as Record<string, unknown>) ?? {}
 
-      if (existing) {
-        const existingData = (existing.data as Record<string, unknown>) ?? {}
-        await db.analysis.update({
-          where: { id: existing.id },
-          data: { data: { ...existingData, pinterest: pinterestData } as any },
-        })
-      } else {
-        await db.analysis.create({
-          data: {
-            userId: session.user.id,
-            month,
-            data: { month, pinterest: pinterestData } as any,
-          },
-        })
-      }
-
-      console.log('[upload/pinterest] DB write success')
+      const result = await db.analysis.upsert({
+        where: { userId_month: { userId: session.user.id, month } },
+        update: { data: { ...existingData, pinterest: pinterestData } as any },
+        create: { userId: session.user.id, month, data: { month, pinterest: pinterestData } as any },
+      })
+      console.log('[upload/pinterest] DB write success, id:', result.id)
     } catch (dbErr) {
       console.error('[upload/pinterest] DB write failed:', dbErr)
       return NextResponse.json({ error: 'DB write failed', detail: String(dbErr) }, { status: 500 })
