@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     try {
       const existing = await db.analysis.findFirst({
         where: { userId: session.user.id, month },
+        orderBy: { createdAt: 'desc' },
       })
 
       if (existing) {
