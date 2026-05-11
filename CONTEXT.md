@@ -15,7 +15,7 @@ AuthorDash is an AI-powered publishing dashboard for indie romance authors. It t
 ## Owner
 - **Author name:** Andrea Bonilla (writes as Elle Wilder)
 - **Genre:** Romance (steamy)
-- **Books:** My Off-Limits Roommate (B0GSC2RTF8), Fake Dating My Billionaire Protector (B0GQD4J6VT)
+- **Books:** My Off-Limits Roommate (B0GSC2RTF8), Fake Dating My Billionaire Protector (B0GQD4J6VT), My Ex's Secret Baby (B0GX2ZXLHR)
 - **Email:** andreanbonilla@gmail.com / info@ellewilderbooks.com
 - **Beta pricing:** $37/month regular, $17/month FPA students (code: FPA2026)
 
@@ -225,8 +225,10 @@ This creates the coupon + promotion code idempotently. Safe to call again — re
 ---
 
 ## Session Tips
-- Start a fresh Claude Code session for each major feature
+- ALWAYS work on main. Run `git checkout main` before touching any files.
+- NEVER create a branch. Never use `git checkout -b` or `git switch -c`.
+- Commit directly to main: `git add -A && git commit -m "..." && git push origin main`
 - One feature per session â don't mix unrelated changes
-- Always commit and push to GitHub at the end of each task
+- Start a fresh Claude Code session for each major feature
 - Redeploy Vercel after adding new environment variables
 - Check Vercel logs if something breaks in production
