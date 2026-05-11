@@ -225,8 +225,8 @@ interface CombinedSalesMeta {
 }
 
 function parseCombinedSalesSheet(sheet: XLSX.WorkSheet): { rows: CombinedSalesRow[]; meta: CombinedSalesMeta } {
-  // Row 0 is always the header — use it directly, no banner scan.
-  const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: null, raw: true, header: 0 }) as Record<string, unknown>[]
+  // Use sheetToRows so banner/title rows before the real headers are handled correctly.
+  const rawRows = sheetToRows(sheet)
 
   const headersFound = rawRows.length > 0 ? Object.keys(rawRows[0]) : []
   console.log(`[KDP parser] Combined Sales columns (${headersFound.length}):`, headersFound)
@@ -280,17 +280,13 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   const combinedData = combinedResult.rows
   const combinedMeta = combinedResult.meta
 
-  // ── Paperback Royalty sheet — row 0 is always the header ────────────────
+  // ── Paperback Royalty sheet ───────────────────────────────────────────────
   const paperbackSheet = workbook.Sheets['Paperback Royalty']
-  const paperbackData  = paperbackSheet
-    ? (XLSX.utils.sheet_to_json(paperbackSheet, { defval: null, raw: true, header: 0 }) as Record<string, unknown>[])
-    : []
+  const paperbackData  = paperbackSheet ? sheetToRows(paperbackSheet) : []
 
-  // ── KENP Read sheet — row 0 is always the header ─────────────────────────
+  // ── KENP Read sheet ───────────────────────────────────────────────────────
   const kenpSheet = workbook.Sheets['KENP Read'] ?? workbook.Sheets['KENP']
-  const kenpData  = kenpSheet
-    ? (XLSX.utils.sheet_to_json(kenpSheet, { defval: null, raw: true, header: 0 }) as Record<string, unknown>[])
-    : []
+  const kenpData  = kenpSheet ? sheetToRows(kenpSheet) : []
 
   console.log(`[KDP parser] Sheet row counts — Combined Sales: ${combinedData.length}, Paperback Royalty: ${paperbackData.length}, KENP Read: ${kenpData.length}`)
   if (paperbackData.length) console.log('[KDP parser] Paperback Royalty headers:', Object.keys(paperbackData[0]))
@@ -703,11 +699,9 @@ function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
   const combinedData = combinedResult.rows
   const combinedMeta = combinedResult.meta
 
-  // KENP Read sheet — row 0 is always the header
+  // KENP Read sheet
   const kenpSheet = workbook.Sheets['KENP Read'] ?? workbook.Sheets['KENP']
-  const kenpData  = kenpSheet
-    ? (XLSX.utils.sheet_to_json(kenpSheet, { defval: null, raw: true, header: 0 }) as Record<string, unknown>[])
-    : []
+  const kenpData  = kenpSheet ? sheetToRows(kenpSheet) : []
 
   console.log(`[KDP parser] Royalties Estimator — Combined Sales: ${combinedData.length}, KENP Read: ${kenpData.length}`)
   if (kenpData.length) console.log('[KDP parser] Royalties Estimator KENP headers:', Object.keys(kenpData[0]))

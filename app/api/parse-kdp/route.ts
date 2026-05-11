@@ -37,7 +37,21 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    return NextResponse.json({ success: true, data: result.accumulatedData, rowCount: result.accumulatedData.books.length })
+    const books = result.accumulatedData.books
+    const dates = result.accumulatedData.dailyUnits.map(d => d.date).sort()
+    const dateRange = dates.length > 0
+      ? { from: dates[0], to: dates[dates.length - 1] }
+      : { from: result.accumulatedData.month + '-01', to: result.accumulatedData.month + '-01' }
+    const asinsFound = Array.from(new Set(books.map(b => b.asin).filter((a): a is string => !!a)))
+    const diagnostics = {
+      success: true,
+      rowsImported: result.rawRowCount,
+      rowCount: result.rawRowCount,
+      dateRange,
+      asinsFound,
+    }
+    console.log('[parse-kdp] result:', JSON.stringify(diagnostics))
+    return NextResponse.json(diagnostics)
   } catch (error) {
     console.error('[parse-kdp] unexpected error:', error)
     return NextResponse.json({ error: 'Failed to parse KDP file. Please try again.' }, { status: 500 })
