@@ -10,6 +10,8 @@ export async function POST(req: NextRequest) {
   const session = await getAugmentedSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  console.log('[parse-kdp] userId:', session.user.id)
+
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File

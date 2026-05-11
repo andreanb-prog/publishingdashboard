@@ -10,13 +10,22 @@ export async function POST(_req: NextRequest) {
   const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { mailerLiteKey: true, mailerLiteLists: true },
-  })
+  console.log('[mailerlite/sync] userId:', session.user.id)
+
+  let user: { mailerLiteKey: string | null; mailerLiteLists: unknown } | null = null
+  try {
+    user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { mailerLiteKey: true, mailerLiteLists: true },
+    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[mailerlite/sync] db.user.findUnique failed:', msg)
+    return NextResponse.json({ error: `DB lookup failed: ${msg}` }, { status: 500 })
+  }
 
   if (!user?.mailerLiteKey) return NextResponse.json({ error: 'not_connected' }, { status: 400 })
-  if ((user.mailerLiteLists ?? []).length === 0) return NextResponse.json({ success: true, updated: 0 })
+  if ((user.mailerLiteLists as unknown[] ?? []).length === 0) return NextResponse.json({ success: true, updated: 0 })
 
   try {
     await syncMailerLiteToAnalysis(session.user.id)
