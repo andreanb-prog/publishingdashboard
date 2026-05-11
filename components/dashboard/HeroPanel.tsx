@@ -258,7 +258,7 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
           <div className="grid grid-cols-2 md:grid-cols-4 md:divide-x divide-[#EEEBE6]">
             {(() => {
               const meta = analysis.meta
-              const ml = analysis.mailerLite
+              const ml = liveML ?? analysis?.mailerLite
               const hasKdp = kdpTotals.totalUnits > 0 || kdpTotals.totalRoyalties > 0 || kdpTotals.totalKENP > 0
               const estRevenue = hasKdp ? Math.round((kdpTotals.totalRoyalties + kdpTotals.totalKENP * 0.0045) * 100) / 100 : null
               const royaltiesZero = hasKdp && kdpTotals.totalRoyalties === 0
