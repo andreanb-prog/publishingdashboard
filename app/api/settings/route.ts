@@ -97,10 +97,16 @@ export async function POST(req: NextRequest) {
 
   // Disconnect Meta Ads
   if (body.action === 'disconnect-meta') {
-    await db.user.update({
-      where: { id: session.user.id },
-      data: { metaAccessToken: null, metaAdAccountId: null, metaTokenExpires: null, metaLastSync: null },
-    })
+    try {
+      await db.user.update({
+        where: { id: session.user.id },
+        data: { metaAccessToken: null, metaAdAccountId: null, metaTokenExpires: null, metaLastSync: null },
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[settings] disconnect-meta db.user.update failed:', msg)
+      return NextResponse.json({ error: `DB write failed: ${msg}` }, { status: 500 })
+    }
     return NextResponse.json({ success: true })
   }
 
@@ -125,26 +131,50 @@ export async function POST(req: NextRequest) {
         ? body.preferredGreetingName.trim()
         : null
     }
-    await db.user.update({ where: { id: session.user.id }, data: update })
+    try {
+      await db.user.update({ where: { id: session.user.id }, data: update })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[settings] save-profile db.user.update failed:', msg)
+      return NextResponse.json({ error: `DB write failed: ${msg}` }, { status: 500 })
+    }
     return NextResponse.json({ success: true })
   }
 
   // Save books
   if (body.action === 'save-books') {
     const books = Array.isArray(body.books) ? body.books : []
-    await db.user.update({ where: { id: session.user.id }, data: { books } })
+    try {
+      await db.user.update({ where: { id: session.user.id }, data: { books } })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[settings] save-books db.user.update failed:', msg)
+      return NextResponse.json({ error: `DB write failed: ${msg}` }, { status: 500 })
+    }
     return NextResponse.json({ success: true })
   }
 
   // Save writing kill list
   if (typeof body.writingKillList === 'string') {
-    await db.user.update({ where: { id: session.user.id }, data: { writingKillList: body.writingKillList } })
+    try {
+      await db.user.update({ where: { id: session.user.id }, data: { writingKillList: body.writingKillList } })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[settings] writingKillList db.user.update failed:', msg)
+      return NextResponse.json({ error: `DB write failed: ${msg}` }, { status: 500 })
+    }
     return NextResponse.json({ success: true })
   }
 
   // Remove Anthropic writing key
   if (body.action === 'remove-anthropic-key') {
-    await db.user.update({ where: { id: session.user.id }, data: { anthropicApiKey: null, anthropicKeyAddedAt: null } })
+    try {
+      await db.user.update({ where: { id: session.user.id }, data: { anthropicApiKey: null, anthropicKeyAddedAt: null } })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[settings] remove-anthropic-key db.user.update failed:', msg)
+      return NextResponse.json({ error: `DB write failed: ${msg}` }, { status: 500 })
+    }
     return NextResponse.json({ success: true })
   }
 
@@ -161,6 +191,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Nothing to save' }, { status: 400 })
   }
 
-  await db.user.update({ where: { id: session.user.id }, data: update })
+  try {
+    await db.user.update({ where: { id: session.user.id }, data: update })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[settings] save-keys db.user.update failed:', msg)
+    return NextResponse.json({ error: `DB write failed: ${msg}` }, { status: 500 })
+  }
   return NextResponse.json({ success: true })
 }

@@ -18,12 +18,25 @@ export async function POST(_req: NextRequest) {
   if (!user?.mailerLiteKey) return NextResponse.json({ error: 'not_connected' }, { status: 400 })
   if ((user.mailerLiteLists ?? []).length === 0) return NextResponse.json({ success: true, updated: 0 })
 
-  await syncMailerLiteToAnalysis(session.user.id)
+  try {
+    await syncMailerLiteToAnalysis(session.user.id)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[mailerlite/sync] syncMailerLiteToAnalysis failed:', msg)
+    return NextResponse.json({ error: `Sync failed: ${msg}` }, { status: 500 })
+  }
 
-  const updatedLists = await db.mailerLiteList.findMany({
-    where: { userId: session.user.id },
-    select: { id: true, activeCount: true, unsubCount: true },
-  })
+  let updatedLists: { id: string; activeCount: number; unsubCount: number }[] = []
+  try {
+    updatedLists = await db.mailerLiteList.findMany({
+      where: { userId: session.user.id },
+      select: { id: true, activeCount: true, unsubCount: true },
+    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[mailerlite/sync] mailerLiteList.findMany failed:', msg)
+    return NextResponse.json({ error: `DB read failed: ${msg}` }, { status: 500 })
+  }
 
   return NextResponse.json({ success: true, updated: updatedLists.length, lists: updatedLists })
 }

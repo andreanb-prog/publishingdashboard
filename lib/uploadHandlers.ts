@@ -106,29 +106,25 @@ export async function handleKDPUpload(
       summary: { paidUnits: totalUnits - paperbackUnits, freeUnits: 0, paperbackUnits },
     }
 
-    try {
-      const existing = await db.analysis.findFirst({ where: { userId, month } })
-      if (existing) {
-        const existingData = (existing.data as Record<string, unknown>) ?? {}
-        const {
-          storySentence: _ss, actionPlan: _ap, channelScores: _cs,
-          insights: _ins, fingerprint: _fp, kdpCoach: _kc,
-          metaCoach: _mc, emailCoach: _ec, pinterestCoach: _pc,
-          swapsCoach: _sc, overallVerdict: _ov, confidenceNote: _cn,
-          ...preservedData
-        } = existingData
-        await db.analysis.update({
-          where: { id: existing.id },
-          data: { data: { ...preservedData, kdp: accumulatedData } as object },
-        })
-      } else {
-        await db.analysis.create({
-          data: { userId, month, data: { month, kdp: accumulatedData } as object },
-        })
-        console.log(`[handleKDPUpload] New record created — userId: ${userId}, period: ${month}`)
-      }
-    } catch (dbErr) {
-      console.error(`[handleKDPUpload] Failed to write analysis for ${month}:`, dbErr)
+    const existing = await db.analysis.findFirst({ where: { userId, month } })
+    if (existing) {
+      const existingData = (existing.data as Record<string, unknown>) ?? {}
+      const {
+        storySentence: _ss, actionPlan: _ap, channelScores: _cs,
+        insights: _ins, fingerprint: _fp, kdpCoach: _kc,
+        metaCoach: _mc, emailCoach: _ec, pinterestCoach: _pc,
+        swapsCoach: _sc, overallVerdict: _ov, confidenceNote: _cn,
+        ...preservedData
+      } = existingData
+      await db.analysis.update({
+        where: { id: existing.id },
+        data: { data: { ...preservedData, kdp: accumulatedData } as object },
+      })
+    } else {
+      await db.analysis.create({
+        data: { userId, month, data: { month, kdp: accumulatedData } as object },
+      })
+      console.log(`[handleKDPUpload] New record created — userId: ${userId}, period: ${month}`)
     }
 
     latestAccumulatedData = accumulatedData
