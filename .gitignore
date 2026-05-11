@@ -6,3 +6,5 @@ node_modules/
 prisma/seed-swaps.ts
 .claude/
 .vercel
+.claire
+*.zip
