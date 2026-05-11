@@ -5,16 +5,27 @@ import { db } from '@/lib/db'
 import { parsePinterest } from '@/lib/parsePinterest'
 
 export async function POST(req: NextRequest) {
+  console.log('[upload/pinterest] route hit')
   const session = await getAugmentedSession()
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session?.user?.id) {
+    console.log('[upload/pinterest] unauthorized — no session')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File
     if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
+    console.log('[upload/pinterest] file received:', file.name, 'size:', file.size)
     const text = await file.text()
     const parsed = parsePinterest(text)
+    console.log('[upload/pinterest] parsed:', {
+      dateRange: parsed.dateRange,
+      totalImpressions: parsed.totalImpressions,
+      topBoards: parsed.topBoards.length,
+      topPins: parsed.topPins.length,
+    })
 
     const month = new Date().toISOString().slice(0, 7)
     const pinterestData = { ...parsed, uploadedAt: new Date().toISOString() }

@@ -31,10 +31,13 @@ function splitCSV(line: string): string[] {
 }
 
 export function parsePinterest(csvText: string): PinterestOverviewData {
-  const lines = csvText.split('\n').map(l => l.trim())
+  // Keep blank lines so we can use them as section boundaries,
+  // but also strip CR so CRLF files work correctly
+  const lines = csvText.split('\n').map(l => l.replace(/\r$/, '').trim())
 
   // ── Section 1: Daily Impressions ────────────────────────────────────────────
-  const dateHeaderIdx = lines.findIndex(l => l === 'Date,Impressions' || l.startsWith('Date,Impressions,'))
+  // Use startsWith (like the old parser) rather than exact match — more permissive
+  const dateHeaderIdx = lines.findIndex(l => l.startsWith('Date,Impressions'))
   let totalImpressions = 0
   let firstDate = ''
   let lastDate = ''
@@ -49,7 +52,9 @@ export function parsePinterest(csvText: string): PinterestOverviewData {
       const date = parts[0]?.replace(/"/g, '').trim()
       const impStr = parts[1]?.replace(/"/g, '').trim()
 
-      if (!date?.match(/^\d{4}-\d{2}-\d{2}$/) || !impStr) continue
+      if (!date?.match(/^\d{4}-\d{2}-\d{2}$/)) continue
+      // Allow empty impression values — skip the row but don't break
+      if (!impStr) continue
 
       const imp = parseInt(impStr, 10)
       if (!isNaN(imp)) {
@@ -63,11 +68,14 @@ export function parsePinterest(csvText: string): PinterestOverviewData {
   const dateRange = firstDate && lastDate ? `${firstDate} - ${lastDate}` : ''
 
   // ── Section 2: Top Boards ────────────────────────────────────────────────────
-  const boardHeaderIdx = lines.findIndex(l =>
+  // Find the board header AFTER the date section ends — prevents matching
+  // "Impressions" in the preamble before the data sections
+  const searchFrom = dateHeaderIdx !== -1 ? dateHeaderIdx : 0
+  const boardHeaderIdx = lines.findIndex((l, idx) =>
+    idx > searchFrom &&
     l.includes('Pinterest Link') &&
     l.includes('Impressions') &&
-    l.includes('Engagement') &&
-    l.includes('Pin clicks')
+    l.includes('Engagement')
   )
   const topBoards: PinterestOverviewData['topBoards'] = []
 
@@ -75,7 +83,8 @@ export function parsePinterest(csvText: string): PinterestOverviewData {
     for (let i = boardHeaderIdx + 1; i < lines.length; i++) {
       const line = lines[i]
       if (!line) break
-      if (line.startsWith('Top boards table') || line.startsWith('"Top boards table')) continue
+      // Footer note — skip but don't break (it may not be the last line)
+      if (line.replace(/"/g, '').startsWith('Top boards table')) continue
 
       const parts = splitCSV(line)
       const url = parts[0]?.replace(/"/g, '').trim()
@@ -93,11 +102,12 @@ export function parsePinterest(csvText: string): PinterestOverviewData {
   }
 
   // ── Section 3: Top Pins ──────────────────────────────────────────────────────
-  const pinHeaderIdx = lines.findIndex(l =>
+  const pinSearchFrom = boardHeaderIdx !== -1 ? boardHeaderIdx : searchFrom
+  const pinHeaderIdx = lines.findIndex((l, idx) =>
+    idx > pinSearchFrom &&
     l.includes('Pinterest Link') &&
     l.includes('Content Type') &&
-    l.includes('Source') &&
-    l.includes('Canonical')
+    l.includes('Source')
   )
   const topPins: PinterestOverviewData['topPins'] = []
 
@@ -105,7 +115,7 @@ export function parsePinterest(csvText: string): PinterestOverviewData {
     for (let i = pinHeaderIdx + 1; i < lines.length; i++) {
       const line = lines[i]
       if (!line) break
-      if (line.startsWith('Top pins table') || line.startsWith('"Top pins table')) continue
+      if (line.replace(/"/g, '').startsWith('Top pins table')) continue
 
       const parts = splitCSV(line)
       const url = parts[0]?.replace(/"/g, '').trim()

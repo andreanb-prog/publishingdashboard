@@ -72,7 +72,7 @@ export default function PinterestPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const hasData = !!(pin?.totalImpressions != null || pin?.topBoards?.length)
+  const hasData = !!((pin?.totalImpressions ?? 0) > 0 || (pin?.topBoards?.length ?? 0) > 0 || (pin?.topPins?.length ?? 0) > 0)
 
   const totalPinClicks    = pin?.topBoards?.reduce((s, b) => s + b.pinClicks, 0) ?? 0
   const totalOutbound     = pin?.topBoards?.reduce((s, b) => s + b.outboundClicks, 0) ?? 0

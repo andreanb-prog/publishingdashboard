@@ -180,17 +180,21 @@ export function TopBar({ user }: TopBarProps) {
         const isPinterest = name.includes('pinterest')
         if (isPinterest) hasPinterest = true
         const endpoint = isPinterest ? '/api/upload/pinterest' : '/api/parse-auto'
+        console.log('[TopBar] fetching:', endpoint, 'for file:', file.name)
         const res = await fetch(endpoint, { method: 'POST', body: form })
-        const json = await res.json()
+        console.log('[TopBar] response status:', res.status, res.ok ? 'ok' : 'error')
+        const json = await res.json().catch(() => ({}))
+        console.log('[TopBar] response json:', JSON.stringify(json).slice(0, 200))
 
         if (!res.ok) {
-          errorMsg = json.error || 'Upload failed. Please try again.'
+          errorMsg = json.error || `Upload failed (${res.status}). Please try again.`
         } else if (isPinterest) {
           totalRows += json.data?.totalImpressions ?? 0
         } else {
           totalRows += json.rowCount ?? json.data?.books?.length ?? 0
         }
-      } catch {
+      } catch (err) {
+        console.error('[TopBar] fetch error:', err)
         errorMsg = 'Upload failed. Check your connection and try again.'
       }
     }
