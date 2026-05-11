@@ -15,7 +15,7 @@ function buildStorySentence(analysis: any, kdpTotals: { totalUnits: number; tota
   const ctr:   number | undefined = meta?.bestAd?.ctr ?? meta?.avgCTR
   const spend: number | undefined = meta?.totalSpend
   if (units && kenp) {
-    if (kenp > units * 20) return `${units.toLocaleString()} readers chose your books this month — and ${kenp.toLocaleString()} of them didn't stop reading.`
+    if (kenp > units * 20) return `${units.toLocaleString()} readers chose your books — and kept reading for ${kenp.toLocaleString()} pages.`
     if (units >= 50) return `${units.toLocaleString()} readers and ${kenp.toLocaleString()} pages read — your books are pulling people in and keeping them there.`
     return `${units.toLocaleString()} readers showed up this month, reading ${kenp.toLocaleString()} pages between them.`
   }
