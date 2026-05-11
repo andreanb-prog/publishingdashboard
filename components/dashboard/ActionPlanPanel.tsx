@@ -33,7 +33,7 @@ function Trend({ curr, prev }: { curr?: number; prev?: number }) {
 }
 
 export function ActionPlanPanel({ dashboard }: { dashboard: DashboardState }) {
-  const { analysis, analyses, liveML, loading, coachTitle, storyMode, toggleStoryMode } = dashboard
+  const { analysis, analyses, liveML, loading, coachTitle, storyMode, toggleStoryMode, kdpTotals } = dashboard
 
   return (
     <>
@@ -59,7 +59,7 @@ export function ActionPlanPanel({ dashboard }: { dashboard: DashboardState }) {
                     Story
                   </button>
                 </div>
-                <BoutiqueChannelCardsRow analysis={analysis} liveML={liveML} analyses={analyses} />
+                <BoutiqueChannelCardsRow analysis={analysis} liveML={liveML} analyses={analyses} kdpTotals={kdpTotals} />
               </div>
             ),
           },

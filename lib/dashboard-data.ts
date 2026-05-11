@@ -16,13 +16,14 @@ export type DashboardData = {
   metaLastSync: string | null
   bookCount: number
   hasMailerLiteKey: boolean
+  kdpTotals: { totalUnits: number; totalRoyalties: number; totalKENP: number }
 }
 
 // React cache() deduplicates within a single server render,
 // so multiple components calling this get the same result.
 export const fetchDashboardData = cache(async (userId: string): Promise<DashboardData> => {
   // Run ALL queries in parallel — this is the key perf win.
-  const [recentRecords, userRow, rankLogs, roasLogs, mailerLiteData, kdpUploadLog, bookCount] = await Promise.all([
+  const [recentRecords, userRow, rankLogs, roasLogs, mailerLiteData, kdpUploadLog, bookCount, kdpAggregate] = await Promise.all([
     // 1. Analysis records (replaces /api/analyze GET)
     db.analysis.findMany({
       where: { userId },
@@ -73,6 +74,12 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
 
     // 7. Book count (for first-run detection)
     db.book.count({ where: { userId } }).catch(() => 0),
+
+    // 8. KdpSale aggregate — source of truth for hero metrics
+    db.kdpSale.aggregate({
+      where: { userId },
+      _sum: { units: true, royalties: true, kenp: true },
+    }).catch(() => null),
   ])
 
   // Process analysis data (same logic as /api/analyze GET)
@@ -101,6 +108,12 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
 
   const metaLastSync = userRow?.metaLastSync ? userRow.metaLastSync.toISOString() : null
 
+  const kdpTotals = {
+    totalUnits: kdpAggregate?._sum?.units ?? 0,
+    totalRoyalties: kdpAggregate?._sum?.royalties ?? 0,
+    totalKENP: kdpAggregate?._sum?.kenp ?? 0,
+  }
+
   return {
     analysis,
     analyses,
@@ -111,5 +124,6 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
     metaLastSync,
     bookCount,
     hasMailerLiteKey: !!userRow?.mailerLiteKey,
+    kdpTotals,
   }
 })

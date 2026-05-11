@@ -49,6 +49,8 @@ export interface DashboardState {
   setGenerating: React.Dispatch<React.SetStateAction<boolean>>
   setAnalysis: React.Dispatch<React.SetStateAction<any>>
   setKdpLastUploadedAt: React.Dispatch<React.SetStateAction<string | null>>
+  // KDP direct totals (source of truth for hero metrics)
+  kdpTotals: { totalUnits: number; totalRoyalties: number; totalKENP: number }
   // Derived / animated
   coachTitle: string
   greeting: string
@@ -98,6 +100,7 @@ export function useDashboardData({
   const [analyses,  setAnalyses]  = useState<Analysis[]>(initialData?.analyses ?? [])
   const [rankLogs,  setRankLogs]  = useState<RankLog[]>(initialData?.rankLogs ?? [])
   const [roasLogs,  setRoasLogs]  = useState<RoasLog[]>(initialData?.roasLogs ?? [])
+  const [kdpTotals] = useState(initialData?.kdpTotals ?? { totalUnits: 0, totalRoyalties: 0, totalKENP: 0 })
   const [loading,   setLoading]   = useState(!hasInitial)
   const [generating, setGenerating] = useState(false)
   const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(initialData?.kdpLastUploadedAt ?? null)
@@ -175,9 +178,9 @@ export function useDashboardData({
     if (new URLSearchParams(window.location.search).get('fresh') === '1') setIsFresh(true)
   }, [])
 
-  const _revTarget   = analysis?.kdp  ? Math.round(((analysis.kdp.totalRoyaltiesUSD ?? 0) + analysis.kdp.totalKENP * 0.0045) * 100) / 100 : 0
-  const _unitsTarget = analysis?.kdp?.totalUnits ?? 0
-  const _kenpTarget  = analysis?.kdp?.totalKENP  ?? 0
+  const _revTarget   = Math.round((kdpTotals.totalRoyalties + kdpTotals.totalKENP * 0.0045) * 100) / 100
+  const _unitsTarget = kdpTotals.totalUnits
+  const _kenpTarget  = kdpTotals.totalKENP
   const _ctrTarget   = analysis?.meta?.bestAd?.ctr ?? 0
   const animRev   = useCountUp(_revTarget,   isFresh && !!analysis?.kdp)
   const animUnits = useCountUp(_unitsTarget, isFresh && !!analysis?.kdp)
@@ -407,7 +410,7 @@ export function useDashboardData({
 
   return {
     userName, initialData,
-    analysis, analyses, rankLogs, roasLogs, liveML, swapCalendar,
+    analysis, analyses, rankLogs, roasLogs, liveML, swapCalendar, kdpTotals,
     kdpLastUploadedAt, metaLastSync,
     loading, generating, metaErrorBanner, setMetaErrorBanner,
     storyMode, toggleStoryMode, isFresh,

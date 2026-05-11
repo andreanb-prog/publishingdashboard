@@ -4,15 +4,14 @@ import Link from 'next/link'
 import { fmtPct, fmtCurrency } from '@/lib/utils'
 import type { DashboardState } from './useDashboardData'
 
-function buildStorySentence(analysis: any): string | null {
+function buildStorySentence(analysis: any, kdpTotals: { totalUnits: number; totalRoyalties: number; totalKENP: number }): string | null {
   if (!analysis) return null
   if (analysis.storySentence) return analysis.storySentence
-  const kdp  = analysis.kdp
   const meta = analysis.meta
-  const units: number | undefined = kdp?.totalUnits
-  const kenp:  number | undefined = kdp?.totalKENP
-  const royalties: number | undefined = kdp?.totalRoyaltiesUSD
-  const estRevenue = kdp ? Math.round(((royalties ?? 0) + (kenp ?? 0) * 0.0045) * 100) / 100 : null
+  const units = kdpTotals.totalUnits || undefined
+  const kenp  = kdpTotals.totalKENP  || undefined
+  const royalties = kdpTotals.totalRoyalties
+  const estRevenue = (units || kenp) ? Math.round((royalties + (kenp ?? 0) * 0.0045) * 100) / 100 : null
   const ctr:   number | undefined = meta?.bestAd?.ctr ?? meta?.avgCTR
   const spend: number | undefined = meta?.totalSpend
   if (units && kenp) {
@@ -44,18 +43,19 @@ function BoutiqueDeltaChip({ curr, prev }: { curr?: number | null; prev?: number
 }
 
 export function BoutiqueChannelCardsRow({
-  analysis, liveML, analyses,
+  analysis, liveML, analyses, kdpTotals,
 }: {
   analysis: any
   liveML: import('@/types').MailerLiteData | null
   analyses: any[]
+  kdpTotals: { totalUnits: number; totalRoyalties: number; totalKENP: number }
 }) {
   const prev = analyses[1] ?? null
-  const kdpVal     = analysis?.kdp?.totalRoyaltiesUSD ?? null
+  const kdpVal     = kdpTotals.totalRoyalties > 0 || kdpTotals.totalUnits > 0 ? kdpTotals.totalRoyalties : null
   const prevKdpVal = prev?.kdp?.totalRoyaltiesUSD ?? null
   const metaSpend    = analysis?.meta?.totalSpend ?? 0
-  const kdpKuRev     = analysis?.kdp ? ((analysis.kdp.totalKENP ?? 0) * 0.0045) : 0
-  const totalRev     = (analysis?.kdp?.totalRoyaltiesUSD ?? 0) + kdpKuRev
+  const kdpKuRev     = kdpTotals.totalKENP * 0.0045
+  const totalRev     = kdpTotals.totalRoyalties + kdpKuRev
   const metaRoas     = metaSpend > 0 ? totalRev / metaSpend : null
   const prevMetaSpd  = prev?.meta?.totalSpend ?? 0
   const prevKuRev    = prev?.kdp ? ((prev.kdp.totalKENP ?? 0) * 0.0045) : 0
@@ -71,7 +71,7 @@ export function BoutiqueChannelCardsRow({
     { label: 'KDP Royalties', dot: '#F97B6B', href: '/dashboard/kdp',
       display: kdpVal != null ? `$${kdpVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
       curr: kdpVal, prev: prevKdpVal,
-      velocity: analysis?.kdp?.totalUnits ? `${(analysis.kdp.totalUnits as number).toLocaleString()} units` : null },
+      velocity: kdpTotals.totalUnits > 0 ? `${kdpTotals.totalUnits.toLocaleString()} units` : null },
     { label: 'Meta ROAS', dot: '#F4A261', href: '/dashboard/meta',
       display: metaRoas != null ? `${metaRoas.toFixed(2)}×` : null,
       curr: metaRoas, prev: prevMetaRoas,
@@ -118,7 +118,7 @@ export function BoutiqueChannelCardsRow({
 }
 
 export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; userName?: string | null }) {
-  const { analysis, analyses, liveML, animRev, animUnits, animKenp, animCtr, _netVal, greeting, initialData, kdpLastUploadedAt } = dashboard
+  const { analysis, analyses, liveML, animRev, animUnits, animKenp, animCtr, _netVal, greeting, initialData, kdpLastUploadedAt, kdpTotals } = dashboard
 
   const hasMailerLiteKey = initialData?.hasMailerLiteKey ?? !!liveML
   const hasKdpData = !!analysis?.kdp || !!kdpLastUploadedAt
@@ -131,11 +131,11 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
         <div className="mb-5">
           <p style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(20px, 2.5vw, 30px)', fontWeight: 500, lineHeight: 1.3, color: 'var(--ink, #14110f)', margin: 0 }}>
             {greeting}{userName ? `, ${userName.split(' ')[0]}` : ''}
-            {buildStorySentence(analysis) && (
+            {buildStorySentence(analysis, kdpTotals) && (
               <>
                 {' — '}
                 <em style={{ fontStyle: 'italic', color: 'var(--amber-text, #a56b13)' }}>
-                  {buildStorySentence(analysis)}
+                  {buildStorySentence(analysis, kdpTotals)}
                 </em>
               </>
             )}
@@ -257,13 +257,13 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
         <div className="mb-7">
           <div className="grid grid-cols-2 md:grid-cols-4 md:divide-x divide-[#EEEBE6]">
             {(() => {
-              const kdp = analysis.kdp
               const meta = analysis.meta
               const ml = analysis.mailerLite
-              const estRevenue = kdp ? Math.round(((kdp.totalRoyaltiesUSD ?? 0) + kdp.totalKENP * 0.0045) * 100) / 100 : null
-              const royaltiesZero = kdp && (kdp.totalRoyaltiesUSD ?? 0) === 0
+              const hasKdp = kdpTotals.totalUnits > 0 || kdpTotals.totalRoyalties > 0 || kdpTotals.totalKENP > 0
+              const estRevenue = hasKdp ? Math.round((kdpTotals.totalRoyalties + kdpTotals.totalKENP * 0.0045) * 100) / 100 : null
+              const royaltiesZero = hasKdp && kdpTotals.totalRoyalties === 0
               const tiles = [
-                { stat: estRevenue != null ? `$${estRevenue.toFixed(2)}` : '—', label: 'EST. REVENUE', estimate: royaltiesZero, sub: kdp?.totalUnits ? `${kdp.totalUnits} units sold` : 'No data yet' },
+                { stat: estRevenue != null ? `$${estRevenue.toFixed(2)}` : '—', label: 'EST. REVENUE', estimate: royaltiesZero, sub: kdpTotals.totalUnits > 0 ? `${kdpTotals.totalUnits} units sold` : 'No data yet' },
                 { stat: meta?.avgCTR ? fmtPct(meta.avgCTR) : '—', label: 'META ADS CTR', estimate: false, sub: meta?.avgCTR && meta.avgCTR >= 2 ? 'Exceptional performance (top 10%)' : meta?.avgCTR ? 'Room to improve' : 'No data yet' },
                 { stat: ml?.openRate ? fmtPct(ml.openRate) : '—', label: 'EMAIL OPEN RATE', estimate: false, sub: ml?.openRate && ml.openRate >= 25 ? 'Well above 20–25% author average' : ml?.openRate ? 'Near author average' : 'No data yet' },
                 { stat: ml?.clickRate ? fmtPct(ml.clickRate) : '—', label: 'EMAIL CLICK RATE', estimate: false, sub: ml?.clickRate && ml.clickRate >= 4 ? 'Strong reader engagement' : ml?.clickRate ? 'Room to grow' : 'No data yet' },
