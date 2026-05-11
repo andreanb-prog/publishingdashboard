@@ -350,6 +350,21 @@ export default function MetricsPage() {
     const currentByAsin  = new Map(currentKdp.map(b => [b.asin?.toUpperCase() ?? '', b]))
     const currentByTitle = new Map(currentKdp.map(b => [b.title.toLowerCase(), b]))
 
+    // Cumulative all-time KENP per book (sum across every stored analysis)
+    const cumulativeKenpByAsin  = new Map<string, number>()
+    const cumulativeKenpByTitle = new Map<string, number>()
+    for (const a of analyses) {
+      for (const b of a.kdp?.books ?? []) {
+        const asinKey = b.asin?.toUpperCase()
+        if (asinKey) {
+          cumulativeKenpByAsin.set(asinKey, (cumulativeKenpByAsin.get(asinKey) ?? 0) + (b.kenp ?? 0))
+        } else {
+          const titleKey = b.title.toLowerCase()
+          cumulativeKenpByTitle.set(titleKey, (cumulativeKenpByTitle.get(titleKey) ?? 0) + (b.kenp ?? 0))
+        }
+      }
+    }
+
     // Start from catalog if available; else fall back to historical books
     type BookEntry = { title: string; asin: string; shortTitle: string; units: number; kenp: number; royalties: number }
     const result: BookEntry[] = []
@@ -362,12 +377,17 @@ export default function MetricsPage() {
     function fillCurrent(base: { title: string; asin?: string | null; shortTitle?: string }): BookEntry {
       const live = (base.asin && currentByAsin.get(base.asin.toUpperCase())) || currentByTitle.get(base.title.toLowerCase())
       const short = base.shortTitle ?? base.title.split(' ').slice(0, 4).join(' ')
+      const asinKey = base.asin?.toUpperCase()
+      const titleKey = base.title.toLowerCase()
+      const cumKenp = asinKey
+        ? (cumulativeKenpByAsin.get(asinKey) ?? 0)
+        : (cumulativeKenpByTitle.get(titleKey) ?? 0)
       return {
         title: base.title,
         asin: base.asin ?? '',
-        shortTitle: live?.shortTitle ?? short,
+        shortTitle: short,
         units: live?.units ?? 0,
-        kenp: live?.kenp ?? 0,
+        kenp: cumKenp,
         royalties: live?.royalties ?? 0,
       }
     }
@@ -401,9 +421,10 @@ export default function MetricsPage() {
     return result
   })()
 
-  const readThrough = booksSorted.map((book, i) => ({
+  const booksWithKenp = booksSorted.filter(b => b.kenp > 0)
+  const readThrough = booksWithKenp.map((book, i) => ({
     book,
-    pct:   i === 0 ? 100 : booksSorted[0].kenp > 0 ? (book.kenp / booksSorted[0].kenp) * 100 : 0,
+    pct:   i === 0 ? 100 : booksWithKenp[i - 1].kenp > 0 ? (book.kenp / booksWithKenp[i - 1].kenp) * 100 : 0,
     color: BOOK_COLORS[i] || '#6B7280',
   }))
 

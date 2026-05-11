@@ -449,6 +449,7 @@ export async function GET(req: NextRequest) {
   console.log('[GET] meta:', analysis?.meta ? `spend=${analysis.meta.totalSpend}` : 'MISSING')
   console.log('[GET] mailerLite:', analysis?.mailerLite ? `list=${analysis.mailerLite.listSize}` : 'MISSING')
   console.log('[GET] pinterest:', analysis?.pinterest ? `impressions=${analysis.pinterest.totalImpressions}` : 'MISSING')
+  console.log('[analyze] pinterest:', analysis?.pinterest ?? 'not found')
   console.log('[GET] kdpLastUploadedAt:', kdpLastUploadedAt)
 
   const metaLastSync = userRow?.metaLastSync ? userRow.metaLastSync.toISOString() : null

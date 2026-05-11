@@ -222,7 +222,6 @@ model Analysis {
   createdAt DateTime @default(now())
 
   @@unique([userId, month])
-  @@index([userId, month])
 }
 
 model Feedback {

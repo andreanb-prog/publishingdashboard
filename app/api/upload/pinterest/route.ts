@@ -37,14 +37,16 @@ export async function POST(req: NextRequest) {
       const existing = await db.analysis.findUnique({
         where: { userId_month: { userId: session.user.id, month } },
       })
-      const existingData = (existing?.data as Record<string, unknown>) ?? {}
+      const currentData = (existing?.data as Record<string, unknown>) ?? {}
+      const merged = { ...currentData, pinterest: pinterestData }
 
-      const result = await db.analysis.upsert({
+      await db.analysis.upsert({
         where: { userId_month: { userId: session.user.id, month } },
-        update: { data: { ...existingData, pinterest: pinterestData } as any },
-        create: { userId: session.user.id, month, data: { month, pinterest: pinterestData } as any },
+        update: { data: merged },
+        create: { userId: session.user.id, month, data: merged },
       })
-      console.log('[upload/pinterest] DB write success, id:', result.id)
+
+      console.log('[upload/pinterest] DB write success')
     } catch (dbErr) {
       console.error('[upload/pinterest] DB write failed:', dbErr)
       return NextResponse.json({ error: 'DB write failed', detail: String(dbErr) }, { status: 500 })
