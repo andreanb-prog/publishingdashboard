@@ -48,7 +48,7 @@ export function ActionItem({ priority, type, title, body, action, onAction }: Ac
     AMBER: 'bg-amber-50 text-amber-700',
     GREEN: 'bg-emerald-50 text-emerald-700',
   }
-  const labelText = { RED: '🔴 Do this today', AMBER: '🟡 This week', GREEN: '🟢 Keep doing this' }
+  const labelText = { RED: 'Do this today', AMBER: 'This week', GREEN: 'Keep doing this' }
 
   return (
     <div className="flex items-start gap-3.5 py-4 px-5 border-b border-stone-100 last:border-0 hover:bg-cream transition-colors">

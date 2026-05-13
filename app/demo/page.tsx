@@ -144,8 +144,8 @@ function DemoSidebar({ bannerVisible }: { bannerVisible: boolean }) {
   const [mode, setMode] = useState<'simple' | 'all'>('simple')
 
   return (
-    <aside style={{
-      width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column',
+    <aside className="hidden md:flex flex-col" style={{
+      width: 240, flexShrink: 0,
       background: 'var(--paper)', borderRight: '1px solid var(--line)',
       height: bannerVisible ? 'calc(100vh - 41px)' : '100vh',
       position: 'sticky', top: bannerVisible ? 41 : 0,
@@ -338,7 +338,7 @@ export default function DemoPage() {
   const maxKenp  = Math.max(...kdp.books.map(b => b.kenp))
 
   return (
-    <div style={{ fontFamily: 'var(--font-sans)', background: 'var(--paper)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ fontFamily: 'var(--font-sans)', background: 'var(--paper)', minHeight: '100vh', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
 
       {/* ── Sticky demo banner ── */}
       {bannerVisible && (
@@ -364,13 +364,29 @@ export default function DemoPage() {
         </div>
       )}
 
+      {/* ── Mobile header — only shows on small screens ── */}
+      <div className="md:hidden flex items-center justify-between flex-shrink-0 px-4"
+        style={{ height: 52, background: '#FFFFFF', borderBottom: '1px solid var(--line)' }}>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18 }}>
+          <span style={{ color: '#1E2D3D', fontWeight: 500 }}>Author</span>
+          <span style={{ color: '#E9A020', fontWeight: 500, fontStyle: 'italic' }}>Dash</span>
+        </div>
+        <Link href="/login" style={{
+          fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
+          color: '#1E2D3D', background: '#E9A020', textDecoration: 'none',
+          padding: '6px 12px', borderRadius: 4,
+        }}>
+          Start Free Trial
+        </Link>
+      </div>
+
       {/* ── Two-panel layout ── */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+      <div className="flex flex-1 min-h-0">
         <DemoSidebar bannerVisible={bannerVisible} />
 
         {/* ── Main content ── */}
         <main style={{ flex: 1, overflowY: 'auto', background: 'var(--paper)' }}>
-          <div style={{ padding: '40px 48px 80px', maxWidth: 1060 }}>
+          <div className="px-4 md:px-12" style={{ paddingTop: 40, paddingBottom: 80, maxWidth: 1060 }}>
 
             {/* Page header */}
             <div style={{ marginBottom: 32 }}>
@@ -385,7 +401,7 @@ export default function DemoPage() {
 
             {/* Revenue KPIs */}
             <SectionDivider label="Revenue" />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, background: 'var(--line)', border: '1px solid var(--line)', marginBottom: 40 }}>
+            <div className="grid grid-cols-2 lg:grid-cols-4" style={{ background: 'var(--line)', border: '1px solid var(--line)', marginBottom: 40 }}>
               <MetricTile label="Est. Revenue"  value={fmt$(kdp.totalEstRevenue)} isProjection delta="+$284"   subtext="royalties + KU est." color="#F97B6B" />
               <MetricTile label="Royalties"     value={fmt$(kdp.royalties)}                                    color="#F97B6B" />
               <MetricTile label="KENP Reads"    value={kdp.kenp.toLocaleString()}           delta="+18,200"    color="#F97B6B" />
@@ -420,7 +436,7 @@ export default function DemoPage() {
 
             {/* What's Working */}
             <SectionDivider label="What's Working" />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0, background: 'var(--line)', border: '1px solid var(--line)', marginBottom: 40 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-3" style={{ background: 'var(--line)', border: '1px solid var(--line)', marginBottom: 40 }}>
               <MetricTile label="Reader Depth"    value={kdp.readerDepth.toString()} subtext="KENP ÷ units — readers finish your books" color="#6EBF8B" />
               <MetricTile label="Meta CTR"        value={`${meta.ctr}%`}             subtext="top 5% of romance ads this month"          color="#6EBF8B" />
               <MetricTile label="Email Open Rate" value={`${mailerLite.openRate}%`}  subtext="top 10% for romance genre"                  color="#6EBF8B" />
@@ -428,7 +444,7 @@ export default function DemoPage() {
 
             {/* Performance by Channel */}
             <SectionDivider label="Performance by Channel" />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, background: 'var(--line)', border: '1px solid var(--line)', marginBottom: 40 }}>
+            <div className="grid grid-cols-2 lg:grid-cols-4" style={{ background: 'var(--line)', border: '1px solid var(--line)', marginBottom: 40 }}>
               <ChannelCard label="KDP · Amazon"     value={fmt$(kdp.totalEstRevenue)}          subtext={`${kdp.units} units · ${kdp.kenp.toLocaleString()} pg`} badge="Strong" />
               <ChannelCard label="Meta Ads"          value={`${crossChannel.roas}× ROAS`}       subtext={`${fmt$(meta.spend)} spend · ${meta.ctr}% CTR`}         badge="Healthy" />
               <ChannelCard label="MailerLite"        value={mailerLite.listSize.toLocaleString()} subtext={`${mailerLite.openRate}% open · ${mailerLite.clickRate}% click`} badge="Strong" />
@@ -437,7 +453,7 @@ export default function DemoPage() {
 
             {/* Book Performance */}
             <SectionDivider label="Book Performance" />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'var(--line)', border: '1px solid var(--line)', marginBottom: 40 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 1, background: 'var(--line)', border: '1px solid var(--line)', marginBottom: 40 }}>
               <div style={{ background: 'var(--card-boutique)', padding: 24 }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink4)', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <BookOpen size={10} /> Units Sold by Title

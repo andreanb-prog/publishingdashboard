@@ -36,9 +36,9 @@ function getStatus(costPerSub: number, subValue: number) {
 }
 
 const STATUS_STYLES = {
-  SCALE: { bg: 'rgba(52,211,153,0.12)', color: '#0f6b46', label: '🟢 Scale' },
-  WATCH: { bg: 'rgba(251,191,36,0.12)', color: '#7a4f00', label: '🟡 Watch' },
-  CUT:   { bg: 'rgba(251,113,133,0.12)', color: '#8c2020', label: '🔴 Cut'   },
+  SCALE: { bg: 'rgba(52,211,153,0.12)', color: '#0f6b46', label: 'Scale' },
+  WATCH: { bg: 'rgba(251,191,36,0.12)', color: '#7a4f00', label: 'Watch' },
+  CUT:   { bg: 'rgba(251,113,133,0.12)', color: '#8c2020', label: 'Cut'   },
 }
 
 // ── BookFunnel types ─────────────────────────────────────────────────────────
@@ -311,7 +311,7 @@ export default function ListBuildingPage() {
               { label: 'Subscriber ROAS', value: subRoas > 0 ? `${subRoas.toFixed(2)}x` : '—', color: subRoas >= 1 ? 'text-emerald-600' : 'text-red-500' },
               { label: 'Break-even Subs', value: breakEven > 0 ? Math.ceil(breakEven).toLocaleString() : '—', color: 'text-stone-500' },
             ].map(k => (
-              <div key={k.label} className="text-center p-3 rounded-xl" style={{ background: '#fafaf9' }}>
+              <div key={k.label} className="text-center p-3 rounded" style={{ background: '#fafaf9' }}>
                 <div className="text-[10px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1.5">{k.label}</div>
                 <div className={`font-sans text-[22px] tracking-tight ${k.color}`}>{k.value}</div>
               </div>
@@ -551,7 +551,7 @@ export default function ListBuildingPage() {
                 { label: 'Confirmation Rate', value: `${bfStats.confirmRate}%`,           color: bfStats.confirmRate >= 70 ? 'text-emerald-600' : bfStats.confirmRate >= 40 ? 'text-amber-600' : 'text-red-500' },
                 { label: 'Top Book',          value: bfStats.topBook ?? '—',              color: 'text-[#0d1f35]', small: true },
               ].map(k => (
-                <div key={k.label} className="text-center p-3 rounded-xl" style={{ background: '#fafaf9' }}>
+                <div key={k.label} className="text-center p-3 rounded" style={{ background: '#fafaf9' }}>
                   <div className="text-[10px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1.5">{k.label}</div>
                   <div className={`font-sans tracking-tight ${k.small ? 'text-[13px]' : 'text-[22px]'} ${k.color}`}>{k.value}</div>
                 </div>
@@ -587,7 +587,7 @@ export default function ListBuildingPage() {
           </div>
           <div className="rounded-lg p-3" style={{ background: '#f0f4ff' }}>
             <div className="font-bold text-blue-700 mb-1">3. Act on the status badges</div>
-            <div>🟢 Scale = profitable, add budget. 🟡 Watch = close to break-even, optimise first. 🔴 Cut = losing money, pause and test new creative.</div>
+            <div><strong>Scale</strong> = profitable, add budget. <strong>Watch</strong> = close to break-even, optimise first. <strong>Cut</strong> = losing money, pause and test new creative.</div>
           </div>
         </div>
       </div>

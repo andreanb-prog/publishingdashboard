@@ -329,7 +329,7 @@ function CreativeCard({
 
   return (
     <div
-      className="rounded-xl overflow-hidden flex flex-col"
+      className="rounded overflow-hidden flex flex-col"
       style={{
         background: '#FFFFFF',
         border: '0.5px solid #E5DDD5',
@@ -698,7 +698,7 @@ function NewCreativeModal({
                     key={s.id}
                     type="button"
                     onClick={() => toggleSize(s.id)}
-                    className="text-left rounded-xl p-3 transition-all"
+                    className="text-left rounded p-3 transition-all"
                     style={{
                       background:  selected ? '#FFF8EC' : '#FFFFFF',
                       border:      selected ? '2px solid #E9A020' : '1.5px solid #E5E7EB',
@@ -768,7 +768,7 @@ function NewCreativeModal({
           <button
             onClick={handleSubmit}
             disabled={!name.trim() || saving}
-            className="flex-1 py-2.5 rounded-xl font-bold text-[14px]"
+            className="flex-1 py-2.5 rounded font-bold text-[14px]"
             style={{
               background: !name.trim() || saving ? '#E5E7EB' : '#1E2D3D',
               color: !name.trim() || saving ? '#9CA3AF' : '#fff',
@@ -780,7 +780,7 @@ function NewCreativeModal({
           </button>
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl font-semibold text-[14px]"
+            className="px-5 py-2.5 rounded font-semibold text-[14px]"
             style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}
           >
             Cancel
@@ -973,7 +973,7 @@ function EditCreativeModal({
                     key={s.id}
                     type="button"
                     onClick={() => toggleSize(s.id)}
-                    className="text-left rounded-xl p-3 transition-all"
+                    className="text-left rounded p-3 transition-all"
                     style={{
                       background:  selected ? '#FFF8EC' : '#FFFFFF',
                       border:      selected ? '2px solid #E9A020' : '1.5px solid #E5E7EB',
@@ -1040,7 +1040,7 @@ function EditCreativeModal({
           <button
             onClick={handleSave}
             disabled={!name.trim() || saving}
-            className="flex-1 py-2.5 rounded-xl font-bold text-[14px]"
+            className="flex-1 py-2.5 rounded font-bold text-[14px]"
             style={{
               background: !name.trim() || saving ? '#E5E7EB' : '#1E2D3D',
               color: !name.trim() || saving ? '#9CA3AF' : '#fff',
@@ -1052,7 +1052,7 @@ function EditCreativeModal({
           </button>
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl font-semibold text-[14px]"
+            className="px-5 py-2.5 rounded font-semibold text-[14px]"
             style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}
           >
             Cancel
@@ -1096,7 +1096,7 @@ function KanbanColumn({
     <div className="flex-shrink-0 flex flex-col" style={{ width: 280 }}>
       {/* Column header */}
       <div
-        className="flex items-center gap-2 px-3 py-2.5 rounded-xl mb-3"
+        className="flex items-center gap-2 px-3 py-2.5 rounded mb-3"
         style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}
       >
         <span className="font-bold text-[13px]" style={{ color: cfg.color }}>
@@ -1115,7 +1115,7 @@ function KanbanColumn({
         <div className="flex flex-col gap-3 flex-1">
           {creatives.length === 0 ? (
             <div
-              className="rounded-xl flex items-center justify-center py-8"
+              className="rounded flex items-center justify-center py-8"
               style={{
                 border: '2px dashed #E5E7EB',
                 color: '#9CA3AF',
@@ -1354,7 +1354,7 @@ export function CreativeClient({
           {/* New creative button */}
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-[13px]"
+            className="flex items-center gap-1.5 px-4 py-2 rounded font-bold text-[13px]"
             style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}
           >
             <Plus size={14} strokeWidth={2.5} /> New creative
@@ -1416,7 +1416,7 @@ export function CreativeClient({
               {statusFilter === 'all' && (
                 <button
                   onClick={() => setShowModal(true)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-[13px]"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded font-bold text-[13px]"
                   style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}
                 >
                   <Plus size={14} strokeWidth={2.5} /> New creative

@@ -68,9 +68,9 @@ function roasBg(roas: number, hasEarnings: boolean) {
 
 function roasLabel(roas: number, hasEarnings: boolean) {
   if (!hasEarnings) return { text: '—', color: '#a8a29e' }
-  if (roas >= 2) return { text: `🟢 ${roas.toFixed(2)}x`, color: '#1a9e68' }
-  if (roas >= 1) return { text: `🟡 ${roas.toFixed(2)}x`, color: '#d97706' }
-  return { text: `🔴 ${roas.toFixed(2)}x`, color: '#c73c3c' }
+  if (roas >= 2) return { text: `${roas.toFixed(2)}x`, color: '#1a9e68' }
+  if (roas >= 1) return { text: `${roas.toFixed(2)}x`, color: '#d97706' }
+  return { text: `${roas.toFixed(2)}x`, color: '#c73c3c' }
 }
 
 function todayStr() {
@@ -187,11 +187,11 @@ export default function ROASPage() {
         if (earnings === 0) {
           setVerdict({ text: `$${spend} logged. KDP royalties lag 24–72 hours — log your earnings tomorrow when they appear.`, color: '#38bdf8' })
         } else if (roas >= 2) {
-          setVerdict({ text: `🟢 ${roas.toFixed(2)}x ROAS — you earned $${earnings.toFixed(2)} on $${spend.toFixed(2)} spent. Keep the ad running.`, color: '#34d399' })
+          setVerdict({ text: `${roas.toFixed(2)}x ROAS — you earned $${earnings.toFixed(2)} on $${spend.toFixed(2)} spent. Keep the ad running.`, color: '#34d399' })
         } else if (roas >= 1) {
-          setVerdict({ text: `🟡 ${roas.toFixed(2)}x ROAS — break-even with a little extra. Watch this over the next few days before changing anything.`, color: '#fbbf24' })
+          setVerdict({ text: `${roas.toFixed(2)}x ROAS — break-even with a little extra. Watch this over the next few days before changing anything.`, color: '#fbbf24' })
         } else {
-          setVerdict({ text: `🔴 ${roas.toFixed(2)}x ROAS — spent more than you earned today. One day isn't a pattern. If this continues 3+ days, pause the ad.`, color: '#fb7185' })
+          setVerdict({ text: `${roas.toFixed(2)}x ROAS — spent more than you earned today. One day isn't a pattern. If this continues 3+ days, pause the ad.`, color: '#fb7185' })
         }
       }
     } finally {
@@ -203,9 +203,9 @@ export default function ROASPage() {
   if (loading) {
     return (
       <div className="p-4 sm:p-8 pb-8 max-w-2xl animate-pulse space-y-4">
-        <div className="h-10 rounded-xl bg-stone-100 w-48" />
-        <div className="h-40 rounded-xl bg-stone-100" />
-        <div className="h-64 rounded-xl bg-stone-100" />
+        <div className="h-10 rounded bg-stone-100 w-48" />
+        <div className="h-40 rounded bg-stone-100" />
+        <div className="h-64 rounded bg-stone-100" />
       </div>
     )
   }
@@ -248,7 +248,7 @@ export default function ROASPage() {
       </div>
 
       {/* Explainer */}
-      <div className="rounded-xl px-4 py-3.5 mb-5 text-[12.5px] leading-relaxed"
+      <div className="rounded px-4 py-3.5 mb-5 text-[12.5px] leading-relaxed"
         style={{ background: '#f5f0e8', border: '1px solid #e8e0d0', color: '#57534e' }}>
         <strong style={{ color: '#0d1f35' }}>Where does this come from?</strong>
         {' '}Your spend comes from your Meta Ads upload. Your earnings come from your KDP report.
@@ -323,7 +323,7 @@ export default function ROASPage() {
               <span className="text-[11.5px] font-semibold text-stone-500">Your ROAS right now</span>
               <span className="font-mono text-[15px] font-bold" style={{ color: roasColor(liveROAS, true) }}>
                 {liveROAS.toFixed(2)}x
-                {liveROAS >= 2 ? '  — 🟢 Great' : liveROAS >= 1 ? '  — 🟡 Watch' : '  — 🔴 Investigate'}
+                {liveROAS >= 2 ? '  — Great' : liveROAS >= 1 ? '  — Watch' : '  — Investigate'}
               </span>
             </div>
           )}
@@ -352,7 +352,7 @@ export default function ROASPage() {
         </form>
 
         {verdict && (
-          <div className="mt-4 p-3.5 rounded-xl text-[13px] font-semibold"
+          <div className="mt-4 p-3.5 rounded text-[13px] font-semibold"
             style={{ background: `${verdict.color}15`, color: verdict.color }}>
             {verdict.text}
           </div>

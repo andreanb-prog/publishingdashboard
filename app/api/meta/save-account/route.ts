@@ -15,7 +15,6 @@ export async function POST(req: NextRequest) {
 
   const id = accountId.startsWith('act_') ? accountId : `act_${accountId}`
   await db.user.update({ where: { id: session.user.id }, data: { metaAdAccountId: id } })
-  console.log('[Meta Save Account] POST saved', id, 'for user', session.user.id)
   return NextResponse.json({ ok: true })
 }
 
@@ -35,6 +34,5 @@ export async function GET(req: NextRequest) {
 
   const id = accountId.startsWith('act_') ? accountId : `act_${accountId}`
   await db.user.update({ where: { id: session.user.id }, data: { metaAdAccountId: id } })
-  console.log('[Meta Save Account] GET saved', id, 'for user', session.user.id)
   return NextResponse.redirect(`${base}/dashboard/settings?meta=connected`)
 }

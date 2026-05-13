@@ -1193,7 +1193,7 @@ export default function MetaPage() {
                         ),
                       },
                       {
-                        type: 'fix', title: '⚠ Fix', color: '#fbbf24',
+                        type: 'fix', title: 'Fix', color: '#fbbf24',
                         bg: 'rgba(251,191,36,0.05)', border: 'rgba(251,191,36,0.2)',
                         items: [
                           `Increase daily budget from $${(meta.totalSpend / 30).toFixed(2)}/day to $10+/day`,

@@ -9,6 +9,7 @@ import { List, X, House, UploadSimple, GraduationCap, Gear } from '@phosphor-ico
 function openUploadModal() {
   try { window.dispatchEvent(new CustomEvent('open-upload-modal')) } catch {}
 }
+import { Rocket } from 'lucide-react'
 import {
   IconKDP, IconMeta, IconMailerLite, IconSwaps, IconPinterest,
   IconMetrics, IconRank, IconROAS, IconListBuilding, IconMyData,
@@ -46,7 +47,8 @@ const ALL_NAV: NavEntry[] = [
   { label: 'MailerLite',                           href: '/dashboard/mailerlite',   render: ic(IconMailerLite, '#34d399') },
   { label: 'Swaps & Promos',                       href: '/dashboard/swaps',        render: ic(IconSwaps, '#E9A020') },
   { label: 'Pinterest',                            href: '/dashboard/pinterest',    render: ic(IconPinterest, '#fb7185') },
-  { section: 'Tools', label: 'Advanced Metrics',  href: '/dashboard/metrics',      render: ic(IconMetrics, '#E9A020') },
+  { section: 'Tools', label: 'Launch Planner',     href: '/dashboard/launch',       render: () => <Rocket size={20} color="#E9A020" /> },
+  { label: 'Advanced Metrics',                    href: '/dashboard/metrics',      render: ic(IconMetrics, '#E9A020') },
   { label: 'Rank Tracker',                        href: '/dashboard/rank',         render: ic(IconRank, '#34d399') },
   // { label: 'Daily ROAS Log',                      href: '/dashboard/roas',         render: ic(IconROAS, '#E9A020') },
   // { label: 'List Building ROAS',                  href: '/dashboard/list-building', render: ic(IconListBuilding, '#34d399') },

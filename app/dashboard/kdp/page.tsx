@@ -303,7 +303,7 @@ function DateRangePicker({
 
       {open && (
         <div
-          className="absolute right-0 mt-2 z-50 rounded-xl shadow-lg p-4"
+          className="absolute right-0 mt-2 z-50 rounded shadow-lg p-4"
           style={{ background: '#FFF8F0', border: '0.5px solid #EEEBE6', width: '460px' }}
         >
           <div className="flex gap-4">
@@ -880,7 +880,7 @@ function EmailVsSalesChart({
                   const name   = emailCampaignMap[data[item.dataIndex].date] || 'Email sent'
                   const next   = data[item.dataIndex + 1]
                   const u48    = data[item.dataIndex].value + (next?.value ?? 0)
-                  return ` 📧 ${name} · +${u48} units next 48hrs`
+                  return ` Email: ${name} · +${u48} units next 48hrs`
                 }
                 if (item.datasetIndex === 1) return ` ${(item.raw as number).toLocaleString()} units`
                 return ''
@@ -1261,7 +1261,8 @@ export default function KDPPage() {
                     const today = new Date()
                     const isToday = uploadDate.toDateString() === today.toDateString()
                     return isToday
-                      ? <>Showing data from today&apos;s upload ✅</>
+                      ? <>Showing data from today&apos;s upload</>
+
                       : <>Showing data from your last upload — {uploadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload a new report</a> to see the latest numbers.</>
                   })()
                 : <>No data uploaded yet. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload your KDP report</a> to get started.</>
@@ -1454,7 +1455,7 @@ export default function KDPPage() {
               const getValue = (b: typeof books[0]) => metric === 'units' ? (b.units ?? 0) : (b.kenp ?? 0)
               const maxVal = Math.max(...books.map(getValue), 1)
               return (
-                <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div className="rounded p-5" style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   <h3 className="text-[14px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>{title}</h3>
                   <div className="space-y-3">
                     {books.map((b, visibleIdx) => {
@@ -1510,7 +1511,7 @@ export default function KDPPage() {
 
           {/* Unmatched books — present in KDP data but not in My Books catalog */}
           {unmatchedBooks.length > 0 && (
-            <div className="mb-6 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(233,160,32,0.25)' }}>
+            <div className="mb-6 rounded overflow-hidden" style={{ border: '1px solid rgba(233,160,32,0.25)' }}>
               <div className="px-5 py-3" style={{ background: 'rgba(233,160,32,0.06)', borderBottom: '1px solid rgba(233,160,32,0.15)' }}>
                 <span className="text-[12px] font-semibold" style={{ color: '#92400E' }}>
                   Titles not in your catalog — data saved, not yet matched

@@ -325,7 +325,7 @@ function CampaignPerformanceSection({
                   </td>
                   <td className="px-4 py-2.5 font-mono" style={{ color: c.isSpike ? '#F97B6B' : '#6B7280' }}>
                     {c.unsubscribes ?? 0}
-                    {c.isSpike && <span className="ml-1 text-[10px]">⚠</span>}
+                    {c.isSpike && <span className="ml-1 text-[10px]" style={{ fontWeight: 700 }}>!</span>}
                   </td>
                   <td className="px-4 py-2.5 text-[11px]" style={{ color: '#6B7280' }}>
                     {c.sentAt

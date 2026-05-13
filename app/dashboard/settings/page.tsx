@@ -51,7 +51,7 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
   }, [onDone])
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl text-[13px] font-semibold shadow-lg"
+      className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded text-[13px] font-semibold shadow-lg"
       style={{ background: '#1E2D3D', color: 'white' }}
     >
       {message}

@@ -33,16 +33,11 @@ export async function POST(req: NextRequest) {
 
   await req.json().catch(() => {}) // consume body
 
-  console.log('=== META SYNC START ===')
-
   try {
     const user = await db.user.findUnique({
       where: { id: session.user.id },
       select: { metaAccessToken: true, metaAdAccountId: true, metaTokenExpires: true },
     })
-
-    console.log('Token exists:', !!user?.metaAccessToken)
-    console.log('Stored metaAdAccountId:', user?.metaAdAccountId ?? 'none')
 
     const token = user?.metaAccessToken
 
@@ -51,21 +46,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (user.metaTokenExpires && new Date(user.metaTokenExpires) < new Date()) {
-      console.log('[Meta Sync] Token expired at', user.metaTokenExpires)
       return NextResponse.json({ error: 'Meta token expired — reconnect in Settings' }, { status: 401 })
     }
 
     // ── Step 1: Validate token ──────────────────────────────────────────────────
-    console.log('[Meta Sync] Step 1: validating token via /me ...')
     const meRes = await fetch(`${GRAPH}/me?fields=id,name&access_token=${token}`)
     const meData = await meRes.json()
-    console.log('[Meta Sync] /me response:', JSON.stringify(meData))
 
     if (meData.error) {
       const code = meData.error.code
-      console.error('[Meta Sync] Token invalid. Code:', code, '| Message:', meData.error.message)
       if (code === 190) {
-        // Expired/invalid token — clear it so the UI shows "reconnect"
         await db.user.update({
           where: { id: session.user.id },
           data: { metaAccessToken: null, metaTokenExpires: null },
@@ -77,26 +67,21 @@ export async function POST(req: NextRequest) {
 
     // ── Step 2: Verify stored account access (if one is saved) ───────────────
     if (user.metaAdAccountId) {
-      console.log('[Meta Sync] Step 2: testing stored account access ...')
       const accountTestRes = await fetch(
         `${GRAPH}/${user.metaAdAccountId}?fields=id,name,account_status&access_token=${token}`
       )
       const accountTestData = await accountTestRes.json()
-      console.log('[Meta Sync] Account test:', JSON.stringify(accountTestData))
       if (accountTestData.error) {
         console.error('[Meta Sync] No access to stored account. Code:', accountTestData.error.code, '| Message:', accountTestData.error.message)
       }
-    } else {
-      console.log('[Meta Sync] Step 2: no stored account — skipping account test')
     }
 
-    // ── Step 3: Use hardcoded ad account ─────────────────────────────────────
-    // This account was created via Instagram and is not discoverable via /me/adaccounts
-    const HARDCODED_ACCOUNT_ID = 'act_940232825191906'
-    const allAccounts: { id: string; name: string }[] = [
-      { id: HARDCODED_ACCOUNT_ID, name: 'Elle Wilder Ads' },
-    ]
-    console.log(`[Meta Sync] Using hardcoded account: ${HARDCODED_ACCOUNT_ID}`)
+    // ── Step 3: Build account list ───────────────────────────────────────────
+    // Use the user's saved account when available. Fall back to the Instagram-linked
+    // account that is not discoverable via /me/adaccounts (used for the owner account).
+    const FALLBACK_ACCOUNT_ID = 'act_940232825191906'
+    const accountId = user.metaAdAccountId ?? FALLBACK_ACCOUNT_ID
+    const allAccounts: { id: string; name: string }[] = [{ id: accountId, name: 'Ad Account' }]
 
     // ── Step 4: Fetch insights from each account ───────────────────────────────
     const allAds: MetaAd[] = []
@@ -108,7 +93,6 @@ export async function POST(req: NextRequest) {
       try {
         const ads = await fetchAccountAds(token, account.id)
         const accountSpend = ads.reduce((s, a) => s + a.spend, 0)
-        console.log(`[Meta Sync] ${account.id} ("${account.name}"): ${ads.length} ads, $${accountSpend.toFixed(2)} spend`)
         if (ads.length > 0) {
           allAds.push(...ads)
           totalSpend += accountSpend
@@ -123,13 +107,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    console.log(`[Meta Sync] Total: ${allAds.length} ads, $${totalSpend.toFixed(2)} spend. Best account: ${bestAccountId}`)
-
-    // Accounts were found but every one returned zero ads — almost always means the user
-    // connected a personal Facebook profile that has view access to an account but no actual
-    // spend data, or the linked account has no activity in the last 30 days.
     if (allAds.length === 0) {
-      console.log('[Meta Sync] Zero ads across all accounts — returning descriptive error')
       return NextResponse.json({
         error: 'No ad data found in the last 30 days. If you\'re running ads, make sure you\'re connecting the Facebook account that owns your Ads Manager. Disconnect and reconnect with the correct account.',
         code: 'NO_AD_DATA',

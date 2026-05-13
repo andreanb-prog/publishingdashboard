@@ -229,7 +229,7 @@ export default function WelcomePage() {
               <button
                 onClick={handleStep1}
                 disabled={!canSubmitStep1 || saving}
-                className="w-full py-3.5 rounded-xl text-[15px] font-bold transition-all disabled:opacity-40"
+                className="w-full py-3.5 rounded text-[15px] font-bold transition-all disabled:opacity-40"
                 style={{
                   background: canSubmitStep1 ? '#E9A020' : '#EEEBE6',
                   color: canSubmitStep1 ? '#0d1f35' : '#6B7280',
@@ -261,7 +261,7 @@ export default function WelcomePage() {
               </p>
 
               {/* MailerLite */}
-              <div className="rounded-xl p-5 mb-4" style={{ border: '1px solid #EEEBE6', background: mlSaved ? 'rgba(110,191,139,0.04)' : 'white' }}>
+              <div className="rounded p-5 mb-4" style={{ border: '1px solid #EEEBE6', background: mlSaved ? 'rgba(110,191,139,0.04)' : 'white' }}>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg"
                     style={{ background: 'rgba(52,211,153,0.1)' }}>📧</div>
@@ -304,7 +304,7 @@ export default function WelcomePage() {
               </div>
 
               {/* Meta Ads */}
-              <div className="rounded-xl p-5 mb-8" style={{ border: '1px solid #EEEBE6', background: 'white' }}>
+              <div className="rounded p-5 mb-8" style={{ border: '1px solid #EEEBE6', background: 'white' }}>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg"
                     style={{ background: 'rgba(96,165,250,0.1)' }}>📣</div>
@@ -324,7 +324,7 @@ export default function WelcomePage() {
 
               <button
                 onClick={() => router.push('/dashboard')}
-                className="w-full py-3.5 rounded-xl text-[15px] font-bold transition-all"
+                className="w-full py-3.5 rounded text-[15px] font-bold transition-all"
                 style={{ background: '#E9A020', color: '#0d1f35', border: 'none', cursor: 'pointer' }}
               >
                 Go to my dashboard →

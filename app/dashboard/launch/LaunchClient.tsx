@@ -102,7 +102,7 @@ function Toast({ message, visible, variant = 'navy' }: { message: string; visibl
           {message}
         </div>
       ) : (
-        <div className="bg-[#1E2D3D] text-white text-sm px-4 py-2.5 rounded-xl shadow-lg font-medium">
+        <div className="bg-[#1E2D3D] text-white text-sm px-4 py-2.5 rounded shadow-lg font-medium">
           {message}
         </div>
       )}
@@ -213,7 +213,7 @@ function InlineAIPanel({
 
   return (
     <div
-      className="mt-2 rounded-xl overflow-hidden"
+      className="mt-2 rounded overflow-hidden"
       style={{ background: '#FFFDF7', border: '1px solid #F6D38A', marginLeft: 40 }}
       onClick={e => e.stopPropagation()}
     >
@@ -529,7 +529,7 @@ function AddTaskForm({ onAdd }: { onAdd: (task: LaunchTask) => void }) {
   }
 
   return (
-    <div className="mt-2 p-3 rounded-xl border border-gray-200 bg-gray-50">
+    <div className="mt-2 p-3 rounded border border-gray-200 bg-gray-50">
       <input
         autoFocus
         value={name}
@@ -635,7 +635,7 @@ function StreakWidget({ streak, events }: { streak: StreakData; events: StreakEv
   const eventDates = new Set(events.map(e => fmt(toLocalDate(e.date))))
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4 mt-4">
+    <div className="bg-white rounded border border-gray-100 p-4 mt-4">
       <div className="flex items-center gap-2 mb-3">
         <span style={{
           fontFamily: 'var(--font-serif)',
@@ -1105,7 +1105,7 @@ function SetupCard({ onSetup }: { onSetup: (launchDate: string, bookTitle: strin
               value={bookTitle}
               onChange={e => setBookTitle(e.target.value)}
               placeholder="e.g. The Midnight Garden"
-              className="w-full text-sm px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-amber-400 transition-colors"
+              className="w-full text-sm px-4 py-2.5 rounded border border-gray-200 outline-none focus:border-amber-400 transition-colors"
             />
           </div>
 
@@ -1116,14 +1116,14 @@ function SetupCard({ onSetup }: { onSetup: (launchDate: string, bookTitle: strin
               value={launchDate}
               onChange={e => setLaunchDate(e.target.value)}
               required
-              className="w-full text-sm px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-amber-400 transition-colors"
+              className="w-full text-sm px-4 py-2.5 rounded border border-gray-200 outline-none focus:border-amber-400 transition-colors"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading || !launchDate}
-            className="w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-50"
+            className="w-full py-3 rounded font-semibold text-sm transition-all disabled:opacity-50"
             style={{ background: '#E9A020', color: '#1E2D3D' }}
           >
             {loading ? 'Generating plan…' : 'Generate my launch plan →'}
@@ -1369,7 +1369,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
 
         {/* Change date form */}
         {showChangeDate && (
-          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+          <div className="bg-white rounded border border-gray-100 p-4 shadow-sm">
             <p className="text-sm font-semibold text-gray-600 mb-3">Set a new launch date</p>
             <p className="text-xs text-red-500 mb-3">This will replace all current tasks.</p>
             <form
@@ -1480,7 +1480,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
         </div>
 
         {/* Week strip */}
-        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+        <div className="bg-white rounded border border-gray-100 p-4 shadow-sm">
           <WeekStrip tasks={tasks} />
         </div>
 
@@ -1502,7 +1502,7 @@ export function LaunchClient({ initialTasks, initialLaunchDate, initialBookTitle
         </div>
 
         {/* Task list */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded border border-gray-100 shadow-sm overflow-hidden">
           <div className="p-4">
             {isThisWeek ? (
               <>

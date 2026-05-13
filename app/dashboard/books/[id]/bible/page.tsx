@@ -345,7 +345,7 @@ export default function BookBiblePage() {
 
         {/* Progress nudge */}
         <div
-          className="mb-6 rounded-xl px-5 py-4 text-[13px] leading-relaxed"
+          className="mb-6 rounded px-5 py-4 text-[13px] leading-relaxed"
           style={{ background: 'rgba(233,160,32,0.08)', color: '#92400e', borderLeft: '3px solid #E9A020' }}
         >
           {getProgressNudge(data, wordCount)}
@@ -459,7 +459,7 @@ export default function BookBiblePage() {
               onDragLeave={() => setDragging(false)}
               onDrop={onDrop}
               onClick={() => uploadState !== 'uploading' && fileInputRef.current?.click()}
-              className="rounded-xl border-2 border-dashed transition-colors cursor-pointer flex flex-col items-center justify-center py-10 px-6 text-center"
+              className="rounded border-2 border-dashed transition-colors cursor-pointer flex flex-col items-center justify-center py-10 px-6 text-center"
               style={{
                 borderColor: dragging ? '#E9A020' : uploadState === 'done' ? '#6EBF8B' : '#d1d5db',
                 background: dragging ? 'rgba(233,160,32,0.04)' : uploadState === 'done' ? 'rgba(110,191,139,0.05)' : 'white',
