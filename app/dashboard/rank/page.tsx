@@ -158,7 +158,7 @@ function SummaryStrip({ refreshKey }: { refreshKey: number }) {
               style={{ fontSize: 28, color: tile.value ? '#1E2D3D' : '#9CA3AF' }}
             >
               {tile.value ?? (
-                <span className="text-[14px] font-normal" style={{ color: '#E9A020' }}>⚠ No data</span>
+                <span className="text-[14px] font-normal" style={{ color: '#E9A020' }}>No data</span>
               )}
             </div>
           )}
@@ -956,7 +956,7 @@ function BookTab({ book, onLogSuccess }: { book: BookRecord; onLogSuccess?: () =
             {logError && (
               <span className="text-[12px] font-semibold px-3 py-1.5 rounded-lg"
                 style={{ background: '#fff1f0', color: '#b91c1c' }}>
-                ⚠ Save failed — try again
+                Save failed — try again
               </span>
             )}
             <span className="text-[12px] ml-auto" style={{ color: '#9CA3AF' }}>

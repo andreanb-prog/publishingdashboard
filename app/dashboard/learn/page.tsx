@@ -4,7 +4,6 @@ import { useState } from 'react'
 
 const TERMS = [
   {
-    emoji: '💰',
     term: 'ROAS — Did my ads make money?',
     teaser: 'For every $1 spent on ads, how many dollars came back',
     body: `ROAS stands for Return on Ad Spend. If you spend $10 on Facebook ads and earn $18 in book royalties because of those ads, your ROAS is 1.8x.
@@ -16,7 +15,6 @@ Think of it like a vending machine: you put in $1 and you get $1.80 back. The go
     color: '#e9a020',
   },
   {
-    emoji: '📖',
     term: 'KENP — How KU page reads become money',
     teaser: 'Every page a Kindle Unlimited reader reads = a small payment to you',
     body: `KENP stands for Kindle Edition Normalized Pages. When someone has Kindle Unlimited and reads your book, Amazon pays you per page they actually read — roughly $0.004 to $0.005 per page.
@@ -28,7 +26,6 @@ The magic: as you build your series, readers who finish Book 2 go back and borro
     color: '#fbbf24',
   },
   {
-    emoji: '👆',
     term: 'CTR — Are people clicking my ads?',
     teaser: 'The % of people who saw your ad and actually tapped it',
     body: `CTR stands for Click-Through Rate. Out of everyone who scrolled past your Facebook ad, CTR tells you what percentage actually clicked it to look at your book.
@@ -40,7 +37,6 @@ A higher CTR means your image and headline are grabbing the right reader's atten
     color: '#fb7185',
   },
   {
-    emoji: '📧',
     term: 'Open Rate — Are readers opening my emails?',
     teaser: 'The % of your list who actually open your emails',
     body: `Your open rate tells you how many people on your email list actually open your emails after you send them.
@@ -52,7 +48,6 @@ A dropping open rate is almost always caused by one of two things: sending too o
     color: '#34d399',
   },
   {
-    emoji: '📈',
     term: 'Amazon Sales Rank — What does the number mean?',
     teaser: 'Lower is better — #1 means you\'re the top-selling book on Amazon right now',
     body: `Amazon's sales rank tells you how your book is selling compared to every other book on Amazon at this moment. #1 means you're outselling everything. #47,907 means you're selling better than 47,906 other books.
@@ -64,7 +59,6 @@ When you see a rank spike (like jumping 34,437 spots in one day), that's your pr
     color: '#38bdf8',
   },
   {
-    emoji: '🎯',
     term: 'Lookalike Audience (LAL) — Finding more of your readers',
     teaser: 'Facebook finds millions of people who look just like your existing readers',
     body: `A Lookalike Audience is when you give Facebook a list of your existing readers (like your email list or past buyers), and Facebook goes and finds millions of other people with similar interests, behaviors, and demographics.
@@ -76,7 +70,6 @@ This almost always outperforms broad interest targeting (like "people who like r
     color: '#a78bfa',
   },
   {
-    emoji: '📌',
     term: 'Pinterest Saves — The most important Pinterest metric',
     teaser: 'A save means someone pinned your book to come back to it later',
     body: `On Pinterest, a Save (also called a "Pin") means someone actively added your content to their own board. Unlike a like or a comment, a save means the reader wants to remember your book for later — they're putting it on their "want to read" or "romance books" board.
@@ -114,7 +107,7 @@ export default function LearnPage() {
               style={{ background: 'none', border: 'none' }}
               onClick={() => setOpen(open === i ? null : i)}
             >
-              <span className="text-[22px] flex-shrink-0">{term.emoji}</span>
+              <span style={{ width: 10, height: 10, background: term.color, flexShrink: 0, display: 'inline-block' }} />
               <div className="flex-1">
                 <div className="text-[14.5px] font-bold text-[#0d1f35]">{term.term}</div>
                 <div className="text-[12px] text-stone-500 mt-0.5">{term.teaser}</div>
