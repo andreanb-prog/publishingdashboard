@@ -126,7 +126,7 @@ export default function LearnPage() {
                   {term.body}
                 </div>
                 <div
-                  className="mt-4 p-3.5 rounded-xl text-[12.5px] leading-[1.65] font-medium"
+                  className="mt-4 p-3.5 rounded text-[12.5px] leading-[1.65] font-medium"
                   style={{ background: `${term.color}15`, color: term.color.replace(')', ', 0.9)').replace('rgb', 'rgba') }}
                 >
                   <strong>What's good for romance authors:</strong> {term.benchmark}

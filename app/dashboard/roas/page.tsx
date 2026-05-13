@@ -203,9 +203,9 @@ export default function ROASPage() {
   if (loading) {
     return (
       <div className="p-4 sm:p-8 pb-8 max-w-2xl animate-pulse space-y-4">
-        <div className="h-10 rounded-xl bg-stone-100 w-48" />
-        <div className="h-40 rounded-xl bg-stone-100" />
-        <div className="h-64 rounded-xl bg-stone-100" />
+        <div className="h-10 rounded bg-stone-100 w-48" />
+        <div className="h-40 rounded bg-stone-100" />
+        <div className="h-64 rounded bg-stone-100" />
       </div>
     )
   }
@@ -248,7 +248,7 @@ export default function ROASPage() {
       </div>
 
       {/* Explainer */}
-      <div className="rounded-xl px-4 py-3.5 mb-5 text-[12.5px] leading-relaxed"
+      <div className="rounded px-4 py-3.5 mb-5 text-[12.5px] leading-relaxed"
         style={{ background: '#f5f0e8', border: '1px solid #e8e0d0', color: '#57534e' }}>
         <strong style={{ color: '#0d1f35' }}>Where does this come from?</strong>
         {' '}Your spend comes from your Meta Ads upload. Your earnings come from your KDP report.
@@ -352,7 +352,7 @@ export default function ROASPage() {
         </form>
 
         {verdict && (
-          <div className="mt-4 p-3.5 rounded-xl text-[13px] font-semibold"
+          <div className="mt-4 p-3.5 rounded text-[13px] font-semibold"
             style={{ background: `${verdict.color}15`, color: verdict.color }}>
             {verdict.text}
           </div>

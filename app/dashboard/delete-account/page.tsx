@@ -67,7 +67,7 @@ export default function DeleteAccountPage() {
                 <button
                   key={r}
                   onClick={() => setReason(r)}
-                  className="w-full text-left px-4 py-3.5 rounded-xl text-[14px] font-medium transition-all"
+                  className="w-full text-left px-4 py-3.5 rounded text-[14px] font-medium transition-all"
                   style={{
                     background: reason === r ? 'rgba(233,160,32,0.08)' : 'white',
                     border: `1.5px solid ${reason === r ? '#E9A020' : '#EEEBE6'}`,
@@ -99,7 +99,7 @@ export default function DeleteAccountPage() {
                 onChange={e => setDetails(e.target.value)}
                 rows={3}
                 placeholder="Tell us what we could have done better…"
-                className="w-full px-4 py-3 rounded-xl text-[14px] outline-none resize-none transition-all"
+                className="w-full px-4 py-3 rounded text-[14px] outline-none resize-none transition-all"
                 style={{
                   border: '1.5px solid #EEEBE6',
                   color: '#1E2D3D',
@@ -112,13 +112,13 @@ export default function DeleteAccountPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => reason ? setStep('confirm') : setStep('confirm')}
-                className="px-6 py-3 rounded-xl text-[14px] font-bold transition-all hover:opacity-90"
+                className="px-6 py-3 rounded text-[14px] font-bold transition-all hover:opacity-90"
                 style={{ background: '#1E2D3D', color: 'white', border: 'none', cursor: 'pointer' }}
               >
                 {reason ? 'Continue →' : 'Skip & Continue →'}
               </button>
               <Link href="/dashboard"
-                className="px-6 py-3 rounded-xl text-[14px] font-semibold no-underline transition-all"
+                className="px-6 py-3 rounded text-[14px] font-semibold no-underline transition-all"
                 style={{ background: 'white', border: '1px solid #EEEBE6', color: '#1E2D3D' }}>
                 Never mind
               </Link>
@@ -141,7 +141,7 @@ export default function DeleteAccountPage() {
               This will permanently delete your AuthorDash account and all associated data. This cannot be undone.
             </p>
 
-            <div className="rounded-xl p-5 mb-8" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+            <div className="rounded p-5 mb-8" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
               <div className="text-[13px] font-semibold mb-3" style={{ color: '#1E2D3D' }}>
                 What gets deleted:
               </div>
@@ -162,7 +162,7 @@ export default function DeleteAccountPage() {
             </div>
 
             {error && (
-              <div className="rounded-xl px-4 py-3 mb-5 text-[13px] font-semibold"
+              <div className="rounded px-4 py-3 mb-5 text-[13px] font-semibold"
                 style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B', border: '1px solid rgba(249,123,107,0.2)' }}>
                 {error}
               </div>
@@ -172,13 +172,13 @@ export default function DeleteAccountPage() {
               <button
                 onClick={handleDelete}
                 disabled={step === 'deleting'}
-                className="px-6 py-3 rounded-xl text-[14px] font-bold transition-all disabled:opacity-60"
+                className="px-6 py-3 rounded text-[14px] font-bold transition-all disabled:opacity-60"
                 style={{ background: '#F97B6B', color: 'white', border: 'none', cursor: 'pointer' }}
               >
                 {step === 'deleting' ? 'Deleting everything…' : 'Yes, delete my account'}
               </button>
               <Link href="/dashboard"
-                className="px-6 py-3 rounded-xl text-[14px] font-semibold no-underline transition-all"
+                className="px-6 py-3 rounded text-[14px] font-semibold no-underline transition-all"
                 style={{ background: 'white', border: '1px solid #EEEBE6', color: '#1E2D3D' }}>
                 Cancel
               </Link>

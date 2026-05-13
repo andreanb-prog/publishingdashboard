@@ -247,7 +247,7 @@ function AddAdForm({
   }
 
   return (
-    <div className="flex flex-col gap-2 mt-2 p-3 rounded-xl"
+    <div className="flex flex-col gap-2 mt-2 p-3 rounded"
       style={{ background: '#F9F7F4', border: '1px solid #E5E7EB', marginLeft: 80 }}>
       <div className="flex items-center gap-2 flex-wrap">
         <select value={bookSlot} onChange={e => setBookSlot(e.target.value)} style={sel}>
@@ -307,7 +307,7 @@ function AddAdSetForm({
   }
 
   return (
-    <div className="flex flex-col gap-2 mt-2 p-3 rounded-xl"
+    <div className="flex flex-col gap-2 mt-2 p-3 rounded"
       style={{ background: '#F9F7F4', border: '1px solid #E5E7EB', marginLeft: 40 }}>
       <div className="grid grid-cols-2 gap-2">
         <div>
@@ -360,7 +360,7 @@ function LinkCreativePicker({
 }) {
   const [linking, setLinking] = useState<string | null>(null)
   return (
-    <div className="absolute z-30 right-0 top-7 w-72 rounded-xl shadow-xl overflow-hidden"
+    <div className="absolute z-30 right-0 top-7 w-72 rounded shadow-xl overflow-hidden"
       style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}>
       <div className="px-3 py-2.5 font-semibold text-[12px] flex items-center justify-between"
         style={{ borderBottom: '1px solid #E5E7EB', color: '#1E2D3D' }}>
@@ -419,7 +419,7 @@ function AdRow({
   }
 
   return (
-    <div className="flex items-start gap-3 px-3 py-2.5 rounded-xl group"
+    <div className="flex items-start gap-3 px-3 py-2.5 rounded group"
       style={{ marginLeft: 80, background: '#FAFAFA', border: '1px solid #F3F4F6' }}>
       {/* Name */}
       <div className="flex-1 min-w-0">
@@ -628,12 +628,12 @@ function GenerateModal({
 
         <div className="px-6 pb-6 flex gap-3">
           <button onClick={handleGenerate} disabled={loading || !launchId || launchsLoad}
-            className="flex-1 py-2.5 rounded-xl font-bold text-[14px]"
+            className="flex-1 py-2.5 rounded font-bold text-[14px]"
             style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: loading || !launchId ? 'not-allowed' : 'pointer', opacity: loading || !launchId ? 0.6 : 1 }}>
             {loading ? 'Generating…' : 'Generate'}
           </button>
           <button onClick={onClose}
-            className="px-5 py-2.5 rounded-xl font-semibold text-[14px]"
+            className="px-5 py-2.5 rounded font-semibold text-[14px]"
             style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}>
             Cancel
           </button>
@@ -663,12 +663,12 @@ function ConfirmDialog({
         <p className="text-[14px] m-0 leading-relaxed" style={{ color: '#1E2D3D' }}>{message}</p>
         <div className="flex gap-2 justify-end">
           <button onClick={onCancel}
-            className="px-4 py-2 rounded-xl text-[13px] font-semibold"
+            className="px-4 py-2 rounded text-[13px] font-semibold"
             style={{ background: '#F3F4F6', color: '#6B7280', border: 'none', cursor: 'pointer' }}>
             Cancel
           </button>
           <button onClick={onConfirm}
-            className="px-4 py-2 rounded-xl text-[13px] font-bold"
+            className="px-4 py-2 rounded text-[13px] font-bold"
             style={{ background: '#F97B6B', color: '#fff', border: 'none', cursor: 'pointer' }}>
             Delete
           </button>
@@ -700,7 +700,7 @@ function ThreeDotMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-20" onClick={e => { e.stopPropagation(); setOpen(false) }} />
-          <div className="absolute z-30 right-0 top-7 w-36 rounded-xl shadow-xl overflow-hidden"
+          <div className="absolute z-30 right-0 top-7 w-36 rounded shadow-xl overflow-hidden"
             style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}>
             <button
               onClick={e => { e.stopPropagation(); setOpen(false); onRename() }}
@@ -1025,7 +1025,7 @@ export function CampaignClient({
         <div className="flex flex-col items-end gap-1">
           <button
             onClick={() => setShowGenerate(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-[13px]"
+            className="flex items-center gap-1.5 px-4 py-2 rounded font-bold text-[13px]"
             style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}>
             <Plus size={14} strokeWidth={2.5} /> Generate structure
           </button>
@@ -1044,7 +1044,7 @@ export function CampaignClient({
               No campaigns yet
             </span>
             <button onClick={() => setShowGenerate(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-[13px]"
+              className="flex items-center gap-1.5 px-4 py-2 rounded font-bold text-[13px]"
               style={{ background: '#1E2D3D', color: '#fff', border: 'none', cursor: 'pointer' }}>
               <Plus size={14} /> Generate structure
             </button>
@@ -1116,7 +1116,7 @@ export function CampaignClient({
                       return (
                         <div key={adSet.id}>
                           {/* Ad set row */}
-                          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer group"
+                          <div className="flex items-center gap-3 px-3 py-2.5 rounded cursor-pointer group"
                             style={{ marginLeft: 20, background: '#F9F7F4', border: '1px solid #EEEBE6' }}
                             onClick={() => toggleAdSet(adSet.id)}>
                             <div style={{ color: '#9CA3AF', flexShrink: 0 }}>
@@ -1195,7 +1195,7 @@ export function CampaignClient({
                     ) : (
                       <button
                         onClick={() => setAddAdSetFor(campaign.id)}
-                        className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-2 rounded-xl self-start"
+                        className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-2 rounded self-start"
                         style={{ marginLeft: 20, background: '#F9F7F4', color: '#6B7280', border: '1px dashed #D1D5DB', cursor: 'pointer' }}>
                         <Plus size={12} /> Add ad set
                       </button>

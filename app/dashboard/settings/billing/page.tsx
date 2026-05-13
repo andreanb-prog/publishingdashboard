@@ -65,7 +65,7 @@ export default function BillingPage() {
       </p>
 
       {/* Current plan card */}
-      <div className="rounded-xl p-6 mb-6" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+      <div className="rounded p-6 mb-6" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
         <div className="flex items-start justify-between">
           <div>
             <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-2" style={{ color: '#E9A020' }}>

@@ -116,7 +116,7 @@ function MetricCard({ title, value, valueColor, sub, coach, children }: {
   children?: React.ReactNode
 }) {
   return (
-    <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
+    <div className="rounded p-5" style={{ background: 'white', border: '1px solid #EEEBE6',  }}>
       <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
         {title}
       </div>
@@ -202,7 +202,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
     <div className="mb-8">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {metrics.map(m => (
-          <div key={m.label} className="rounded-xl p-4" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+          <div key={m.label} className="rounded p-4" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
             <div className="flex items-center gap-1 mb-1.5">
               <span className="text-[10px] font-bold tracking-[1.2px] uppercase" style={{ color: '#6B7280' }}>{m.label}</span>
               {m.tooltip && <MetricTooltip metric={m.tooltip} />}
@@ -214,7 +214,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
       </div>
 
       {/* Visual funnel — 4 horizontal bars */}
-      <div className="rounded-xl p-5 md:p-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div className="rounded p-5 md:p-6" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         <div className="space-y-3">
           {funnelStages.map((stage, i) => {
             const widthPct = stage.value > 0 ? Math.max((stage.value / maxFunnel) * 100, 8) : 0
@@ -255,7 +255,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
         </div>
 
         {/* AI insight box */}
-        <div className="mt-5 rounded-xl p-4" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
+        <div className="mt-5 rounded p-4" style={{ background: '#FFF8F0', border: '1px solid #EEEBE6' }}>
           <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-1" style={{ color: '#F97B6B' }}>
             Biggest leak
           </div>
@@ -483,7 +483,7 @@ export default function MetricsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-7">
 
         {/* Ad Spend → Rank Correlation */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <div className="rounded p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
           <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
             Ad Spend → Rank Correlation
           </div>
@@ -510,7 +510,7 @@ export default function MetricsPage() {
         </div>
 
         {/* Email → Sales Correlation */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <div className="rounded p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
           <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
             Email → Sales Correlation
           </div>
@@ -537,7 +537,7 @@ export default function MetricsPage() {
         </div>
 
         {/* Swap → KENP Correlation */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <div className="rounded p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
           <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-3" style={{ color: '#6B7280' }}>
             Swap → KENP Correlation
           </div>
@@ -558,7 +558,7 @@ export default function MetricsPage() {
         </div>
 
         {/* Series Health Score */}
-        <div className="rounded-xl p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        <div className="rounded p-5" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
           <div className="flex items-center gap-1 mb-3">
             <span className="text-[10px] font-bold tracking-[1.5px] uppercase" style={{ color: '#6B7280' }}>
               Series Health Score
@@ -602,7 +602,7 @@ export default function MetricsPage() {
       {/* ── 3. SERIES READ-THROUGH FUNNEL ──────────────────────────────────── */}
       <BoutiqueSectionLabel label="Series Read-Through Funnel" />
 
-      <div className="rounded-xl p-5 mb-7" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div className="rounded p-5 mb-7" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         {readThrough.length >= 2 ? (
           <>
             {readThrough.map((rt, i) => (
@@ -631,7 +631,7 @@ export default function MetricsPage() {
       {/* ── 4. ARC CALCULATOR ──────────────────────────────────────────────── */}
       <BoutiqueSectionLabel label="ARC Conversion Calculator" />
 
-      <div className="rounded-xl p-5 mb-7 max-w-md" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+      <div className="rounded p-5 mb-7 max-w-md" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
         <div className="flex gap-3 mb-4">
           <div className="flex-1">
             <label className="text-[10px] font-bold tracking-[1px] uppercase block mb-1.5" style={{ color: '#6B7280' }}>ARCs Sent</label>
@@ -715,7 +715,7 @@ export default function MetricsPage() {
 
         if (filtered.length === 0) {
           return (
-            <div className="rounded-xl py-12 text-center text-[13px]"
+            <div className="rounded py-12 text-center text-[13px]"
               style={{ border: '1.5px dashed #EEEBE6', color: '#6B7280' }}>
               Upload your KDP report to see daily breakdowns
             </div>
@@ -725,7 +725,7 @@ export default function MetricsPage() {
         const COL_STYLE = { color: '#1E2D3D', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em' }
 
         return (
-          <div className="overflow-x-auto rounded-xl mb-7" style={{ border: '1px solid #EEEBE6' }}>
+          <div className="overflow-x-auto rounded mb-7" style={{ border: '1px solid #EEEBE6' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, fontWeight: 500 }}>
               <thead>
                 <tr style={{ background: 'white', borderBottom: '1px solid #EEEBE6' }}>
