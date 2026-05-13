@@ -10,8 +10,6 @@ export async function POST(_req: NextRequest) {
   const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  console.log('[mailerlite/sync] userId:', session.user.id)
-
   let user: { mailerLiteKey: string | null; mailerLiteLists: unknown } | null = null
   try {
     user = await db.user.findUnique({

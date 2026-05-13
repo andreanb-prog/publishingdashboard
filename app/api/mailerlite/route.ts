@@ -8,7 +8,6 @@ import { db } from '@/lib/db'
 import { fetchMailerLiteStats } from '@/lib/mailerlite'
 
 export async function GET(req: NextRequest) {
-  console.log('[mailerlite] handler called')
   const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -23,8 +22,6 @@ export async function GET(req: NextRequest) {
   }
 
   if (!apiKey) return NextResponse.json({ error: 'not_connected' }, { status: 400 })
-
-  console.log('[MailerLite route] using user DB key')
 
   const groupId = req.nextUrl.searchParams.get('groupId') || undefined
 

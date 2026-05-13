@@ -36,9 +36,9 @@ function getStatus(costPerSub: number, subValue: number) {
 }
 
 const STATUS_STYLES = {
-  SCALE: { bg: 'rgba(52,211,153,0.12)', color: '#0f6b46', label: '🟢 Scale' },
-  WATCH: { bg: 'rgba(251,191,36,0.12)', color: '#7a4f00', label: '🟡 Watch' },
-  CUT:   { bg: 'rgba(251,113,133,0.12)', color: '#8c2020', label: '🔴 Cut'   },
+  SCALE: { bg: 'rgba(52,211,153,0.12)', color: '#0f6b46', label: 'Scale' },
+  WATCH: { bg: 'rgba(251,191,36,0.12)', color: '#7a4f00', label: 'Watch' },
+  CUT:   { bg: 'rgba(251,113,133,0.12)', color: '#8c2020', label: 'Cut'   },
 }
 
 // ── BookFunnel types ─────────────────────────────────────────────────────────
@@ -587,7 +587,7 @@ export default function ListBuildingPage() {
           </div>
           <div className="rounded-lg p-3" style={{ background: '#f0f4ff' }}>
             <div className="font-bold text-blue-700 mb-1">3. Act on the status badges</div>
-            <div>🟢 Scale = profitable, add budget. 🟡 Watch = close to break-even, optimise first. 🔴 Cut = losing money, pause and test new creative.</div>
+            <div><strong>Scale</strong> = profitable, add budget. <strong>Watch</strong> = close to break-even, optimise first. <strong>Cut</strong> = losing money, pause and test new creative.</div>
           </div>
         </div>
       </div>

@@ -15,12 +15,7 @@ async function saveMetaRowsToDB(userId: string, csvText: string): Promise<number
   const result = Papa.parse(csvText, { header: true, skipEmptyLines: true, dynamicTyping: true })
   const rows = result.data as any[]
 
-  if (rows.length === 0) {
-    console.log('[Meta upload] No rows found in CSV')
-    return 0
-  }
-
-  console.log('[Meta upload] CSV headers:', Object.keys(rows[0]))
+  if (rows.length === 0) return 0
 
   const col = (row: any, ...keys: string[]): string | number => {
     for (const k of keys) {
@@ -34,18 +29,7 @@ async function saveMetaRowsToDB(userId: string, csvText: string): Promise<number
     return String(name).trim() !== ''
   })
 
-  console.log(`[Meta upload] ${validRows.length} valid rows (of ${rows.length} total)`)
-
   if (validRows.length === 0) return 0
-
-  // Log the first row's date fields so we can see what the export contains
-  const firstRow = validRows[0]
-  console.log('[Meta upload] first row date fields:', {
-    'Reporting starts': firstRow['Reporting starts'],
-    'Reporting ends':   firstRow['Reporting ends'],
-    'Date':             firstRow['Date'],
-    'Report start':     firstRow['Report start'],
-  })
 
   const toInsert = validRows.map((r: any) => {
     // Prefer "Reporting ends" over "Reporting starts":
@@ -73,13 +57,8 @@ async function saveMetaRowsToDB(userId: string, csvText: string): Promise<number
     }
   })
 
-  console.log('[Meta upload] Attempting deleteMany for userId:', userId)
-  // Delete existing rows for this user before inserting (replace on re-upload)
   await db.metaAdData.deleteMany({ where: { userId } })
-  console.log('[Meta upload] deleteMany done, starting createMany with', toInsert.length, 'rows')
-
   await db.metaAdData.createMany({ data: toInsert })
-  console.log(`[Meta upload] createMany done — saved ${toInsert.length} rows to MetaAdData`)
   return toInsert.length
 }
 
