@@ -15,10 +15,6 @@ export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
   //   Flat CSV/XLSX:  single sheet with column headers (Royalty Estimator / All Titles)
 
   const sheetNames = workbook.SheetNames
-  console.log('[KDP parser] Sheet names:', sheetNames)
-  const _firstSheet0 = workbook.Sheets[sheetNames[0]]
-  const _a1raw = _firstSheet0?.['A1']?.v
-  console.log('[KDP parser] A1 raw value:', JSON.stringify(_a1raw))
 
   // Distinguish KDP Sales Dashboard (has "Paperback Royalty" with data rows) from
   // KDP Royalties Estimator (has "Combined Sales" — "Paperback Royalty" absent or empty)
@@ -29,19 +25,15 @@ export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
         ? (XLSX.utils.sheet_to_json(pbSheet, { defval: '' }) as unknown[])
         : []
       if (pbRows.length > 0) {
-        console.log('[KDP parser] Detected: KDP Sales Dashboard XLSX format')
         return parseDashboardFormat(workbook)
       }
-      console.log('[KDP parser] Detected: KDP Royalties Estimator XLSX format (Paperback Royalty sheet exists but is empty)')
     } else {
-      console.log('[KDP parser] Detected: KDP Royalties Estimator XLSX format')
     }
     return parseRoyaltiesEstimatorFormat(workbook)
   }
 
   // Legacy multi-sheet XLSX
   if (sheetNames.some(n => n === 'Orders Processed' || n === 'KENP Read' || n === 'KENP')) {
-    console.log('[KDP parser] Detected: Legacy multi-sheet XLSX format')
     return parseMultiSheetFormat(workbook)
   }
 
@@ -50,15 +42,12 @@ export function parseKDPFile(buffer: Uint8Array | ArrayBuffer): KDPData {
   if (firstSheet) {
     const a1 = firstSheet['A1']?.v
     const a1str = typeof a1 === 'string' ? a1.replace(/^\uFEFF/, '').toLowerCase().trim() : ''
-    console.log('[KDP parser] A1 normalized:', JSON.stringify(a1str))
     if (a1str === 'sales period') {
-      console.log('[KDP parser] Detected: Prior Month Royalties format')
       return parsePriorMonthRoyaltiesFormat(workbook)
     }
   }
 
   // Flat single-sheet format
-  console.log('[KDP parser] Detected: Flat single-sheet format')
   return parseFlatFormat(workbook)
 }
 
@@ -198,7 +187,6 @@ function sheetToRows(sheet: XLSX.WorkSheet): Record<string, unknown>[] {
   }
 
   const headers = (raw[headerIdx] ?? []).map(c => String(c ?? '').trim())
-  console.log(`[KDP parser] Real header row found at index ${headerIdx}:`, headers)
 
   return raw.slice(headerIdx + 1)
     .filter(row => (row ?? []).some(c => c !== null && c !== undefined && c !== ''))
@@ -229,7 +217,6 @@ function parseCombinedSalesSheet(sheet: XLSX.WorkSheet): { rows: CombinedSalesRo
   const rawRows = sheetToRows(sheet)
 
   const headersFound = rawRows.length > 0 ? Object.keys(rawRows[0]) : []
-  console.log(`[KDP parser] Combined Sales columns (${headersFound.length}):`, headersFound)
 
   const results: CombinedSalesRow[] = []
   let skippedCount = 0
@@ -254,7 +241,6 @@ function parseCombinedSalesSheet(sheet: XLSX.WorkSheet): { rows: CombinedSalesRo
     results.push({ asin, title, date, units, royalties, currency })
   }
 
-  console.log(`[KDP parser] Combined Sales: ${results.length} data rows, ${skippedCount} skipped`)
 
   const firstRow = results[0] ?? null
   return {
@@ -288,9 +274,6 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   const kenpSheet = workbook.Sheets['KENP Read'] ?? workbook.Sheets['KENP']
   const kenpData  = kenpSheet ? sheetToRows(kenpSheet) : []
 
-  console.log(`[KDP parser] Sheet row counts — Combined Sales: ${combinedData.length}, Paperback Royalty: ${paperbackData.length}, KENP Read: ${kenpData.length}`)
-  if (paperbackData.length) console.log('[KDP parser] Paperback Royalty headers:', Object.keys(paperbackData[0]))
-  if (kenpData.length)      console.log('[KDP parser] KENP Read headers:', Object.keys(kenpData[0]))
 
   const bookMap = new Map<string, BookData>()
   const dailyUnitsMap = new Map<string, number>()
@@ -492,7 +475,6 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
     const data    = summaryRows[1] ?? []
 
     // Log actual headers so we can debug future format changes
-    console.log('[KDP parser] Summary headers:', headers.map(String))
 
     const iMonth     = findColIdx(headers, 'royalty date', 'month', 'period', 'date')
     const iPaid      = findColIdx(headers, 'ebook paid units', 'paid units', 'units sold', 'paid unit')
@@ -546,8 +528,6 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
     : []
 
   // Log per-sheet headers so we can debug field mapping issues
-  if (ordersData.length) console.log('[KDP parser] Orders headers:', Object.keys(ordersData[0]))
-  if (kenpData.length)   console.log('[KDP parser] KENP headers:',  Object.keys(kenpData[0]))
 
   const bookMap = new Map<string, BookData>()
 
@@ -703,8 +683,6 @@ function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
   const kenpSheet = workbook.Sheets['KENP Read'] ?? workbook.Sheets['KENP']
   const kenpData  = kenpSheet ? sheetToRows(kenpSheet) : []
 
-  console.log(`[KDP parser] Royalties Estimator — Combined Sales: ${combinedData.length}, KENP Read: ${kenpData.length}`)
-  if (kenpData.length) console.log('[KDP parser] Royalties Estimator KENP headers:', Object.keys(kenpData[0]))
 
   const bookMap       = new Map<string, BookData>()
   const dailyUnitsMap = new Map<string, number>()
@@ -847,7 +825,6 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
   const lowerHeaders = flatHeaders.map(h => h.trim().toLowerCase())
 
   if (rows.length) {
-    console.log('[KDP parser] Flat headers:', flatHeaders)
     // Check for correct headers but no sales data
     const hasCorrectHeaders = lowerHeaders.some(h => h.includes('asin') || h === 'title')
     if (hasCorrectHeaders && rows.every(r => {
@@ -879,7 +856,6 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
   if (isKDPRoyaltiesCSV && rows.length > 0) {
     const firstDate = toISODate(pick(rows[0], 'Royalty Date'))
     month = firstDate ? firstDate.substring(0, 7) : new Date().toISOString().substring(0, 7)
-    console.log(`[KDP parser] KDP Royalties CSV detected — reporting month: ${month}`)
   } else {
     month = new Date().toISOString().substring(0, 7)
   }
@@ -983,12 +959,9 @@ function parsePriorMonthRoyaltiesFormat(workbook: XLSX.WorkBook): KDPData {
   // Extract "Sales Period" value from B1 (e.g. "September 2025")
   const salesPeriodRaw = str(sheet['B1']?.v ?? '')
   const month = parseSalesPeriodMonth(salesPeriodRaw) ?? new Date().toISOString().substring(0, 7)
-  console.log(`[KDP parser] Prior Month Royalties — Sales Period: "${salesPeriodRaw}" → month: ${month}`)
 
   // sheetToRows auto-detects the banner row and promotes row 2 to headers
   const rows = sheetToRows(sheet)
-  console.log(`[KDP parser] Prior Month Royalties — ${rows.length} data rows`)
-  if (rows.length > 0) console.log('[KDP parser] Prior Month Royalties headers:', Object.keys(rows[0]))
 
   // Pre-resolve the exact 'Royalty' column key to avoid fuzzy-matching 'Royalty Type'
   const firstRowKeys = rows.length > 0 ? Object.keys(rows[0]) : []
