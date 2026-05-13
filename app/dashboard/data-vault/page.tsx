@@ -257,16 +257,16 @@ export default function DataVaultPage() {
           <div style={{ padding: '0 20px 20px', borderTop: '1px solid #EEEBE6' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
               {[
-                { icon: '📚', text: 'Your KDP report: we store total units, daily breakdown, and royalties per book' },
-                { icon: '📣', text: 'Your Meta Ads: we store ad names, spend, clicks, CTR, and CPC' },
-                { icon: '📧', text: 'Your MailerLite: we store open rates, click rates, and campaign names' },
-                { icon: '📋', text: 'We store the parsed summary of your data — not the original files' },
-                { icon: '🚫', text: 'We never store your raw Excel or CSV files' },
-                { icon: '🗑️', text: 'You can delete all your data at any time from this page' },
-              ].map((item, i) => (
+                'Your KDP report: we store total units, daily breakdown, and royalties per book',
+                'Your Meta Ads: we store ad names, spend, clicks, CTR, and CPC',
+                'Your MailerLite: we store open rates, click rates, and campaign names',
+                'We store the parsed summary of your data — not the original files',
+                'We never store your raw Excel or CSV files',
+                'You can delete all your data at any time from this page',
+              ].map((text, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                  <span style={{ flexShrink: 0, marginTop: 2 }}>{item.icon}</span>
-                  <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12.5, lineHeight: 1.6, margin: 0, color: '#374151' }}>{item.text}</p>
+                  <span style={{ flexShrink: 0, marginTop: 6, width: 5, height: 5, borderRadius: '50%', background: '#D1D5DB', display: 'inline-block' }} />
+                  <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 12.5, lineHeight: 1.6, margin: 0, color: '#374151' }}>{text}</p>
                 </div>
               ))}
             </div>
