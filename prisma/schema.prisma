@@ -111,6 +111,7 @@ model User {
   tasks                   Task[]
   swaps                   Swap[]
   mailerLiteLists         MailerLiteList[]
+  storyPostProjects       StoryPostProject[]
   createdAt     DateTime       @default(now())
 }
 
@@ -825,4 +826,99 @@ model ContentSession {
   campaignId            String?
   updatedAt             DateTime @updatedAt
   createdAt             DateTime @default(now())
+}
+
+// ─── StoryPost ────────────────────────────────────────────────────────────────
+
+model StoryPostProject {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  name           String
+  hasLaunch      Boolean  @default(false)
+  launchDate     DateTime?
+  launchBookId   String?
+  frequency      Int      @default(5)
+  beaconsUrl     String?
+  authorCentral  String?
+  website        String?
+  avatar         String?
+  aesthetic      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  quotes         StoryPostQuote[]
+  reviews        StoryPostReview[]
+  images         StoryPostImage[]
+  posts          StoryPostPost[]
+
+  @@index([userId])
+}
+
+model StoryPostQuote {
+  id        String   @id @default(cuid())
+  projectId String
+  project   StoryPostProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  text      String   @db.Text
+  selected  Boolean  @default(true)
+  source    String?  @default("manuscript")
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model StoryPostReview {
+  id        String   @id @default(cuid())
+  projectId String
+  project   StoryPostProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  text      String   @db.Text
+  reviewer  String?
+  bookTitle String?
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model StoryPostImage {
+  id        String   @id @default(cuid())
+  projectId String
+  project   StoryPostProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url       String
+  label     String?
+  pillarTag String?
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model StoryPostPost {
+  id                String   @id @default(cuid())
+  projectId         String
+  project           StoryPostProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  dayNumber         Int
+  phase             String
+  type              String
+  pillar            String
+  instagram         String?  @db.Text
+  instagramTags     String?
+  facebook          String?  @db.Text
+  pinterest         String?  @db.Text
+  pinterestLink     String?
+  pinterestLinkType String?
+  bookMention       String?
+  quoteUsed         String?  @db.Text
+  reviewUsed        String?  @db.Text
+  carouselSlides    Json?
+  videoBeats        Json?
+  imageId           String?
+  imageUrl          String?
+  imageLabel        String?
+  reach             Int?
+  saves             Int?
+  clicks            Boolean?
+  scheduledAt       DateTime?
+  postedAt          DateTime?
+  createdAt         DateTime @default(now())
+
+  @@index([projectId])
+  @@index([projectId, dayNumber])
 }
