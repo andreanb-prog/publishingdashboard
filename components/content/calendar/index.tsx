@@ -6,6 +6,8 @@ import TodaySummary from './TodaySummary'
 import LaunchArcBar from './LaunchArcBar'
 import PhaseLegend from './PhaseLegend'
 import WeekGroup from './WeekGroup'
+import PostModal from './PostModal'
+import type { ModalPost } from './PostModal'
 
 interface Post {
   id: string
@@ -27,6 +29,10 @@ interface Post {
   imageId?: string | null
   imageUrl?: string | null
   imageLabel?: string | null
+  imageDirection?: { framing?: string | null; light?: string | null; mood?: string | null } | null
+  whyThisPost?: string | null
+  scheduledAt?: string | null
+  postedAt?: string | null
 }
 
 interface Project {
@@ -34,6 +40,10 @@ interface Project {
   hasLaunch: boolean
   launchDate?: string | null
   frequency: number
+  beaconsUrl?: string | null
+  bookPageUrl?: string | null
+  authorCentral?: string | null
+  website?: string | null
 }
 
 interface Props {
@@ -65,6 +75,7 @@ export default function CalendarView({ project, initialPosts }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0])
   const [progress, setProgress] = useState(0)
+  const [modalPostId, setModalPostId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!generating) return
@@ -99,9 +110,15 @@ export default function CalendarView({ project, initialPosts }: Props) {
     }
   }, [project.id])
 
+  const handlePostUpdated = useCallback((postId: string, patch: Partial<Post>) => {
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, ...patch } : p))
+  }, [])
+
   const weeks = chunkByWeek(posts, project.frequency || 5)
   const hasLaunch = project.hasLaunch && !!project.launchDate
   const totalPosts = Math.round(30 * project.frequency / 7)
+
+  const modalPost = modalPostId ? posts.find(p => p.id === modalPostId) ?? null : null
 
   return (
     <div style={{ padding: '48px 48px 80px', maxWidth: 760 }}>
@@ -182,7 +199,7 @@ export default function CalendarView({ project, initialPosts }: Props) {
         </div>
       )}
 
-      {/* Empty state — no posts yet */}
+      {/* Empty state */}
       {posts.length === 0 && !generating && !error && (
         <div style={{
           border: '1.5px dashed var(--rule)',
@@ -245,12 +262,17 @@ export default function CalendarView({ project, initialPosts }: Props) {
           )}
 
           {weeks.map((weekPosts, i) => (
-            <WeekGroup key={i} posts={weekPosts} weekIndex={i} />
+            <WeekGroup
+              key={i}
+              posts={weekPosts}
+              weekIndex={i}
+              onOpenModal={setModalPostId}
+            />
           ))}
         </>
       )}
 
-      {/* Loading skeleton for returning users */}
+      {/* Loading skeleton */}
       {posts.length === 0 && generating && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {Array.from({ length: 5 }).map((_, i) => (
@@ -266,6 +288,18 @@ export default function CalendarView({ project, initialPosts }: Props) {
             />
           ))}
         </div>
+      )}
+
+      {/* Post modal */}
+      {modalPost && (
+        <PostModal
+          post={modalPost as ModalPost}
+          allPosts={posts as ModalPost[]}
+          project={project}
+          onClose={() => setModalPostId(null)}
+          onNavigate={setModalPostId}
+          onPostUpdated={handlePostUpdated}
+        />
       )}
     </div>
   )

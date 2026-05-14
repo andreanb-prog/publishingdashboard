@@ -917,6 +917,8 @@ model StoryPostPost {
   reach             Int?
   saves             Int?
   clicks            Boolean?
+  imageDirection    Json?
+  whyThisPost       String?  @db.Text
   scheduledAt       DateTime?
   postedAt          DateTime?
   createdAt         DateTime @default(now())

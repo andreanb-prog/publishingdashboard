@@ -22,14 +22,19 @@ interface Post {
   imageId?: string | null
   imageUrl?: string | null
   imageLabel?: string | null
+  imageDirection?: { framing?: string | null; light?: string | null; mood?: string | null } | null
+  whyThisPost?: string | null
+  scheduledAt?: string | null
+  postedAt?: string | null
 }
 
 interface Props {
   posts: Post[]
   weekIndex: number
+  onOpenModal: (postId: string) => void
 }
 
-export default function WeekGroup({ posts, weekIndex }: Props) {
+export default function WeekGroup({ posts, weekIndex, onOpenModal }: Props) {
   return (
     <div style={{ marginBottom: 40 }}>
       <div style={{
@@ -58,6 +63,7 @@ export default function WeekGroup({ posts, weekIndex }: Props) {
             post={post}
             weekIndex={weekIndex}
             dayInWeek={i}
+            onOpenModal={onOpenModal}
           />
         ))}
       </div>

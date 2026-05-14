@@ -1,7 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import PlatformTabs from './PlatformTabs'
 import QuoteCardPreview from './QuoteCardPreview'
 
 interface Post {
@@ -24,12 +22,17 @@ interface Post {
   imageId?: string | null
   imageUrl?: string | null
   imageLabel?: string | null
+  imageDirection?: { framing?: string | null; light?: string | null; mood?: string | null } | null
+  whyThisPost?: string | null
+  scheduledAt?: string | null
+  postedAt?: string | null
 }
 
 interface Props {
   post: Post
   weekIndex: number
   dayInWeek: number
+  onOpenModal: (postId: string) => void
 }
 
 const PHASE_BORDER: Record<string, string> = {
@@ -61,9 +64,7 @@ const TYPE_ICONS: Record<string, string> = {
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-export default function PostCard({ post, weekIndex, dayInWeek }: Props) {
-  const [expanded, setExpanded] = useState(false)
-
+export default function PostCard({ post, weekIndex, dayInWeek, onOpenModal }: Props) {
   const dayLabel = `${WEEKDAYS[dayInWeek % 7]} · Week ${weekIndex + 1}`
   const borderLeft = PHASE_BORDER[post.phase] ?? 'none'
   const pillarColor = PILLAR_COLORS[post.dayNumber % 5]
@@ -74,16 +75,27 @@ export default function PostCard({ post, weekIndex, dayInWeek }: Props) {
 
   const isQuoteCard = post.type === 'Quote Card'
 
+  const statusDot = post.scheduledAt
+    ? { color: '#6EBF8B', title: 'Scheduled' }
+    : !post.imageUrl
+    ? { color: '#F472B6', title: 'Needs image' }
+    : null
+
   return (
-    <div style={{
-      background: 'white',
-      border: '0.5px solid var(--rule)',
-      borderLeft,
-      borderRadius: 4,
-      overflow: 'hidden',
-      transition: 'box-shadow 0.12s',
-    }}>
-      {/* Collapsed header */}
+    <div
+      onClick={() => onOpenModal(post.id)}
+      style={{
+        background: 'white',
+        border: '0.5px solid var(--rule)',
+        borderLeft,
+        borderRadius: 4,
+        overflow: 'hidden',
+        transition: 'box-shadow 0.12s',
+        cursor: 'pointer',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 10px rgba(20,33,61,0.08)')}
+      onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
+    >
       <div style={{ padding: '14px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
 
@@ -99,6 +111,7 @@ export default function PostCard({ post, weekIndex, dayInWeek }: Props) {
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 22,
+            position: 'relative',
           }}>
             {post.imageUrl ? (
               <img
@@ -110,6 +123,18 @@ export default function PostCard({ post, weekIndex, dayInWeek }: Props) {
               <span style={{ fontSize: 18, opacity: 0.4 }}>
                 {TYPE_ICONS[post.type] ?? '⬜'}
               </span>
+            )}
+            {statusDot && (
+              <div style={{
+                position: 'absolute',
+                top: 4,
+                right: 4,
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: statusDot.color,
+                border: '1.5px solid white',
+              }} title={statusDot.title} />
             )}
           </div>
 
@@ -127,7 +152,6 @@ export default function PostCard({ post, weekIndex, dayInWeek }: Props) {
                 {dayLabel}
               </span>
 
-              {/* Pillar badge */}
               <span style={{
                 fontFamily: "'JetBrains Mono', monospace",
                 fontSize: 8,
@@ -143,7 +167,6 @@ export default function PostCard({ post, weekIndex, dayInWeek }: Props) {
                 {post.pillar}
               </span>
 
-              {/* Type badge */}
               <span style={{
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
                 fontSize: 10,
@@ -157,7 +180,6 @@ export default function PostCard({ post, weekIndex, dayInWeek }: Props) {
                 {post.type}
               </span>
 
-              {/* Phase pill (non-normal only) */}
               {post.phase !== 'normal' && (
                 <span style={{
                   fontFamily: "'JetBrains Mono', monospace",
@@ -172,7 +194,7 @@ export default function PostCard({ post, weekIndex, dayInWeek }: Props) {
               )}
             </div>
 
-            {/* Caption preview or quote card */}
+            {/* Caption preview */}
             {isQuoteCard && post.quoteUsed ? (
               <QuoteCardPreview quote={post.quoteUsed} />
             ) : captionPreview ? (
@@ -201,42 +223,19 @@ export default function PostCard({ post, weekIndex, dayInWeek }: Props) {
               </p>
             )}
           </div>
-        </div>
 
-        {/* Expand toggle */}
-        <button
-          onClick={() => setExpanded(v => !v)}
-          style={{
-            marginTop: 10,
+          {/* Arrow hint */}
+          <span style={{
             fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 9,
-            color: 'var(--amber)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-          }}
-        >
-          <span style={{ transform: expanded ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s' }}>▶</span>
-          {expanded ? 'Collapse' : 'All platform copy'}
-        </button>
-      </div>
-
-      {/* Expanded section */}
-      {expanded && (
-        <div style={{
-          borderTop: '1px solid var(--rule)',
-          padding: '16px 16px 18px',
-          background: 'var(--paper)',
-        }}>
-          <PlatformTabs post={post} />
+            fontSize: 10,
+            color: 'var(--ink-4)',
+            flexShrink: 0,
+            paddingTop: 2,
+          }}>
+            →
+          </span>
         </div>
-      )}
+      </div>
     </div>
   )
 }

@@ -24,6 +24,10 @@ export default async function CalendarPage({ params }: { params: { projectId: st
         hasLaunch: project.hasLaunch,
         launchDate: project.launchDate?.toISOString() ?? null,
         frequency: project.frequency,
+        beaconsUrl: project.beaconsUrl ?? null,
+        bookPageUrl: project.bookPageUrl ?? null,
+        authorCentral: project.authorCentral ?? null,
+        website: project.website ?? null,
       }}
       initialPosts={posts.map(p => ({
         id: p.id,
@@ -45,6 +49,10 @@ export default async function CalendarPage({ params }: { params: { projectId: st
         imageId: p.imageId,
         imageUrl: p.imageUrl,
         imageLabel: p.imageLabel,
+        imageDirection: p.imageDirection as { framing?: string; light?: string; mood?: string } | null,
+        whyThisPost: p.whyThisPost,
+        scheduledAt: p.scheduledAt?.toISOString() ?? null,
+        postedAt: p.postedAt?.toISOString() ?? null,
       }))}
     />
   )

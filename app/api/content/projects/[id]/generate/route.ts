@@ -206,7 +206,9 @@ For each post return this exact JSON structure:
   "quoteUsed": string or null,
   "reviewUsed": string or null,
   "carouselSlides": [{"slide":number,"imageDirection":string,"overlayText":string}] or null,
-  "videoBeats": [{"time":string,"action":string}] or null
+  "videoBeats": [{"time":string,"action":string}] or null,
+  "imageDirection": {"framing":"2-3 words describing shot composition","light":"2-3 words describing lighting","mood":"3-5 words describing emotional atmosphere"} or null for non-image posts,
+  "whyThisPost": "2-3 sentences explaining why this specific post is scheduled at this point in the 30-day arc, written directly to the author in second person, referencing the trust flywheel or launch phase context"
 }
 
 Pinterest link assignment rules:
@@ -312,6 +314,8 @@ Return ONLY a JSON array. No preamble. No markdown fences.`
       reviewUsed: (p.reviewUsed as string | null | undefined) ?? null,
       carouselSlides: (p.carouselSlides as object | null | undefined) ?? undefined,
       videoBeats: (p.videoBeats as object | null | undefined) ?? undefined,
+      imageDirection: (p.imageDirection as object | null | undefined) ?? undefined,
+      whyThisPost: (p.whyThisPost as string | null | undefined) ?? null,
       imageId: imageId ?? undefined,
       imageUrl: imageUrl ?? undefined,
       imageLabel: imageLabel ?? undefined,
