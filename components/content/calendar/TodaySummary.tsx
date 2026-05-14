@@ -13,12 +13,13 @@ export default function TodaySummary({ posts }: Props) {
   const today = new Date()
   const dateLabel = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
-  const imagesNeeded = posts.filter(p =>
-    ['Single Image', 'Carousel', 'Video Script'].includes(p.type) && !p.imageUrl
+  const safePosts = posts ?? []
+  const imagesNeeded = safePosts.filter(p =>
+    ['Single Image', 'Carousel', 'Video Script'].includes(p.type ?? '') && !p.imageUrl
   ).length
 
-  const captionsToWrite = posts.filter(p => p.type !== 'Review').length
-  const readyToSchedule = posts.filter(p => p.imageUrl).length
+  const captionsToWrite = safePosts.filter(p => p.type !== 'Review').length
+  const readyToSchedule = safePosts.filter(p => p.imageUrl).length
 
   const isDayForImages = imagesNeeded > 0
   const summaryLine = isDayForImages

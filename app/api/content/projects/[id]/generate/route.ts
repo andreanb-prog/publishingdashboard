@@ -267,8 +267,19 @@ Return ONLY a JSON array. No preamble. No markdown fences.`
   try {
     generatedPosts = JSON.parse(jsonText)
   } catch {
-    console.error('JSON parse error. Raw text:', jsonText.slice(0, 500))
-    return NextResponse.json({ error: 'Failed to parse generated content' }, { status: 500 })
+    // try regex extraction of the JSON array
+    const match = jsonText.match(/\[[\s\S]*\]/)
+    if (match) {
+      try {
+        generatedPosts = JSON.parse(match[0])
+      } catch (innerErr) {
+        console.error('JSON parse error (regex fallback also failed). Raw text:', jsonText.slice(0, 1000), innerErr)
+        return NextResponse.json({ error: 'Failed to parse generated content' }, { status: 500 })
+      }
+    } else {
+      console.error('JSON parse error — no array found. Raw text:', jsonText.slice(0, 1000))
+      return NextResponse.json({ error: 'Failed to parse generated content' }, { status: 500 })
+    }
   }
 
   // STEP 5 — assign images

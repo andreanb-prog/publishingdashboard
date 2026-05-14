@@ -72,8 +72,9 @@ const LOADING_MESSAGES = [
 ]
 
 function chunkByWeek(posts: Post[], frequency: number): Post[][] {
+  if (!posts || !Array.isArray(posts) || posts.length === 0) return []
   const weeks: Post[][] = []
-  const postsPerWeek = frequency
+  const postsPerWeek = Math.max(1, frequency)
   for (let i = 0; i < posts.length; i += postsPerWeek) {
     weeks.push(posts.slice(i, i + postsPerWeek))
   }
@@ -288,10 +289,10 @@ export default function CalendarView({ project, initialPosts, performanceStats, 
             </>
           )}
 
-          {weeks.map((weekPosts, i) => (
+          {(weeks ?? []).map((weekPosts, i) => (
             <WeekGroup
               key={i}
-              posts={weekPosts}
+              posts={weekPosts ?? []}
               weekIndex={i}
               onOpenModal={setModalPostId}
             />

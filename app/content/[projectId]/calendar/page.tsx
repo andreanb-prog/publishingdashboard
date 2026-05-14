@@ -2,6 +2,7 @@ import { redirect, notFound } from 'next/navigation'
 import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import CalendarView from '@/components/content/calendar'
+import CalendarErrorBoundary from '@/components/content/calendar/CalendarErrorBoundary'
 
 export const metadata = {
   title: 'StoryPost · Calendar',
@@ -39,6 +40,7 @@ export default async function CalendarPage({ params }: { params: { projectId: st
     : null
 
   return (
+    <CalendarErrorBoundary>
     <CalendarView
       project={{
         id: project.id,
@@ -78,5 +80,6 @@ export default async function CalendarPage({ params }: { params: { projectId: st
       performanceStats={{ loggedCount, totalCount: posts.length, avgReach, avgSaves, clickRate }}
       initialInsights={storedInsights}
     />
+    </CalendarErrorBoundary>
   )
 }

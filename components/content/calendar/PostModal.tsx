@@ -93,9 +93,10 @@ export default function PostModal({ post, allPosts, project, onClose, onNavigate
     return () => { document.body.style.overflow = prev }
   }, [])
 
-  const currentIdx = allPosts.findIndex(p => p.id === post.id)
-  const prevPost = currentIdx > 0 ? allPosts[currentIdx - 1] : null
-  const nextPost = currentIdx < allPosts.length - 1 ? allPosts[currentIdx + 1] : null
+  const safeAllPosts = allPosts ?? []
+  const currentIdx = safeAllPosts.findIndex(p => p.id === post?.id)
+  const prevPost = currentIdx > 0 ? safeAllPosts[currentIdx - 1] : null
+  const nextPost = currentIdx < safeAllPosts.length - 1 ? safeAllPosts[currentIdx + 1] : null
 
   const dayInWeek = (post.dayNumber - 1) % 7
   const weekIndex = Math.floor((post.dayNumber - 1) / 7)
@@ -382,7 +383,7 @@ export default function PostModal({ post, allPosts, project, onClose, onNavigate
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
           }}>
-            {currentIdx + 1} / {allPosts.length}
+            {currentIdx + 1} / {safeAllPosts.length}
           </span>
           {nextPost ? (
             <button

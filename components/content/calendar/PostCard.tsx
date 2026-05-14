@@ -66,14 +66,14 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export default function PostCard({ post, weekIndex, dayInWeek, onOpenModal }: Props) {
   const dayLabel = `${WEEKDAYS[dayInWeek % 7]} · Week ${weekIndex + 1}`
-  const borderLeft = PHASE_BORDER[post.phase] ?? 'none'
-  const pillarColor = PILLAR_COLORS[post.dayNumber % 5]
+  const borderLeft = PHASE_BORDER[post.phase ?? ''] ?? 'none'
+  const pillarColor = PILLAR_COLORS[(post.dayNumber ?? 0) % 5] ?? 'var(--ink)'
 
   const captionPreview = post.instagram
     ? post.instagram.split('\n').slice(0, 2).join(' ').slice(0, 140)
     : null
 
-  const isQuoteCard = post.type === 'Quote Card'
+  const isQuoteCard = (post.type ?? '') === 'Quote Card'
 
   const statusDot = post.scheduledAt
     ? { color: '#6EBF8B', title: 'Scheduled' }
@@ -121,7 +121,7 @@ export default function PostCard({ post, weekIndex, dayInWeek, onOpenModal }: Pr
               />
             ) : (
               <span style={{ fontSize: 18, opacity: 0.4 }}>
-                {TYPE_ICONS[post.type] ?? '⬜'}
+                {TYPE_ICONS[post.type ?? ''] ?? '⬜'}
               </span>
             )}
             {statusDot && (
@@ -164,7 +164,7 @@ export default function PostCard({ post, weekIndex, dayInWeek, onOpenModal }: Pr
                 letterSpacing: '0.06em',
                 fontWeight: 600,
               }}>
-                {post.pillar}
+                {post.pillar ?? ''}
               </span>
 
               <span style={{
@@ -177,10 +177,10 @@ export default function PostCard({ post, weekIndex, dayInWeek, onOpenModal }: Pr
                 padding: '2px 6px',
                 fontWeight: 500,
               }}>
-                {post.type}
+                {post.type ?? ''}
               </span>
 
-              {post.phase !== 'normal' && (
+              {(post.phase ?? 'normal') !== 'normal' && (
                 <span style={{
                   fontFamily: "'JetBrains Mono', monospace",
                   fontSize: 8,
@@ -189,7 +189,7 @@ export default function PostCard({ post, weekIndex, dayInWeek, onOpenModal }: Pr
                   letterSpacing: '0.06em',
                   fontWeight: 600,
                 }}>
-                  {post.phase}
+                  {post.phase ?? ''}
                 </span>
               )}
             </div>

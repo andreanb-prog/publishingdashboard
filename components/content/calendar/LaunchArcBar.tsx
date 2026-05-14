@@ -24,8 +24,10 @@ const PHASE_TEXT: Record<string, string> = {
 
 export default function LaunchArcBar({ launchDate, frequency, totalPosts }: Props) {
   const today = new Date()
-  const launch = new Date(launchDate)
-  const daysUntil = Math.max(0, Math.round((launch.getTime() - today.getTime()) / 86400000))
+  const launch = launchDate ? new Date(launchDate) : new Date()
+  const daysUntil = !isNaN(launch.getTime())
+    ? Math.max(0, Math.round((launch.getTime() - today.getTime()) / 86400000))
+    : 0
   const postsUntilLaunch = Math.round(daysUntil * frequency / 7)
 
   // Phase boundaries (post counts)

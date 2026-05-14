@@ -57,7 +57,7 @@ export default function WeekGroup({ posts, weekIndex, onOpenModal }: Props) {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {posts.map((post, i) => (
+        {(posts ?? []).map((post, i) => (
           <PostCard
             key={post.id}
             post={post}
