@@ -846,6 +846,7 @@ model StoryPostProject {
   avatar         String?  @db.Text
   aesthetic      String?
   pillars        Json?
+  insights       Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   quotes         StoryPostQuote[]

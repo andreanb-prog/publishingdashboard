@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import CalendarHeader from './CalendarHeader'
 import TodaySummary from './TodaySummary'
+import InsightsPanel from './InsightsPanel'
 import LaunchArcBar from './LaunchArcBar'
 import PhaseLegend from './PhaseLegend'
 import WeekGroup from './WeekGroup'
@@ -46,9 +47,19 @@ interface Project {
   website?: string | null
 }
 
+interface PerformanceStats {
+  loggedCount: number
+  totalCount: number
+  avgReach: number
+  avgSaves: number
+  clickRate: number
+}
+
 interface Props {
   project: Project
   initialPosts: Post[]
+  performanceStats: PerformanceStats
+  initialInsights: string[] | null
 }
 
 const LOADING_MESSAGES = [
@@ -69,13 +80,14 @@ function chunkByWeek(posts: Post[], frequency: number): Post[][] {
   return weeks
 }
 
-export default function CalendarView({ project, initialPosts }: Props) {
+export default function CalendarView({ project, initialPosts, performanceStats, initialInsights }: Props) {
   const [posts, setPosts] = useState<Post[]>(initialPosts)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0])
   const [progress, setProgress] = useState(0)
   const [modalPostId, setModalPostId] = useState<string | null>(null)
+  const [insights, setInsights] = useState<string[] | null>(initialInsights)
 
   useEffect(() => {
     if (!generating) return
@@ -88,16 +100,21 @@ export default function CalendarView({ project, initialPosts }: Props) {
     return () => clearInterval(interval)
   }, [generating])
 
-  const generate = useCallback(async () => {
+  const generate = useCallback(async (performanceContext?: string) => {
     setGenerating(true)
     setError(null)
     setProgress(5)
     setLoadingMsg(LOADING_MESSAGES[0])
     try {
-      const res = await fetch(`/api/content/projects/${project.id}/generate`, { method: 'POST' })
+      const body = performanceContext ? JSON.stringify({ performanceContext }) : undefined
+      const res = await fetch(`/api/content/projects/${project.id}/generate`, {
+        method: 'POST',
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body,
+      })
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error ?? 'Generation failed')
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Generation failed')
       }
       const data = await res.json()
       setProgress(100)
@@ -125,7 +142,7 @@ export default function CalendarView({ project, initialPosts }: Props) {
       <CalendarHeader
         projectId={project.id}
         postCount={posts.length}
-        onRegenerate={generate}
+        onRegenerate={() => generate()}
         generating={generating}
       />
 
@@ -180,7 +197,7 @@ export default function CalendarView({ project, initialPosts }: Props) {
             {error}
           </span>
           <button
-            onClick={generate}
+            onClick={() => generate()}
             style={{
               fontFamily: "'Plus Jakarta Sans', sans-serif",
               fontSize: 12,
@@ -227,7 +244,7 @@ export default function CalendarView({ project, initialPosts }: Props) {
             reviews, and images to write platform-native copy for every single post.
           </p>
           <button
-            onClick={generate}
+            onClick={() => generate()}
             style={{
               fontFamily: "'Plus Jakarta Sans', sans-serif",
               fontSize: 14,
@@ -249,6 +266,16 @@ export default function CalendarView({ project, initialPosts }: Props) {
       {posts.length > 0 && !generating && (
         <>
           <TodaySummary posts={posts} />
+
+          {performanceStats.loggedCount >= 3 && (
+            <InsightsPanel
+              projectId={project.id}
+              stats={performanceStats}
+              initialInsights={insights}
+              onInsightsUpdated={setInsights}
+              onRegenerateWithInsights={generate}
+            />
+          )}
 
           {hasLaunch && project.launchDate && (
             <>

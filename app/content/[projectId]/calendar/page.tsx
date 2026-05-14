@@ -3,6 +3,10 @@ import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import CalendarView from '@/components/content/calendar'
 
+export const metadata = {
+  title: 'StoryPost · Calendar',
+}
+
 export default async function CalendarPage({ params }: { params: { projectId: string } }) {
   const session = await getAugmentedSession()
   if (!session) redirect('/login')
@@ -16,6 +20,23 @@ export default async function CalendarPage({ params }: { params: { projectId: st
     where: { projectId: params.projectId },
     orderBy: { dayNumber: 'asc' },
   })
+
+  // Compute performance stats from existing post data
+  const logged = posts.filter(p => p.reach != null)
+  const loggedCount = logged.length
+  const avgReach = loggedCount > 0
+    ? Math.round(logged.reduce((s, p) => s + (p.reach ?? 0), 0) / loggedCount)
+    : 0
+  const avgSaves = loggedCount > 0
+    ? Math.round(logged.reduce((s, p) => s + (p.saves ?? 0), 0) / loggedCount)
+    : 0
+  const clickRate = loggedCount > 0
+    ? Math.round(logged.filter(p => p.clicks === true).length / loggedCount * 100)
+    : 0
+
+  const storedInsights = Array.isArray(project.insights)
+    ? (project.insights as string[])
+    : null
 
   return (
     <CalendarView
@@ -54,6 +75,8 @@ export default async function CalendarPage({ params }: { params: { projectId: st
         scheduledAt: p.scheduledAt?.toISOString() ?? null,
         postedAt: p.postedAt?.toISOString() ?? null,
       }))}
+      performanceStats={{ loggedCount, totalCount: posts.length, avgReach, avgSaves, clickRate }}
+      initialInsights={storedInsights}
     />
   )
 }

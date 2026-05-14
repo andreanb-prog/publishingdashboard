@@ -87,13 +87,23 @@ function buildPostSchedule(
 }
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const session = await getAugmentedSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const projectId = params.id
+
+  let performanceContext: string | null = null
+  try {
+    const body = await req.json().catch(() => ({}))
+    if (typeof body.performanceContext === 'string') {
+      performanceContext = body.performanceContext
+    }
+  } catch {
+    // no body is fine
+  }
 
   // STEP 1 — gather all project data in parallel
   const [project, books, quotes, reviews, images] = await Promise.all([
@@ -149,6 +159,10 @@ export async function POST(
     ? books.map(b => `- ${b.title}${b.seriesName ? ` (${b.seriesName})` : ''}`).join('\n')
     : 'No books listed yet.'
 
+  const performanceSection = performanceContext
+    ? `\n\nPERFORMANCE DATA FROM PREVIOUS CALENDAR:\n${performanceContext}\n\nWeight your content recommendations toward the post types and pillars that showed strongest reach and saves. Reduce frequency of underperforming types.`
+    : ''
+
   const systemPrompt = `You are a social media content strategist for romance authors, trained in Donald Miller's StoryBrand framework, Alex Hormozi's value equation, and the trust flywheel principle.
 
 CORE RULES:
@@ -171,7 +185,7 @@ READER AVATAR: ${project.avatar ?? 'Romance reader who wants to feel deeply seen
 BOOKS:
 ${booksContext}
 PILLARS: ${pillars.join(', ')}
-${launchContext}`
+${launchContext}${performanceSection}`
 
   const quoteBank = quotes.length > 0
     ? `QUOTE BANK (use these for Quote Card posts):\n${quotes.slice(0, 20).map((q, i) => `${i + 1}. "${q.text}"`).join('\n')}`

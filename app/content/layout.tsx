@@ -1,5 +1,11 @@
 import { redirect } from 'next/navigation'
 import { getAugmentedSession } from '@/lib/getSession'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'StoryPost · Content Studio',
+  description: '30 intentional days. Build your author content calendar with AI.',
+}
 
 export default async function StoryPostRootLayout({
   children,
@@ -24,6 +30,7 @@ export default async function StoryPostRootLayout({
           --amber:   #B07A2A;
           --rose:    #A86E5E;
           --sage:    #7B8466;
+          --coral:   #C0555A;
           --phase-empathy:      #C9C9A8;
           --phase-anticipation: #D6B5A8;
           --phase-origin:       #DDB987;
@@ -53,9 +60,17 @@ export default async function StoryPostRootLayout({
           overflow-y: auto;
           height: 100vh;
         }
+        .sp-mobile-bar {
+          display: none !important;
+        }
         @media (max-width: 768px) {
-          .sp-sidebar { display: none; }
-          .sp-main { height: auto; min-height: 100vh; }
+          .sp-sidebar { display: none !important; }
+          .sp-main { height: auto; min-height: 100vh; padding-top: 56px; }
+          .sp-mobile-bar { display: flex !important; }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
         }
       `}</style>
       <link

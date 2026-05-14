@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
 const STEPS = [
@@ -31,6 +32,7 @@ export default function ProjectSidebar({
 }: Props) {
   const pathname = usePathname()
   const router = useRouter()
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const stepBadge = (slug: string): string | null => {
     const isActive = pathname.includes(`/${slug}`)
@@ -56,8 +58,8 @@ export default function ProjectSidebar({
     router.refresh()
   }
 
-  return (
-    <aside className="sp-sidebar">
+  const sidebarContent = (
+    <>
       {/* Logo */}
       <div style={{ padding: '28px 20px 16px' }}>
         <a href="/content" style={{ textDecoration: 'none' }}>
@@ -215,6 +217,12 @@ export default function ProjectSidebar({
           All projects
         </a>
         <a
+          href={`/content/${projectId}/history`}
+          style={{ display: 'block', fontSize: 12, color: 'var(--ink-3)', textDecoration: 'none', padding: '3px 0' }}
+        >
+          Project history
+        </a>
+        <a
           href="/dashboard"
           style={{ display: 'block', fontSize: 12, color: 'var(--ink-3)', textDecoration: 'none', padding: '3px 0' }}
         >
@@ -240,6 +248,105 @@ export default function ProjectSidebar({
           Start over
         </button>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Mobile top bar */}
+      <div style={{
+        display: 'none',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        background: 'var(--paper-3)',
+        borderBottom: '1px solid var(--rule)',
+        padding: '12px 20px',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }} className="sp-mobile-bar">
+        <div style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: 15,
+          fontWeight: 700,
+          color: 'var(--ink)',
+        }}>
+          {projectName}
+        </div>
+        <button
+          onClick={() => setDrawerOpen(true)}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 5,
+          }}
+          aria-label="Open menu"
+        >
+          <span style={{ display: 'block', width: 22, height: 2, background: 'var(--ink)', borderRadius: 1 }} />
+          <span style={{ display: 'block', width: 22, height: 2, background: 'var(--ink)', borderRadius: 1 }} />
+          <span style={{ display: 'block', width: 16, height: 2, background: 'var(--ink)', borderRadius: 1 }} />
+        </button>
+      </div>
+
+      {/* Drawer backdrop */}
+      {drawerOpen && (
+        <div
+          onClick={() => setDrawerOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(20,33,61,0.4)',
+            zIndex: 200,
+          }}
+        />
+      )}
+
+      {/* Drawer */}
+      {drawerOpen && (
+        <aside
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: 280,
+            height: '100vh',
+            background: 'var(--paper-3)',
+            zIndex: 300,
+            display: 'flex',
+            flexDirection: 'column',
+            overflowY: 'auto',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px' }}>
+            <button
+              onClick={() => setDrawerOpen(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 20,
+                color: 'var(--ink-3)',
+                lineHeight: 1,
+              }}
+              aria-label="Close menu"
+            >
+              ×
+            </button>
+          </div>
+          {sidebarContent}
+        </aside>
+      )}
+
+      {/* Desktop sidebar */}
+      <aside className="sp-sidebar">
+        {sidebarContent}
+      </aside>
+    </>
   )
 }
