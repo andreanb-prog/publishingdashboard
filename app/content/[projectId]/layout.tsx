@@ -13,19 +13,24 @@ export default async function ProjectLayout({
   const session = await getAugmentedSession()
   if (!session) redirect('/login')
 
-  const project = await db.storyPostProject.findFirst({
-    where: { id: params.projectId, userId: session.user.id },
-    include: {
-      _count: { select: { posts: true, quotes: true, reviews: true, images: true } },
-    },
-  })
+  const [project, selectedQuoteCount] = await Promise.all([
+    db.storyPostProject.findFirst({
+      where: { id: params.projectId, userId: session.user.id },
+      include: {
+        _count: { select: { posts: true, quotes: true, reviews: true, images: true } },
+      },
+    }),
+    db.storyPostQuote.count({
+      where: { projectId: params.projectId, selected: true },
+    }),
+  ])
 
   if (!project) notFound()
 
   // Derive completed steps from project data
   const completedSteps: string[] = []
   if (project.frequency && (project.avatar || project.aesthetic)) completedSteps.push('setup')
-  if (project._count.quotes > 0) completedSteps.push('manuscript')
+  if (selectedQuoteCount >= 10) completedSteps.push('manuscript')
   if (project._count.reviews > 0) completedSteps.push('reviews')
   if (project._count.images > 0) completedSteps.push('images')
   if (project._count.posts > 0) completedSteps.push('calendar')
