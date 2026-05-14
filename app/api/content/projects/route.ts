@@ -9,7 +9,7 @@ export async function GET() {
   const projects = await db.storyPostProject.findMany({
     where: { userId: session.user.id },
     orderBy: { updatedAt: 'desc' },
-    include: { _count: { select: { posts: true } } },
+    include: { _count: { select: { posts: true, quotes: true, reviews: true, images: true } } },
   })
 
   return NextResponse.json({ projects })
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       userId: session.user.id,
       name: name.trim(),
     },
-    include: { _count: { select: { posts: true } } },
+    include: { _count: { select: { posts: true, quotes: true, reviews: true, images: true } } },
   })
 
   return NextResponse.json({ project }, { status: 201 })

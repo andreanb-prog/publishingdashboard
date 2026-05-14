@@ -8,8 +8,9 @@ interface StoryPostProject {
   hasLaunch: boolean
   launchDate: string | null
   frequency: number
+  updatedAt: string
   createdAt: string
-  _count?: { posts: number }
+  _count?: { posts: number; quotes: number; reviews: number; images: number }
 }
 
 export default function StoryPostProjectsPage() {
@@ -46,8 +47,12 @@ export default function StoryPostProjectsPage() {
     }
   }
 
+  function fmtDate(iso: string) {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
   return (
-    <div style={{ padding: '48px 48px 80px', maxWidth: 720 }}>
+    <div style={{ padding: '48px 48px 80px', maxWidth: 760 }}>
 
       {/* Hero headline */}
       <div style={{ marginBottom: 48 }}>
@@ -76,12 +81,12 @@ export default function StoryPostProjectsPage() {
         </p>
       </div>
 
-      {/* Project list */}
+      {/* Project cards */}
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[1, 2].map(i => (
             <div key={i} style={{
-              height: 72,
+              height: 96,
               borderRadius: 4,
               background: 'var(--rule)',
               animation: 'pulse 1.5s ease-in-out infinite',
@@ -123,49 +128,93 @@ export default function StoryPostProjectsPage() {
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
           {projects.map(p => (
-            <a
+            <div
               key={p.id}
-              href={`/content/${p.id}/setup`}
               style={{
+                background: 'white',
+                border: '0.5px solid var(--rule)',
+                borderRadius: 6,
+                padding: '18px 20px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '16px 20px',
-                background: 'var(--paper-2)',
-                border: '1px solid var(--rule)',
-                borderRadius: 4,
-                textDecoration: 'none',
-                color: 'var(--ink)',
-                transition: 'border-color 0.15s',
+                gap: 16,
               }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--amber)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--rule)')}
             >
-              <div>
+              {/* Left: info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: 600,
                   color: 'var(--ink)',
+                  marginBottom: 6,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}>
                   {p.name}
                 </div>
-                <div style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 11,
-                  color: 'var(--ink-4)',
-                  marginTop: 4,
-                }}>
-                  {p._count?.posts ?? 0} posts
-                  {p.hasLaunch && p.launchDate
-                    ? ` · launch ${new Date(p.launchDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                    : ''}
+                {/* Stat pills */}
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'posts', value: p._count?.posts ?? 0 },
+                    { label: 'quotes', value: p._count?.quotes ?? 0 },
+                    { label: 'reviews', value: p._count?.reviews ?? 0 },
+                    { label: 'images', value: p._count?.images ?? 0 },
+                  ].map(stat => (
+                    <div key={stat.label} style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: 10,
+                      color: 'var(--ink-4)',
+                    }}>
+                      <span style={{ fontWeight: 600, color: 'var(--ink-2)' }}>{stat.value}</span>
+                      {' '}{stat.label}
+                    </div>
+                  ))}
+                  {p._count?.posts && p._count.posts > 0 ? (
+                    <div style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: 10,
+                      color: 'var(--ink-4)',
+                    }}>
+                      last updated {fmtDate(p.updatedAt)}
+                    </div>
+                  ) : null}
                 </div>
               </div>
-              <div style={{ fontSize: 18, color: 'var(--ink-4)', lineHeight: 1 }}>→</div>
-            </a>
+
+              {/* Right: Open button */}
+              <a
+                href={`/content/${p.id}/setup`}
+                style={{
+                  flexShrink: 0,
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--amber)',
+                  background: 'transparent',
+                  border: '1px solid var(--amber)',
+                  borderRadius: 4,
+                  padding: '8px 18px',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  transition: 'background 0.12s, color 0.12s',
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLAnchorElement).style.background = 'var(--amber)'
+                  ;(e.currentTarget as HTMLAnchorElement).style.color = '#fff'
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
+                  ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--amber)'
+                }}
+              >
+                Open →
+              </a>
+            </div>
           ))}
         </div>
       )}
@@ -247,7 +296,7 @@ export default function StoryPostProjectsPage() {
         </div>
       )}
 
-      {/* Start new button (when projects exist) */}
+      {/* New project button when projects exist */}
       {projects.length > 0 && !showNew && (
         <button
           onClick={() => setShowNew(true)}

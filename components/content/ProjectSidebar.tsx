@@ -1,6 +1,6 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 const STEPS = [
   { num: '01', label: 'Setup', slug: 'setup' },
@@ -30,6 +30,7 @@ export default function ProjectSidebar({
   imageCount,
 }: Props) {
   const pathname = usePathname()
+  const router = useRouter()
 
   const stepBadge = (slug: string): string | null => {
     const isActive = pathname.includes(`/${slug}`)
@@ -40,6 +41,19 @@ export default function ProjectSidebar({
     if (slug === 'images' && imageCount > 0) return `${imageCount} IMAGES`
     if (slug === 'calendar' && postCount > 0) return `${postCount} POSTS`
     return null
+  }
+
+  const completionPct = Math.round((completedSteps.length / STEPS.length) * 100)
+  const allComplete = completedSteps.length === STEPS.length
+
+  async function handleStartOver() {
+    const ok = confirm(
+      'This will delete all generated posts and start fresh. Your quotes and reviews are kept.'
+    )
+    if (!ok) return
+    await fetch(`/api/content/projects/${projectId}/posts`, { method: 'DELETE' })
+    router.push(`/content/${projectId}/setup`)
+    router.refresh()
   }
 
   return (
@@ -71,7 +85,7 @@ export default function ProjectSidebar({
 
       <div style={{ borderTop: '1px solid var(--rule)', margin: '0 20px 16px' }} />
 
-      {/* Project name */}
+      {/* Project name + progress */}
       <div style={{ padding: '0 20px 16px' }}>
         <div style={{
           fontFamily: "'JetBrains Mono', monospace",
@@ -89,8 +103,34 @@ export default function ProjectSidebar({
           color: 'var(--ink)',
           lineHeight: 1.35,
           fontFamily: "'Plus Jakarta Sans', sans-serif",
+          marginBottom: 10,
         }}>
           {projectName}
+        </div>
+        {/* Progress bar */}
+        <div style={{
+          height: 3,
+          borderRadius: 99,
+          background: 'var(--rule)',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            height: '100%',
+            width: `${completionPct}%`,
+            borderRadius: 99,
+            background: allComplete ? '#6EBF8B' : '#E9A020',
+            transition: 'width 0.4s ease',
+          }} />
+        </div>
+        <div style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 8,
+          color: allComplete ? '#6EBF8B' : 'var(--ink-4)',
+          marginTop: 5,
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+        }}>
+          {completionPct}% complete
         </div>
       </div>
 
@@ -123,11 +163,11 @@ export default function ProjectSidebar({
               <span style={{
                 fontFamily: "'JetBrains Mono', monospace",
                 fontSize: 10,
-                color: isActive ? 'var(--amber)' : 'var(--ink-4)',
+                color: isActive ? 'var(--amber)' : isComplete ? '#6EBF8B' : 'var(--ink-4)',
                 fontWeight: 500,
                 minWidth: 20,
               }}>
-                {step.num}
+                {isComplete && !isActive ? '✓' : step.num}
               </span>
               <span style={{
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -143,7 +183,7 @@ export default function ProjectSidebar({
                   fontFamily: "'JetBrains Mono', monospace",
                   fontSize: 8,
                   fontWeight: 500,
-                  color: badge === 'IN PROGRESS' ? 'var(--amber)' : badge === 'COMPLETE' ? 'var(--sage)' : 'var(--ink-4)',
+                  color: badge === 'IN PROGRESS' ? 'var(--amber)' : badge === 'COMPLETE' ? '#6EBF8B' : 'var(--ink-4)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.06em',
                   whiteSpace: 'nowrap',
@@ -180,6 +220,25 @@ export default function ProjectSidebar({
         >
           Back to AuthorDash
         </a>
+        <button
+          onClick={handleStartOver}
+          style={{
+            display: 'block',
+            marginTop: 10,
+            fontSize: 11,
+            color: 'var(--ink-4)',
+            background: 'none',
+            border: 'none',
+            padding: '3px 0',
+            cursor: 'pointer',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            textAlign: 'left',
+          }}
+          onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--coral)')}
+          onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-4)')}
+        >
+          Start over
+        </button>
       </div>
     </aside>
   )

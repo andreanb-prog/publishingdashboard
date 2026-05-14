@@ -23,11 +23,12 @@ type NavItem = {
 }
 
 const SIMPLE_ITEMS: NavItem[] = [
-  { label: 'Today',     desc: 'Your morning snapshot',    href: '/dashboard',                  Icon: LayoutDashboard },
-  { label: 'Royalties', desc: 'KDP sales & KENP',         href: '/dashboard/kdp',              Icon: DollarSign,  badge: '+12%', badgeType: 'amber' },
-  { label: 'Readers',   desc: 'Your email list',          href: '/dashboard/mailerlite',       Icon: Mail },
-  { label: 'Write',     desc: '12-day streak · 1,842 w.', href: '/dashboard/writing-notebook', Icon: PenTool },
-  { label: 'Coach',     desc: '3 nudges waiting',         href: '/dashboard/tasks',            Icon: Bot, badge: '3', badgeType: 'count' },
+  { label: 'Today',           desc: 'Your morning snapshot',    href: '/dashboard',                  Icon: LayoutDashboard },
+  { label: 'Royalties',       desc: 'KDP sales & KENP',         href: '/dashboard/kdp',              Icon: DollarSign,  badge: '+12%', badgeType: 'amber' },
+  { label: 'Readers',         desc: 'Your email list',          href: '/dashboard/mailerlite',       Icon: Mail },
+  { label: 'Write',           desc: '12-day streak · 1,842 w.', href: '/dashboard/writing-notebook', Icon: PenTool },
+  { label: 'Content Studio',  desc: 'Social calendar & posts',  href: '/content',                    Icon: CalendarDays },
+  { label: 'Coach',           desc: '3 nudges waiting',         href: '/dashboard/tasks',            Icon: Bot, badge: '3', badgeType: 'count' },
 ]
 
 const LESS_OFTEN_ITEMS: NavItem[] = [
