@@ -862,6 +862,7 @@ model StoryPostQuote {
   projectId String
   project   StoryPostProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
   text      String   @db.Text
+  context   String?  @db.Text
   selected  Boolean  @default(true)
   source    String?  @default("manuscript")
   createdAt DateTime @default(now())

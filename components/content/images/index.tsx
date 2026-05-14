@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { upload } from '@vercel/blob/client'
 import ImageUploadZone from './ImageUploadZone'
 import ImageGrid from './ImageGrid'
 import LibraryStats from './LibraryStats'
@@ -73,11 +74,15 @@ export default function ImageLibrary({ projectId, initialImages, pillars }: Prop
     const uploaded: Image[] = []
     for (const file of capped) {
       try {
-        const form = new FormData()
-        form.append('file', file)
-        const res = await fetch(`/api/content/projects/${projectId}/images/upload`, {
+        const blob = await upload(file.name, file, {
+          access: 'public',
+          handleUploadUrl: `/api/content/projects/${projectId}/images/upload-url`,
+        })
+
+        const res = await fetch(`/api/content/projects/${projectId}/images`, {
           method: 'POST',
-          body: form,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: blob.url }),
         })
         if (!res.ok) continue
         const { image } = await res.json()

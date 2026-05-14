@@ -16,7 +16,7 @@ export default async function ManuscriptRoute({ params }: { params: { projectId:
   const quotes = await db.storyPostQuote.findMany({
     where: { projectId: params.projectId },
     orderBy: { createdAt: 'asc' },
-    select: { id: true, text: true, selected: true },
+    select: { id: true, text: true, context: true, selected: true },
   })
 
   return (

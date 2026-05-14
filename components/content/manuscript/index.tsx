@@ -9,6 +9,7 @@ import ManualQuoteAdd from './ManualQuoteAdd'
 interface Quote {
   id: string
   text: string
+  context?: string | null
   selected: boolean
 }
 

@@ -41,6 +41,14 @@ async function parseEpub(buffer: Buffer): Promise<string> {
   return chunks.join('\n\n')
 }
 
+interface ExtractedQuote {
+  text: string
+  context: string
+}
+
+const PRINT_PDF_ERROR =
+  'This PDF appears to be a print-formatted or scanned file. Please export your manuscript directly from Vellum, Atticus, or Word as a PDF (not a print PDF) and try again. Or upload the .docx version instead.'
+
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -57,7 +65,8 @@ export async function POST(
   let formData: FormData
   try {
     formData = await req.formData()
-  } catch {
+  } catch (err) {
+    console.error('[extract] formData parse error:', err)
     return NextResponse.json({ error: 'Invalid form data' }, { status: 400 })
   }
 
@@ -81,11 +90,9 @@ export async function POST(
       const pdfParse = (await import('pdf-parse')) as unknown as (buf: Buffer) => Promise<{ text: string }>
       const result = await pdfParse(buffer)
       manuscriptText = result?.text ?? ''
-      if (!manuscriptText.trim()) {
-        return NextResponse.json(
-          { error: 'This PDF appears to be scanned. Try exporting your manuscript as a DOCX from Word or Vellum instead.' },
-          { status: 422 }
-        )
+      if (manuscriptText.trim().length < 500) {
+        console.error('[extract] PDF returned insufficient text:', manuscriptText.length, 'chars — file:', file.name)
+        return NextResponse.json({ error: PRINT_PDF_ERROR }, { status: 422 })
       }
     } else if (ext === 'docx') {
       const mammoth = await import('mammoth')
@@ -102,12 +109,10 @@ export async function POST(
     } else {
       manuscriptText = buffer.toString('utf-8')
     }
-  } catch {
+  } catch (err) {
+    console.error('[extract] parse error for', ext, 'file:', err)
     if (ext === 'pdf') {
-      return NextResponse.json(
-        { error: 'This PDF appears to be scanned. Try exporting your manuscript as a DOCX from Word or Vellum instead.' },
-        { status: 422 }
-      )
+      return NextResponse.json({ error: PRINT_PDF_ERROR }, { status: 422 })
     }
     if (ext === 'docx') {
       return NextResponse.json(
@@ -118,7 +123,7 @@ export async function POST(
     return NextResponse.json({ error: 'Could not parse file.' }, { status: 422 })
   }
 
-  const manuscriptExcerpt = manuscriptText.slice(0, 14000)
+  const manuscriptExcerpt = manuscriptText.slice(0, 20000)
 
   if (!manuscriptExcerpt.trim()) {
     return NextResponse.json(
@@ -127,12 +132,12 @@ export async function POST(
     )
   }
 
-  let rawQuotes: string[] = []
+  let rawQuotes: ExtractedQuote[] = []
 
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 3000,
+      max_tokens: 4000,
       system: 'You are a romance book editor with a perfect eye for quotable lines. You know what makes readers stop scrolling, screenshot, and send to a friend.',
       messages: [
         {
@@ -147,8 +152,9 @@ export async function POST(
 
 Do NOT extract plot summary lines, dialogue tags, or scene-setting description.
 
-Return ONLY a JSON array of strings. No preamble, no explanation, no markdown fences.
-Example: ["quote one", "quote two"]
+Return ONLY a JSON array of objects. No preamble, no explanation, no markdown fences.
+Each object must have "text" (the quote) and "context" (one sentence describing the scene or emotional moment this quote is from).
+Example: [{"text": "quote one", "context": "From the scene where they first meet at the bar"}, {"text": "quote two", "context": "The morning after he leaves without saying goodbye"}]
 
 Manuscript excerpt:
 ${manuscriptExcerpt}`,
@@ -157,9 +163,14 @@ ${manuscriptExcerpt}`,
     })
 
     const responseText = message.content?.[0]?.type === 'text' ? message.content[0].text.trim() : '[]'
-    rawQuotes = JSON.parse(responseText)
-    if (!Array.isArray(rawQuotes)) rawQuotes = []
-  } catch {
+    const parsed = JSON.parse(responseText)
+    if (Array.isArray(parsed)) {
+      rawQuotes = parsed.filter(
+        (q): q is ExtractedQuote => q && typeof q === 'object' && typeof q.text === 'string'
+      )
+    }
+  } catch (err) {
+    console.error('[extract] Claude extraction error:', err)
     return NextResponse.json({ error: 'extraction_failed' }, { status: 500 })
   }
 
@@ -168,13 +179,14 @@ ${manuscriptExcerpt}`,
   })
 
   const created = await db.storyPostQuote.createManyAndReturn({
-    data: rawQuotes.slice(0, 30).map((text: unknown) => ({
+    data: rawQuotes.slice(0, 30).map((q) => ({
       projectId: params.id,
-      text: typeof text === 'string' ? text.trim() : String(text),
+      text: q.text.trim(),
+      context: typeof q.context === 'string' ? q.context.trim() : null,
       selected: true,
       source: 'manuscript',
     })),
-    select: { id: true, text: true, selected: true, source: true },
+    select: { id: true, text: true, context: true, selected: true, source: true },
   })
 
   return NextResponse.json({ quotes: created })

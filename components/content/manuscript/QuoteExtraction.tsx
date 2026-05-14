@@ -12,7 +12,7 @@ const STEPS = [
 interface Props {
   projectId: string
   manuscriptExcerpt: string
-  onComplete: (quotes: { id: string; text: string; selected: boolean }[]) => void
+  onComplete: (quotes: { id: string; text: string; context?: string | null; selected: boolean }[]) => void
   onError: () => void
 }
 

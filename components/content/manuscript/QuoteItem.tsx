@@ -3,6 +3,7 @@
 interface Quote {
   id: string
   text: string
+  context?: string | null
   selected: boolean
 }
 
@@ -65,19 +66,32 @@ export default function QuoteItem({ projectId, quote, onToggle, onDelete }: Prop
         )}
       </button>
 
-      {/* Quote text */}
-      <p style={{
-        fontFamily: "'Playfair Display', serif",
-        fontSize: 13,
-        fontStyle: 'italic',
-        color: quote.selected ? 'var(--ink)' : 'var(--ink-4)',
-        lineHeight: 1.6,
-        margin: 0,
-        flex: 1,
-        transition: 'color 0.12s',
-      }}>
-        "{quote.text}"
-      </p>
+      {/* Quote text + context */}
+      <div style={{ flex: 1 }}>
+        <p style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: 13,
+          fontStyle: 'italic',
+          color: quote.selected ? 'var(--ink)' : 'var(--ink-4)',
+          lineHeight: 1.6,
+          margin: 0,
+          transition: 'color 0.12s',
+        }}>
+          "{quote.text}"
+        </p>
+        {quote.context && (
+          <p style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: 11,
+            fontStyle: 'italic',
+            color: 'var(--ink-4)',
+            lineHeight: 1.5,
+            margin: '4px 0 0',
+          }}>
+            {quote.context}
+          </p>
+        )}
+      </div>
 
       {/* Delete */}
       <button

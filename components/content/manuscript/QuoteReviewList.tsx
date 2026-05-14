@@ -5,6 +5,7 @@ import QuoteItem from './QuoteItem'
 interface Quote {
   id: string
   text: string
+  context?: string | null
   selected: boolean
 }
 
