@@ -7,7 +7,7 @@ process.emitWarning = (warning, ...args) => {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['xlsx', 'pdfjs-dist'],
+    serverComponentsExternalPackages: ['xlsx', 'pdfjs-dist', 'pdf-parse', 'mammoth'],
     serverActions: {
       bodySizeLimit: '50mb',
     },

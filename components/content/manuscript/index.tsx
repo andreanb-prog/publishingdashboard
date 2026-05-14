@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import ManuscriptUpload from './ManuscriptUpload'
-import QuoteExtraction from './QuoteExtraction'
 import QuoteReviewList from './QuoteReviewList'
 import ManualQuoteAdd from './ManualQuoteAdd'
 
@@ -18,7 +17,7 @@ interface Props {
   initialQuotes: Quote[]
 }
 
-type Stage = 'upload' | 'extracting' | 'review'
+type Stage = 'upload' | 'review'
 
 const ghostBtn: React.CSSProperties = {
   fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -52,24 +51,21 @@ export default function ManuscriptPage({ projectId, initialQuotes }: Props) {
   const router = useRouter()
   const [stage, setStage] = useState<Stage>(initialQuotes.length > 0 ? 'review' : 'upload')
   const [quotes, setQuotes] = useState<Quote[]>(initialQuotes)
-  const [manuscriptExcerpt, setManuscriptExcerpt] = useState('')
   const [extractionError, setExtractionError] = useState(false)
 
-  const handleTextReady = (text: string, _filename: string) => {
-    const excerpt = text.slice(0, 14000)
-    setManuscriptExcerpt(excerpt)
-    setStage('extracting')
-    setExtractionError(false)
-  }
-
-  const handleExtractionComplete = useCallback((extracted: Quote[]) => {
+  const handleQuotesReady = useCallback((extracted: Quote[]) => {
     setQuotes(extracted)
+    setExtractionError(false)
     setStage('review')
   }, [])
 
-  const handleExtractionError = useCallback(() => {
-    setExtractionError(true)
-    setStage('review')
+  const handleExtractionError = useCallback((message?: string) => {
+    if (message) {
+      // error shown inside ManuscriptUpload — stay on upload stage
+    } else {
+      setExtractionError(true)
+      setStage('review')
+    }
   }, [])
 
   const handleToggle = (id: string, selected: boolean) => {
@@ -171,15 +167,9 @@ export default function ManuscriptPage({ projectId, initialQuotes }: Props) {
 
       {/* Upload section */}
       {stage === 'upload' && (
-        <ManuscriptUpload onTextReady={handleTextReady} />
-      )}
-
-      {/* Extraction progress */}
-      {stage === 'extracting' && (
-        <QuoteExtraction
+        <ManuscriptUpload
           projectId={projectId}
-          manuscriptExcerpt={manuscriptExcerpt}
-          onComplete={handleExtractionComplete}
+          onQuotesReady={handleQuotesReady}
           onError={handleExtractionError}
         />
       )}

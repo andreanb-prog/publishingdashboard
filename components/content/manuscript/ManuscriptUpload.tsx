@@ -2,77 +2,95 @@
 
 import { useRef, useState } from 'react'
 
+interface Quote {
+  id: string
+  text: string
+  selected: boolean
+}
+
 interface Props {
-  onTextReady: (text: string, filename: string) => void
+  projectId: string
+  onQuotesReady: (quotes: Quote[]) => void
+  onError: (message?: string) => void
 }
 
-function stripHtml(html: string): string {
-  return html
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\s{2,}/g, ' ')
-    .trim()
+const STEPS = [
+  'Parsing your manuscript…',
+  'Reading the pages…',
+  'Finding your best lines…',
+  'Almost there…',
+]
+
+const SIZE_LIMIT = 50 * 1024 * 1024
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-const NAV_RE = /^(toc|nav|ncx|content\.opf|package\.opf)/i
-const CONTENT_EXT = /\.(html|xhtml|htm)$/i
-
-async function parseEpub(file: File): Promise<string> {
-  const JSZip = (await import('jszip')).default
-  const zip = await JSZip.loadAsync(file)
-
-  const contentFiles = Object.keys(zip.files).filter(name => {
-    const base = name.split('/').pop() ?? ''
-    return CONTENT_EXT.test(name) && !NAV_RE.test(base)
-  })
-
-  const chunks: string[] = []
-  for (const name of contentFiles) {
-    const html = await zip.files[name].async('string')
-    chunks.push(stripHtml(html))
-  }
-
-  return chunks.join('\n\n')
-}
-
-export default function ManuscriptUpload({ onTextReady }: Props) {
+export default function ManuscriptUpload({ projectId, onQuotesReady, onError }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [filename, setFilename] = useState<string | null>(null)
-  const [parsing, setParsing] = useState(false)
+  const [fileSize, setFileSize] = useState<number>(0)
+  const [extracting, setExtracting] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [stepIdx, setStepIdx] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
   const handleFile = async (file: File) => {
     setError(null)
     setFilename(file.name)
-    setParsing(true)
+    setFileSize(file.size)
+
+    if (file.size > SIZE_LIMIT) {
+      setError('File too large. Export just the manuscript text without images.')
+      return
+    }
+
+    setExtracting(true)
+    setProgress(0)
+    setStepIdx(0)
+
+    let p = 0
+    const tick = setInterval(() => {
+      p = Math.min(p + 2, 88)
+      setProgress(p)
+      setStepIdx(Math.floor((p / 88) * (STEPS.length - 1)))
+    }, 400)
 
     try {
-      let text = ''
-      const ext = file.name.split('.').pop()?.toLowerCase()
-      if (ext === 'epub') {
-        text = await parseEpub(file)
-      } else {
-        text = await file.text()
-      }
+      const formData = new FormData()
+      formData.append('file', file)
 
-      if (!text.trim()) {
-        setError('File appears empty — try a different format.')
-        setParsing(false)
+      const res = await fetch(`/api/content/projects/${projectId}/quotes/extract`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      clearInterval(tick)
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        const msg = typeof data?.error === 'string' ? data.error : undefined
+        setError(msg ?? 'Could not extract quotes — try a different format.')
+        setExtracting(false)
+        onError(msg)
         return
       }
 
-      onTextReady(text, file.name)
+      setProgress(100)
+      setStepIdx(STEPS.length - 1)
+      setTimeout(() => {
+        setExtracting(false)
+        onQuotesReady(data?.quotes ?? [])
+      }, 400)
     } catch {
-      setError('Could not read file — try .txt or .md instead.')
-      setParsing(false)
+      clearInterval(tick)
+      setError('Something went wrong — please try again.')
+      setExtracting(false)
+      onError()
     }
   }
 
@@ -87,9 +105,6 @@ export default function ManuscriptUpload({ onTextReady }: Props) {
     const file = e.dataTransfer.files?.[0]
     if (file) handleFile(file)
   }
-
-  const wordCount = (text: string) =>
-    text.trim().split(/\s+/).filter(Boolean).length.toLocaleString()
 
   return (
     <div>
@@ -108,13 +123,13 @@ export default function ManuscriptUpload({ onTextReady }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept=".epub,.txt,.md"
+        accept=".epub,.txt,.md,.pdf,.docx"
         style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 1, height: 1 }}
         onChange={handleChange}
         tabIndex={-1}
       />
 
-      {!filename && (
+      {!filename && !extracting && (
         <div
           onClick={() => inputRef.current?.click()}
           onDragOver={e => { e.preventDefault(); setDragging(true) }}
@@ -154,12 +169,12 @@ export default function ManuscriptUpload({ onTextReady }: Props) {
             textTransform: 'uppercase',
             letterSpacing: '0.12em',
           }}>
-            EPUB · TXT · MD
+            EPUB · PDF · DOCX · TXT · MD
           </div>
         </div>
       )}
 
-      {filename && !parsing && (
+      {filename && !extracting && !error && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -181,21 +196,56 @@ export default function ManuscriptUpload({ onTextReady }: Props) {
           }}>
             {filename}
           </span>
+          {fileSize > 0 && (
+            <span style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10,
+              color: 'var(--ink-4)',
+            }}>
+              {formatSize(fileSize)}
+            </span>
+          )}
         </div>
       )}
 
-      {parsing && (
-        <div style={{
-          padding: '14px 16px',
-          background: 'var(--paper-2)',
-          border: '1px solid var(--rule)',
-          borderRadius: 6,
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontSize: 13,
-          color: 'var(--ink-4)',
-          fontStyle: 'italic',
-        }}>
-          Reading {filename}…
+      {extracting && (
+        <div style={{ padding: '32px 0' }}>
+          <div style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: 14,
+            color: 'var(--ink-3)',
+            fontStyle: 'italic',
+            marginBottom: 20,
+          }}>
+            {STEPS[stepIdx]}
+          </div>
+
+          <div style={{
+            height: 3,
+            background: 'var(--rule)',
+            borderRadius: 2,
+            overflow: 'hidden',
+            maxWidth: 480,
+          }}>
+            <div style={{
+              height: '100%',
+              width: `${progress}%`,
+              background: 'var(--amber)',
+              borderRadius: 2,
+              transition: 'width 0.4s ease',
+            }} />
+          </div>
+
+          <div style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 9,
+            color: 'var(--ink-4)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+            marginTop: 10,
+          }}>
+            {progress < 100 ? `${progress}%` : 'DONE'}
+          </div>
         </div>
       )}
 

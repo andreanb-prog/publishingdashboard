@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 
 const STEPS = [
-  'Reading your manuscript…',
-  'Finding the lines that ache…',
-  'Surfacing the ones worth keeping…',
+  'Parsing your manuscript…',
+  'Reading the pages…',
+  'Finding your best lines…',
   'Almost there…',
 ]
 
