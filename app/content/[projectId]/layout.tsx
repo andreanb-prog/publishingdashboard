@@ -31,8 +31,8 @@ export default async function ProjectLayout({
   const completedSteps: string[] = []
   if (project.frequency && (project.avatar || project.aesthetic)) completedSteps.push('setup')
   if (selectedQuoteCount >= 10) completedSteps.push('manuscript')
-  if (project._count.reviews > 0) completedSteps.push('reviews')
-  if (project._count.images > 0) completedSteps.push('images')
+  if (project._count.reviews >= 3) completedSteps.push('reviews')
+  if (project._count.images >= 5) completedSteps.push('images')
   if (project._count.posts > 0) completedSteps.push('calendar')
 
   return (

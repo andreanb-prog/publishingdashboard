@@ -36,7 +36,7 @@ export default function ProjectSidebar({
     if (isActive) return 'IN PROGRESS'
     if (completedSteps.includes(slug)) return 'COMPLETE'
     if (slug === 'manuscript' && quoteCount > 0) return `${quoteCount} QUOTES`
-    if (slug === 'reviews' && reviewCount > 0) return `${reviewCount} REVIEWS`
+    if (slug === 'reviews' && reviewCount > 0) return `${reviewCount} ON FILE`
     if (slug === 'images' && imageCount > 0) return `${imageCount} IMAGES`
     if (slug === 'calendar' && postCount > 0) return `${postCount} POSTS`
     return null

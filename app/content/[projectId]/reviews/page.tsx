@@ -1,37 +1,36 @@
-export default function ReviewsPage({ params }: { params: { projectId: string } }) {
+import { redirect, notFound } from 'next/navigation'
+import { getAugmentedSession } from '@/lib/getSession'
+import { db } from '@/lib/db'
+import ReviewBank from '@/components/content/reviews'
+
+export default async function ReviewsPage({ params }: { params: { projectId: string } }) {
+  const session = await getAugmentedSession()
+  if (!session) redirect('/login')
+
+  const [project, books, reviews] = await Promise.all([
+    db.storyPostProject.findFirst({
+      where: { id: params.projectId, userId: session.user.id },
+      select: { id: true },
+    }),
+    db.book.findMany({
+      where: { userId: session.user.id, excludeFromDashboard: false },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, title: true },
+    }),
+    db.storyPostReview.findMany({
+      where: { projectId: params.projectId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, text: true, reviewer: true, bookTitle: true },
+    }),
+  ])
+
+  if (!project) notFound()
+
   return (
-    <div style={{ padding: '48px 48px 80px', maxWidth: 760 }}>
-      <div style={{
-        fontFamily: "'JetBrains Mono', monospace",
-        fontSize: 9,
-        color: 'var(--ink-4)',
-        textTransform: 'uppercase',
-        letterSpacing: '0.1em',
-        marginBottom: 12,
-      }}>
-        STEP 03 · REVIEW BANK
-      </div>
-      <h1 style={{
-        fontFamily: "'Playfair Display', serif",
-        fontSize: 32,
-        fontWeight: 700,
-        color: 'var(--ink)',
-        lineHeight: 1.15,
-        letterSpacing: '-0.02em',
-        margin: '0 0 16px',
-      }}>
-        The words <em style={{ fontStyle: 'italic', fontWeight: 400 }}>readers left behind.</em>
-      </h1>
-      <p style={{
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontSize: 14,
-        color: 'var(--ink-4)',
-        fontStyle: 'italic',
-        lineHeight: 1.6,
-        margin: 0,
-      }}>
-        Coming in Session 4.
-      </p>
-    </div>
+    <ReviewBank
+      projectId={params.projectId}
+      initialReviews={reviews}
+      books={books}
+    />
   )
 }
