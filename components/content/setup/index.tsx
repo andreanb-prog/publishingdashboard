@@ -53,6 +53,7 @@ export default function SetupForm({ projectId, initialProject, initialBooks }: P
   const router = useRouter()
   const [project, setProject] = useState(initialProject)
   const [saving, setSaving] = useState(false)
+  const [resetDone, setResetDone] = useState(false)
 
   const save = useCallback(async (patch: Record<string, unknown>) => {
     setProject(prev => ({ ...prev, ...patch }))
@@ -72,10 +73,36 @@ export default function SetupForm({ projectId, initialProject, initialBooks }: P
     router.push(`/content/${projectId}/manuscript`)
   }
 
-  const handleReset = () => {
-    if (confirm('Reset this setup to the last saved state?')) {
-      window.location.reload()
+  const handleReset = async () => {
+    if (!confirm('Reset this project setup to defaults?')) return
+
+    const defaults = {
+      hasLaunch: false,
+      launchDate: null,
+      launchBookId: null,
+      frequency: 5,
+      bookPageUrl: null,
+      authorCentral: null,
+      website: null,
+      beaconsUrl: null,
+      pillars: null,
+      avatar: null,
+      aesthetic: null,
     }
+
+    try {
+      await fetch(`/api/content/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(defaults),
+      })
+    } catch {
+      // silent — best effort
+    }
+
+    setProject(prev => ({ ...prev, ...defaults }))
+    setResetDone(true)
+    setTimeout(() => setResetDone(false), 2000)
   }
 
   const launchDateStr = project.launchDate
@@ -131,11 +158,11 @@ export default function SetupForm({ projectId, initialProject, initialBooks }: P
               border: '1px solid var(--rule)',
               borderRadius: 4,
               background: 'transparent',
-              color: 'var(--ink-3)',
-              transition: 'border-color 0.15s',
+              color: resetDone ? 'var(--sage)' : 'var(--ink-3)',
+              transition: 'border-color 0.15s, color 0.15s',
             }}
           >
-            Reset
+            {resetDone ? 'Reset ✓' : 'Reset'}
           </button>
           <button
             onClick={handleContinue}

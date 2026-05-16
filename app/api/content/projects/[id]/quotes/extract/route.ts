@@ -5,9 +5,6 @@ import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const NAV_RE = /^(toc|nav|ncx|content\.opf|package\.opf)/i
-const CONTENT_EXT = /\.(html|xhtml|htm)$/i
-
 function stripHtml(html: string): string {
   return html
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -23,19 +20,50 @@ function stripHtml(html: string): string {
     .trim()
 }
 
+function isNavFile(name: string): boolean {
+  const base = name.split('/').pop() ?? ''
+  return /^(toc|nav|ncx|content\.opf|package\.opf)/i.test(base)
+}
+
 async function parseEpub(buffer: Buffer): Promise<string> {
   const JSZip = (await import('jszip')).default
   const zip = await JSZip.loadAsync(buffer)
 
-  const contentFiles = Object.keys(zip.files).filter(name => {
-    const base = name.split('/').pop() ?? ''
-    return CONTENT_EXT.test(name) && !NAV_RE.test(base)
-  })
+  const allNames = Object.keys(zip.files).filter(name => !zip.files[name].dir)
+
+  // All HTML/XHTML files, nav/toc files sorted last
+  let contentFiles = allNames
+    .filter(name => /\.(html|xhtml|htm)$/i.test(name))
+    .sort((a, b) => {
+      const aNav = isNavFile(a) ? 1 : 0
+      const bNav = isNavFile(b) ? 1 : 0
+      if (aNav !== bNav) return aNav - bNav
+      return a.localeCompare(b)
+    })
+
+  // If fewer than 3 HTML files, also include .xml files
+  if (contentFiles.length < 3) {
+    const xmlFiles = allNames
+      .filter(name => /\.xml$/i.test(name))
+      .sort((a, b) => a.localeCompare(b))
+    contentFiles = [...contentFiles, ...xmlFiles]
+  }
+
+  // Final fallback: use ALL files in the zip
+  if (contentFiles.length < 3) {
+    contentFiles = allNames.sort((a, b) => a.localeCompare(b))
+  }
+
+  console.log(`[parseEpub] zip has ${allNames.length} files, selected ${contentFiles.length}:`, contentFiles.slice(0, 10))
 
   const chunks: string[] = []
   for (const name of contentFiles) {
-    const html = await zip.files[name].async('string')
-    chunks.push(stripHtml(html))
+    try {
+      const html = await zip.files[name].async('string')
+      chunks.push(stripHtml(html))
+    } catch (err) {
+      console.warn(`[parseEpub] skipping ${name}:`, err)
+    }
   }
 
   return chunks.join('\n\n')

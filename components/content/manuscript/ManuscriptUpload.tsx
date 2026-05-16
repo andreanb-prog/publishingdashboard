@@ -94,6 +94,13 @@ export default function ManuscriptUpload({ projectId, onQuotesReady, onError }: 
     }
   }
 
+  const clearError = () => {
+    setError(null)
+    setFilename(null)
+    setFileSize(0)
+    if (inputRef.current) inputRef.current.value = ''
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) handleFile(file)
@@ -105,6 +112,9 @@ export default function ManuscriptUpload({ projectId, onQuotesReady, onError }: 
     const file = e.dataTransfer.files?.[0]
     if (file) handleFile(file)
   }
+
+  const showUploadZone = !extracting && (!filename || !!error)
+  const showFileDisplay = !extracting && !!filename && !error
 
   return (
     <div>
@@ -129,7 +139,18 @@ export default function ManuscriptUpload({ projectId, onQuotesReady, onError }: 
         tabIndex={-1}
       />
 
-      {!filename && !extracting && (
+      {error && (
+        <div style={{
+          marginBottom: 12,
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontSize: 13,
+          color: 'var(--coral)',
+        }}>
+          {error}
+        </div>
+      )}
+
+      {showUploadZone && (
         <div
           onClick={() => inputRef.current?.click()}
           onDragOver={e => { e.preventDefault(); setDragging(true) }}
@@ -174,7 +195,28 @@ export default function ManuscriptUpload({ projectId, onQuotesReady, onError }: 
         </div>
       )}
 
-      {filename && !extracting && !error && (
+      {error && (
+        <button
+          onClick={clearError}
+          style={{
+            display: 'block',
+            marginTop: 10,
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: 12,
+            color: 'var(--ink-3)',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+          }}
+        >
+          Upload a different file →
+        </button>
+      )}
+
+      {showFileDisplay && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -246,17 +288,6 @@ export default function ManuscriptUpload({ projectId, onQuotesReady, onError }: 
           }}>
             {progress < 100 ? `${progress}%` : 'DONE'}
           </div>
-        </div>
-      )}
-
-      {error && (
-        <div style={{
-          marginTop: 10,
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontSize: 13,
-          color: 'var(--rose)',
-        }}>
-          {error}
         </div>
       )}
     </div>
