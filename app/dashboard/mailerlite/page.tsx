@@ -13,7 +13,6 @@ import {
   BoutiqueMetricCard,
   BoutiqueEmptyState,
   BoutiqueCoachBox,
-  BoutiquePageSkeleton,
 } from '@/components/boutique'
 import { FreshBanner } from '@/components/FreshBanner'
 import { GoalSection } from '@/components/GoalSection'
@@ -171,6 +170,47 @@ function CampaignOpenRateChart({ campaigns, target }: { campaigns: import('@/typ
         { color: CHART_COLORS.amber, label: 'Below target', type: 'square' },
         { color: CHART_COLORS.amber, label: `Target ${target}%`, type: 'line' },
       ]} />
+    </div>
+  )
+}
+
+// ── Connected-layout page skeleton (shown while liveml fetch is in-flight) ────
+function MailerLiteConnectedSkeleton() {
+  return (
+    <div className="animate-pulse">
+      {/* Performance section label */}
+      <div className="h-3 mb-4" style={{ background: '#E5E7EB', width: 80 }} />
+      {/* 3-col metric grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, marginBottom: 1 }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{ background: 'white', border: '1px solid #EEEBE6', padding: '20px 22px' }}>
+            <div style={{ background: '#E5E7EB', height: 10, width: '45%', marginBottom: 10 }} />
+            <div style={{ background: '#E5E7EB', height: 28, width: '60%', marginBottom: 8 }} />
+            <div style={{ background: '#E5E7EB', height: 9, width: '75%' }} />
+          </div>
+        ))}
+      </div>
+      {/* 2-col metric grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, marginBottom: 28 }}>
+        {[0, 1].map(i => (
+          <div key={i} style={{ background: 'white', border: '1px solid #EEEBE6', padding: '20px 22px' }}>
+            <div style={{ background: '#E5E7EB', height: 10, width: '45%', marginBottom: 10 }} />
+            <div style={{ background: '#E5E7EB', height: 28, width: '55%', marginBottom: 8 }} />
+            <div style={{ background: '#E5E7EB', height: 9, width: '70%' }} />
+          </div>
+        ))}
+      </div>
+      {/* Coach box */}
+      <div style={{ background: '#E5E7EB', height: 80, marginBottom: 20 }} />
+      {/* Email health metrics */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{ background: '#E5E7EB', height: 84 }} />
+        ))}
+      </div>
+      {/* Section blocks */}
+      <div style={{ background: '#E5E7EB', height: 44, marginBottom: 12 }} />
+      <div style={{ background: '#E5E7EB', height: 160 }} />
     </div>
   )
 }
@@ -557,6 +597,7 @@ export default function MailerLitePage() {
   const [liveml, setLiveml] = useState<MailerLiteData | null>(null)
   const [goals, setGoals] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
+  const [mlLoading, setMlLoading] = useState(true)
   const [liveCampaigns, setLiveCampaigns] = useState<LiveCampaign[]>([])
   const [flaggedCampaign, setFlaggedCampaign] = useState<FlaggedCampaign | null>(null)
   const [campaignsLoading, setCampaignsLoading] = useState(true)
@@ -638,8 +679,18 @@ export default function MailerLitePage() {
     let cancelled = false
     fetch('/api/mailerlite')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(d => { if (!cancelled && d.data) setLiveml(d.data as MailerLiteData) })
-      .catch(err => { if (!cancelled) console.warn('[MailerLite page] live fetch failed:', err) })
+      .then(d => {
+        if (!cancelled) {
+          if (d.data) setLiveml(d.data as MailerLiteData)
+          setMlLoading(false)
+        }
+      })
+      .catch(err => {
+        if (!cancelled) {
+          console.warn('[MailerLite page] live fetch failed:', err)
+          setMlLoading(false)
+        }
+      })
     return () => { cancelled = true }
   }, [])
 
@@ -737,11 +788,11 @@ export default function MailerLitePage() {
     }
   }
 
-  if (loading) {
+  if (loading || mlLoading) {
     return (
       <BoutiqueChannelPageLayout>
         <BoutiquePageHeader title="MailerLite" subtitle="Open rates · List health · Subscriber trends" />
-        <BoutiquePageSkeleton cols={4} />
+        <MailerLiteConnectedSkeleton />
       </BoutiqueChannelPageLayout>
     )
   }
