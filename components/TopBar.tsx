@@ -153,73 +153,6 @@ export function TopBar({ user }: TopBarProps) {
     setTimeout(() => setShowToast(false), 4000)
   }, [])
 
-  // Direct-upload state for the header "Upload Files" button
-  const uploadInputRef = useRef<HTMLInputElement>(null)
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const [uploadMessage, setUploadMessage] = useState('')
-
-  async function handleDirectFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? [])
-    e.target.value = ''
-    if (!files.length) return
-
-    setUploadStatus('loading')
-    setUploadMessage('')
-
-    let totalRows = 0
-    let errorMsg = ''
-    let hasPinterest = false
-
-    for (const file of files) {
-      const name = file.name.toLowerCase()
-      console.log('[TopBar] direct upload:', { fileName: file.name, mimeType: file.type, ext: name.split('.').pop() })
-      try {
-        const form = new FormData()
-        form.append('file', file)
-
-        const isPinterest = name.includes('pinterest')
-        if (isPinterest) hasPinterest = true
-        const endpoint = isPinterest ? '/api/upload/pinterest' : '/api/parse-auto'
-        console.log('[TopBar] fetching:', endpoint, 'for file:', file.name)
-        const res = await fetch(endpoint, { method: 'POST', body: form })
-        console.log('[TopBar] response status:', res.status, res.ok ? 'ok' : 'error')
-        const json = await res.json().catch(() => ({}))
-        console.log('[TopBar] response json:', JSON.stringify(json).slice(0, 200))
-
-        if (!res.ok) {
-          errorMsg = json.error || `Upload failed (${res.status}). Please try again.`
-        } else if (isPinterest) {
-          totalRows += json.data?.totalImpressions ?? 0
-        } else {
-          totalRows += json.rowCount ?? json.data?.books?.length ?? 0
-        }
-      } catch (err) {
-        console.error('[TopBar] fetch error:', err)
-        errorMsg = 'Upload failed. Check your connection and try again.'
-      }
-    }
-
-    if (errorMsg && totalRows === 0) {
-      setUploadStatus('error')
-      setUploadMessage(errorMsg)
-    } else {
-      setUploadStatus('success')
-      const successMsg = hasPinterest
-        ? `✓ Pinterest uploaded — ${totalRows.toLocaleString()} impressions`
-        : `✓ Uploaded — ${totalRows} row${totalRows !== 1 ? 's' : ''} imported`
-      setUploadMessage(successMsg)
-      setShowToast(true)
-      setTimeout(() => setShowToast(false), 4000)
-      try { window.dispatchEvent(new CustomEvent('dashboard-data-refresh')) } catch {}
-      if (hasPinterest) {
-        router.push('/dashboard/pinterest?fresh=1')
-      } else {
-        router.refresh()
-      }
-      setTimeout(() => setUploadStatus('idle'), 5000)
-    }
-  }
-
   return (
     <header className="flex-shrink-0" style={{ background: '#FFFFFF', borderBottom: '1px solid #EEEBE6' }}>
       <div className="h-[56px] flex items-center px-6">
@@ -369,40 +302,18 @@ export function TopBar({ user }: TopBarProps) {
           {/* Connection status */}
           <ConnectionStatus />
 
-          {/* Hidden file input — always in DOM, never conditionally mounted */}
-          <input
-            ref={uploadInputRef}
-            type="file"
-            multiple
-            accept=".csv,.xlsx"
-            style={{ display: 'none', position: 'absolute', left: '-9999px' }}
-            onChange={handleDirectFileChange}
-          />
-
-          {/* Inline upload status */}
-          {uploadStatus !== 'idle' && (
-            <span
-              className="text-[11px] font-medium max-w-[160px] truncate"
-              style={{ color: uploadStatus === 'success' ? '#6EBF8B' : uploadStatus === 'error' ? '#F97B6B' : '#6B7280' }}
-            >
-              {uploadStatus === 'loading' ? 'Uploading...' : uploadMessage}
-            </span>
-          )}
-
           {/* Upload button */}
           <button
-            onClick={() => uploadInputRef.current?.click()}
-            disabled={uploadStatus === 'loading'}
+            onClick={() => router.push('/dashboard/upload')}
             className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all hover:opacity-90"
             style={{
               background: '#E9A020',
               color: '#0d1f35',
               border: 'none',
-              cursor: uploadStatus === 'loading' ? 'not-allowed' : 'pointer',
-              opacity: uploadStatus === 'loading' ? 0.7 : 1,
+              cursor: 'pointer',
             }}
           >
-            {uploadStatus === 'loading' ? 'Uploading…' : 'Upload Files'}
+            Upload Files
           </button>
         </div>
       </div>
