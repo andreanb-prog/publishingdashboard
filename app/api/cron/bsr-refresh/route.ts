@@ -25,51 +25,57 @@ export async function GET(req: NextRequest) {
 
   const { start: today, end: dayEnd } = todayUTC()
 
-  const results = await Promise.allSettled(
-    books.map(async (book) => {
-      const asin = book.asin!
+  let processed = 0
+  let skipped = 0
+  let errors = 0
+  const errorDetails: { asin: string; error: string; httpStatus?: number }[] = []
 
+  // Process sequentially with a 500 ms gap to avoid triggering Amazon bot-detection
+  for (const book of books) {
+    const asin = book.asin!
+
+    try {
       // Idempotent: skip if a rank was already logged today for this user+book
       const existing = await db.bsrLog.findFirst({
         where: { userId: book.userId, asin, rank: { not: null }, date: { gte: today, lt: dayEnd } },
         select: { id: true },
       })
-      if (existing) return 'skipped' as const
-
-      const result = await fetchBsrFromAmazon(asin)
-      if ('error' in result) {
-        throw new Error(`${asin}: ${result.error}`)
+      if (existing) {
+        skipped++
+        continue
       }
 
-      await db.bsrLog.create({
-        data: {
-          userId: book.userId,
-          asin,
-          bookTitle: book.title,
-          rank: result.rank,
-          categoryRanks: result.subcategories.length > 0 ? result.subcategories : undefined,
-          date: today,
-          fetchedAt: new Date(),
-        },
-      })
-      return 'processed' as const
-    })
-  )
+      const result = await fetchBsrFromAmazon(asin)
 
-  let processed = 0
-  let skipped = 0
-  let errors = 0
-
-  for (const r of results) {
-    if (r.status === 'rejected') {
-      console.error('[cron/bsr-refresh]', r.reason)
+      if ('error' in result) {
+        const detail = { asin, error: result.error, httpStatus: result.httpStatus }
+        console.error('[cron/bsr-refresh] fetch error', detail)
+        errorDetails.push(detail)
+        errors++
+      } else {
+        await db.bsrLog.create({
+          data: {
+            userId: book.userId,
+            asin,
+            bookTitle: book.title,
+            rank: result.rank,
+            date: today,
+            fetchedAt: new Date(),
+          },
+        })
+        processed++
+        console.log(`[cron/bsr-refresh] logged rank=${result.rank} for ASIN=${asin}`)
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(`[cron/bsr-refresh] unexpected error for ASIN=${asin}:`, msg)
+      errorDetails.push({ asin, error: msg })
       errors++
-    } else if (r.value === 'skipped') {
-      skipped++
-    } else {
-      processed++
     }
+
+    // 500 ms delay between requests — keeps us under Amazon's bot radar
+    await new Promise(r => setTimeout(r, 500))
   }
 
-  return NextResponse.json({ success: true, processed, skipped, errors })
+  return NextResponse.json({ success: true, processed, skipped, errors, errorDetails })
 }
