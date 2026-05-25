@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
           asin,
           bookTitle: book.title,
           rank: result.rank,
+          categoryRanks: result.subcategories.length > 0 ? result.subcategories : undefined,
           date: today,
           fetchedAt: new Date(),
         },

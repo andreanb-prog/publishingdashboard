@@ -5,6 +5,7 @@ import { BoutiqueChannelPageLayout, BoutiquePageHeader, BoutiqueSectionLabel } f
 import { BOOK_COLORS } from '@/lib/bookColors'
 import { HealthBenchmarkBar, ProjectionBadge, MetricTooltip } from '@/components/MetricHealth'
 import type { Analysis, RankLog, RoasLog } from '@/types'
+import { fmtCurrency } from '@/lib/utils'
 const AVG_ROMANCE_PAGES = 300
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -29,6 +30,7 @@ function statusColor(value: number, good: number, bad: number, higherIsBetter = 
 type DailyRow = {
   date: string; asin: string; title: string
   units: number; kenp: number; rank: number | null
+  topCategoryRank: { rank: number; category: string } | null
   adSpend: number | null; revenue: number | null; roas: number | null
 }
 
@@ -48,8 +50,7 @@ function fmtDate(dateStr: string): string {
 }
 
 function fmtMoney(n: number | null): string {
-  if (n == null) return '—'
-  return `$${n.toFixed(2)}`
+  return fmtCurrency(n)
 }
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
@@ -166,17 +167,17 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
     { label: 'Ad Impressions', value: impressions > 0 ? impressions.toLocaleString() : '—', raw: impressions, sub: 'Source: Meta ads', available: !!meta },
     { label: 'Clicks', value: clicks > 0 ? clicks.toLocaleString() : '—', raw: clicks, sub: `${ctr.toFixed(1)}% CTR`, available: !!meta, leakPct: impressions > 0 ? 100 - ctr : undefined, leakStatus: ctr >= 2 ? 'green' : ctr >= 1 ? 'amber' : 'red', leakNote: ctr < 1 ? 'Low CTR — your ad creative may need a stronger hook' : undefined },
     { label: 'Book Page Visits', value: clicks > 0 ? `~${clicks.toLocaleString()}` : '—', raw: clicks, sub: 'Estimated from clicks', available: !!meta },
-    { label: 'Readers', value: readers > 0 ? readers.toLocaleString() : '—', raw: readers, sub: readers > 0 ? `${totalUnits} units + ~${estimatedBorrows} KU · $${costPerReader.toFixed(2)}/reader` : 'Source: KDP', available: !!kdp, leakPct: clicks > 0 ? (1 - readers / clicks) * 100 : undefined, leakStatus: clicks > 0 ? (readers / clicks >= 0.3 ? 'green' : readers / clicks >= 0.15 ? 'amber' : 'red') : undefined, leakNote: clicks > 0 && readers / clicks < 0.15 ? 'Low conversion — improve your blurb or cover' : undefined },
+    { label: 'Readers', value: readers > 0 ? readers.toLocaleString() : '—', raw: readers, sub: readers > 0 ? `${totalUnits} units + ~${estimatedBorrows} KU · ${fmtCurrency(costPerReader)}/reader` : 'Source: KDP', available: !!kdp, leakPct: clicks > 0 ? (1 - readers / clicks) * 100 : undefined, leakStatus: clicks > 0 ? (readers / clicks >= 0.3 ? 'green' : readers / clicks >= 0.15 ? 'amber' : 'red') : undefined, leakNote: clicks > 0 && readers / clicks < 0.15 ? 'Low conversion — improve your blurb or cover' : undefined },
     { label: 'Series Continuation', value: readThroughPct > 0 ? `${readThroughPct.toFixed(0)}% read-through` : '—', raw: readThroughPct, sub: booksSorted.length > 1 ? 'Book 2 vs Book 1 KENP' : 'Need 2+ books', available: booksSorted.length > 1, leakPct: readThroughPct > 0 ? 100 - readThroughPct : undefined, leakStatus: readThroughPct >= 60 ? 'green' : readThroughPct >= 35 ? 'amber' : 'red', leakNote: readThroughPct > 0 && readThroughPct < 35 ? 'Low read-through — check back matter links' : undefined },
-    { label: 'Email Subscribers', value: listSize > 0 ? listSize.toLocaleString() : '0', raw: listSize, sub: listSize === 0 && readers > 0 ? `${readers.toLocaleString()} readers never captured — YOUR LEAK` : listSize > 0 ? `$${costPerSub.toFixed(2)}/subscriber` : 'Source: MailerLite', available: true, leakStatus: listSize === 0 && readers > 0 ? 'red' : listSize > 0 ? 'green' : undefined, leakNote: listSize === 0 && readers > 0 ? 'No email capture — build a reader magnet immediately' : undefined },
+    { label: 'Email Subscribers', value: listSize > 0 ? listSize.toLocaleString() : '0', raw: listSize, sub: listSize === 0 && readers > 0 ? `${readers.toLocaleString()} readers never captured — YOUR LEAK` : listSize > 0 ? `${fmtCurrency(costPerSub)}/subscriber` : 'Source: MailerLite', available: true, leakStatus: listSize === 0 && readers > 0 ? 'red' : listSize > 0 ? 'green' : undefined, leakNote: listSize === 0 && readers > 0 ? 'No email capture — build a reader magnet immediately' : undefined },
   ]
 
   const LEAK_COLORS = { green: { bg: 'rgba(52,211,153,0.08)', color: '#34d399', label: 'Healthy' }, amber: { bg: 'rgba(251,191,36,0.08)', color: '#fbbf24', label: 'Monitor' }, red: { bg: 'rgba(251,113,133,0.08)', color: '#fb7185', label: 'Leak' } }
 
   const metrics = [
-    { label: 'Cost per Click', value: costPerClick > 0 ? `$${costPerClick.toFixed(2)}` : '—', color: '#38bdf8', tooltip: 'costPerClick' as const, raw: costPerClick },
-    { label: 'Cost per Reader', value: costPerReader > 0 ? `$${costPerReader.toFixed(2)}` : '—', color: '#34d399', tooltip: 'costPerReader' as const, raw: costPerReader },
-    { label: 'Cost per Subscriber', value: costPerSub > 0 ? `$${costPerSub.toFixed(2)}` : '—', color: '#a78bfa', tooltip: 'costPerSub' as const, benchmark: 'costPerSub' as const, raw: costPerSub },
+    { label: 'Cost per Click', value: costPerClick > 0 ? fmtCurrency(costPerClick) : '—', color: '#38bdf8', tooltip: 'costPerClick' as const, raw: costPerClick },
+    { label: 'Cost per Reader', value: costPerReader > 0 ? fmtCurrency(costPerReader) : '—', color: '#34d399', tooltip: 'costPerReader' as const, raw: costPerReader },
+    { label: 'Cost per Subscriber', value: costPerSub > 0 ? fmtCurrency(costPerSub) : '—', color: '#a78bfa', tooltip: 'costPerSub' as const, benchmark: 'costPerSub' as const, raw: costPerSub },
     { label: 'Readers This Month', value: readers > 0 ? readers.toLocaleString() : '—', color: '#e9a020', raw: 0 },
   ]
 
@@ -193,7 +194,7 @@ function ReaderFunnel({ meta, kdp, ml, booksSorted }: {
     { label: 'Impressions', value: impressions, source: meta ? 'Meta' : '', color: FUNNEL_COLORS[0] },
     { label: 'Clicks', value: clicks, source: meta ? `${ctr.toFixed(1)}% CTR` : '', color: FUNNEL_COLORS[1] },
     { label: 'Readers', value: readers, source: readers > 0 ? `${totalUnits} units + ~${estimatedBorrows} KU` : '', color: FUNNEL_COLORS[2] },
-    { label: 'Email Subscribers', value: listSize, source: listSize > 0 ? `$${costPerSub.toFixed(2)}/sub` : '', color: FUNNEL_COLORS[3] },
+    { label: 'Email Subscribers', value: listSize, source: listSize > 0 ? `${fmtCurrency(costPerSub)}/sub` : '', color: FUNNEL_COLORS[3] },
   ]
   const maxFunnel = Math.max(...funnelStages.map(s => s.value), 1)
   const biggestLeak = coachLines.find(l => l.includes('leak') || l.includes('Leak')) || coachLines[0] || ''
@@ -729,7 +730,7 @@ export default function MetricsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, fontWeight: 500 }}>
               <thead>
                 <tr style={{ background: 'white', borderBottom: '1px solid #EEEBE6' }}>
-                  {(['DATE', 'TITLE', 'UNITS', 'PAGE READS', 'BSR RANK', 'AD SPEND', 'REVENUE', 'ROAS'] as const).map(h => (
+                  {(['DATE', 'TITLE', 'UNITS', 'PAGE READS', 'BSR RANK', 'TOP CAT RANK', 'AD SPEND', 'REVENUE', 'ROAS'] as const).map(h => (
                     <th key={h} style={{ ...COL_STYLE, padding: '10px 12px', textAlign: h === 'DATE' || h === 'TITLE' ? 'left' : 'right' }}>{h}</th>
                   ))}
                 </tr>
@@ -742,6 +743,16 @@ export default function MetricsPage() {
                     <td style={{ padding: '8px 12px', color: '#1E2D3D', textAlign: 'right' }}>{row.units}</td>
                     <td style={{ padding: '8px 12px', color: '#1E2D3D', textAlign: 'right' }}>{row.kenp.toLocaleString()}</td>
                     <td style={{ padding: '8px 12px', color: '#1E2D3D', textAlign: 'right' }}>{row.rank != null ? row.rank.toLocaleString() : '—'}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>
+                      {row.topCategoryRank != null ? (
+                        <div>
+                          <div style={{ color: '#1E2D3D', fontWeight: 600 }}>#{row.topCategoryRank.rank.toLocaleString()}</div>
+                          <div style={{ color: '#6B7280', fontSize: 10, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginLeft: 'auto' }} title={row.topCategoryRank.category}>
+                            {row.topCategoryRank.category}
+                          </div>
+                        </div>
+                      ) : '—'}
+                    </td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: '#1E2D3D' }}>{fmtMoney(row.adSpend)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: '#1E2D3D' }}>{fmtMoney(row.revenue)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: row.roas != null ? roasColor(row.roas) : '#6B7280', fontWeight: 600 }}>
@@ -755,6 +766,7 @@ export default function MetricsPage() {
                   <td colSpan={2} style={{ padding: '8px 12px', color: '#1E2D3D', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>TOTALS</td>
                   <td style={{ padding: '8px 12px', color: '#1E2D3D', textAlign: 'right', fontWeight: 700 }}>{totalUnits.toLocaleString()}</td>
                   <td style={{ padding: '8px 12px', color: '#1E2D3D', textAlign: 'right', fontWeight: 700 }}>{totalKenp.toLocaleString()}</td>
+                  <td style={{ padding: '8px 12px', color: '#6B7280', textAlign: 'right' }}>—</td>
                   <td style={{ padding: '8px 12px', color: '#6B7280', textAlign: 'right' }}>—</td>
                   <td style={{ padding: '8px 12px', textAlign: 'right', color: '#1E2D3D', fontWeight: 700 }}>{totalSpend > 0 ? fmtMoney(totalSpend) : '—'}</td>
                   <td style={{ padding: '8px 12px', textAlign: 'right', color: '#1E2D3D', fontWeight: 700 }}>{totalRevenue > 0 ? fmtMoney(totalRevenue) : '—'}</td>

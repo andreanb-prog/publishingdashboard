@@ -58,6 +58,15 @@ export async function GET(req: NextRequest) {
     const adSpend = bsr?.adSpend ?? null
     const revenue = bsr?.revenue ?? null
     const roas    = adSpend != null && revenue != null && adSpend > 0 ? revenue / adSpend : null
+
+    let topCategoryRank: { rank: number; category: string } | null = null
+    if (bsr?.categoryRanks) {
+      const cats = bsr.categoryRanks as { rank: number; category: string }[]
+      if (Array.isArray(cats) && cats.length > 0) {
+        topCategoryRank = cats.reduce((best, c) => c.rank < best.rank ? c : best, cats[0])
+      }
+    }
+
     return {
       date:    sale.date,
       asin:    sale.asin,
@@ -65,6 +74,7 @@ export async function GET(req: NextRequest) {
       units:   sale.units,
       kenp:    sale.kenp,
       rank:    bsr?.rank ?? null,
+      topCategoryRank,
       adSpend,
       revenue,
       roas,

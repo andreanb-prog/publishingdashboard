@@ -690,6 +690,7 @@ model BsrLog {
   newSubsAutoFilled Boolean  @default(false)
   lpv               Int?
   notes             String?
+  categoryRanks     Json?
   date              DateTime @default(now())
   fetchedAt         DateTime @default(now())
 
