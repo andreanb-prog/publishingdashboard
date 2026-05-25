@@ -732,7 +732,7 @@ function AdSpendRoyaltiesChart({ logs }: { logs: RoasLog[] }) {
             callbacks: {
               title: (items: any[]) => items.length ? labels[items[0].dataIndex] : '',
               label: (item: any) => {
-                if (item.datasetIndex === 0) return ` Daily spend: $${item.raw}`
+                if (item.datasetIndex === 0) return ` Daily spend: $${Number(item.raw).toFixed(2)}`
                 if (item.datasetIndex === 1) return ` Cumulative royalties: $${Number(item.raw).toFixed(2)}`
                 return ` Break-even threshold: $${Number(item.raw).toFixed(2)}`
               },
@@ -1014,8 +1014,7 @@ export default function KDPPage() {
   // My Books list sorted by sortOrder — used for stable ASIN-based color assignment
   const [myBooksList,  setMyBooksList]  = useState<any[]>([])
   const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(null)
-  const [showPurchased, setShowPurchased] = useState(true)
-  const [showKU, setShowKU] = useState(true)
+  const [activeFormat, setActiveFormat] = useState<'units' | 'ku' | 'paperback'>('units')
   const [kdpSalesData, setKdpSalesData] = useState<{
     dailyUnits:     { date: string; value: number }[]
     dailyKENP:      { date: string; value: number }[]
@@ -1351,92 +1350,97 @@ export default function KDPPage() {
           )}
           {coach && <BoutiqueCoachBox>{coach}</BoutiqueCoachBox>}
 
-          {/* Book Title Picker — excludes books marked as hidden in Settings > My Books */}
-          {displayBooks.filter(isBookVisible).length > 1 && (
-            <div className="flex items-center gap-2 mb-4 flex-wrap">
-              <span className="text-[11px] font-medium uppercase" style={{ color: '#6B7280', letterSpacing: '0.3px' }}>Filter:</span>
-              <button
-                onClick={() => setSelectedBooks(new Set())}
-                className="px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
-                style={{
-                  background: selectedBooks.size === 0 ? '#E9A020' : '#FFF8F0',
-                  color: selectedBooks.size === 0 ? 'white' : '#1E2D3D',
-                  border: `0.5px solid ${selectedBooks.size === 0 ? '#E9A020' : '#EEEBE6'}`,
-                  cursor: 'pointer',
-                }}>
-                All Books
-              </button>
-              {displayBooks.filter(isBookVisible).map((b, visibleIdx) => {
-                const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
-                const colorIdx = bookColorMap[b.asin?.trim().toUpperCase() ?? ''] ?? visibleIdx
-                const c = BOOK_COLORS[colorIdx] || '#6B7280'
-                const isSelected = selectedBooks.has(b.asin)
-                const formatBadges = getFormatBadges(b)
-                return (
-                  <button key={b.asin || b.shortTitle}
-                    onClick={() => setSelectedBooks(prev => {
-                      const next = new Set(prev)
-                      if (next.has(b.asin)) next.delete(b.asin); else next.add(b.asin)
-                      return next
-                    })}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
+          {/* Filter Bar — Book selector + Format toggle */}
+          {displayBooks.filter(isBookVisible).length > 0 && (() => {
+            const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
+            const visibleFilterBooks = displayBooks.filter(isBookVisible)
+            return (
+              <div className="mb-6 rounded-xl overflow-hidden" style={{ background: '#FFF8F0', border: '1.5px solid rgba(30,45,61,0.1)' }}>
+                {/* Row 1 — Book selector */}
+                <div className="flex items-center gap-2 flex-wrap px-4 py-3">
+                  <button
+                    onClick={() => setSelectedBooks(new Set())}
+                    className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all duration-150"
                     style={{
-                      background: isSelected ? c : '#FFF8F0',
-                      color: isSelected ? 'white' : '#1E2D3D',
-                      border: `0.5px solid ${isSelected ? c : '#EEEBE6'}`,
-                      cursor: 'pointer',
-                    }}>
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: isSelected ? 'white' : c }} />
-                    {b.shortTitle}
-                    {formatBadges.map(type => (
-                      <FormatBadge key={type} type={type} faded={isSelected} />
-                    ))}
+                      background: selectedBooks.size === 0 ? '#1E2D3D' : 'white',
+                      color: selectedBooks.size === 0 ? 'white' : '#1E2D3D',
+                      border: `1px solid ${selectedBooks.size === 0 ? '#1E2D3D' : 'rgba(30,45,61,0.15)'}`,
+                    }}
+                  >
+                    All Books
                   </button>
-                )
-              })}
-            </div>
-          )}
+                  {visibleFilterBooks.map((b, visibleIdx) => {
+                    const colorIdx = bookColorMap[b.asin?.trim().toUpperCase() ?? ''] ?? visibleIdx
+                    const c = BOOK_COLORS[colorIdx] || '#6B7280'
+                    const isSelected = selectedBooks.has(b.asin)
+                    return (
+                      <button
+                        key={b.asin || b.shortTitle}
+                        onClick={() => setSelectedBooks(prev => {
+                          const next = new Set(prev)
+                          if (next.has(b.asin)) next.delete(b.asin); else next.add(b.asin)
+                          return next
+                        })}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all duration-150"
+                        style={{
+                          background: isSelected ? c : 'white',
+                          color: isSelected ? 'white' : '#1E2D3D',
+                          border: `1px solid ${isSelected ? c : 'rgba(30,45,61,0.15)'}`,
+                        }}
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ background: isSelected ? 'rgba(255,255,255,0.55)' : c }}
+                        />
+                        {b.shortTitle}
+                      </button>
+                    )
+                  })}
+                </div>
 
-          {/* Format Filter Pills */}
-          {displayBooks.filter(isBookVisible).length > 0 && (
-            <div className="flex items-center gap-2 mb-4 flex-wrap">
-              <span className="text-[11px] font-medium uppercase" style={{ color: '#6B7280', letterSpacing: '0.3px' }}>Format:</span>
-              <button
-                onClick={() => {
-                  const next = !showPurchased
-                  if (!next && !showKU) { setShowPurchased(true); setShowKU(true) } else setShowPurchased(next)
-                }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] transition-all"
-                style={{
-                  background: showPurchased ? '#E9A020' : '#FFF8F0',
-                  color: showPurchased ? '#1E2D3D' : 'rgba(30,45,61,0.4)',
-                  fontWeight: showPurchased ? 700 : 500,
-                  border: `0.5px solid ${showPurchased ? '#E9A020' : '#EEEBE6'}`,
-                  cursor: 'pointer',
-                }}
-              >
-                <BookOpen size={10} style={{ flexShrink: 0 }} />
-                Units Sold
-              </button>
-              <button
-                onClick={() => {
-                  const next = !showKU
-                  if (!next && !showPurchased) { setShowPurchased(true); setShowKU(true) } else setShowKU(next)
-                }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] transition-all"
-                style={{
-                  background: showKU ? '#E9A020' : '#FFF8F0',
-                  color: showKU ? '#1E2D3D' : 'rgba(30,45,61,0.4)',
-                  fontWeight: showKU ? 700 : 500,
-                  border: `0.5px solid ${showKU ? '#E9A020' : '#EEEBE6'}`,
-                  cursor: 'pointer',
-                }}
-              >
-                <Repeat size={10} style={{ flexShrink: 0 }} />
-                Page Reads
-              </button>
-            </div>
-          )}
+                {/* Divider */}
+                <div style={{ height: 1, background: 'rgba(30,45,61,0.07)', margin: '0 16px' }} />
+
+                {/* Row 2 — Format toggle */}
+                <div className="px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-[1px]" style={{ color: '#6B7280' }}>Format</span>
+                    <span className="text-[11px]" style={{ color: '#9CA3AF' }}>applies to all selected books</span>
+                  </div>
+                  <div
+                    className="inline-flex"
+                    style={{
+                      background: 'white',
+                      border: '1.5px solid rgba(30,45,61,0.1)',
+                      borderRadius: 999,
+                      padding: 3,
+                    }}
+                  >
+                    {(['units', 'ku', 'paperback'] as const).map(fmt => {
+                      const LABELS: Record<string, string> = { units: 'Units Sold', ku: 'Page Reads', paperback: 'Paperback' }
+                      const isActive = activeFormat === fmt
+                      return (
+                        <button
+                          key={fmt}
+                          onClick={() => setActiveFormat(fmt)}
+                          className="px-3.5 py-1.5 text-[12px] font-semibold transition-all duration-150"
+                          style={{
+                            background: isActive ? '#E9A020' : 'transparent',
+                            color: isActive ? 'white' : '#6B7280',
+                            borderRadius: 999,
+                            border: 'none',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {LABELS[fmt]}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Book Performance Charts */}
           {(() => {
@@ -1503,8 +1507,8 @@ export default function KDPPage() {
 
             return (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <BookBar books={visibleBooks} title="Sales by Title" metric="units" show={showPurchased} />
-                <BookBar books={visibleBooks} title="Reader Engagement by Title" metric="kenp" show={showKU} />
+                <BookBar books={visibleBooks} title="Sales by Title" metric="units" show={activeFormat !== 'ku'} />
+                <BookBar books={visibleBooks} title="Reader Engagement by Title" metric="kenp" show={activeFormat === 'ku'} />
               </div>
             )
           })()}
