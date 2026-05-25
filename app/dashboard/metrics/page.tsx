@@ -39,6 +39,12 @@ function shortTitle(title: string): string {
   return words.length > 4 ? words.slice(0, 4).join(' ') + '…' : title
 }
 
+function isKindleEbook(asin: string | null | undefined): boolean {
+  if (!asin) return false
+  if (asin.startsWith('978') || asin.startsWith('979')) return false
+  return /^B[A-Z0-9]{9}$/i.test(asin)
+}
+
 function roasColor(roas: number): string {
   if (roas >= 1.5) return '#E9A020'
   if (roas < 1)    return '#F97B6B'
@@ -429,6 +435,50 @@ export default function MetricsPage() {
     color: BOOK_COLORS[i] || '#6B7280',
   }))
 
+  // Funnel books: only catalog books with valid Kindle eBook ASINs (no paperback ISBNs, no pre-order artifacts)
+  const funnelBooks = (() => {
+    const cumulativeKenp = new Map<string, number>()
+    for (const a of analyses) {
+      for (const b of a.kdp?.books ?? []) {
+        const key = b.asin?.toUpperCase()
+        if (key) cumulativeKenp.set(key, (cumulativeKenp.get(key) ?? 0) + (b.kenp ?? 0))
+      }
+    }
+    const currentByAsin = new Map((kdp?.books ?? []).map(b => [b.asin?.toUpperCase() ?? '', b]))
+    return catalogBooks
+      .filter(b => !b.excludeFromDashboard && isKindleEbook(b.asin))
+      .map(cb => {
+        const key = cb.asin!.toUpperCase()
+        const live = currentByAsin.get(key)
+        return {
+          title: cb.title,
+          asin: cb.asin!,
+          shortTitle: cb.title.split(' ').slice(0, 4).join(' '),
+          units: live?.units ?? 0,
+          kenp: cumulativeKenp.get(key) ?? 0,
+          royalties: live?.royalties ?? 0,
+        }
+      })
+  })()
+
+  const funnelReadThrough = funnelBooks.map((book, i) => ({
+    book,
+    pct: i === 0 ? 100 : funnelBooks[i - 1].kenp > 0 ? (book.kenp / funnelBooks[i - 1].kenp) * 100 : 0,
+    color: BOOK_COLORS[i] || '#6B7280',
+  }))
+
+  // Most-recent BSR rank per book ASIN from RankLog
+  const bsrPerBook = (() => {
+    const latest = new Map<string, RankLog>()
+    for (const log of rankLogs) {
+      const existing = latest.get(log.asin)
+      if (!existing || new Date(log.date) > new Date(existing.date)) {
+        latest.set(log.asin, log)
+      }
+    }
+    return latest
+  })()
+
   // ── Cross-channel correlation data ─────────────────────────────────────────
   // Ad Spend vs Rank: did spending move rank?
   const spendHistory = analyses.map(a => a.meta?.totalSpend ?? 0).reverse()
@@ -446,7 +496,7 @@ export default function MetricsPage() {
   const kenpHistory = analyses.map(a => a.kdp?.totalKENP ?? 0).reverse()
 
   // Series Health Score
-  const readThroughScore = readThrough.length >= 2 ? Math.min(readThrough[1].pct / 40 * 100, 100) : 0
+  const readThroughScore = funnelReadThrough.length >= 2 ? Math.min(funnelReadThrough[1].pct / 40 * 100, 100) : 0
   const bestRank = rankLogs.length ? Math.min(...rankLogs.slice(-30).map(l => l.rank)) : null
   const rankScore = bestRank ? (bestRank <= 50000 ? 100 : bestRank <= 200000 ? 60 : 20) : 0
   const listGrowth = prevAnalysis?.mailerLite && ml ? ml.listSize - prevAnalysis.mailerLite.listSize : 0
@@ -476,7 +526,7 @@ export default function MetricsPage() {
 
       {/* ── 1. READER FUNNEL CHECKER ───────────────────────────────────────── */}
       <BoutiqueSectionLabel label="Reader Funnel Checker" />
-      <ReaderFunnel meta={meta} kdp={kdp} ml={ml} booksSorted={booksSorted} />
+      <ReaderFunnel meta={meta} kdp={kdp} ml={ml} booksSorted={funnelBooks} />
 
       {/* ── 2. CROSS-CHANNEL CORRELATIONS ──────────────────────────────────── */}
       <BoutiqueSectionLabel label="Cross-Channel Correlations" />
@@ -603,10 +653,10 @@ export default function MetricsPage() {
       {/* ── 3. SERIES READ-THROUGH FUNNEL ──────────────────────────────────── */}
       <BoutiqueSectionLabel label="Series Read-Through Funnel" />
 
-      <div className="rounded p-5 mb-7" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
-        {readThrough.length >= 2 ? (
+      <div className="rounded p-5 mb-4" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+        {funnelBooks.length >= 1 && funnelBooks[0].kenp > 0 ? (
           <>
-            {readThrough.map((rt, i) => (
+            {funnelReadThrough.map((rt, i) => (
               <FunnelBar
                 key={rt.book.asin || i}
                 label={`${rt.book.shortTitle} — Book ${i + 1}`}
@@ -617,17 +667,55 @@ export default function MetricsPage() {
               />
             ))}
             <div className="mt-3 pt-3 text-[11.5px] leading-relaxed" style={{ color: '#6B7280', borderTop: '1px solid #EEEBE6' }}>
-              💬 {readThrough[1].pct >= 40
-                ? `${readThrough[1].pct.toFixed(0)}% of Book 1 readers continued to Book 2 — above the 40% benchmark. Your series hook is working.`
-                : `${readThrough[1].pct.toFixed(0)}% continued to Book 2. Strengthen your cliffhanger and add a direct link at the end of Book 1.`}
+              💬 {funnelReadThrough.length >= 2
+                ? funnelReadThrough[1].pct >= 40
+                  ? `${funnelReadThrough[1].pct.toFixed(0)}% of Book 1 readers continued to Book 2 — above the 40% benchmark. Your series hook is working.`
+                  : funnelReadThrough[1].pct > 0
+                  ? `${funnelReadThrough[1].pct.toFixed(0)}% continued to Book 2. Strengthen your cliffhanger and add a direct link at the end of Book 1.`
+                  : 'Book 2 has no KENP reads yet. Upload more recent KDP data to track read-through.'
+                : 'Add a second book in Settings → My Books to see your read-through rate.'}
             </div>
           </>
         ) : (
           <div className="text-[12.5px] py-6 text-center" style={{ color: '#6B7280' }}>
-            Upload KDP data with 2+ books to see your series read-through funnel.
+            {funnelBooks.length === 0
+              ? 'Add your books in Settings → My Books to see your series read-through funnel.'
+              : 'Upload KDP data to see your series read-through funnel.'}
           </div>
         )}
       </div>
+
+      {/* BSR per-book strip */}
+      {funnelBooks.length > 0 && (
+        <div className="grid gap-3 mb-7" style={{ gridTemplateColumns: `repeat(${Math.min(funnelBooks.length, 4)}, 1fr)` }}>
+          {funnelBooks.map((book, i) => {
+            const bsr = bsrPerBook.get(book.asin.toUpperCase())
+            const color = BOOK_COLORS[i] || '#6B7280'
+            return (
+              <div key={book.asin} className="rounded p-4" style={{ background: 'white', border: '1px solid #EEEBE6' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                  <div className="text-[10px] font-bold tracking-[1.2px] uppercase truncate" style={{ color: '#6B7280' }}>
+                    Book {i + 1}
+                  </div>
+                </div>
+                <div className="text-[12px] font-semibold mb-2 leading-tight" style={{ color: '#1E2D3D' }}>
+                  {book.shortTitle}
+                </div>
+                <div className="text-[10px] mb-1" style={{ color: '#6B7280' }}>Latest BSR</div>
+                <div className="text-[22px] font-semibold leading-none tracking-tight" style={{ color: bsr ? color : '#9CA3AF' }}>
+                  {bsr ? `#${bsr.rank.toLocaleString()}` : '—'}
+                </div>
+                {bsr && (
+                  <div className="text-[10px] mt-1" style={{ color: '#9CA3AF' }}>
+                    {new Date(bsr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* ── 4. ARC CALCULATOR ──────────────────────────────────────────────── */}
       <BoutiqueSectionLabel label="ARC Conversion Calculator" />
