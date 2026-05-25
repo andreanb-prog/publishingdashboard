@@ -46,8 +46,7 @@ const ALL_CHANNELS: NavItem[] = [
   { label: 'KDP',             desc: 'Amazon royalties',  href: '/dashboard/kdp',         Icon: BookOpen },
   { label: 'Meta / Facebook', desc: 'Ad performance',    href: '/dashboard/meta',        Icon: TrendingUp },
   { label: 'MailerLite',      desc: 'Email list',        href: '/dashboard/mailerlite',  Icon: Mail },
-  { label: 'Swaps & Promos',  desc: 'Newsletter swaps',  href: '/dashboard/swaps',       Icon: ArrowLeftRight },
-  { label: 'Pinterest',       desc: 'Pinterest traffic', href: '/dashboard/pinterest',   Icon: Pin },
+{ label: 'Pinterest',       desc: 'Pinterest traffic', href: '/dashboard/pinterest',   Icon: Pin },
 ]
 
 const ALL_TOOLS: NavItem[] = [
