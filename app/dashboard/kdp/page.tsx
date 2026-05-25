@@ -732,9 +732,9 @@ function AdSpendRoyaltiesChart({ logs }: { logs: RoasLog[] }) {
             callbacks: {
               title: (items: any[]) => items.length ? labels[items[0].dataIndex] : '',
               label: (item: any) => {
-                if (item.datasetIndex === 0) return ` Daily spend: $${Number(item.raw).toFixed(2)}`
-                if (item.datasetIndex === 1) return ` Cumulative royalties: $${Number(item.raw).toFixed(2)}`
-                return ` Break-even threshold: $${Number(item.raw).toFixed(2)}`
+                if (item.datasetIndex === 0) return ` Daily spend: ${fmtCurrency(Number(item.raw))}`
+                if (item.datasetIndex === 1) return ` Cumulative royalties: ${fmtCurrency(Number(item.raw))}`
+                return ` Break-even threshold: ${fmtCurrency(Number(item.raw))}`
               },
             },
           },
@@ -803,7 +803,7 @@ function AdSpendRoyaltiesChart({ logs }: { logs: RoasLog[] }) {
         </div>
       ) : totalSpend > 0 ? (
         <div className="mt-3 text-[12px] px-3 py-2 rounded-lg" style={{ background: 'rgba(249,123,107,0.08)', color: '#374151' }}>
-          You&apos;re <strong>${(totalSpend - totalEarnings).toFixed(2)}</strong> from break-even this period. One good day covers it.
+          You&apos;re <strong>{fmtCurrency(totalSpend - totalEarnings)}</strong> from break-even this period. One good day covers it.
         </div>
       ) : null}
     </div>

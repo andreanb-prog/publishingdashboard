@@ -3,6 +3,7 @@
 // Collapsible per-page goal tracker with progress bars
 
 import { useEffect, useState } from 'react'
+import { fmtCurrency } from '@/lib/utils'
 
 type Goals = Record<string, number>
 
@@ -33,7 +34,7 @@ const PAGE_GOALS: Record<string, GoalField[]> = {
 }
 
 function fmtVal(val: number, unit: GoalField['unit']): string {
-  if (unit === 'dollar') return `$${val}`
+  if (unit === 'dollar') return fmtCurrency(val)
   if (unit === 'percent') return `${val}%`
   return val.toLocaleString()
 }

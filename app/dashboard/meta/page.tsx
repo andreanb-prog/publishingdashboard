@@ -613,7 +613,7 @@ function buildMetaCoach(meta: NonNullable<Analysis['meta']>): string {
   const totalAds = meta.ads.length
   const activeAds = meta.ads.filter(a => a.status === 'SCALE' || a.status === 'WATCH').length
 
-  const s1 = `You spent $${meta.totalSpend} across ${totalAds} ad${totalAds !== 1 ? 's' : ''} this period, generating ${meta.totalClicks.toLocaleString()} clicks at an average ${meta.avgCTR}% CTR and $${meta.avgCPC} CPC.`
+  const s1 = `You spent ${fmtCurrency(meta.totalSpend)} across ${totalAds} ad${totalAds !== 1 ? 's' : ''} this period, generating ${meta.totalClicks.toLocaleString()} clicks at an average ${meta.avgCTR}% CTR and ${fmtCurrency(meta.avgCPC)} CPC.`
 
   let s2 = ''
   if (best && best.ctr >= 1.5) {
@@ -629,7 +629,7 @@ function buildMetaCoach(meta: NonNullable<Analysis['meta']>): string {
   if (cutAds.length > 0) {
     s3 = `Pause the ${cutAds.length} underperforming ad${cutAds.length !== 1 ? 's' : ''} flagged for cutting — consolidating spend into your ${activeAds} active ad${activeAds !== 1 ? 's' : ''} will lower your average CPC immediately.`
   } else if (activeAds > 0) {
-    s3 = `With ${activeAds} active ad${activeAds !== 1 ? 's' : ''} running, monitor daily — if CPC climbs above $${(meta.avgCPC * 1.5).toFixed(2)}, pause and refresh the creative.`
+    s3 = `With ${activeAds} active ad${activeAds !== 1 ? 's' : ''} running, monitor daily — if CPC climbs above ${fmtCurrency(meta.avgCPC * 1.5)}, pause and refresh the creative.`
   }
 
   return [s1, s2, s3].filter(Boolean).join(' ')
@@ -859,7 +859,7 @@ export default function MetaPage() {
           : <MissingCell colName="Results" />
       case 'costPerResult':
         return ad.costPerResult != null
-          ? <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>${ad.costPerResult.toFixed(2)}</span>
+          ? <span className="font-mono text-[14px]" style={{ color: '#6B7280' }}>{fmtCurrency(ad.costPerResult)}</span>
           : <MissingCell colName="Cost per result" />
       case 'status': {
         const s = STATUS_STYLE[ad.status]
@@ -1196,7 +1196,7 @@ export default function MetaPage() {
                         type: 'fix', title: 'Fix', color: '#fbbf24',
                         bg: 'rgba(251,191,36,0.05)', border: 'rgba(251,191,36,0.2)',
                         items: [
-                          `Increase daily budget from $${(meta.totalSpend / 30).toFixed(2)}/day to $10+/day`,
+                          `Increase daily budget from ${fmtCurrency(meta.totalSpend / 30)}/day to $10+/day`,
                           'Facebook needs volume to optimize',
                           'One winner + real budget = results',
                         ],

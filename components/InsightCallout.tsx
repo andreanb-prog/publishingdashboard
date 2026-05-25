@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react'
 import type { Analysis } from '@/types'
 import pepTalkBank from '@/pep-talk-bank.json'
+import { fmtCurrency } from '@/lib/utils'
 
 interface Insight {
   mode: 'alarm' | 'cheer'
@@ -36,7 +37,7 @@ function detectInsights(analysis: Analysis): Insight[] {
       insights.push({
         mode: 'alarm',
         source: 'kdp',
-        text: `Your royalties look lower than expected — **$${royaltiesPerUnit.toFixed(3)} per unit** across ${kdp.totalUnits} sales. This sometimes happens with a partial upload or books priced near $0. Check that your KDP export covers the full date range and that your book pricing in KDP is set correctly.`,
+        text: `Your royalties look lower than expected — **${fmtCurrency(royaltiesPerUnit)} per unit** across ${kdp.totalUnits} sales. This sometimes happens with a partial upload or books priced near $0. Check that your KDP export covers the full date range and that your book pricing in KDP is set correctly.`,
       })
     }
   }
@@ -110,7 +111,7 @@ function detectInsights(analysis: Analysis): Insight[] {
       insights.push({
         mode: 'cheer',
         source: 'kdp',
-        text: `You're earning **$${perUnit.toFixed(2)} per unit** — that's a healthy royalty rate and your pricing strategy is landing exactly where it should. This is the moment your protagonist finds their power — keep going.`,
+        text: `You're earning **${fmtCurrency(perUnit)} per unit** — that's a healthy royalty rate and your pricing strategy is landing exactly where it should. This is the moment your protagonist finds their power — keep going.`,
       })
     }
   }

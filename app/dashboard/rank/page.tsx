@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine,
 } from 'recharts'
+import { fmtCurrency } from '@/lib/utils'
 import { useBooks, type BookRecord } from '@/hooks/useBooks'
 import NoBooksEmptyState from '@/components/NoBooksEmptyState'
 import BsrFetchButton from '@/components/bsr/BsrFetchButton'
@@ -78,8 +79,7 @@ function timeAgo(iso: string): string {
 }
 
 function fmtMoney(v: number | null | undefined): string {
-  if (v == null) return '—'
-  return `$${v.toFixed(2)}`
+  return fmtCurrency(v)
 }
 function fmtInt(v: number | null | undefined): string {
   if (v == null) return '—'
@@ -114,14 +114,14 @@ function SummaryStrip({ refreshKey }: { refreshKey: number }) {
   }, [refreshKey])
 
   const tiles: { label: string; value: string | null; sublabel?: string | null }[] = [
-    { label: "Today's Total Spend", value: data?.totalSpend != null ? `$${data.totalSpend.toFixed(2)}` : null },
+    { label: "Today's Total Spend", value: data?.totalSpend != null ? fmtCurrency(data.totalSpend) : null },
     {
       label: 'Best BSR Today',
       value: data?.bestBsr != null ? `#${data.bestBsr.toLocaleString()}` : null,
       sublabel: data?.bestBsrTitle ?? null,
     },
     { label: 'Overall ROAS (7d)',   value: data?.overallRoas != null ? `${data.overallRoas.toFixed(2)}x` : null },
-    { label: 'Cost Per Subscriber', value: data?.costPerSub  != null ? `$${data.costPerSub.toFixed(2)}` : null },
+    { label: 'Cost Per Subscriber', value: data?.costPerSub  != null ? fmtCurrency(data.costPerSub) : null },
   ]
 
   const isEmptyState = !loading && tiles.every(t => t.value == null)
@@ -618,7 +618,7 @@ function CorrelationChart({ rows, color }: CorrelationChartProps) {
             const label = String(name)
             if (typeof value !== 'number') return ['—', label]
             if (label === 'BSR') return [`#${value.toLocaleString()}`, label]
-            if (label === 'Ad Spend') return [`$${value.toFixed(2)}`, label]
+            if (label === 'Ad Spend') return [fmtCurrency(value), label]
             return [value.toLocaleString(), label]
           }}
         />
@@ -680,7 +680,7 @@ function TrendChart({ rows }: { rows: RoasRow[] }) {
         <YAxis
           yAxisId="right" orientation="right" reversed
           tick={{ fontSize: 11, fill: '#F97B6B' }} tickLine={false} axisLine={false} width={48}
-          tickFormatter={v => `$${Number(v).toFixed(2)}`}
+          tickFormatter={v => fmtCurrency(Number(v))}
           label={{ value: 'Cost/Sub ↓ better', angle: 90, position: 'insideRight', fill: '#9CA3AF', fontSize: 10, offset: 10 }}
         />
         <Tooltip
@@ -688,7 +688,7 @@ function TrendChart({ rows }: { rows: RoasRow[] }) {
           formatter={(value: unknown, name: unknown) => {
             const label = String(name)
             if (typeof value !== 'number') return ['—', label]
-            return [`$${value.toFixed(2)}`, label]
+            return [fmtCurrency(value), label]
           }}
         />
         <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -1052,14 +1052,14 @@ function LeadMagnetTab() {
       <div className="flex flex-wrap gap-3 mb-5">
         <div className="flex-1 min-w-[140px] rounded-lg px-5 py-4" style={{ background: GOALS_BG }}>
           <div className="font-bold leading-none mb-1" style={{ fontSize: 28, color: costPerSubColor(costPerSub7) }}>
-            {costPerSub7 != null ? `$${costPerSub7.toFixed(2)}` : '—'}
+            {costPerSub7 != null ? fmtCurrency(costPerSub7) : '—'}
           </div>
           <div className="text-[12px]" style={{ color: '#9CA3AF' }}>Cost Per Sub (7d)</div>
           <div className="text-[11px] mt-1" style={{ color: '#9CA3AF' }}>Goal: &lt;$2.00</div>
         </div>
         <div className="flex-1 min-w-[140px] rounded-lg px-5 py-4" style={{ background: GOALS_BG }}>
           <div className="font-semibold leading-none mb-1" style={{ fontSize: 28, color: '#1E2D3D' }}>
-            {totalSpend7 > 0 ? `$${totalSpend7.toFixed(2)}` : '—'}
+            {totalSpend7 > 0 ? fmtCurrency(totalSpend7) : '—'}
           </div>
           <div className="text-[12px]" style={{ color: '#9CA3AF' }}>Total Spend (7d)</div>
         </div>

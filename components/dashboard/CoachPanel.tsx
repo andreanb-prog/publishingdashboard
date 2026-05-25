@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import type { CoachingInsight } from '@/types'
 import type { DashboardState } from './useDashboardData'
+import { fmtCurrency } from '@/lib/utils'
 
 function CoachPromotedPanel({ analysis }: { analysis: any }) {
   const topInsight: CoachingInsight | undefined =
@@ -20,7 +21,7 @@ function CoachPromotedPanel({ analysis }: { analysis: any }) {
     triggerIsNeg = (analysis.meta.avgCTR ?? 0) < 1
   } else if ((ch === 'kdp' || ch === 'general') && analysis.kdp) {
     const rev = ((analysis.kdp.totalRoyaltiesUSD ?? 0) as number) + ((analysis.kdp.totalKENP ?? 0) as number) * 0.0045
-    triggerNum = `$${rev.toFixed(2)}`
+    triggerNum = fmtCurrency(rev)
     triggerLabel = 'Est. Revenue'
     triggerIsNeg = rev < 100
   } else if (ch === 'email' && analysis.mailerLite) {

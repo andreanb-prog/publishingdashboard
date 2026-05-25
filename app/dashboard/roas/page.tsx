@@ -1,6 +1,7 @@
 'use client'
 // app/dashboard/roas/page.tsx
 import { useEffect, useState, useMemo } from 'react'
+import { fmtCurrency } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
@@ -185,9 +186,9 @@ export default function ROASPage() {
 
         const roas = earnings > 0 ? earnings / spend : 0
         if (earnings === 0) {
-          setVerdict({ text: `$${spend} logged. KDP royalties lag 24–72 hours — log your earnings tomorrow when they appear.`, color: '#38bdf8' })
+          setVerdict({ text: `${fmtCurrency(spend)} logged. KDP royalties lag 24–72 hours — log your earnings tomorrow when they appear.`, color: '#38bdf8' })
         } else if (roas >= 2) {
-          setVerdict({ text: `${roas.toFixed(2)}x ROAS — you earned $${earnings.toFixed(2)} on $${spend.toFixed(2)} spent. Keep the ad running.`, color: '#34d399' })
+          setVerdict({ text: `${roas.toFixed(2)}x ROAS — you earned ${fmtCurrency(earnings)} on ${fmtCurrency(spend)} spent. Keep the ad running.`, color: '#34d399' })
         } else if (roas >= 1) {
           setVerdict({ text: `${roas.toFixed(2)}x ROAS — break-even with a little extra. Watch this over the next few days before changing anything.`, color: '#fbbf24' })
         } else {
@@ -236,8 +237,8 @@ export default function ROASPage() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
           { label: 'Avg ROAS',            value: avgROAS != null ? `${avgROAS.toFixed(2)}x` : '—', sub: 'Days with earnings' },
-          { label: 'Total Spend Logged',  value: `$${totalSpend.toFixed(2)}`,    sub: 'Across all entries' },
-          { label: 'Total Earnings',      value: `$${totalEarnings.toFixed(2)}`, sub: 'Royalties attributed' },
+          { label: 'Total Spend Logged',  value: fmtCurrency(totalSpend),    sub: 'Across all entries' },
+          { label: 'Total Earnings',      value: fmtCurrency(totalEarnings), sub: 'Royalties attributed' },
         ].map(s => (
           <div key={s.label} className="card p-4">
             <div className="metric-label mb-1">{s.label}</div>
@@ -390,8 +391,8 @@ export default function ROASPage() {
                     <td className="px-4 py-2.5 font-mono text-stone-500">
                       {new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </td>
-                    <td className="px-4 py-2.5 font-mono">${log.spend.toFixed(2)}</td>
-                    <td className="px-4 py-2.5 font-mono">{hasEarnings ? `$${log.earnings.toFixed(2)}` : '—'}</td>
+                    <td className="px-4 py-2.5 font-mono">{fmtCurrency(log.spend)}</td>
+                    <td className="px-4 py-2.5 font-mono">{hasEarnings ? fmtCurrency(log.earnings) : '—'}</td>
                     <td className="px-4 py-2.5 font-mono font-bold" style={{ color }}>
                       {text}
                     </td>

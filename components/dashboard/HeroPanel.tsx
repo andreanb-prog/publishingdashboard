@@ -19,9 +19,9 @@ function buildStorySentence(analysis: any, kdpTotals: { totalUnits: number; tota
     if (units >= 50) return `${units.toLocaleString()} readers and ${kenp.toLocaleString()} pages read — your books are pulling people in and keeping them there.`
     return `${units.toLocaleString()} readers showed up this month, reading ${kenp.toLocaleString()} pages between them.`
   }
-  if (units && estRevenue != null) return `${units.toLocaleString()} readers, $${estRevenue.toFixed(2)} earned — your books are working.`
+  if (units && estRevenue != null) return `${units.toLocaleString()} readers, ${fmtCurrency(estRevenue)} earned — your books are working.`
   if (units) return `${units.toLocaleString()} readers chose your books this month — keep that momentum going.`
-  if (ctr != null && spend) return `$${spend.toFixed(2)} spent, ${ctr}% of people clicked — your ads are cutting through the noise.`
+  if (ctr != null && spend) return `${fmtCurrency(spend)} spent, ${ctr}% of people clicked — your ads are cutting through the noise.`
   return null
 }
 
@@ -69,13 +69,13 @@ export function BoutiqueChannelCardsRow({
 
   const cards = [
     { label: 'KDP Royalties', dot: '#F97B6B', href: '/dashboard/kdp',
-      display: kdpVal != null ? `$${kdpVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
+      display: kdpVal != null ? fmtCurrency(kdpVal) : null,
       curr: kdpVal, prev: prevKdpVal,
       velocity: kdpTotals.totalUnits > 0 ? `${kdpTotals.totalUnits.toLocaleString()} units` : null },
     { label: 'Meta ROAS', dot: '#F4A261', href: '/dashboard/meta',
       display: metaRoas != null ? `${metaRoas.toFixed(2)}×` : null,
       curr: metaRoas, prev: prevMetaRoas,
-      velocity: metaSpend > 0 ? `$${(metaSpend as number).toLocaleString(undefined, { maximumFractionDigits: 2 })} spend` : null },
+      velocity: metaSpend > 0 ? `${fmtCurrency(metaSpend as number)} spend` : null },
     { label: 'MailerLite List', dot: '#5BBFB5', href: '/dashboard/mailerlite',
       display: mlList != null ? (mlList as number).toLocaleString() : null,
       curr: mlList, prev: prevMlList,
@@ -263,7 +263,7 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
               const estRevenue = hasKdp ? Math.round((kdpTotals.totalRoyalties + kdpTotals.totalKENP * 0.0045) * 100) / 100 : null
               const royaltiesZero = hasKdp && kdpTotals.totalRoyalties === 0
               const tiles = [
-                { stat: estRevenue != null ? `$${estRevenue.toFixed(2)}` : '—', label: 'EST. REVENUE', estimate: royaltiesZero, sub: kdpTotals.totalUnits > 0 ? `${kdpTotals.totalUnits} units sold` : 'No data yet' },
+                { stat: estRevenue != null ? fmtCurrency(estRevenue) : '—', label: 'EST. REVENUE', estimate: royaltiesZero, sub: kdpTotals.totalUnits > 0 ? `${kdpTotals.totalUnits} units sold` : 'No data yet' },
                 { stat: meta?.avgCTR ? fmtPct(meta.avgCTR) : '—', label: 'META ADS CTR', estimate: false, sub: meta?.avgCTR && meta.avgCTR >= 2 ? 'Exceptional performance (top 10%)' : meta?.avgCTR ? 'Room to improve' : 'No data yet' },
                 { stat: ml?.openRate ? fmtPct(ml.openRate) : '—', label: 'EMAIL OPEN RATE', estimate: false, sub: ml?.openRate && ml.openRate >= 25 ? 'Well above 20–25% author average' : ml?.openRate ? 'Near author average' : 'No data yet' },
                 { stat: ml?.clickRate ? fmtPct(ml.clickRate) : '—', label: 'EMAIL CLICK RATE', estimate: false, sub: ml?.clickRate && ml.clickRate >= 4 ? 'Strong reader engagement' : ml?.clickRate ? 'Room to grow' : 'No data yet' },

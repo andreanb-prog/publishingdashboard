@@ -20,6 +20,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { fmtCurrency } from '@/lib/utils'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -179,11 +180,11 @@ function PerformanceChips({ creative }: { creative: Creative }) {
       </span>
       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
         style={{ background: '#F3F4F6', color: '#6B7280' }}>
-        CPC {creative.cpc != null ? `$${creative.cpc.toFixed(2)}` : '—'}
+        CPC {creative.cpc != null ? fmtCurrency(creative.cpc) : '—'}
       </span>
       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
         style={{ background: '#F3F4F6', color: '#6B7280' }}>
-        Spend {creative.spend != null ? `$${creative.spend.toFixed(0)}` : '—'}
+        Spend {creative.spend != null ? fmtCurrency(creative.spend) : '—'}
       </span>
     </div>
   )
