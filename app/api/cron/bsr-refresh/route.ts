@@ -18,10 +18,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const books = await db.book.findMany({
+  const allBooks = await db.book.findMany({
     where: { asin: { not: null } },
     select: { userId: true, asin: true, title: true },
   })
+
+  // Only fetch Kindle eBook ASINs — skip paperback ISBNs (978/979) and anything
+  // that doesn't match the standard Amazon ASIN pattern (B + 9 alphanumeric chars)
+  const KINDLE_ASIN = /^B[A-Z0-9]{9}$/i
+  const books = allBooks.filter(b => {
+    const asin = b.asin!
+    if (asin.startsWith('978') || asin.startsWith('979')) return false
+    return KINDLE_ASIN.test(asin)
+  })
+
+  console.log(`[cron/bsr-refresh] ${allBooks.length} total books, ${books.length} valid Kindle ASINs to process`)
 
   const { start: today, end: dayEnd } = todayUTC()
 
