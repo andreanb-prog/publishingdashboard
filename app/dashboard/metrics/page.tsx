@@ -286,15 +286,19 @@ export default function MetricsPage() {
   const [arcReceived, setArcReceived] = useState('')
   const [dailyRows,    setDailyRows]    = useState<DailyRow[]>([])
   const [dailyBooks,   setDailyBooks]   = useState<{ asin: string; title: string }[]>([])
-  const [dailyRange,   setDailyRange]   = useState<7 | 30 | 90>(30)
+  const [days,         setDays]         = useState<7 | 30 | 90>(30)
   const [dailyBook,    setDailyBook]    = useState('all')
   const [dailyLoading, setDailyLoading] = useState(true)
 
   useEffect(() => {
+    const today = new Date()
+    const to    = today.toISOString().substring(0, 10)
+    const from  = new Date(today.getTime() - days * 24 * 60 * 60 * 1000).toISOString().substring(0, 10)
+    setLoading(true)
     Promise.all([
-      fetch('/api/analyze').then(r => r.json()).catch(() => ({})),
-      fetch('/api/rank').then(r => r.ok ? r.json() : { logs: [] }).catch(() => ({ logs: [] })),
-      fetch('/api/roas').then(r => r.ok ? r.json() : { logs: [] }).catch(() => ({ logs: [] })),
+      fetch(`/api/analyze?from=${from}&to=${to}`).then(r => r.json()).catch(() => ({})),
+      fetch(`/api/rank?from=${from}&to=${to}`).then(r => r.ok ? r.json() : { logs: [] }).catch(() => ({ logs: [] })),
+      fetch(`/api/roas?from=${from}&to=${to}`).then(r => r.ok ? r.json() : { logs: [] }).catch(() => ({ logs: [] })),
       fetch('/api/books').then(r => r.ok ? r.json() : { books: [] }).catch(() => ({ books: [] })),
     ]).then(([analyzeData, rankData, roasData, booksData]) => {
       const rows: Analysis[] = (analyzeData.analyses ?? [])
@@ -305,13 +309,13 @@ export default function MetricsPage() {
       setRoasLogs(roasData.logs ?? [])
       setCatalogBooks((booksData.books ?? []).filter((b: { excludeFromDashboard?: boolean }) => !b.excludeFromDashboard))
     }).catch(console.error).finally(() => setLoading(false))
-  }, [])
+  }, [days])
 
   useEffect(() => {
     setDailyLoading(true)
     const today = new Date()
     const end   = today.toISOString().substring(0, 10)
-    const start = new Date(today.getTime() - dailyRange * 24 * 60 * 60 * 1000).toISOString().substring(0, 10)
+    const start = new Date(today.getTime() - days * 24 * 60 * 60 * 1000).toISOString().substring(0, 10)
     fetch(`/api/export/daily-breakdown?start=${start}&end=${end}`)
       .then(r => r.ok ? r.json() : { rows: [], books: [] })
       .then(data => {
@@ -321,7 +325,7 @@ export default function MetricsPage() {
       })
       .catch(() => {})
       .finally(() => setDailyLoading(false))
-  }, [dailyRange])
+  }, [days])
 
   const analysis     = analyses[0] ?? null
   const prevAnalysis = analyses[1] ?? null
@@ -509,10 +513,30 @@ export default function MetricsPage() {
     ? (parseInt(arcReceived) / parseInt(arcSent)) * 100
     : null
 
+  const DateRangePills = (
+    <div style={{ display: 'flex', gap: 6 }}>
+      {([7, 30, 90] as const).map(d => (
+        <button key={d} onClick={() => setDays(d)} style={{
+          padding: '6px 14px',
+          borderRadius: 999,
+          fontSize: 12,
+          fontWeight: 600,
+          cursor: 'pointer',
+          transition: 'all 0.15s',
+          background: days === d ? '#E9A020' : 'white',
+          color:      days === d ? 'white'    : '#1E2D3D',
+          border:     `1.5px solid ${days === d ? '#E9A020' : 'rgba(30,45,61,0.12)'}`,
+        }}>
+          Last {d} days
+        </button>
+      ))}
+    </div>
+  )
+
   if (loading) {
     return (
       <BoutiqueChannelPageLayout>
-        <BoutiquePageHeader title="Advanced Metrics" subtitle="Cross-channel performance" badge="Analytics" badgeColor="#60A5FA" />
+        <BoutiquePageHeader title="Advanced Metrics" subtitle="Cross-channel performance" badge="Analytics" badgeColor="#60A5FA" actions={DateRangePills} />
         <div className="text-center py-16">
           <div className="animate-pulse text-lg" style={{ color: '#1E2D3D' }}>Reading your data…</div>
         </div>
@@ -522,7 +546,7 @@ export default function MetricsPage() {
 
   return (
     <BoutiqueChannelPageLayout>
-      <BoutiquePageHeader title="Advanced Metrics" subtitle="Cross-channel performance" badge="Analytics" badgeColor="#60A5FA" />
+      <BoutiquePageHeader title="Advanced Metrics" subtitle="Cross-channel performance" badge="Analytics" badgeColor="#60A5FA" actions={DateRangePills} />
 
       {/* ── 1. READER FUNNEL CHECKER ───────────────────────────────────────── */}
       <BoutiqueSectionLabel label="Reader Funnel Checker" />
@@ -753,20 +777,6 @@ export default function MetricsPage() {
 
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex gap-1.5">
-          {([7, 30, 90] as const).map(d => (
-            <button key={d} onClick={() => setDailyRange(d)}
-              className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors"
-              style={{
-                background: dailyRange === d ? '#E9A020' : 'white',
-                color:      dailyRange === d ? 'white'    : '#6B7280',
-                border:     `1px solid ${dailyRange === d ? '#E9A020' : '#EEEBE6'}`,
-              }}>
-              Last {d} days
-            </button>
-          ))}
-        </div>
-
         <select value={dailyBook} onChange={e => setDailyBook(e.target.value)}
           className="px-3 py-1.5 rounded-full text-[12px] outline-none"
           style={{ background: 'white', border: '1px solid #EEEBE6', color: '#1E2D3D', maxWidth: 220 }}>
@@ -781,7 +791,7 @@ export default function MetricsPage() {
             onClick={() => {
               const today = new Date()
               const end   = today.toISOString().substring(0, 10)
-              const start = new Date(today.getTime() - dailyRange * 24 * 60 * 60 * 1000).toISOString().substring(0, 10)
+              const start = new Date(today.getTime() - days * 24 * 60 * 60 * 1000).toISOString().substring(0, 10)
               window.location.href = `/api/export/daily-breakdown?format=xlsx&start=${start}&end=${end}`
             }}
             className="px-4 py-1.5 rounded-full text-[12px] font-semibold"
