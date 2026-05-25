@@ -13,6 +13,10 @@ interface Props {
   displayTitle?: string
 }
 
+function truncateTitle(title: string, max = 40): string {
+  return title.length > max ? title.slice(0, max).trimEnd() + '…' : title
+}
+
 export default function BookSelector({ value, onChange, placeholder = 'Select a book', displayTitle }: Props) {
   const { books, loading } = useBooks()
   const [open, setOpen] = useState(false)
@@ -58,7 +62,7 @@ export default function BookSelector({ value, onChange, placeholder = 'Select a 
         onClick={() => setOpen(o => !o)}
         disabled={loading}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
-        style={{ border: '0.5px solid #e8e0d8', background: '#fff', minWidth: 180 }}
+        style={{ border: '0.5px solid #e8e0d8', background: '#fff', minWidth: 180, maxWidth: 320, width: '100%', overflow: 'hidden' }}
       >
         {selected && (
           <span
@@ -67,7 +71,7 @@ export default function BookSelector({ value, onChange, placeholder = 'Select a 
           />
         )}
         <span className="flex-1 text-left text-[13px] truncate" style={{ color: '#1E2D3D' }}>
-          {displayTitle ?? selected?.title ?? placeholder}
+          {displayTitle ?? (selected?.title ? truncateTitle(selected.title) : placeholder)}
         </span>
         <ChevronDown size={13} style={{ color: '#9CA3AF', flexShrink: 0 }} />
       </button>
@@ -88,7 +92,7 @@ export default function BookSelector({ value, onChange, placeholder = 'Select a 
                 className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                 style={{ background: book.color }}
               />
-              {book.title}
+              {truncateTitle(book.title)}
             </button>
           ))}
         </div>

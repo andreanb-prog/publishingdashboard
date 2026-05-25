@@ -1114,9 +1114,13 @@ export default function RoasHubPage() {
   // First 3 non-LM books
   const bookTabs = books.slice(0, 3)
 
+  function truncateTabTitle(title: string): string {
+    return title.length > 25 ? title.slice(0, 25).trimEnd() + '…' : title
+  }
+
   const TAB_CONFIG: { label: string; color: string }[] = [
     ...bookTabs.map((b, i) => ({
-      label: `B${i + 1} · ${b.title}`,
+      label: `B${i + 1} · ${truncateTabTitle(b.title)}`,
       color: BOOK_COLORS[i] ?? '#9CA3AF',
     })),
     { label: 'Lead Magnet', color: LM_COLOR },
