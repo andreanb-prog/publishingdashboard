@@ -500,7 +500,13 @@ export default function MetricsPage() {
   const kenpHistory = analyses.map(a => a.kdp?.totalKENP ?? 0).reverse()
 
   // Series Health Score
-  const readThroughScore = funnelReadThrough.length >= 2 ? Math.min(funnelReadThrough[1].pct / 40 * 100, 100) : 0
+  // Average all step-to-step read-through rates (B1→B2, B2→B3, …) weighted against the 40% benchmark
+  const readThroughScore = (() => {
+    const steps = funnelReadThrough.slice(1).filter(rt => rt.book.kenp > 0)
+    if (steps.length === 0) return 0
+    const avg = steps.reduce((s, rt) => s + rt.pct, 0) / steps.length
+    return Math.min(avg / 40 * 100, 100)
+  })()
   const bestRank = rankLogs.length ? Math.min(...rankLogs.slice(-30).map(l => l.rank)) : null
   const rankScore = bestRank ? (bestRank <= 50000 ? 100 : bestRank <= 200000 ? 60 : 20) : 0
   const listGrowth = prevAnalysis?.mailerLite && ml ? ml.listSize - prevAnalysis.mailerLite.listSize : 0
@@ -651,7 +657,13 @@ export default function MetricsPage() {
           </div>
           <div className="space-y-2 mb-3">
             {[
-              { label: 'Read-through', score: readThroughScore, note: readThrough.length >= 2 ? `${readThrough[1].pct.toFixed(0)}% Book 1 → 2` : 'Need 2+ books' },
+              { label: 'Read-through', score: readThroughScore, note: (() => {
+                const steps = funnelReadThrough.slice(1).filter(rt => rt.book.kenp > 0)
+                if (steps.length === 0) return 'Need 2+ books'
+                if (steps.length === 1) return `${steps[0].pct.toFixed(0)}% B1 → B2`
+                const avg = steps.reduce((s, rt) => s + rt.pct, 0) / steps.length
+                return `avg ${avg.toFixed(0)}% / step`
+              })() },
               { label: 'Best Rank', score: rankScore, note: bestRank ? `#${bestRank.toLocaleString()}` : 'No rank data' },
               { label: 'List Growth', score: listScore, note: `${listGrowth >= 0 ? '+' : ''}${listGrowth} subscribers` },
             ].map(item => (
