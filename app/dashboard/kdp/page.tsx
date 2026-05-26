@@ -1665,14 +1665,16 @@ export default function KDPPage() {
           </CollapsibleSection>
 
           {/* ── Category Intelligence ── */}
-          <CollapsibleSection
-            title="Category Intelligence"
-            storageKey="kdp-section-categories"
-            className="mb-5"
-            subtitle="See every Amazon category your book is in and how you rank"
-          >
-            <CategoryIntelligence />
-          </CollapsibleSection>
+          <div id="category-intelligence">
+            <CollapsibleSection
+              title="Category Intelligence"
+              storageKey="kdp-section-categories"
+              className="mb-5"
+              subtitle="See every Amazon category your book is in and how you rank"
+            >
+              <CategoryIntelligence />
+            </CollapsibleSection>
+          </div>
 
           {/* ── Sales Rank Tracker ── */}
           <CollapsibleSection
