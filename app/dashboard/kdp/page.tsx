@@ -1,7 +1,7 @@
 'use client'
 // app/dashboard/kdp/page.tsx
 import { DashboardErrorBoundary } from '@/components/DashboardErrorBoundary'
-import { Suspense, useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import { Suspense, use, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import ChartJS from 'chart.js/auto'
 import Link from 'next/link'
 import {
@@ -992,13 +992,48 @@ function FormatBadge({ type, faded }: { type: FormatBadgeType; faded?: boolean }
   )
 }
 
+// ── MailerLite async section (suspends until campaigns are fetched) ───────────
+let _mlPromise: Promise<MailerLiteCampaign[]> | null = null
+
+function getMailerLitePromise(): Promise<MailerLiteCampaign[]> {
+  if (!_mlPromise) {
+    _mlPromise = fetch('/api/mailerlite')
+      .then(r => r.json())
+      .then(d => d?.data?.campaigns ?? [])
+      .catch(() => [])
+  }
+  return _mlPromise
+}
+
+function MailerLiteEmailChartSection({ data }: { data: DailyData[] }) {
+  const campaigns = use(getMailerLitePromise())
+
+  const emailSendDates = useMemo(
+    () => new Set(campaigns.map((c: MailerLiteCampaign) => c.sentAt.substring(0, 10)).filter(Boolean)),
+    [campaigns]
+  )
+
+  const emailCampaignMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    campaigns.forEach((c: MailerLiteCampaign) => { if (c.sentAt) map[c.sentAt.substring(0, 10)] = c.name })
+    return map
+  }, [campaigns])
+
+  return (
+    <EmailVsSalesChart
+      data={data}
+      emailSendDates={emailSendDates}
+      emailCampaignMap={emailCampaignMap}
+    />
+  )
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function KDPPage() {
   const [coachTitle, setCoachTitle] = useState('Your marketing coach says')
   useEffect(() => { setCoachTitle(getCoachTitle()) }, [])
   const [allAnalyses, setAllAnalyses] = useState<Analysis[]>([])
   const [roasLogs,    setRoasLogs]    = useState<RoasLog[]>([])
-  const [mlCampaigns, setMlCampaigns] = useState<MailerLiteCampaign[]>([])
   const [preset,      setPreset]      = useState<Preset>('last30')
   const [customStart, setCustomStart] = useState('')
   const [customEnd,   setCustomEnd]   = useState('')
@@ -1037,10 +1072,9 @@ export default function KDPPage() {
       fetch('/api/analyze').then(r => r.json()).catch(() => ({})),
       fetch(`/api/kdp/sales${qp}`).then(r => r.json()).catch(() => null),
       fetch('/api/roas').then(r => r.json()).catch(() => ({ logs: [] })),
-      fetch('/api/mailerlite').then(r => r.json()).catch(() => ({ data: null })),
       fetch('/api/books').then(r => r.json()).catch(() => ({ books: [] })),
       fetch('/api/prefs').then(r => r.json()).catch(() => ({})),
-    ]).then(([analyzeData, salesData, roasData, mlData, booksData, prefsData]) => {
+    ]).then(([analyzeData, salesData, roasData, booksData, prefsData]) => {
       const analyses: Analysis[] = (analyzeData.analyses ?? []).map(
         (a: any) => a.data ?? a
       )
@@ -1051,8 +1085,6 @@ export default function KDPPage() {
         ...r,
         date: (r.date as string).substring(0, 10),
       })))
-      if (mlData?.data?.campaigns) setMlCampaigns(mlData.data.campaigns)
-
       const books: any[] = booksData.books ?? []
       setMyBooksList(books)
 
@@ -1118,17 +1150,12 @@ export default function KDPPage() {
 
   // Email send dates for Chart 4 and heatmap — prefer live MailerLite fetch, fall back to stored analysis
   const analysis = allAnalyses[0] ?? null
+  // emailSendDates: used for heatmap overlay — analysis data is sufficient here.
+  // Live MailerLite campaigns are fetched asynchronously in MailerLiteEmailChartSection.
   const emailSendDates = useMemo(() => {
-    const campaigns = mlCampaigns.length > 0 ? mlCampaigns : (analysis?.mailerLite?.campaigns ?? [])
+    const campaigns = analysis?.mailerLite?.campaigns ?? []
     return new Set(campaigns.map(c => c.sentAt.substring(0, 10)).filter(Boolean))
-  }, [mlCampaigns, analysis])
-
-  const emailCampaignMap = useMemo(() => {
-    const map: Record<string, string> = {}
-    const campaigns = mlCampaigns.length > 0 ? mlCampaigns : (analysis?.mailerLite?.campaigns ?? [])
-    campaigns.forEach(c => { if (c.sentAt) map[c.sentAt.substring(0, 10)] = c.name })
-    return map
-  }, [mlCampaigns, analysis])
+  }, [analysis])
 
   // Use analysis KDP snapshot for coach text. For metrics, kdpSalesData takes precedence.
   const kdp   = analysis?.kdp ?? (kdpSalesData?.totalUnits ? { totalRoyaltiesUSD: kdpSalesData.totalRoyalties, books: kdpSalesData.books } as any : null)
@@ -1656,11 +1683,15 @@ export default function KDPPage() {
             subtitle="Units sold with email send days overlaid — peach dot = day after email"
           >
             <div className="px-5 py-4">
-              <EmailVsSalesChart
-                data={filteredUnits}
-                emailSendDates={emailSendDates}
-                emailCampaignMap={emailCampaignMap}
-              />
+              <Suspense fallback={
+                <div className="animate-pulse space-y-3 py-2">
+                  <div className="h-4 rounded" style={{ background: '#F3F0EB', width: '55%' }} />
+                  <div className="h-32 rounded" style={{ background: '#F3F0EB' }} />
+                  <div className="h-3 rounded" style={{ background: '#F3F0EB', width: '35%' }} />
+                </div>
+              }>
+                <MailerLiteEmailChartSection data={filteredUnits} />
+              </Suspense>
             </div>
           </CollapsibleSection>
 
@@ -1672,7 +1703,7 @@ export default function KDPPage() {
               className="mb-5"
               subtitle="See every Amazon category your book is in and how you rank"
             >
-              <CategoryIntelligence />
+              <CategoryIntelligence initialBooks={myBooksList} />
             </CollapsibleSection>
           </div>
 
@@ -1683,7 +1714,7 @@ export default function KDPPage() {
             className="mb-5"
             subtitle="Track your Amazon Best Seller Rank over time"
           >
-            <BsrTracker />
+            <BsrTracker initialBooks={myBooksList} />
           </CollapsibleSection>
         </>
       )}

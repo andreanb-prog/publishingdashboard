@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import BookSelector from '@/components/BookSelector'
-import { useBooks } from '@/hooks/useBooks'
+import { useBooks, type RawBook } from '@/hooks/useBooks'
 
 interface Subcategory {
   rank: number
@@ -160,8 +160,8 @@ function VelocityChip({ logs }: { logs: BsrLogEntry[] }) {
   )
 }
 
-export default function BsrTracker() {
-  const { books, loading: booksLoading } = useBooks()
+export default function BsrTracker({ initialBooks }: { initialBooks?: RawBook[] } = {}) {
+  const { books, loading: booksLoading } = useBooks(initialBooks)
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
 
   const [fetchState, setFetchState] = useState<FetchState>('idle')
@@ -276,7 +276,7 @@ export default function BsrTracker() {
       {/* ── Input row ── */}
       <div className="flex flex-wrap items-center gap-3">
         <div style={{ minWidth: 220, maxWidth: 320, flex: '1 1 220px' }}>
-          <BookSelector value={selectedBookId} onChange={setSelectedBookId} />
+          <BookSelector value={selectedBookId} onChange={setSelectedBookId} initialBooks={initialBooks} />
         </div>
 
         {hasNoAsin ? (

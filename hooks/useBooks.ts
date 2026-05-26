@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 
 export interface BookRecord {
   id: string
@@ -8,6 +8,14 @@ export interface BookRecord {
   position: number
   color: string
   coverUrl: string | null
+}
+
+export type RawBook = {
+  id: string
+  title: string
+  asin?: string | null
+  sortOrder?: number | null
+  coverUrl?: string | null
 }
 
 const BOOK_COLORS = [
@@ -19,25 +27,32 @@ const BOOK_COLORS = [
   '#F472B6', // B6 rose
 ]
 
-export function useBooks() {
-  const [books, setBooks] = useState<BookRecord[]>([])
-  const [loading, setLoading] = useState(true)
+function mapRaw(raw: RawBook[]): BookRecord[] {
+  return raw.map((b, i) => ({
+    id: b.id,
+    title: b.title,
+    asin: b.asin ?? null,
+    coverUrl: b.coverUrl ?? null,
+    position: (b.sortOrder ?? i) + 1,
+    color: BOOK_COLORS[b.sortOrder ?? i] ?? '#E9A020',
+  }))
+}
+
+export function useBooks(initialData?: RawBook[]) {
+  const skipFetch = useRef(initialData !== undefined)
+
+  const [books, setBooks] = useState<BookRecord[]>(() =>
+    initialData ? mapRaw(initialData) : []
+  )
+  const [loading, setLoading] = useState(!skipFetch.current)
 
   useEffect(() => {
+    if (skipFetch.current) return
     fetch('/api/books')
       .then(r => r.json())
       .then(d => {
-        const raw: Array<{ id: string; title: string; asin: string | null; sortOrder: number; coverUrl: string | null }> =
-          d.books ?? d.data ?? []
-        const mapped: BookRecord[] = raw.map((b, i) => ({
-          id: b.id,
-          title: b.title,
-          asin: b.asin ?? null,
-          coverUrl: b.coverUrl ?? null,
-          position: (b.sortOrder ?? i) + 1,
-          color: BOOK_COLORS[b.sortOrder ?? i] ?? '#E9A020',
-        }))
-        setBooks(mapped)
+        const raw: RawBook[] = d.books ?? d.data ?? []
+        setBooks(mapRaw(raw))
       })
       .catch(() => setBooks([]))
       .finally(() => setLoading(false))

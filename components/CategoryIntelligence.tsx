@@ -2,7 +2,7 @@
 // components/CategoryIntelligence.tsx
 import { useEffect, useState } from 'react'
 import BookSelector from '@/components/BookSelector'
-import { useBooks } from '@/hooks/useBooks'
+import { useBooks, type RawBook } from '@/hooks/useBooks'
 
 interface CategoryEntry {
   id: string
@@ -12,8 +12,8 @@ interface CategoryEntry {
   fetchedAt: string
 }
 
-export default function CategoryIntelligence({ bookAsin }: { bookAsin?: string }) {
-  const { books, loading: booksLoading } = useBooks()
+export default function CategoryIntelligence({ bookAsin, initialBooks }: { bookAsin?: string; initialBooks?: RawBook[] }) {
+  const { books, loading: booksLoading } = useBooks(initialBooks)
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
   const [entries, setEntries] = useState<CategoryEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -73,7 +73,7 @@ export default function CategoryIntelligence({ bookAsin }: { bookAsin?: string }
           }}>
             Book
           </div>
-          <BookSelector value={selectedBookId} onChange={setSelectedBookId} />
+          <BookSelector value={selectedBookId} onChange={setSelectedBookId} initialBooks={initialBooks} />
         </div>
       )}
 

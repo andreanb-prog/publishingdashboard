@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ChevronDown } from 'lucide-react'
-import { useBooks } from '@/hooks/useBooks'
+import { useBooks, type RawBook } from '@/hooks/useBooks'
 
 interface Props {
   value: string | null
@@ -11,14 +11,16 @@ interface Props {
   /** Override the displayed title — use when the parent already has the title and
    *  wants to avoid relying on BookSelector's internal useBooks() lookup. */
   displayTitle?: string
+  /** Pre-fetched raw books from a parent — skips the internal /api/books fetch. */
+  initialBooks?: RawBook[]
 }
 
 function truncateTitle(title: string, max = 40): string {
   return title.length > max ? title.slice(0, max).trimEnd() + '…' : title
 }
 
-export default function BookSelector({ value, onChange, placeholder = 'Select a book', displayTitle }: Props) {
-  const { books, loading } = useBooks()
+export default function BookSelector({ value, onChange, placeholder = 'Select a book', displayTitle, initialBooks }: Props) {
+  const { books, loading } = useBooks(initialBooks)
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
