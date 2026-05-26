@@ -99,6 +99,11 @@ model User {
   bookfunnelWebhookSecret String?
   inboundEmailAddress     String?   // Postmark inbound address for swap auto-detection
   extensionKey           String?   @unique
+  // BookClicker list stats (synced via extension)
+  bcListSize   Int?
+  bcOpenRate   Float?
+  bcClickRate  Float?
+  bcLastSync   DateTime?
   extensionConnectedAt   DateTime?
   writingKillList            String?  // JSON: { word: string, scope: 'global'|'book' }[]
   launches      Launch[]
