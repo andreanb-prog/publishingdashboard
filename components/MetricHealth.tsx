@@ -177,9 +177,9 @@ const METRIC_TOOLTIPS: Record<string, TooltipContent> = {
     example: '6,522 pages across 3 titles',
   },
   seriesHealth: {
-    formula: 'Weighted score: Read-through (40%) + Best Rank (30%) + List Growth (30%)',
-    explanation: 'A composite health score for your entire series ecosystem.',
-    example: '65% read-through × 0.4 + rank score × 0.3 + list growth × 0.3 = 72/100',
+    formula: 'Average score across components with real data (read-through, rank, list growth)',
+    explanation: 'A composite health score for your series. Components with no data are excluded so missing rank or list data never drag down the score.',
+    example: 'Read-through score 80 + rank score 60 ÷ 2 active components = 70/100',
   },
   readMomentum: {
     formula: 'Current period daily KENP ÷ Prior period daily KENP',

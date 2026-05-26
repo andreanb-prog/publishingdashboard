@@ -500,19 +500,47 @@ export default function MetricsPage() {
   const kenpHistory = analyses.map(a => a.kdp?.totalKENP ?? 0).reverse()
 
   // Series Health Score
-  // Average all step-to-step read-through rates (B1→B2, B2→B3, …) weighted against the 40% benchmark
-  const readThroughScore = (() => {
-    const steps = funnelReadThrough.slice(1).filter(rt => rt.book.kenp > 0)
-    if (steps.length === 0) return 0
-    const avg = steps.reduce((s, rt) => s + rt.pct, 0) / steps.length
-    return Math.min(avg / 40 * 100, 100)
-  })()
+  // Only include components with real data; reweight across active components so missing data
+  // doesn't drag the score down. Read-through: average of all consecutive book-pair steps (B1→B2,
+  // B2→B3, …) where both books have KENP — filtered by pct > 0, not just target book kenp > 0.
+  const readThroughSteps = funnelReadThrough.slice(1).filter(rt => rt.pct > 0)
+  const readThroughHasData = readThroughSteps.length > 0
+  const readThroughScore = readThroughHasData
+    ? Math.min((readThroughSteps.reduce((s, rt) => s + rt.pct, 0) / readThroughSteps.length) / 40 * 100, 100)
+    : 0
   const bestRank = rankLogs.length ? Math.min(...rankLogs.slice(-30).map(l => l.rank)) : null
+  const rankHasData = bestRank !== null
   const rankScore = bestRank ? (bestRank <= 50000 ? 100 : bestRank <= 200000 ? 60 : 20) : 0
+  const listHasData = !!(prevAnalysis?.mailerLite && ml)
   const listGrowth = prevAnalysis?.mailerLite && ml ? ml.listSize - prevAnalysis.mailerLite.listSize : 0
   const listScore = listGrowth > 50 ? 100 : listGrowth > 10 ? 60 : listGrowth > 0 ? 30 : 0
-  const seriesHealth = Math.round((readThroughScore + rankScore + listScore) / 3)
+
+  const healthActiveScores = [
+    readThroughHasData ? readThroughScore : null,
+    rankHasData ? rankScore : null,
+    listHasData ? listScore : null,
+  ].filter((s): s is number => s !== null)
+  const seriesHealth = healthActiveScores.length > 0
+    ? Math.round(healthActiveScores.reduce((sum, s) => sum + s, 0) / healthActiveScores.length)
+    : 0
   const seriesHealthColor = seriesHealth >= 70 ? '#34d399' : seriesHealth >= 40 ? '#fbbf24' : '#fb7185'
+
+  const healthDataNote = (() => {
+    const active = ([
+      readThroughHasData ? 'read-through' : null,
+      rankHasData ? 'rank' : null,
+      listHasData ? 'list growth' : null,
+    ].filter(Boolean)) as string[]
+    const pending = ([
+      !readThroughHasData ? 'read-through' : null,
+      !rankHasData ? 'rank' : null,
+      !listHasData ? 'list growth' : null,
+    ].filter(Boolean)) as string[]
+    if (active.length === 3) return null
+    if (active.length === 0) return 'No component data yet — upload KDP and rank data to unlock'
+    const fmt = (arr: string[]) => arr.length === 1 ? arr[0] : arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1]
+    return `Based on ${fmt(active)} data · ${fmt(pending)} data pending`
+  })()
 
   // ARC calculator
   const arcPct = (arcSent && arcReceived && parseInt(arcSent) > 0)
@@ -654,31 +682,39 @@ export default function MetricsPage() {
               {seriesHealth}
             </div>
             <div className="text-[11px] mt-1" style={{ color: '#6B7280' }}>out of 100</div>
+            {healthDataNote && (
+              <div className="text-[10.5px] mt-2 px-2 py-1 rounded" style={{ background: 'rgba(233,160,32,0.08)', color: '#E9A020' }}>
+                {healthDataNote}
+              </div>
+            )}
           </div>
           <div className="space-y-2 mb-3">
             {[
-              { label: 'Read-through', score: readThroughScore, note: (() => {
-                const steps = funnelReadThrough.slice(1).filter(rt => rt.book.kenp > 0)
-                if (steps.length === 0) return 'Need 2+ books'
-                if (steps.length === 1) return `${steps[0].pct.toFixed(0)}% B1 → B2`
-                const avg = steps.reduce((s, rt) => s + rt.pct, 0) / steps.length
+              { label: 'Read-through', score: readThroughScore, hasData: readThroughHasData, note: (() => {
+                if (!readThroughHasData) return '— pending'
+                if (readThroughSteps.length === 1) return `${readThroughSteps[0].pct.toFixed(0)}% B1 → B2`
+                const avg = readThroughSteps.reduce((s, rt) => s + rt.pct, 0) / readThroughSteps.length
                 return `avg ${avg.toFixed(0)}% / step`
               })() },
-              { label: 'Best Rank', score: rankScore, note: bestRank ? `#${bestRank.toLocaleString()}` : 'No rank data' },
-              { label: 'List Growth', score: listScore, note: `${listGrowth >= 0 ? '+' : ''}${listGrowth} subscribers` },
+              { label: 'Best Rank', score: rankScore, hasData: rankHasData, note: bestRank ? `#${bestRank.toLocaleString()}` : '— pending' },
+              { label: 'List Growth', score: listScore, hasData: listHasData, note: listHasData ? `${listGrowth >= 0 ? '+' : ''}${listGrowth} subscribers` : '— pending' },
             ].map(item => (
               <div key={item.label} className="flex items-center gap-3">
-                <div className="text-[11px] w-24" style={{ color: '#6B7280' }}>{item.label}</div>
+                <div className="text-[11px] w-24" style={{ color: item.hasData ? '#6B7280' : '#9CA3AF' }}>{item.label}</div>
                 <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#EEEBE6' }}>
-                  <div className="h-full rounded-full" style={{ width: `${item.score}%`, background: item.score >= 70 ? '#34d399' : item.score >= 40 ? '#fbbf24' : '#fb7185' }} />
+                  {item.hasData && (
+                    <div className="h-full rounded-full" style={{ width: `${item.score}%`, background: item.score >= 70 ? '#34d399' : item.score >= 40 ? '#fbbf24' : '#fb7185' }} />
+                  )}
                 </div>
-                <div className="text-[10px] w-28 text-right" style={{ color: '#6B7280' }}>{item.note}</div>
+                <div className="text-[10px] w-28 text-right" style={{ color: item.hasData ? '#6B7280' : '#9CA3AF' }}>{item.note}</div>
               </div>
             ))}
           </div>
           <div className="text-[11.5px] leading-relaxed pt-3" style={{ borderTop: '1px solid #EEEBE6', color: '#6B7280' }}>
-            💬 {seriesHealth >= 70
-              ? 'Your series is healthy across all three dimensions. Keep the momentum.'
+            💬 {healthActiveScores.length === 0
+              ? 'Upload KDP data to unlock your Series Health Score.'
+              : seriesHealth >= 70
+              ? 'Your series is healthy across all measured dimensions. Keep the momentum.'
               : seriesHealth >= 40
               ? 'Some areas need attention. Focus on the lowest-scoring component first.'
               : 'Multiple areas need work. Start with the biggest gap — usually email capture or read-through.'}
