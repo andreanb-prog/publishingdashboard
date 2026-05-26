@@ -696,6 +696,7 @@ model BsrLog {
   lpv               Int?
   notes             String?
   categoryRanks     Json?
+  source            String?  @default("manual")  // 'manual' | 'extension' | 'fetch'
   date              DateTime @default(now())
   fetchedAt         DateTime @default(now())
 
