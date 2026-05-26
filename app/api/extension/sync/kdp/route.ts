@@ -1,8 +1,12 @@
+// SOURCE PRIORITY RULE: csv > extension > manual
+// Never overwrite a higher-priority source with a lower-priority one
+// This allows users to upload CSV history at any time without conflicts
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { validateExtensionRequest } from '@/lib/extensionAuth'
+import { shouldOverwrite } from '@/lib/kdpDataPriority'
 
 function hasOnlyZeroOrNullNumbers(obj: Record<string, unknown>): boolean {
   const nums = Object.values(obj).filter((v) => typeof v === 'number' || v === null)
@@ -47,12 +51,20 @@ export async function POST(req: NextRequest) {
 
   const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
 
-  // Extension is the single source of truth: wipe all existing KdpSale rows
-  // for this user, then write a fresh record from the extension data.
-  await db.kdpSale.deleteMany({ where: { userId: auth.userId } })
+  // Check existing record before writing — respect source priority
+  const existing = await db.kdpSale.findUnique({
+    where: { userId_asin_date_format: { userId: auth.userId, asin: book.asin, date: today, format: 'ebook' } },
+    select: { source: true },
+  })
 
-  await db.kdpSale.create({
-    data: {
+  if (!shouldOverwrite(existing?.source ?? null, 'extension')) {
+    console.log(`KDP: skipping extension write, CSV record exists for this date (${today})`)
+    return NextResponse.json({ success: true, written: 0, note: 'csv_priority' })
+  }
+
+  await db.kdpSale.upsert({
+    where: { userId_asin_date_format: { userId: auth.userId, asin: book.asin, date: today, format: 'ebook' } },
+    create: {
       userId:    auth.userId,
       asin:      book.asin,
       date:      today,
@@ -61,6 +73,12 @@ export async function POST(req: NextRequest) {
       kenp:      payload.kenp      ?? 0,
       royalties: payload.royalties ?? 0,
       format:    'ebook',
+      source:    'extension',
+    },
+    update: {
+      units:     payload.units     ?? 0,
+      kenp:      payload.kenp      ?? 0,
+      royalties: payload.royalties ?? 0,
       source:    'extension',
     },
   })

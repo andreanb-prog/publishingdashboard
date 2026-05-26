@@ -2,6 +2,7 @@
 import { db } from '@/lib/db'
 import { parseKDPFile } from '@/lib/parsers/kdp'
 import { syncMailerLiteToAnalysis } from '@/lib/mailerlite'
+import { shouldOverwrite } from '@/lib/kdpDataPriority'
 import type { KDPData, KdpRawRow } from '@/types'
 
 export interface KDPUploadResult {

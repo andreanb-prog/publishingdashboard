@@ -1,8 +1,12 @@
+// SOURCE PRIORITY RULE: csv > extension > manual
+// Never overwrite a higher-priority source with a lower-priority one
+// This allows users to upload CSV history at any time without conflicts
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { validateExtensionRequest } from '@/lib/extensionAuth'
+import { shouldOverwrite } from '@/lib/kdpDataPriority'
 
 interface DailyRow {
   date: string
@@ -75,13 +79,14 @@ export async function POST(req: NextRequest) {
 
     const asin = matched.asin!
 
-    // Check if a CSV record already exists for this date+asin — if so, skip to preserve quality
-    const csvRecord = await db.kdpSale.findUnique({
+    // Respect source priority — never overwrite a higher-priority record
+    const existing = await db.kdpSale.findUnique({
       where: { userId_asin_date_format: { userId: auth.userId, asin, date: dateStr, format: 'ebook' } },
-      select: { id: true, source: true },
+      select: { source: true },
     })
 
-    if (csvRecord && csvRecord.source === 'csv') {
+    if (!shouldOverwrite(existing?.source ?? null, 'extension')) {
+      console.log(`KDP: skipping extension write, CSV record exists for this date (${dateStr})`)
       skipped++
       continue
     }
