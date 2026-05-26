@@ -38,6 +38,28 @@ function mapSwapType(raw?: string): string | undefined {
   }
 }
 
+// Strips ordinal suffixes (1st, 2nd, 3rd, 4th … 31st) and parses the result.
+// Handles: "Wednesday, April 29th", "April 29th", "May 21st 2026", etc.
+// Falls back to current year when no year is present in the string.
+function parsePromoDate(raw: string): Date | null {
+  if (!raw || typeof raw !== 'string') return null
+
+  // Remove ordinal suffixes
+  const cleaned = raw.replace(/(\d+)(st|nd|rd|th)\b/gi, '$1')
+
+  const d = new Date(cleaned)
+  if (!isNaN(d.getTime())) {
+    // If the parsed year looks like a default epoch year (1970 or similar),
+    // and the original string had no 4-digit year, pin to current year.
+    if (!/\b\d{4}\b/.test(raw)) {
+      d.setFullYear(new Date().getFullYear())
+    }
+    return d
+  }
+
+  return null
+}
+
 export async function POST(req: NextRequest) {
   const auth = await validateExtensionRequest(req)
   if ('errorResponse' in auth) return auth.errorResponse
@@ -48,41 +70,50 @@ export async function POST(req: NextRequest) {
   let written = 0
 
   for (const swap of swaps) {
-    const promoDate = new Date(swap.sendDate)
-    const status = mapStatus(swap.status)
-    const promoFormat = mapSwapType(swap.swapType)
+    try {
+      const promoDate = parsePromoDate(swap.sendDate)
+      if (!promoDate) {
+        console.warn('[bookclicker-launch] Skipping row — unparseable date:', swap.sendDate, swap)
+        continue
+      }
 
-    const existing = await db.swap.findFirst({
-      where: { userId: auth.userId, partnerName: swap.partnerName, promoDate },
-    })
+      const status = mapStatus(swap.status)
+      const promoFormat = mapSwapType(swap.swapType)
 
-    if (existing) {
-      await db.swap.update({
-        where: { id: existing.id },
-        data: {
-          status,
-          ...(swap.listSize != null && { partnerListSize: swap.listSize }),
-          ...(promoFormat && { promoFormat }),
-          source: 'extension',
-        },
+      const existing = await db.swap.findFirst({
+        where: { userId: auth.userId, partnerName: swap.partnerName, promoDate },
       })
-    } else {
-      await db.swap.create({
-        data: {
-          userId: auth.userId,
-          partnerName: swap.partnerName,
-          partnerListSize: swap.listSize ?? null,
-          bookTitle: '',
-          promoDate,
-          direction: 'you_promote',
-          status,
-          promoFormat: promoFormat ?? null,
-          source: 'extension',
-        },
-      })
+
+      if (existing) {
+        await db.swap.update({
+          where: { id: existing.id },
+          data: {
+            status,
+            ...(swap.listSize != null && { partnerListSize: swap.listSize }),
+            ...(promoFormat && { promoFormat }),
+            source: 'extension',
+          },
+        })
+      } else {
+        await db.swap.create({
+          data: {
+            userId: auth.userId,
+            partnerName: swap.partnerName,
+            partnerListSize: swap.listSize ?? null,
+            bookTitle: '',
+            promoDate,
+            direction: 'you_promote',
+            status,
+            promoFormat: promoFormat ?? null,
+            source: 'extension',
+          },
+        })
+      }
+
+      written++
+    } catch (err) {
+      console.error('[bookclicker-launch] Error processing swap row, skipping:', swap, err)
     }
-
-    written++
   }
 
   await db.extensionSyncLog.create({
