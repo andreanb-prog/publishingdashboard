@@ -74,7 +74,7 @@ export async function fetchBsrFromAmazon(asin: string): Promise<BsrFetchResult> 
 
     // Extract all #number + label pairs from the BSR string
     // e.g. "#335,172 in Kindle Store ..." → [{ rank: 335172, category: "Kindle Store" }, ...]
-    const matches = [...bsrString.matchAll(/#([\d,]+)\s+in\s+([^#\n(]+)/g)]
+    const matches = Array.from(bsrString.matchAll(/#([\d,]+)\s+in\s+([^#\n(]+)/g))
     if (matches.length === 0) {
       console.error('[bsr-fetch] Failed to parse BSR string:', bsrString)
       return { error: 'parse_fail', httpStatus }
