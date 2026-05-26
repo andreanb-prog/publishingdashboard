@@ -244,6 +244,11 @@ function SortableBookCard({
           {book.asin && (
             <span className="text-[10.5px] font-mono text-stone-400">{book.asin}</span>
           )}
+          {book.asinPaperback && (
+            <span className="text-[10px] font-mono text-stone-300" title="Paperback ASIN">
+              PB: {book.asinPaperback}
+            </span>
+          )}
           {book.seriesName && (
             <span className="text-[11px] text-stone-500">
               {book.seriesName}{book.seriesOrder != null ? ` #${book.seriesOrder}` : ''}
@@ -666,6 +671,21 @@ function BookModal({
             </div>
           </div>
 
+          {/* Paperback ASIN — secondary identifier, always visible */}
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1.5">
+              Paperback ASIN <span className="normal-case font-normal text-stone-400">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={form.asinPaperback}
+              onChange={e => set('asinPaperback', e.target.value.toUpperCase())}
+              placeholder="e.g. B0ABC1234D"
+              className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
+            />
+            <span className="block mt-1 text-[11px] text-stone-400">Your paperback edition on Amazon — links data, not tracked separately</span>
+          </div>
+
           {/* Series name + order */}
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2">
@@ -704,7 +724,7 @@ function BookModal({
             <Toggle checked={form.isLeadMagnet} onChange={v => set('isLeadMagnet', v)} />
           </div>
 
-          {/* Format Editions — collapsible */}
+          {/* More Editions — ISBN / Audiobook (collapsible) */}
           <div className="border-t border-stone-100 pt-3">
             <button
               type="button"
@@ -715,7 +735,7 @@ function BookModal({
                 className="text-[11px] font-bold uppercase tracking-[0.8px]"
                 style={{ color: 'rgba(30,45,61,0.4)' }}
               >
-                Format Editions
+                More Editions (ISBN / Audiobook)
               </span>
               <ChevronDown
                 size={14}
@@ -730,21 +750,6 @@ function BookModal({
 
             {formatEditionsOpen && (
               <div className="flex flex-col gap-3 mt-1">
-                {/* Paperback ASIN */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
-                    Paperback ASIN <span className="normal-case font-normal text-stone-400">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.asinPaperback}
-                    onChange={e => set('asinPaperback', e.target.value.toUpperCase())}
-                    placeholder="e.g. B0ABC1234D"
-                    className="w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[13px] font-mono text-[#1E2D3D] bg-white outline-none focus:border-[#E9A020] transition-colors"
-                  />
-                  <span className="block mt-1 text-[11px] text-stone-400">Found on your Amazon paperback listing</span>
-                </div>
-
                 {/* Paperback ISBN-13 */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-[0.8px] text-stone-500 mb-1">
@@ -1038,6 +1043,11 @@ export function BookCatalog() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
+
+  // Run one-shot migration on first mount to merge standalone paperback entries
+  useEffect(() => {
+    fetch('/api/books/migrate-paperbacks', { method: 'POST' }).catch(() => {})
+  }, [])
 
   // Load books
   const loadBooks = useCallback(async () => {
@@ -1356,6 +1366,11 @@ export function BookCatalog() {
                       ? <div className="text-[10px] font-mono" style={{ color: '#9CA3AF' }}>{book.asin}</div>
                       : <div className="text-[10px] font-semibold mt-0.5 px-1.5 py-0.5 rounded inline-block" style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>No ASIN</div>
                     }
+                  {book.asinPaperback && (
+                    <div className="text-[10px] font-mono" style={{ color: '#C4B5A0' }} title="Paperback ASIN">
+                      PB: {book.asinPaperback}
+                    </div>
+                  )}
                   </div>
                   {book.formatBadges?.length > 0 && (
                     <div className="flex items-center gap-1 shrink-0 flex-wrap">
