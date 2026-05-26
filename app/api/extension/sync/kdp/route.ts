@@ -47,21 +47,13 @@ export async function POST(req: NextRequest) {
 
   const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
 
-  await db.kdpSale.upsert({
-    where: {
-      userId_asin_date_format: {
-        userId: auth.userId,
-        asin:   book.asin,
-        date:   today,
-        format: 'ebook',
-      },
-    },
-    update: {
-      units:     payload.units     ?? 0,
-      kenp:      payload.kenp      ?? 0,
-      royalties: payload.royalties ?? 0,
-    },
-    create: {
+  // Delete all of today's KDP records for this user before writing fresh data
+  await db.kdpSale.deleteMany({
+    where: { userId: auth.userId, date: today },
+  })
+
+  await db.kdpSale.create({
+    data: {
       userId:    auth.userId,
       asin:      book.asin,
       date:      today,
