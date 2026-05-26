@@ -20,12 +20,12 @@ interface LaunchPayload {
 
 function mapStatus(raw?: string): string {
   switch (raw) {
-    case 'sent':      return 'Sent'
-    case 'paid':      return 'Sent'
-    case 'cancelled': return 'Cancelled'
-    case 'declined':  return 'Cancelled'
-    case 'pending':   return 'Booked'
-    default:          return 'Booked'
+    case 'sent':      return 'sent'
+    case 'paid':      return 'sent'
+    case 'cancelled': return 'cancelled'
+    case 'declined':  return 'cancelled'
+    case 'pending':   return 'booked'
+    default:          return 'booked'
   }
 }
 

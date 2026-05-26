@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       bookTitle: '',
       promoDate,
       direction: 'you_promote',
-      status: 'Booked',
+      status: 'booked',
       source: 'extension',
     },
   })
