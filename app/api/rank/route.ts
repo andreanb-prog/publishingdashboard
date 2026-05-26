@@ -28,7 +28,6 @@ export async function GET(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
-  const book = searchParams.get('book')
   const from = searchParams.get('from')
   const to   = searchParams.get('to')
 
@@ -36,11 +35,26 @@ export async function GET(req: NextRequest) {
     ? { date: { gte: new Date(from), lte: new Date(to) } }
     : {}
 
-  const logs = await db.rankLog.findMany({
-    where: { userId: session.user.id, ...dateFilter, ...(book ? { book } : {}) },
-    orderBy: { date: 'desc' },
-    take: 60,
+  // Read from BsrLog — that's where the BSR cron writes rank data.
+  // Filter out LM (lead magnet) rows and any rows with no rank.
+  const bsrLogs = await db.bsrLog.findMany({
+    where: {
+      userId: session.user.id,
+      rank: { not: null },
+      NOT: { asin: 'LM' },
+      ...dateFilter,
+    },
+    orderBy: { date: 'asc' },
+    take: 200,
   })
+
+  const logs = bsrLogs.map(l => ({
+    id:   l.id,
+    book: l.bookTitle ?? l.asin,
+    asin: l.asin,
+    rank: l.rank as number,
+    date: l.date.toISOString(),
+  }))
 
   return NextResponse.json({ logs })
 }
