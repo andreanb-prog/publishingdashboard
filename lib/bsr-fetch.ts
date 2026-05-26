@@ -1,4 +1,4 @@
-// lib/bsr-fetch.ts — Amazon BSR fetch via OpenWeb Ninja Real-Time Amazon Data API (RapidAPI)
+// lib/bsr-fetch.ts — Amazon BSR fetch via OpenWeb Ninja direct API (app.openwebninja.com)
 
 export interface BsrSuccess {
   rank: number
@@ -28,7 +28,7 @@ export function markFetched(key: string) {
 
 export async function fetchBsrFromAmazon(asin: string): Promise<BsrFetchResult> {
   console.log('[bsr-fetch] RAPIDAPI_KEY present:', !!process.env.RAPIDAPI_KEY)
-  console.log('[bsr-fetch] path: RapidAPI (no cheerio fallback)')
+  console.log('[bsr-fetch] path: OpenWeb Ninja direct API')
 
   const apiKey = process.env.RAPIDAPI_KEY
   if (!apiKey) {
@@ -39,14 +39,13 @@ export async function fetchBsrFromAmazon(asin: string): Promise<BsrFetchResult> 
   const timer = setTimeout(() => controller.abort(), 12000)
 
   try {
-    const url = `https://real-time-amazon-data.p.rapidapi.com/product-details?asin=${encodeURIComponent(asin)}&country=US`
+    const url = `https://api.openwebninja.com/realtime-amazon-data/product-details?asin=${encodeURIComponent(asin)}&country=US`
     console.log('[bsr-fetch] calling URL:', url)
 
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        'X-RapidAPI-Key': apiKey,
-        'X-RapidAPI-Host': 'real-time-amazon-data.p.rapidapi.com',
+        'x-api-key': apiKey,
       },
     })
 
@@ -54,7 +53,8 @@ export async function fetchBsrFromAmazon(asin: string): Promise<BsrFetchResult> 
     console.log(`[bsr-fetch] ASIN=${asin} HTTP=${httpStatus}`)
 
     const rawBody = await response.text()
-    console.log(`[bsr-fetch] response body (first 200 chars):`, rawBody.slice(0, 200))
+    // Log full body on first request so we can confirm the response shape
+    console.log('[bsr-fetch] raw response body:', rawBody)
 
     if (!response.ok) {
       return { error: 'blocked', httpStatus }
