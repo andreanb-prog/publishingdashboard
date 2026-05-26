@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
     byUser.set(book.userId, list)
   }
 
-  const users = [...byUser.entries()]
+  const users = Array.from(byUser.entries())
   console.log(`[cron/bsr-refresh] processing ${users.length} users`)
 
   // RapidAPI free tier: 1 req/s — use 1100 ms between requests to stay safely under.
