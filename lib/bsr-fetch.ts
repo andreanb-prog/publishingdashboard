@@ -1,5 +1,4 @@
-// lib/bsr-fetch.ts — shared Amazon BSR fetch + parse logic
-import * as cheerio from 'cheerio'
+// lib/bsr-fetch.ts — Amazon BSR fetch via OpenWeb Ninja Real-Time Amazon Data API (RapidAPI)
 
 export interface BsrSuccess {
   rank: number
@@ -27,89 +26,52 @@ export function markFetched(key: string) {
   rateCache.set(key, Date.now())
 }
 
-function parseBsr(html: string): { rank: number; subcategories: { rank: number; category: string }[] } | 'blocked' | null {
-  if (
-    html.includes('Robot Check') ||
-    html.includes('api-services-support') ||
-    html.includes('Type the characters you see') ||
-    html.includes('Enter the characters you see')
-  ) return 'blocked'
-
-  const $ = cheerio.load(html)
-  let bsrText = ''
-
-  const selectors = [
-    '#detailBullets_feature_div li',
-    '#productDetails_detailBullets_sections1 tr',
-    '#detailBulletsWrapper_feature_div li',
-    '.pdTab li',
-  ]
-
-  for (const sel of selectors) {
-    $(sel).each((_, el) => {
-      const text = $(el).text().replace(/\s+/g, ' ').trim()
-      if (text.includes('Best Sellers Rank') || text.includes('Best Seller Rank')) {
-        bsrText = text
-      }
-    })
-    if (bsrText) break
+export async function fetchBsrFromAmazon(asin: string): Promise<BsrFetchResult> {
+  const apiKey = process.env.RAPIDAPI_KEY
+  if (!apiKey) {
+    console.error('[bsr-fetch] RAPIDAPI_KEY is not set')
+    return { error: 'parse_fail' }
   }
 
-  if (!bsrText) return null
-
-  const matches = Array.from(bsrText.matchAll(/#([\d,]+)\s+in\s+([^\n#(]+)/g))
-  if (!matches.length) return null
-
-  const rank = parseInt(matches[0][1].replace(/,/g, ''))
-  if (isNaN(rank)) return null
-
-  const subcategories = matches.slice(1, 3).map(m => ({
-    rank: parseInt(m[1].replace(/,/g, '')),
-    category: m[2].trim().replace(/\s+/g, ' ').replace(/[()]/g, '').trim(),
-  }))
-
-  return { rank, subcategories }
-}
-
-export async function fetchBsrFromAmazon(asin: string): Promise<BsrFetchResult> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 12000)
 
   try {
-    const response = await fetch(`https://www.amazon.com/dp/${encodeURIComponent(asin)}`, {
+    const url = `https://real-time-amazon-data.p.rapidapi.com/product-details?asin=${encodeURIComponent(asin)}&country=US`
+    const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Cache-Control': 'no-cache',
-        Pragma: 'no-cache',
-        Connection: 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
+        'X-RapidAPI-Key': apiKey,
+        'X-RapidAPI-Host': 'real-time-amazon-data.p.rapidapi.com',
       },
     })
 
     const httpStatus = response.status
     console.log(`[bsr-fetch] ASIN=${asin} HTTP=${httpStatus}`)
 
-    if (!response.ok && httpStatus !== 200) {
+    if (!response.ok) {
       return { error: 'blocked', httpStatus }
     }
 
-    const html = await response.text()
-    const parsed = parseBsr(html)
+    const json = await response.json()
+    const bsrList: { rank: string | number; ladder: { name: string }[] }[] | undefined =
+      json?.data?.product_details?.best_sellers_rank ??
+      json?.data?.best_sellers_rank
 
-    if (parsed === 'blocked') return { error: 'blocked', httpStatus }
-    if (!parsed) return { error: 'parse_fail', httpStatus }
+    if (!Array.isArray(bsrList) || bsrList.length === 0) {
+      console.error('[bsr-fetch] No best_sellers_rank in response', JSON.stringify(json).slice(0, 500))
+      return { error: 'parse_fail', httpStatus }
+    }
 
-    return { rank: parsed.rank, subcategories: parsed.subcategories, fetchedAt: new Date().toISOString() }
+    const topRank = parseInt(String(bsrList[0].rank).replace(/[^0-9]/g, ''), 10)
+    if (isNaN(topRank)) return { error: 'parse_fail', httpStatus }
+
+    const subcategories = bsrList.slice(1, 3).map(entry => ({
+      rank: parseInt(String(entry.rank).replace(/[^0-9]/g, ''), 10),
+      category: entry.ladder?.map(l => l.name).join(' > ') ?? String(entry.rank),
+    })).filter(s => !isNaN(s.rank))
+
+    return { rank: topRank, subcategories, fetchedAt: new Date().toISOString() }
   } catch (err: unknown) {
     if (err instanceof Error && err.name === 'AbortError') return { error: 'timeout' }
     console.error(`[bsr-fetch] ASIN=${asin} caught:`, err)
