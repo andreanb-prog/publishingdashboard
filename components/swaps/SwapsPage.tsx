@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CalendarDays, ChevronDown, ArrowLeftRight } from 'lucide-react'
+import { CalendarDays, ChevronDown, ChevronRight, ArrowLeftRight } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,6 +51,15 @@ function fmtDay(iso: string): { day: string; month: string } {
     day: String(d.getDate()),
     month: d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
   }
+}
+
+function getMonthKey(dateStr: string): string {
+  return dateStr.slice(0, 7) // "YYYY-MM"
+}
+
+function fmtMonthHeader(monthKey: string): string {
+  const d = new Date(monthKey + '-15T12:00:00')
+  return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
 
 function fmtDate(iso: string): string {
@@ -301,6 +310,59 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
   )
 }
 
+// ─── Past Swaps Section ───────────────────────────────────────────────────────
+
+function PastSwapsSection({
+  groups,
+  onStatusChange,
+}: {
+  groups: Array<{ monthKey: string; swaps: SwapRecord[] }>
+  onStatusChange: (id: string, status: string) => Promise<void>
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const total = groups.reduce((sum, g) => sum + g.swaps.length, 0)
+
+  return (
+    <div style={{ marginTop: 32 }}>
+      {/* Collapsible header */}
+      <button
+        onClick={() => setExpanded(e => !e)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+          background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0',
+          textAlign: 'left',
+        }}
+      >
+        {expanded
+          ? <ChevronDown size={16} strokeWidth={2} color="#9CA3AF" />
+          : <ChevronRight size={16} strokeWidth={2} color="#9CA3AF" />
+        }
+        <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(30,45,61,0.45)' }}>
+          Past Swaps ({total})
+        </span>
+      </button>
+
+      {expanded && (
+        <div style={{ marginTop: 12 }}>
+          {groups.map(group => (
+            <div key={group.monthKey} style={{ marginBottom: 24 }}>
+              <div style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+                textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 10,
+              }}>
+                {fmtMonthHeader(group.monthKey)}
+              </div>
+              {group.swaps.map(s => (
+                <SwapCard key={s.id} swap={s} onStatusChange={onStatusChange} />
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Add Swap Modal ───────────────────────────────────────────────────────────
 
 const EMPTY_FORM = {
@@ -544,15 +606,38 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
     setShowModal(false)
   }
 
-  // Group visible swaps by week (exclude cancelled from view? Keep them but dim via card opacity)
-  const grouped: Array<{ monday: string; swaps: SwapRecord[] }> = []
-  for (const s of swaps) {
+  const today = todayDateStr()
+
+  // Split into upcoming (>= today) and past (< today)
+  const upcomingSwaps = swaps
+    .filter(s => promoDateStr(s.promoDate) >= today)
+    .sort((a, b) => a.promoDate.localeCompare(b.promoDate))
+
+  const pastSwaps = swaps
+    .filter(s => promoDateStr(s.promoDate) < today)
+    .sort((a, b) => b.promoDate.localeCompare(a.promoDate)) // most recent first
+
+  // Group upcoming by week
+  const upcomingGrouped: Array<{ monday: string; swaps: SwapRecord[] }> = []
+  for (const s of upcomingSwaps) {
     const monday = getMondayOf(promoDateStr(s.promoDate))
-    const existing = grouped.find(g => g.monday === monday)
+    const existing = upcomingGrouped.find(g => g.monday === monday)
     if (existing) {
       existing.swaps.push(s)
     } else {
-      grouped.push({ monday, swaps: [s] })
+      upcomingGrouped.push({ monday, swaps: [s] })
+    }
+  }
+
+  // Group past by month, most recent month first
+  const pastGrouped: Array<{ monthKey: string; swaps: SwapRecord[] }> = []
+  for (const s of pastSwaps) {
+    const monthKey = getMonthKey(promoDateStr(s.promoDate))
+    const existing = pastGrouped.find(g => g.monthKey === monthKey)
+    if (existing) {
+      existing.swaps.push(s)
+    } else {
+      pastGrouped.push({ monthKey, swaps: [s] })
     }
   }
 
@@ -582,7 +667,7 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
           </button>
         </div>
 
-        {/* Empty state */}
+        {/* Empty state — no swaps at all */}
         {swaps.length === 0 && (
           <div style={{
             background: 'white', borderRadius: 16, border: '1px solid rgba(30,45,61,0.08)',
@@ -593,32 +678,45 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
 
         {swaps.length > 0 && (
           <>
-            {/* Section 1 — Action Required Banner */}
+            {/* Action Required Banner */}
             <ActionBanner swaps={swaps} onStatusChange={handleStatusChange} />
 
-            {/* Section 2 — Upcoming Swaps calendar view */}
-            <div>
-              <p style={{ fontSize: 16, fontWeight: 700, color: '#1E2D3D', margin: '0 0 16px' }}>
-                Upcoming Swaps
-              </p>
+            {/* Upcoming Swaps */}
+            {upcomingSwaps.length === 0 ? (
+              <div style={{
+                background: 'white', borderRadius: 16, border: '1px solid rgba(30,45,61,0.08)',
+              }}>
+                <EmptyState onAdd={() => setShowModal(true)} />
+              </div>
+            ) : (
+              <div>
+                <p style={{ fontSize: 16, fontWeight: 700, color: '#1E2D3D', margin: '0 0 16px' }}>
+                  Upcoming Swaps
+                </p>
 
-              {grouped.map(group => (
-                <div key={group.monday} style={{ marginBottom: 24 }}>
-                  {/* Week header */}
-                  <div style={{
-                    fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-                    textTransform: 'uppercase', color: '#E9A020', marginBottom: 10,
-                  }}>
-                    Week of {fmtWeekHeader(group.monday)}
+                {upcomingGrouped.map(group => (
+                  <div key={group.monday} style={{ marginBottom: 24 }}>
+                    <div style={{
+                      fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+                      textTransform: 'uppercase', color: '#E9A020', marginBottom: 10,
+                    }}>
+                      Week of {fmtWeekHeader(group.monday)}
+                    </div>
+                    {group.swaps.map(s => (
+                      <SwapCard key={s.id} swap={s} onStatusChange={handleStatusChange} />
+                    ))}
                   </div>
+                ))}
+              </div>
+            )}
 
-                  {/* Swap cards */}
-                  {group.swaps.map(s => (
-                    <SwapCard key={s.id} swap={s} onStatusChange={handleStatusChange} />
-                  ))}
-                </div>
-              ))}
-            </div>
+            {/* Past Swaps — collapsible */}
+            {pastSwaps.length > 0 && (
+              <PastSwapsSection
+                groups={pastGrouped}
+                onStatusChange={handleStatusChange}
+              />
+            )}
           </>
         )}
       </div>
