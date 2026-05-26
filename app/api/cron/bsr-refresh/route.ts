@@ -43,53 +43,78 @@ export async function GET(req: NextRequest) {
   let errors = 0
   const errorDetails: { asin: string; error: string; httpStatus?: number }[] = []
 
-  // Process sequentially with a 500 ms gap to avoid triggering Amazon bot-detection
+  // Group books by user so we can add a per-user cooldown between batches
+  const byUser = new Map<string, typeof books>()
   for (const book of books) {
-    const asin = book.asin!
+    const list = byUser.get(book.userId) ?? []
+    list.push(book)
+    byUser.set(book.userId, list)
+  }
 
-    try {
-      // Idempotent: skip if a rank was already logged today for this user+book (bypass with ?force=true)
-      if (!force) {
-        const existing = await db.bsrLog.findFirst({
-          where: { userId: book.userId, asin, rank: { not: null }, date: { gte: today, lt: dayEnd } },
-          select: { id: true },
-        })
-        if (existing) {
-          skipped++
-          continue
+  const users = [...byUser.entries()]
+  console.log(`[cron/bsr-refresh] processing ${users.length} users`)
+
+  // RapidAPI free tier: 1 req/s — use 1100 ms between requests to stay safely under.
+  // Add a 2000 ms cooldown between users to space out burst windows.
+  const REQUEST_DELAY_MS = 1100
+  const USER_DELAY_MS = 2000
+
+  for (let u = 0; u < users.length; u++) {
+    const [userId, userBooks] = users[u]
+    console.log(`[cron/bsr-refresh] user ${u + 1}/${users.length} (${userId}): ${userBooks.length} books`)
+
+    for (const book of userBooks) {
+      const asin = book.asin!
+
+      try {
+        // Idempotent: skip if a rank was already logged today for this user+book (bypass with ?force=true)
+        if (!force) {
+          const existing = await db.bsrLog.findFirst({
+            where: { userId: book.userId, asin, rank: { not: null }, date: { gte: today, lt: dayEnd } },
+            select: { id: true },
+          })
+          if (existing) {
+            skipped++
+            continue
+          }
         }
-      }
 
-      const result = await fetchBsrFromAmazon(asin)
+        const result = await fetchBsrFromAmazon(asin)
 
-      if ('error' in result) {
-        const detail = { asin, error: result.error, httpStatus: result.httpStatus }
-        console.error('[cron/bsr-refresh] fetch error', detail)
-        errorDetails.push(detail)
+        if ('error' in result) {
+          const detail = { asin, error: result.error, httpStatus: result.httpStatus }
+          console.error('[cron/bsr-refresh] fetch error', detail)
+          errorDetails.push(detail)
+          errors++
+        } else {
+          await db.bsrLog.create({
+            data: {
+              userId: book.userId,
+              asin,
+              bookTitle: book.title,
+              rank: result.rank,
+              date: today,
+              fetchedAt: new Date(),
+            },
+          })
+          processed++
+          console.log(`[cron/bsr-refresh] logged rank=${result.rank} for ASIN=${asin}`)
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error(`[cron/bsr-refresh] unexpected error for ASIN=${asin}:`, msg)
+        errorDetails.push({ asin, error: msg })
         errors++
-      } else {
-        await db.bsrLog.create({
-          data: {
-            userId: book.userId,
-            asin,
-            bookTitle: book.title,
-            rank: result.rank,
-            date: today,
-            fetchedAt: new Date(),
-          },
-        })
-        processed++
-        console.log(`[cron/bsr-refresh] logged rank=${result.rank} for ASIN=${asin}`)
       }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      console.error(`[cron/bsr-refresh] unexpected error for ASIN=${asin}:`, msg)
-      errorDetails.push({ asin, error: msg })
-      errors++
+
+      // 1100 ms between requests — safely under RapidAPI free-tier 1 req/s limit
+      await new Promise(r => setTimeout(r, REQUEST_DELAY_MS))
     }
 
-    // 500 ms delay between requests — keeps us under Amazon's bot radar
-    await new Promise(r => setTimeout(r, 500))
+    // 2000 ms cooldown between users to spread burst windows
+    if (u < users.length - 1) {
+      await new Promise(r => setTimeout(r, USER_DELAY_MS))
+    }
   }
 
   return NextResponse.json({ success: true, processed, skipped, errors, errorDetails })
