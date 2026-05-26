@@ -47,29 +47,12 @@ export async function POST(req: NextRequest) {
 
   const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
 
-  // Delete any prior extension-sourced records for today before writing fresh data.
-  // This prevents doubles when the extension fires more than once on the same day.
-  // CSV records (source = 'csv' or null) are never touched.
-  await db.kdpSale.deleteMany({
-    where: { userId: auth.userId, date: today, source: 'extension' },
-  })
+  // Extension is the single source of truth: wipe all existing KdpSale rows
+  // for this user, then write a fresh record from the extension data.
+  await db.kdpSale.deleteMany({ where: { userId: auth.userId } })
 
-  await db.kdpSale.upsert({
-    where: {
-      userId_asin_date_format: {
-        userId: auth.userId,
-        asin:   book.asin,
-        date:   today,
-        format: 'ebook',
-      },
-    },
-    update: {
-      units:     payload.units     ?? 0,
-      kenp:      payload.kenp      ?? 0,
-      royalties: payload.royalties ?? 0,
-      source:    'extension',
-    },
-    create: {
+  await db.kdpSale.create({
+    data: {
       userId:    auth.userId,
       asin:      book.asin,
       date:      today,
