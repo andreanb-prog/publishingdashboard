@@ -670,6 +670,7 @@ model KdpSale {
   kenp      Int      @default(0)
   royalties Float    @default(0)
   format    String?  // 'ebook' | 'paperback'
+  source    String?  @default("csv")  // 'csv' | 'extension'
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -45,8 +45,8 @@ export async function handleKDPUpload(
             format: row.format ?? 'ebook',
           },
         },
-        update: { units: row.units, kenp: row.kenp, royalties: row.royalties, title: row.title },
-        create: { userId, asin: row.asin, date: row.date, title: row.title, units: row.units, kenp: row.kenp, royalties: row.royalties, format: row.format },
+        update: { units: row.units, kenp: row.kenp, royalties: row.royalties, title: row.title, source: 'csv' },
+        create: { userId, asin: row.asin, date: row.date, title: row.title, units: row.units, kenp: row.kenp, royalties: row.royalties, format: row.format, source: 'csv' },
       })
     ))
     console.log(`[handleKDPUpload] upserted ${rawRows.length} rows for month ${data.month}`)
