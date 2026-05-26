@@ -27,10 +27,12 @@ export function markFetched(key: string) {
 }
 
 export async function fetchBsrFromAmazon(asin: string): Promise<BsrFetchResult> {
+  console.log('[bsr-fetch] RAPIDAPI_KEY present:', !!process.env.RAPIDAPI_KEY)
+  console.log('[bsr-fetch] path: RapidAPI (no cheerio fallback)')
+
   const apiKey = process.env.RAPIDAPI_KEY
   if (!apiKey) {
-    console.error('[bsr-fetch] RAPIDAPI_KEY is not set')
-    return { error: 'parse_fail' }
+    throw new Error('RAPIDAPI_KEY environment variable not set')
   }
 
   const controller = new AbortController()
@@ -38,6 +40,8 @@ export async function fetchBsrFromAmazon(asin: string): Promise<BsrFetchResult> 
 
   try {
     const url = `https://real-time-amazon-data.p.rapidapi.com/product-details?asin=${encodeURIComponent(asin)}&country=US`
+    console.log('[bsr-fetch] calling URL:', url)
+
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
@@ -49,11 +53,14 @@ export async function fetchBsrFromAmazon(asin: string): Promise<BsrFetchResult> 
     const httpStatus = response.status
     console.log(`[bsr-fetch] ASIN=${asin} HTTP=${httpStatus}`)
 
+    const rawBody = await response.text()
+    console.log(`[bsr-fetch] response body (first 200 chars):`, rawBody.slice(0, 200))
+
     if (!response.ok) {
       return { error: 'blocked', httpStatus }
     }
 
-    const json = await response.json()
+    const json = JSON.parse(rawBody)
     const bsrList: { rank: string | number; ladder: { name: string }[] }[] | undefined =
       json?.data?.product_details?.best_sellers_rank ??
       json?.data?.best_sellers_rank
