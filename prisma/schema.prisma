@@ -114,6 +114,8 @@ model User {
   swaps                   Swap[]
   mailerLiteLists         MailerLiteList[]
   storyPostProjects       StoryPostProject[]
+  extensionSyncLogs       ExtensionSyncLog[]
+  connectionTokens        ConnectionToken[]
   createdAt     DateTime       @default(now())
 }
 
@@ -930,4 +932,28 @@ model StoryPostPost {
 
   @@index([projectId])
   @@index([projectId, dayNumber])
+}
+
+model ExtensionSyncLog {
+  id         String   @id @default(cuid())
+  userId     String
+  platform   String   // kdp | meta | bookclicker
+  syncedAt   DateTime @default(now())
+  dataPoints Int
+  status     String   // success | rejected_zeros | error
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([userId, platform])
+}
+
+model ConnectionToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }

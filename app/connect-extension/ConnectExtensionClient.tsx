@@ -25,6 +25,12 @@ export function ConnectExtensionClient({ token, userName }: Props) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Connection failed')
+
+      // Tell the content script the connection succeeded so it can relay to the extension
+      window.postMessage(
+        { type: 'AUTHORDASH_CONNECTED', extensionKey: data.extensionKey, userId: data.userId, userName: data.userName },
+        '*'
+      )
       setDone(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -101,7 +107,7 @@ export function ConnectExtensionClient({ token, userName }: Props) {
         </button>
 
         <p className="text-center text-[#1E2D3D]/50 text-xs">
-          🔒 I can only read your data. I never write, post, or change anything.
+          🐕 I fetch your numbers and bring them straight home. I don&apos;t sell, share, or store anything beyond your AuthorDash account. Your data has one destination — you.
         </p>
       </div>
     </div>
