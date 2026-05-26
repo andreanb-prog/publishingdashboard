@@ -61,21 +61,31 @@ export async function fetchBsrFromAmazon(asin: string): Promise<BsrFetchResult> 
     }
 
     const json = JSON.parse(rawBody)
-    const bsrList: { rank: string | number; ladder: { name: string }[] }[] | undefined =
-      json?.data?.product_details?.best_sellers_rank ??
-      json?.data?.best_sellers_rank
 
-    if (!Array.isArray(bsrList) || bsrList.length === 0) {
-      console.error('[bsr-fetch] No best_sellers_rank in response', JSON.stringify(json).slice(0, 500))
+    // OpenWeb Ninja returns BSR as a text string in product_information or product_details
+    const bsrString: string | undefined =
+      json?.data?.product_information?.['Best Sellers Rank'] ??
+      json?.data?.product_details?.['Best Sellers Rank']
+
+    if (!bsrString || typeof bsrString !== 'string') {
+      console.error('[bsr-fetch] No Best Sellers Rank string in response', JSON.stringify(json).slice(0, 500))
       return { error: 'parse_fail', httpStatus }
     }
 
-    const topRank = parseInt(String(bsrList[0].rank).replace(/[^0-9]/g, ''), 10)
+    // Extract all #number + label pairs from the BSR string
+    // e.g. "#335,172 in Kindle Store ..." → [{ rank: 335172, category: "Kindle Store" }, ...]
+    const matches = [...bsrString.matchAll(/#([\d,]+)\s+in\s+([^#\n(]+)/g)]
+    if (matches.length === 0) {
+      console.error('[bsr-fetch] Failed to parse BSR string:', bsrString)
+      return { error: 'parse_fail', httpStatus }
+    }
+
+    const topRank = parseInt(matches[0][1].replace(/,/g, ''), 10)
     if (isNaN(topRank)) return { error: 'parse_fail', httpStatus }
 
-    const subcategories = bsrList.slice(1, 3).map(entry => ({
-      rank: parseInt(String(entry.rank).replace(/[^0-9]/g, ''), 10),
-      category: entry.ladder?.map(l => l.name).join(' > ') ?? String(entry.rank),
+    const subcategories = matches.slice(1).map(m => ({
+      rank: parseInt(m[1].replace(/,/g, ''), 10),
+      category: m[2].trim(),
     })).filter(s => !isNaN(s.rank))
 
     return { rank: topRank, subcategories, fetchedAt: new Date().toISOString() }
