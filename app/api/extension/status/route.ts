@@ -1,28 +1,11 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { checkRateLimit } from '@/lib/extensionRateLimit'
+import { validateExtensionRequest } from '@/lib/extensionAuth'
 
 export async function GET(req: NextRequest) {
-  const extensionKey = req.headers.get('extensionkey') ?? req.headers.get('x-extension-key')
-
-  if (!extensionKey) {
-    return NextResponse.json({ error: 'Missing extension key' }, { status: 401 })
-  }
-
-  if (!checkRateLimit(extensionKey)) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
-  }
-
-  const user = await db.user.findUnique({
-    where: { extensionKey },
-    select: { id: true },
-  })
-
-  if (!user) {
-    return NextResponse.json({ error: 'Invalid extension key' }, { status: 401 })
-  }
+  const auth = await validateExtensionRequest(req)
+  if ('errorResponse' in auth) return auth.errorResponse
 
   return NextResponse.json({
     kdp: { lastSync: null, status: 'not_connected', summary: null },

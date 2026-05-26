@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Token expired' }, { status: 400 })
   }
 
-  const extensionKey = `ext_${session.user.id}_${randomBytes(32).toString('hex')}`
+  const extensionKey = `ext_${randomBytes(32).toString('hex')}`
 
   await db.$transaction([
     db.user.update({
@@ -51,14 +51,9 @@ export async function POST(req: NextRequest) {
     }),
   ])
 
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, name: true },
-  })
-
   return NextResponse.json({
     extensionKey,
-    userId: user!.id,
-    userName: user!.name,
+    userId: session.user.id,
+    userName: session.user.name,
   })
 }

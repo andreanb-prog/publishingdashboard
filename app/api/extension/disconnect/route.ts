@@ -2,27 +2,16 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { validateExtensionRequest } from '@/lib/extensionAuth'
 
 export async function POST(req: NextRequest) {
-  const extensionKey = req.headers.get('x-extension-key') ?? req.headers.get('extensionkey')
-
-  if (!extensionKey) {
-    return NextResponse.json({ error: 'Missing extension key' }, { status: 401 })
-  }
-
-  const user = await db.user.findUnique({
-    where: { extensionKey },
-    select: { id: true },
-  })
-
-  if (!user) {
-    return NextResponse.json({ error: 'Invalid extension key' }, { status: 401 })
-  }
+  const auth = await validateExtensionRequest(req)
+  if ('errorResponse' in auth) return auth.errorResponse
 
   await db.user.update({
-    where: { id: user.id },
+    where: { id: auth.userId },
     data: { extensionKey: null, extensionConnectedAt: null },
   })
 
-  return NextResponse.json({ success: true, message: 'Disconnected' })
+  return NextResponse.json({ ok: true })
 }

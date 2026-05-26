@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation'
 interface Props {
   token: string
   userName: string | null
+  tokenError: string | null
 }
 
-export function ConnectExtensionClient({ token, userName }: Props) {
+export function ConnectExtensionClient({ token, userName, tokenError }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,6 +38,22 @@ export function ConnectExtensionClient({ token, userName }: Props) {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (tokenError) {
+    return (
+      <div className="min-h-screen bg-[#FFF8F0] flex items-center justify-center px-4">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 rounded-full bg-[#F97B6B]/20 flex items-center justify-center mx-auto mb-5">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F97B6B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-semibold text-[#1E2D3D] mb-2">Link invalid</h1>
+          <p className="text-[#1E2D3D]/60 text-sm">{tokenError}</p>
+        </div>
+      </div>
+    )
   }
 
   if (done) {
@@ -77,9 +94,17 @@ export function ConnectExtensionClient({ token, userName }: Props) {
           AuthorDash Sync is ready to connect
         </h1>
         {userName && (
-          <p className="text-center text-[#1E2D3D]/50 text-sm mb-6">Welcome, {userName}</p>
+          <p className="text-center text-[#1E2D3D]/50 text-sm mb-4">Welcome, {userName}</p>
         )}
-        {!userName && <div className="mb-6" />}
+        {!userName && <div className="mb-4" />}
+
+        {/* Prominent security note */}
+        <div className="flex items-start gap-3 bg-[#6EBF8B]/10 border border-[#6EBF8B]/30 rounded-lg px-4 py-3 mb-6">
+          <span className="text-[#6EBF8B] text-base leading-none mt-0.5 flex-shrink-0">🔒</span>
+          <p className="text-[#1E2D3D] text-sm font-medium leading-snug">
+            Read-only access. AuthorDash Sync can never post, purchase, or change anything on your behalf.
+          </p>
+        </div>
 
         <p className="text-[#1E2D3D]/70 text-sm mb-4">
           This will give the AuthorDash Chrome extension read access to your data from:
@@ -101,14 +126,10 @@ export function ConnectExtensionClient({ token, userName }: Props) {
         <button
           onClick={handleConnect}
           disabled={loading}
-          className="w-full bg-[#E9A020] hover:bg-[#d4911c] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors mb-4"
+          className="w-full bg-[#E9A020] hover:bg-[#d4911c] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors"
         >
           {loading ? 'Connecting…' : 'Yes, connect me →'}
         </button>
-
-        <p className="text-center text-[#1E2D3D]/50 text-xs">
-          🐕 I fetch your numbers and bring them straight home. I don&apos;t sell, share, or store anything beyond your AuthorDash account. Your data has one destination — you.
-        </p>
       </div>
     </div>
   )

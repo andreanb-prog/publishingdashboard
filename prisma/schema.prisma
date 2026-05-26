@@ -759,6 +759,39 @@ model Swap {
   @@index([userId])
 }
 
+model ConnectionToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  @@index([userId])
+}
+
+model ExtensionSyncLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform   String
+  syncedAt   DateTime @default(now())
+  dataPoints Int
+  status     String   @default("success")
+
+  @@index([userId])
+  @@index([userId, platform])
+}
+
+model ExtensionRateLimit {
+  id           String   @id @default(cuid())
+  extensionKey String
+  windowStart  DateTime
+  requestCount Int      @default(1)
+
+  @@unique([extensionKey, windowStart])
+}
+
 model AdminAuditLog {
   id                String   @id @default(cuid())
   adminEmail        String
@@ -934,26 +967,3 @@ model StoryPostPost {
   @@index([projectId, dayNumber])
 }
 
-model ExtensionSyncLog {
-  id         String   @id @default(cuid())
-  userId     String
-  platform   String   // kdp | meta | bookclicker
-  syncedAt   DateTime @default(now())
-  dataPoints Int
-  status     String   // success | rejected_zeros | error
-  user       User     @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([userId, platform])
-}
-
-model ConnectionToken {
-  id        String    @id @default(cuid())
-  token     String    @unique
-  userId    String
-  createdAt DateTime  @default(now())
-  usedAt    DateTime?
-  user      User      @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-}
