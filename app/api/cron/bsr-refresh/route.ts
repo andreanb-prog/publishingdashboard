@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const force = req.nextUrl.searchParams.get('force') === 'true'
+
   const allBooks = await db.book.findMany({
     where: { asin: { not: null } },
     select: { userId: true, asin: true, title: true },
@@ -32,7 +34,7 @@ export async function GET(req: NextRequest) {
     return KINDLE_ASIN.test(asin)
   })
 
-  console.log(`[cron/bsr-refresh] ${allBooks.length} total books, ${books.length} valid Kindle ASINs to process`)
+  console.log(`[cron/bsr-refresh] ${allBooks.length} total books, ${books.length} valid Kindle ASINs to process${force ? ' (force=true, idempotent check skipped)' : ''}`)
 
   const { start: today, end: dayEnd } = todayUTC()
 
@@ -46,14 +48,16 @@ export async function GET(req: NextRequest) {
     const asin = book.asin!
 
     try {
-      // Idempotent: skip if a rank was already logged today for this user+book
-      const existing = await db.bsrLog.findFirst({
-        where: { userId: book.userId, asin, rank: { not: null }, date: { gte: today, lt: dayEnd } },
-        select: { id: true },
-      })
-      if (existing) {
-        skipped++
-        continue
+      // Idempotent: skip if a rank was already logged today for this user+book (bypass with ?force=true)
+      if (!force) {
+        const existing = await db.bsrLog.findFirst({
+          where: { userId: book.userId, asin, rank: { not: null }, date: { gte: today, lt: dayEnd } },
+          select: { id: true },
+        })
+        if (existing) {
+          skipped++
+          continue
+        }
       }
 
       const result = await fetchBsrFromAmazon(asin)
