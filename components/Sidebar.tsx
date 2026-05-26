@@ -26,6 +26,7 @@ const SIMPLE_ITEMS: NavItem[] = [
   { label: 'Today',           desc: 'Your morning snapshot',    href: '/dashboard',                  Icon: LayoutDashboard },
   { label: 'Royalties',       desc: 'KDP sales & KENP',         href: '/dashboard/kdp',              Icon: DollarSign,  badge: '+12%', badgeType: 'amber' },
   { label: 'Readers',         desc: 'Your email list',          href: '/dashboard/mailerlite',       Icon: Mail },
+  { label: 'Book Swaps',      desc: 'Swap calendar & sends',    href: '/dashboard/swaps',            Icon: ArrowLeftRight },
   { label: 'Write',           desc: '12-day streak · 1,842 w.', href: '/dashboard/writing-notebook', Icon: PenTool },
   { label: 'Content Studio',  desc: 'Social calendar & posts',  href: '/content',                    Icon: CalendarDays },
   { label: 'Coach',           desc: '3 nudges waiting',         href: '/dashboard/tasks',            Icon: Bot, badge: '3', badgeType: 'count' },
@@ -46,7 +47,8 @@ const ALL_CHANNELS: NavItem[] = [
   { label: 'KDP',             desc: 'Amazon royalties',  href: '/dashboard/kdp',         Icon: BookOpen },
   { label: 'Meta / Facebook', desc: 'Ad performance',    href: '/dashboard/meta',        Icon: TrendingUp },
   { label: 'MailerLite',      desc: 'Email list',        href: '/dashboard/mailerlite',  Icon: Mail },
-{ label: 'Pinterest',       desc: 'Pinterest traffic', href: '/dashboard/pinterest',   Icon: Pin },
+  { label: 'Book Swaps',      desc: 'Swap calendar',     href: '/dashboard/swaps',       Icon: ArrowLeftRight },
+  { label: 'Pinterest',       desc: 'Pinterest traffic', href: '/dashboard/pinterest',   Icon: Pin },
 ]
 
 const ALL_TOOLS: NavItem[] = [
