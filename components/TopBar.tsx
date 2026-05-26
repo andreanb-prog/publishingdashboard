@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { ConnectionStatus } from './ConnectionStatus'
+import { FetchStatusPill } from './FetchStatusPill'
 import { UploadModal } from './UploadModal'
 
 function getDefaultDateRange() {
@@ -298,6 +299,9 @@ export function TopBar({ user }: TopBarProps) {
           >
             📖 Story Mode
           </button> */}
+
+          {/* Fetch sync status */}
+          <FetchStatusPill />
 
           {/* Connection status */}
           <ConnectionStatus />

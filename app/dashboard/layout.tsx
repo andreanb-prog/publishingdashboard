@@ -8,6 +8,7 @@ import { MobileNav } from '@/components/MobileNav'
 import { FeedbackButton } from '@/components/FeedbackButton'
 import { HelpDrawer } from '@/components/HelpDrawer'
 import { TrialBanner } from '@/components/TrialBanner'
+import { FetchFirstSyncToast } from '@/components/FetchFirstSyncToast'
 import { AdminImpersonateBanner } from '@/components/AdminImpersonateBanner'
 import { SHOW_PRICING } from '@/lib/flags'
 
@@ -53,6 +54,7 @@ export default async function DashboardLayout({
       </div>
       <HelpDrawer />
       <FeedbackButton />
+      <FetchFirstSyncToast />
     </div>
   )
 }

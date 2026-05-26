@@ -25,6 +25,7 @@ import { SortablePage } from '@/components/SortablePage'
 import { fmtPct, fmtCurrency } from '@/lib/utils'
 import { getCoachTitle } from '@/lib/coachTitle'
 import { LastUploadBadge } from '@/components/LastUploadBadge'
+import { FetchSyncBadge } from '@/components/FetchSyncBadge'
 import type { Analysis, MetaAd } from '@/types'
 
 
@@ -889,6 +890,7 @@ export default function MetaPage() {
       <BoutiquePageHeader title="Meta" subtitle="Facebook Ads · Performance · Hook Scoring · Action Plan" />
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <LastUploadBadge channel="meta" dateRange={activeRange.start ? activeRange : undefined} />
+      <FetchSyncBadge channel="meta" />
 
       {/* Date range picker — always shown */}
       <div className="mb-5">
