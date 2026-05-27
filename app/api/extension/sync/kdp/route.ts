@@ -6,7 +6,6 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { validateExtensionRequest } from '@/lib/extensionAuth'
-import { shouldOverwrite } from '@/lib/kdpDataPriority'
 
 function hasOnlyZeroOrNullNumbers(obj: Record<string, unknown>): boolean {
   const nums = Object.values(obj).filter((v) => typeof v === 'number' || v === null)
@@ -50,8 +49,8 @@ export async function POST(req: NextRequest) {
   }
 
   const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
-  const currentMonth = today.substring(0, 7) // YYYY-MM
-  const [yr, mo] = currentMonth.split('-').map(Number)
+  const monthKey = today.substring(0, 7) // YYYY-MM
+  const [yr, mo] = monthKey.split('-').map(Number)
   const nextMo = mo === 12 ? `${yr + 1}-01` : `${yr}-${String(mo + 1).padStart(2, '0')}`
 
   // If ANY csv-source row exists for this ASIN in the current month, skip —
@@ -60,7 +59,7 @@ export async function POST(req: NextRequest) {
     where: {
       userId: auth.userId,
       asin: book.asin,
-      date: { gte: `${currentMonth}-01`, lt: `${nextMo}-01` },
+      date: { gte: `${monthKey}-01`, lt: `${nextMo}-01` },
       source: 'csv',
     },
     select: { id: true },
@@ -72,43 +71,36 @@ export async function POST(req: NextRequest) {
       where: {
         userId: auth.userId,
         asin: book.asin,
-        date: { gte: `${currentMonth}-01`, lt: `${nextMo}-01` },
         source: 'extension',
+        monthKey,
       },
     })
-    console.log(`KDP: skipping extension write, CSV data already exists for ${currentMonth}`)
+    console.log(`KDP: skipping extension write, CSV data already exists for ${monthKey}`)
     return NextResponse.json({ success: true, written: 0, note: 'csv_data_exists_for_month' })
   }
 
-  // Check existing record before writing — respect source priority on same date
-  const existing = await db.kdpSale.findUnique({
-    where: { userId_asin_date_format: { userId: auth.userId, asin: book.asin, date: today, format: 'ebook' } },
-    select: { source: true },
-  })
-
-  if (!shouldOverwrite(existing?.source ?? null, 'extension')) {
-    console.log(`KDP: skipping extension write, CSV record exists for this date (${today})`)
-    return NextResponse.json({ success: true, written: 0, note: 'csv_priority' })
-  }
-
+  // Upsert one row per book per month — extension sends MTD cumulative totals,
+  // so each sync overwrites the previous snapshot for that month.
   await db.kdpSale.upsert({
-    where: { userId_asin_date_format: { userId: auth.userId, asin: book.asin, date: today, format: 'ebook' } },
+    where: { userId_asin_source_monthKey: { userId: auth.userId, asin: book.asin, source: 'extension', monthKey } },
     create: {
       userId:    auth.userId,
       asin:      book.asin,
+      title:     book.title ?? '',
       date:      today,
-      title:     book.title,
       units:     payload.units     ?? 0,
       kenp:      payload.kenp      ?? 0,
       royalties: payload.royalties ?? 0,
       format:    'ebook',
       source:    'extension',
+      monthKey,
     },
     update: {
+      date:      today,
       units:     payload.units     ?? 0,
       kenp:      payload.kenp      ?? 0,
       royalties: payload.royalties ?? 0,
-      source:    'extension',
+      updatedAt: new Date(),
     },
   })
 

@@ -676,10 +676,12 @@ model KdpSale {
   royalties Float    @default(0)
   format    String?  // 'ebook' | 'paperback'
   source    String?  @default("csv")  // 'csv' | 'extension'
+  monthKey  String?  // YYYY-MM — used by extension rows for MTD month-level upsert
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([userId, asin, date, format])
+  @@unique([userId, asin, source, monthKey])
   @@index([userId])
   @@index([userId, date])
 }
