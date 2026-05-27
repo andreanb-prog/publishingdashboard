@@ -50,8 +50,37 @@ export async function POST(req: NextRequest) {
   }
 
   const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+  const currentMonth = today.substring(0, 7) // YYYY-MM
+  const [yr, mo] = currentMonth.split('-').map(Number)
+  const nextMo = mo === 12 ? `${yr + 1}-01` : `${yr}-${String(mo + 1).padStart(2, '0')}`
 
-  // Check existing record before writing — respect source priority
+  // If ANY csv-source row exists for this ASIN in the current month, skip —
+  // the extension sends MTD totals which would double-count alongside daily CSV rows
+  const csvRowExistsThisMonth = await db.kdpSale.findFirst({
+    where: {
+      userId: auth.userId,
+      asin: book.asin,
+      date: { gte: `${currentMonth}-01`, lt: `${nextMo}-01` },
+      source: 'csv',
+    },
+    select: { id: true },
+  })
+
+  if (csvRowExistsThisMonth) {
+    // Remove any stale extension row for this month — it duplicates the CSV data
+    await db.kdpSale.deleteMany({
+      where: {
+        userId: auth.userId,
+        asin: book.asin,
+        date: { gte: `${currentMonth}-01`, lt: `${nextMo}-01` },
+        source: 'extension',
+      },
+    })
+    console.log(`KDP: skipping extension write, CSV data already exists for ${currentMonth}`)
+    return NextResponse.json({ success: true, written: 0, note: 'csv_data_exists_for_month' })
+  }
+
+  // Check existing record before writing — respect source priority on same date
   const existing = await db.kdpSale.findUnique({
     where: { userId_asin_date_format: { userId: auth.userId, asin: book.asin, date: today, format: 'ebook' } },
     select: { source: true },
