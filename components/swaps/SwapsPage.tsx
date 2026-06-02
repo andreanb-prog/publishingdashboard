@@ -66,8 +66,8 @@ function fmtDateGroupHeader(dateStr: string): string {
 // Maps book title → design-system color (B1=coral, B2=peach, B3=plum, ...)
 function getBookColorByTitle(title: string): string {
   const t = title.toLowerCase()
-  if (t.includes('roommate')) return BOOK_COLORS[0]
-  if (t.includes('billionaire') || t.includes('protector')) return BOOK_COLORS[1]
+  if (t.includes('billionaire') || t.includes('protector')) return BOOK_COLORS[0]
+  if (t.includes('roommate')) return BOOK_COLORS[1]
   if (t.includes("ex'") || t.includes('secret baby') || t.includes(' ex ') || t.includes('ex,')) return BOOK_COLORS[2]
   // deterministic hash for unknown titles
   let h = 0
@@ -229,8 +229,7 @@ function DaySwapCard({ swap }: { swap: SwapRecord }) {
       </div>
 
       {/* Row 1b: book title in book color (RESTORE 2) */}
-      {/* Note: getBookColorByTitle indices for B1 coral and B2 peach are swapped — pre-existing bug, out of scope */}
-      <p style={{
+<p style={{
         fontSize: 12, fontWeight: 600, color, margin: '0 0 8px',
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
