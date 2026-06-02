@@ -130,7 +130,7 @@ function formatRangeBadge(range: { from: string; to: string } | null): string {
 }
 
 export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; userName?: string | null }) {
-  const { analysis, analyses, liveML, animRev, animUnits, animKenp, animCtr, _netVal, greeting, initialData, kdpLastUploadedAt, kdpTotals, kdpReady, selectedRange, hasMonthGranularData } = dashboard
+  const { analysis, analyses, liveML, animRev, animRoyalties, animUnits, animKenp, animCtr, _netVal, greeting, initialData, kdpLastUploadedAt, kdpTotals, kdpReady, selectedRange, hasMonthGranularData } = dashboard
   const kdpTotalsOrEmpty = kdpTotals ?? { totalUnits: 0, totalRoyalties: 0, totalKENP: 0 }
 
   const hasMailerLiteKey = initialData?.hasMailerLiteKey ?? !!liveML
@@ -214,7 +214,7 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
       <div className="mb-4" style={{ background: 'white', border: '1px solid var(--line, #d8cfbd)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', padding: '28px 28px 22px' }}>
         <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--green-text, #245c3f)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green-text, #245c3f)', display: 'inline-block', flexShrink: 0 }} />
-          Est. Revenue · {formatRangeBadge(selectedRange ?? null)}
+          Royalties · {formatRangeBadge(selectedRange ?? null)}
         </div>
         {selectedRange && hasMonthGranularData && (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#FEF3C7', border: '1px solid #E9A020', borderRadius: 20, padding: '2px 8px', fontSize: 10, color: '#92400E', marginBottom: 8, fontFamily: 'var(--font-mono, ui-monospace, monospace)', letterSpacing: '0.06em' }}>
@@ -240,18 +240,30 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
         ) : (
           <>
             {analysis?.kdp ? (
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 1, lineHeight: 1 }}>
-                <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(36px, 5vw, 58px)', fontWeight: 500, color: 'var(--ink3, #564e46)', lineHeight: 1 }}>$</span>
-                <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(64px, 9vw, 104px)', fontWeight: 500, color: 'var(--ink, #14110f)', lineHeight: 1 }}>{Math.floor(animRev).toLocaleString()}</span>
-                <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 500, color: 'var(--ink3, #564e46)', lineHeight: 1 }}>.{String(Math.round((animRev % 1) * 100)).padStart(2, '0')}</span>
-              </div>
+              <>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 1, lineHeight: 1 }}>
+                  <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(36px, 5vw, 58px)', fontWeight: 500, color: 'var(--ink3, #564e46)', lineHeight: 1 }}>$</span>
+                  <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(64px, 9vw, 104px)', fontWeight: 500, color: 'var(--ink, #14110f)', lineHeight: 1 }}>{Math.floor(animRoyalties).toLocaleString()}</span>
+                  <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 500, color: 'var(--ink3, #564e46)', lineHeight: 1 }}>.{String(Math.round((animRoyalties % 1) * 100)).padStart(2, '0')}</span>
+                </div>
+                {(() => {
+                  const royalties = kdpTotals?.totalRoyalties ?? 0
+                  const estRevenue = kdpTotals?.estRevenue ?? (royalties + (kdpTotals?.totalKENP ?? 0) * 0.0045)
+                  if (Math.abs(estRevenue - royalties) <= 1) return null
+                  return (
+                    <div style={{ marginTop: 4, fontSize: 13, color: 'rgba(30,45,61,0.5)', fontFamily: 'var(--font-mono, ui-monospace, monospace)' }}>
+                      Est. Revenue ~${estRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  )
+                })()}
+              </>
             ) : (
               <div style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 80, fontWeight: 300, color: 'var(--ink4, #8a8076)', lineHeight: 1 }}>—</div>
             )}
 
             {analysis?.kdp && (
               <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px dashed var(--line, #d8cfbd)', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 11, color: 'var(--ink3, #564e46)' }}>
-                <span>${animRev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} gross</span>
+                <span>${animRoyalties.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} gross</span>
                 {(analysis.meta?.totalSpend ?? 0) > 0 && (
                   <>
                     <span style={{ color: 'var(--ink4, #8a8076)' }}> · minus </span>
@@ -297,10 +309,9 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
               const meta = analysis.meta
               const ml = liveML ?? analysis?.mailerLite
               const hasKdp = kdpTotalsOrEmpty.totalUnits > 0 || kdpTotalsOrEmpty.totalRoyalties > 0 || kdpTotalsOrEmpty.totalKENP > 0
-              const estRevenue = hasKdp ? Math.round((kdpTotalsOrEmpty.estRevenue ?? (kdpTotalsOrEmpty.totalRoyalties + kdpTotalsOrEmpty.totalKENP * 0.0045)) * 100) / 100 : null
-              const royaltiesZero = hasKdp && kdpTotalsOrEmpty.totalRoyalties === 0
+              const royalties = hasKdp ? Math.round(kdpTotalsOrEmpty.totalRoyalties * 100) / 100 : null
               const tiles = [
-                { stat: estRevenue != null ? fmtCurrency(estRevenue) : '—', label: 'EST. REVENUE', estimate: royaltiesZero, sub: kdpTotalsOrEmpty.totalUnits > 0 ? `${kdpTotalsOrEmpty.totalUnits} units sold` : 'No data yet' },
+                { stat: royalties != null ? fmtCurrency(royalties) : '—', label: 'ROYALTIES', estimate: false, sub: kdpTotalsOrEmpty.totalUnits > 0 ? `${kdpTotalsOrEmpty.totalUnits} units sold` : 'No data yet' },
                 { stat: meta?.avgCTR ? fmtPct(meta.avgCTR) : '—', label: 'META ADS CTR', estimate: false, sub: meta?.avgCTR && meta.avgCTR >= 2 ? 'Exceptional performance (top 10%)' : meta?.avgCTR ? 'Room to improve' : 'No data yet' },
                 { stat: ml?.openRate ? fmtPct(ml.openRate) : '—', label: 'EMAIL OPEN RATE', estimate: false, sub: ml?.openRate && ml.openRate >= 25 ? 'Well above 20–25% author average' : ml?.openRate ? 'Near author average' : 'No data yet' },
                 { stat: ml?.clickRate ? fmtPct(ml.clickRate) : '—', label: 'EMAIL CLICK RATE', estimate: false, sub: ml?.clickRate && ml.clickRate >= 4 ? 'Strong reader engagement' : ml?.clickRate ? 'Room to grow' : 'No data yet' },

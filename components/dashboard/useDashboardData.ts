@@ -60,6 +60,7 @@ export interface DashboardState {
   coachTitle: string
   greeting: string
   animRev: number
+  animRoyalties: number
   animUnits: number
   animKenp: number
   animCtr: number
@@ -186,15 +187,17 @@ export function useDashboardData({
     if (new URLSearchParams(window.location.search).get('fresh') === '1') setIsFresh(true)
   }, [])
 
-  const _revTarget   = kdpTotals ? Math.round((kdpTotals.estRevenue ?? (kdpTotals.totalRoyalties + kdpTotals.totalKENP * 0.0045)) * 100) / 100 : 0
-  const _unitsTarget = kdpTotals?.totalUnits ?? 0
-  const _kenpTarget  = kdpTotals?.totalKENP ?? 0
-  const _ctrTarget   = analysis?.meta?.bestAd?.ctr ?? 0
-  const animRev   = useCountUp(_revTarget,   isFresh && !!analysis?.kdp)
-  const animUnits = useCountUp(_unitsTarget, isFresh && !!analysis?.kdp)
-  const animKenp  = useCountUp(_kenpTarget,  isFresh && !!analysis?.kdp)
-  const animCtr   = useCountUp(_ctrTarget,   isFresh && !!analysis?.meta?.bestAd)
-  const _netVal   = animRev - (analysis?.meta?.totalSpend ?? 0)
+  const _revTarget       = kdpTotals ? Math.round((kdpTotals.estRevenue ?? (kdpTotals.totalRoyalties + kdpTotals.totalKENP * 0.0045)) * 100) / 100 : 0
+  const _royaltiesTarget = kdpTotals ? Math.round(kdpTotals.totalRoyalties * 100) / 100 : 0
+  const _unitsTarget     = kdpTotals?.totalUnits ?? 0
+  const _kenpTarget      = kdpTotals?.totalKENP ?? 0
+  const _ctrTarget       = analysis?.meta?.bestAd?.ctr ?? 0
+  const animRev       = useCountUp(_revTarget,       isFresh && !!analysis?.kdp)
+  const animRoyalties = useCountUp(_royaltiesTarget, isFresh && !!analysis?.kdp)
+  const animUnits     = useCountUp(_unitsTarget,     isFresh && !!analysis?.kdp)
+  const animKenp      = useCountUp(_kenpTarget,      isFresh && !!analysis?.kdp)
+  const animCtr       = useCountUp(_ctrTarget,       isFresh && !!analysis?.meta?.bestAd)
+  const _netVal       = animRoyalties - (analysis?.meta?.totalSpend ?? 0)
 
   useEffect(() => {
     try {
@@ -440,7 +443,7 @@ export function useDashboardData({
     syncingMeta, syncingML, handleSyncMeta, handleSyncML,
     setGenerating, setAnalysis, setKdpLastUploadedAt,
     coachTitle, greeting,
-    animRev, animUnits, animKenp, animCtr, _netVal,
+    animRev, animRoyalties, animUnits, animKenp, animCtr, _netVal,
     isKdpStale, channelScoresArr, getChannelScore,
     railTasks,
   }
