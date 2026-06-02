@@ -10,10 +10,17 @@ export default async function SwapsServerPage() {
   const session = await getAugmentedSession()
   if (!session?.user?.id) redirect('/login')
 
-  const swaps = await db.swap.findMany({
-    where: { userId: session.user.id },
-    orderBy: { promoDate: 'asc' },
-  })
+  const [swaps, books] = await Promise.all([
+    db.swap.findMany({
+      where: { userId: session.user.id },
+      orderBy: { promoDate: 'asc' },
+    }),
+    db.book.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: 'asc' },
+      select: { title: true },
+    }),
+  ])
 
   const serialized = swaps.map(s => ({
     id: s.id,
@@ -31,5 +38,5 @@ export default async function SwapsServerPage() {
     updatedAt: s.updatedAt.toISOString(),
   }))
 
-  return <SwapsPage swaps={serialized} />
+  return <SwapsPage swaps={serialized} books={books} />
 }

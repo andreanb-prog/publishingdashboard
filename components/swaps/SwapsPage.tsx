@@ -63,16 +63,11 @@ function fmtDateGroupHeader(dateStr: string): string {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
-// Maps book title → design-system color (B1=coral, B2=peach, B3=plum, ...)
-function getBookColorByTitle(title: string): string {
+function getBookColor(title: string, catalog: { title: string }[]): string {
   const t = title.toLowerCase()
-  if (t.includes('billionaire') || t.includes('protector')) return BOOK_COLORS[0]
-  if (t.includes('roommate')) return BOOK_COLORS[1]
-  if (t.includes("ex'") || t.includes('secret baby') || t.includes(' ex ') || t.includes('ex,')) return BOOK_COLORS[2]
-  // deterministic hash for unknown titles
-  let h = 0
-  for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) & 0xffff
-  return BOOK_COLORS[h % BOOK_COLORS.length]
+  const idx = catalog.findIndex(b => b.title.toLowerCase() === t)
+  if (idx !== -1) return BOOK_COLORS[idx % BOOK_COLORS.length]
+  return BOOK_COLORS[0]
 }
 
 function bookShortName(title: string): string {
@@ -186,8 +181,8 @@ function StatsBar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
 
 // ─── Day Panel Swap Card (used inside calendar day panel) ─────────────────────
 
-function DaySwapCard({ swap }: { swap: SwapRecord }) {
-  const color = getBookColorByTitle(swap.bookTitle)
+function DaySwapCard({ swap, catalog }: { swap: SwapRecord; catalog: { title: string }[] }) {
+  const color = getBookColor(swap.bookTitle, catalog)
   const isSend = swap.direction === 'you_promote'
   const kind = swap.promoFormat
 
@@ -270,7 +265,7 @@ function DaySwapCard({ swap }: { swap: SwapRecord }) {
 
 // ─── Calendar ─────────────────────────────────────────────────────────────────
 
-function Calendar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
+function Calendar({ swaps, today, catalog }: { swaps: SwapRecord[]; today: string; catalog: { title: string }[] }) {
   const now = new Date()
   const [year,        setYear]        = useState(now.getFullYear())
   const [month,       setMonth]       = useState(now.getMonth())
@@ -395,7 +390,7 @@ function Calendar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
                   {daySwaps.slice(0, 5).map((s, j) => (
                     <div key={j} title={s.bookTitle} style={{
                       height: 3, borderRadius: 2,
-                      background: getBookColorByTitle(s.bookTitle),
+                      background: getBookColor(s.bookTitle, catalog),
                     }} />
                   ))}
                   {count > 5 && (
@@ -426,7 +421,7 @@ function Calendar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
               return (
                 <>
                   {active.map(s => (
-                    <DaySwapCard key={s.id} swap={s} />
+                    <DaySwapCard key={s.id} swap={s} catalog={catalog} />
                   ))}
                   {cancelled.length > 0 && (
                     <>
@@ -446,7 +441,7 @@ function Calendar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
                       </div>
                       {cancelled.map(s => (
                         <div key={s.id} style={{ opacity: 0.5 }}>
-                          <DaySwapCard swap={s} />
+                          <DaySwapCard swap={s} catalog={catalog} />
                         </div>
                       ))}
                     </>
@@ -463,7 +458,7 @@ function Calendar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
 
 // ─── Up Next Panel ───────────────────────────────────────────────────────────
 
-function UpNextPanel({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
+function UpNextPanel({ swaps, today, catalog }: { swaps: SwapRecord[]; today: string; catalog: { title: string }[] }) {
   const upNext = swaps
     .filter(s =>
       s.direction === 'you_promote' &&
@@ -492,7 +487,7 @@ function UpNextPanel({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
       ) : (
         <div>
           {upNext.map((s, i) => {
-            const color = getBookColorByTitle(s.bookTitle)
+            const color = getBookColor(s.bookTitle, catalog)
             const dateLabel = new Date(promoDateStr(s.promoDate) + 'T12:00:00')
               .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
             return (
@@ -1156,7 +1151,7 @@ function AddSwapModal({ onClose, onCreated }: {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
+export function SwapsPage({ swaps: initialSwaps, books }: { swaps: SwapRecord[]; books: { title: string }[] }) {
   const [swaps,     setSwaps]     = useState<SwapRecord[]>(initialSwaps)
   const [showModal, setShowModal] = useState(false)
 
@@ -1242,11 +1237,11 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
             <StatsBar swaps={swaps} today={today} />
 
             {/* Section 2 — Calendar */}
-            <Calendar swaps={swaps} today={today} />
+            <Calendar swaps={swaps} today={today} catalog={books} />
 
             {/* Section 3 — Up Next (full-width) */}
             <div style={{ marginBottom: 20 }}>
-              <UpNextPanel swaps={swaps} today={today} />
+              <UpNextPanel swaps={swaps} today={today} catalog={books} />
             </div>
 
             {/* Section 4 — Action Required Banner */}
