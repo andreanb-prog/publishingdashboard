@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
 import * as XLSX from 'xlsx'
+import { resolveKdpRows, aggregateKdp } from '@/lib/kdpDataPriority'
 
 export async function GET(req: NextRequest) {
   const session = await getAugmentedSession()
@@ -11,15 +12,17 @@ export async function GET(req: NextRequest) {
   const format = searchParams.get('format') ?? 'json'
 
   const today = new Date()
-  const defaultEnd = today.toISOString().substring(0, 10)
+  const defaultEnd   = today.toISOString().substring(0, 10)
   const defaultStart = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10)
 
   const startStr = searchParams.get('start') ?? defaultStart
   const endStr   = searchParams.get('end')   ?? defaultEnd
 
-  const [kdpSales, bsrLogs, books] = await Promise.all([
+  const [allKdpRows, bsrLogs, books] = await Promise.all([
+    // Fetch ALL user KDP rows (not date-filtered) so resolveKdpRows can see
+    // extension MTD rows whose .date may fall outside the requested range.
     db.kdpSale.findMany({
-      where: { userId: session.user.id, date: { gte: startStr, lte: endStr } },
+      where:   { userId: session.user.id },
       orderBy: { date: 'desc' },
     }),
     db.bsrLog.findMany({
@@ -27,24 +30,32 @@ export async function GET(req: NextRequest) {
         userId: session.user.id,
         date: {
           gte: new Date(startStr + 'T00:00:00.000Z'),
-          lte: new Date(endStr + 'T23:59:59.999Z'),
+          lte: new Date(endStr   + 'T23:59:59.999Z'),
         },
       },
     }),
     db.book.findMany({
-      where: { userId: session.user.id },
+      where:  { userId: session.user.id },
       select: { asin: true, title: true },
     }),
   ])
 
+  // ── Resolve deduplication ─────────────────────────────────────────────────
+  const resolved = resolveKdpRows(allKdpRows)
+
+  // Deduped totals for the requested range (includes extension MTD where applicable)
+  const agg = aggregateKdp(resolved, { start: startStr, end: endStr })
+
+  // ── Title lookup ──────────────────────────────────────────────────────────
   const titleByAsin = new Map<string, string>()
   for (const b of books) {
     if (b.asin) titleByAsin.set(b.asin.toUpperCase(), b.title)
   }
-  for (const s of kdpSales) {
+  for (const s of allKdpRows) {
     if (!titleByAsin.has(s.asin.toUpperCase())) titleByAsin.set(s.asin.toUpperCase(), s.title)
   }
 
+  // ── BSR lookup ────────────────────────────────────────────────────────────
   const bsrByKey = new Map<string, typeof bsrLogs[0]>()
   for (const b of bsrLogs) {
     const dateStr = b.date.toISOString().substring(0, 10)
@@ -52,7 +63,14 @@ export async function GET(req: NextRequest) {
     if (!bsrByKey.has(key)) bsrByKey.set(key, b)
   }
 
-  const rows = kdpSales.map(sale => {
+  // ── Per-day rows for the table ────────────────────────────────────────────
+  // Only non-shapeOnly, non-extension rows within the date range.
+  // Extension rows are MTD snapshots and have no meaningful per-day detail.
+  const dailyRows = resolved.filter(
+    r => !r.shapeOnly && r.source !== 'extension' && r.date >= startStr && r.date <= endStr
+  )
+
+  const rows = dailyRows.map(sale => {
     const key     = `${sale.asin.toUpperCase()}::${sale.date}`
     const bsr     = bsrByKey.get(key)
     const adSpend = bsr?.adSpend ?? null
@@ -107,8 +125,9 @@ export async function GET(req: NextRequest) {
       r.roas != null ? parseFloat(r.roas.toFixed(2)) : '',
     ])
 
-    const totalUnits   = rows.reduce((a, r) => a + r.units, 0)
-    const totalKenp    = rows.reduce((a, r) => a + r.kenp, 0)
+    // Use aggregateKdp totals — correctly includes extension MTD for months in range
+    const totalUnits   = agg.units
+    const totalKenp    = agg.kenp
     const totalSpend   = rows.reduce((a, r) => a + (r.adSpend ?? 0), 0)
     const totalRevenue = rows.reduce((a, r) => a + (r.revenue ?? 0), 0)
     const avgRoas      = totalSpend > 0 ? totalRevenue / totalSpend : null
@@ -138,6 +157,8 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     rows,
     books: uniqueBooks,
-    dateRange: { start: startStr, end: endStr },
+    dateRange:            { start: startStr, end: endStr },
+    totals:               { units: agg.units, kenp: agg.kenp, royalties: agg.royalties },
+    hasMonthGranularData: agg.hasMonthGranularData,
   })
 }

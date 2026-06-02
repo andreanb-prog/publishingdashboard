@@ -1,9 +1,10 @@
 // app/api/kdp/sales/route.ts
-// Returns KDP sales data aggregated directly from KdpSale rows for a given date range.
-// Used by the KDP deep dive page so it always reflects raw uploaded data, not stale Analysis snapshots.
+// Returns KDP sales data for a given date range, deduped via the shared resolver.
+// Extension MTD rows are the authoritative monthly total; CSV rows supply daily chart shape.
 import { NextRequest, NextResponse } from 'next/server'
 import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
+import { resolveKdpRows, aggregateKdp } from '@/lib/kdpDataPriority'
 
 export async function GET(req: NextRequest) {
   const session = await getAugmentedSession()
@@ -13,43 +14,23 @@ export async function GET(req: NextRequest) {
   const start = searchParams.get('start')  // YYYY-MM-DD
   const end   = searchParams.get('end')    // YYYY-MM-DD
 
-  const rows = await db.kdpSale.findMany({
-    where: {
-      userId: session.user.id,
-      ...(start && end ? { date: { gte: start, lte: end } } : {}),
-    },
+  // Fetch ALL rows for the user — we resolve first, then date-scope inside aggregateKdp.
+  // Fetching all rows is necessary because an extension MTD row's `.date` field (the sync
+  // date) can fall outside the requested range even when its monthKey overlaps it.
+  const allRows = await db.kdpSale.findMany({
+    where:   { userId: session.user.id },
     orderBy: { date: 'asc' },
   })
 
+  const resolved = resolveKdpRows(allRows)
+  const agg      = aggregateKdp(resolved, start && end ? { start, end } : undefined)
+
+  // Build per-day series arrays from dailySeries (CSV rows only — extension rows have no daily shape)
   const dailyUnitsMap = new Map<string, number>()
   const dailyKENPMap  = new Map<string, number>()
-  const bookMap       = new Map<string, {
-    asin:      string
-    title:     string
-    units:     number
-    kenp:      number
-    royalties: number
-    format?:   string
-  }>()
-
-  for (const row of rows) {
-    dailyUnitsMap.set(row.date, (dailyUnitsMap.get(row.date) ?? 0) + row.units)
-    dailyKENPMap.set(row.date,  (dailyKENPMap.get(row.date) ?? 0) + row.kenp)
-    const b = bookMap.get(row.asin)
-    if (b) {
-      b.units     += row.units
-      b.kenp      += row.kenp
-      b.royalties += row.royalties
-    } else {
-      bookMap.set(row.asin, {
-        asin:      row.asin,
-        title:     row.title,
-        units:     row.units,
-        kenp:      row.kenp,
-        royalties: row.royalties,
-        format:    row.format ?? undefined,
-      })
-    }
+  for (const s of agg.dailySeries) {
+    dailyUnitsMap.set(s.date, (dailyUnitsMap.get(s.date) ?? 0) + s.units)
+    dailyKENPMap.set(s.date,  (dailyKENPMap.get(s.date)  ?? 0) + s.kenp)
   }
 
   const dailyUnits = Array.from(dailyUnitsMap.entries())
@@ -60,10 +41,17 @@ export async function GET(req: NextRequest) {
     .map(([date, value]) => ({ date, value }))
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const books = Array.from(bookMap.values())
+  // Build format lookup from all rows (format not carried through aggregateKdp)
+  const formatByAsin = new Map<string, string | undefined>()
+  for (const row of allRows) {
+    if (!formatByAsin.has(row.asin)) formatByAsin.set(row.asin, row.format ?? undefined)
+  }
+
+  const books = Object.values(agg.byBook)
     .sort((a, b) => b.units - a.units)
     .map(b => ({
       ...b,
+      format:     formatByAsin.get(b.asin),
       shortTitle: b.title.length > 35 ? b.title.substring(0, 35) + '…' : b.title,
     }))
 
@@ -71,8 +59,9 @@ export async function GET(req: NextRequest) {
     dailyUnits,
     dailyKENP,
     books,
-    totalUnits:     books.reduce((s, b) => s + b.units,     0),
-    totalKENP:      books.reduce((s, b) => s + b.kenp,      0),
-    totalRoyalties: books.reduce((s, b) => s + b.royalties, 0),
+    totalUnits:              agg.units,
+    totalKENP:               agg.kenp,
+    totalRoyalties:          agg.royalties,
+    hasMonthGranularData:    agg.hasMonthGranularData,
   })
 }

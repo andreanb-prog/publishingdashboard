@@ -3,6 +3,7 @@
 // Runs all queries in parallel to eliminate sequential waterfalls.
 import { db } from '@/lib/db'
 import { fetchMailerLiteStats } from '@/lib/mailerlite'
+import { resolveKdpRows, aggregateKdp } from '@/lib/kdpDataPriority'
 import { cache } from 'react'
 import type { Analysis, RankLog, RoasLog, MailerLiteData } from '@/types'
 
@@ -23,7 +24,7 @@ export type DashboardData = {
 // so multiple components calling this get the same result.
 export const fetchDashboardData = cache(async (userId: string): Promise<DashboardData> => {
   // Run ALL queries in parallel — this is the key perf win.
-  const [recentRecords, userRow, rankLogs, roasLogs, mailerLiteData, kdpUploadLog, bookCount, kdpAggregate] = await Promise.all([
+  const [recentRecords, userRow, rankLogs, roasLogs, mailerLiteData, kdpUploadLog, bookCount, kdpAllRows] = await Promise.all([
     // 1. Analysis records (replaces /api/analyze GET)
     db.analysis.findMany({
       where: { userId },
@@ -75,11 +76,11 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
     // 7. Book count (for first-run detection)
     db.book.count({ where: { userId } }).catch(() => 0),
 
-    // 8. KdpSale aggregate — source of truth for hero metrics
-    db.kdpSale.aggregate({
+    // 8. All KdpSale rows — passed through resolver for deduped all-time totals
+    db.kdpSale.findMany({
       where: { userId },
-      _sum: { units: true, royalties: true, kenp: true },
-    }).catch(() => null),
+      select: { asin: true, title: true, date: true, monthKey: true, source: true, units: true, kenp: true, royalties: true },
+    }).catch(() => [] as never[]),
   ])
 
   // Process analysis data (same logic as /api/analyze GET)
@@ -108,10 +109,13 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
 
   const metaLastSync = userRow?.metaLastSync ? userRow.metaLastSync.toISOString() : null
 
+  // Resolve deduped totals: extension MTD row wins over CSV for the same book-month.
+  const kdpResolved = resolveKdpRows(kdpAllRows ?? [])
+  const kdpAgg      = aggregateKdp(kdpResolved) // no range = all-time
   const kdpTotals = {
-    totalUnits: kdpAggregate?._sum?.units ?? 0,
-    totalRoyalties: kdpAggregate?._sum?.royalties ?? 0,
-    totalKENP: kdpAggregate?._sum?.kenp ?? 0,
+    totalUnits:     kdpAgg.units,
+    totalRoyalties: kdpAgg.royalties,
+    totalKENP:      kdpAgg.kenp,
   }
 
   return {
