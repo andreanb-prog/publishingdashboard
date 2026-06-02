@@ -62,6 +62,7 @@ export async function GET(req: NextRequest) {
     totalUnits:              agg.units,
     totalKENP:               agg.kenp,
     totalRoyalties:          agg.royalties,
+    estRevenue:              agg.estRevenue,
     hasMonthGranularData:    agg.hasMonthGranularData,
   })
 }

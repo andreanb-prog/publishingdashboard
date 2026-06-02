@@ -4,14 +4,14 @@ import Link from 'next/link'
 import { fmtPct, fmtCurrency } from '@/lib/utils'
 import type { DashboardState } from './useDashboardData'
 
-function buildStorySentence(analysis: any, kdpTotals: { totalUnits: number; totalRoyalties: number; totalKENP: number }): string | null {
+function buildStorySentence(analysis: any, kdpTotals: { totalUnits: number; totalRoyalties: number; totalKENP: number; estRevenue?: number }): string | null {
   if (!analysis) return null
   if (analysis.storySentence) return analysis.storySentence
   const meta = analysis.meta
   const units = kdpTotals.totalUnits || undefined
   const kenp  = kdpTotals.totalKENP  || undefined
   const royalties = kdpTotals.totalRoyalties
-  const estRevenue = (units || kenp) ? Math.round((royalties + (kenp ?? 0) * 0.0045) * 100) / 100 : null
+  const estRevenue = (units || kenp) ? Math.round((kdpTotals.estRevenue ?? (royalties + (kenp ?? 0) * 0.0045)) * 100) / 100 : null
   const ctr:   number | undefined = meta?.bestAd?.ctr ?? meta?.avgCTR
   const spend: number | undefined = meta?.totalSpend
   if (units && kenp) {
@@ -48,14 +48,13 @@ export function BoutiqueChannelCardsRow({
   analysis: any
   liveML: import('@/types').MailerLiteData | null
   analyses: any[]
-  kdpTotals: { totalUnits: number; totalRoyalties: number; totalKENP: number }
+  kdpTotals: { totalUnits: number; totalRoyalties: number; totalKENP: number; estRevenue?: number }
 }) {
   const prev = analyses[1] ?? null
   const kdpVal     = kdpTotals.totalRoyalties > 0 || kdpTotals.totalUnits > 0 ? kdpTotals.totalRoyalties : null
   const prevKdpVal = prev?.kdp?.totalRoyaltiesUSD ?? null
   const metaSpend    = analysis?.meta?.totalSpend ?? 0
-  const kdpKuRev     = kdpTotals.totalKENP * 0.0045
-  const totalRev     = kdpTotals.totalRoyalties + kdpKuRev
+  const totalRev     = kdpTotals.estRevenue ?? (kdpTotals.totalRoyalties + kdpTotals.totalKENP * 0.0045)
   const metaRoas     = metaSpend > 0 ? totalRev / metaSpend : null
   const prevMetaSpd  = prev?.meta?.totalSpend ?? 0
   const prevKuRev    = prev?.kdp ? ((prev.kdp.totalKENP ?? 0) * 0.0045) : 0
@@ -298,7 +297,7 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
               const meta = analysis.meta
               const ml = liveML ?? analysis?.mailerLite
               const hasKdp = kdpTotalsOrEmpty.totalUnits > 0 || kdpTotalsOrEmpty.totalRoyalties > 0 || kdpTotalsOrEmpty.totalKENP > 0
-              const estRevenue = hasKdp ? Math.round((kdpTotalsOrEmpty.totalRoyalties + kdpTotalsOrEmpty.totalKENP * 0.0045) * 100) / 100 : null
+              const estRevenue = hasKdp ? Math.round((kdpTotalsOrEmpty.estRevenue ?? (kdpTotalsOrEmpty.totalRoyalties + kdpTotalsOrEmpty.totalKENP * 0.0045)) * 100) / 100 : null
               const royaltiesZero = hasKdp && kdpTotalsOrEmpty.totalRoyalties === 0
               const tiles = [
                 { stat: estRevenue != null ? fmtCurrency(estRevenue) : '—', label: 'EST. REVENUE', estimate: royaltiesZero, sub: kdpTotalsOrEmpty.totalUnits > 0 ? `${kdpTotalsOrEmpty.totalUnits} units sold` : 'No data yet' },

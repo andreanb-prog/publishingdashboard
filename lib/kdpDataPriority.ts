@@ -50,6 +50,15 @@ export type AggregateResult = {
   units:     number
   kenp:      number
   royalties: number
+  /**
+   * Correct estimated revenue that avoids double-counting KU.
+   * Extension rows already embed KU in their royalties figure, so we only
+   * add KENP × $0.0045 for CSV/manual rows whose royalties field is paid-only.
+   *   estRevenue = extensionRoyalties + csvRoyalties + (csvKenp × 0.0045)
+   */
+  estRevenue:         number
+  extensionRoyalties: number
+  csvRoyalties:       number
   /** Per-ASIN totals (authoritative rows only, date-scoped). */
   byBook: Record<string, {
     asin:      string
@@ -117,9 +126,12 @@ export function aggregateKdp<T extends KdpSaleRow>(
   rows: ResolvedRow<T>[],
   range?: { start: string; end: string },
 ): AggregateResult {
-  let units     = 0
-  let kenp      = 0
-  let royalties = 0
+  let units              = 0
+  let kenp               = 0
+  let royalties          = 0
+  let extensionRoyalties = 0
+  let csvRoyalties       = 0
+  let csvKenp            = 0
   let hasMonthGranularData = false
   const byBook:      AggregateResult['byBook']      = {}
   const dailySeries: AggregateResult['dailySeries'] = []
@@ -150,6 +162,14 @@ export function aggregateKdp<T extends KdpSaleRow>(
         units     += row.units
         kenp      += row.kenp
         royalties += row.royalties
+        // Track source-split for estRevenue: extension royalties already include KU;
+        // CSV/manual royalties are paid-only so we add KENP × rate separately.
+        if (isExtension) {
+          extensionRoyalties += row.royalties
+        } else {
+          csvRoyalties += row.royalties
+          csvKenp      += row.kenp
+        }
         if (!byBook[row.asin]) {
           byBook[row.asin] = { asin: row.asin, title: row.title, units: 0, kenp: 0, royalties: 0 }
         }
@@ -174,5 +194,6 @@ export function aggregateKdp<T extends KdpSaleRow>(
     }
   }
 
-  return { units, kenp, royalties, byBook, dailySeries, hasMonthGranularData }
+  const estRevenue = extensionRoyalties + csvRoyalties + csvKenp * 0.0045
+  return { units, kenp, royalties, estRevenue, extensionRoyalties, csvRoyalties, byBook, dailySeries, hasMonthGranularData }
 }

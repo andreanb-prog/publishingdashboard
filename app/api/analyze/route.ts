@@ -467,6 +467,7 @@ export async function GET(req: NextRequest) {
     totalUnits:     kdpAgg.units,
     totalRoyalties: kdpAgg.royalties,
     totalKENP:      kdpAgg.kenp,
+    estRevenue:     kdpAgg.estRevenue,
     hasMonthGranularData: kdpAgg.hasMonthGranularData,
   }
 

@@ -1058,6 +1058,7 @@ export default function KDPPage() {
     totalUnits:     number
     totalKENP:      number
     totalRoyalties: number
+    estRevenue?:    number
   } | null>(null)
 
   const fetchData = useCallback(() => {
@@ -1345,11 +1346,9 @@ export default function KDPPage() {
 
           {/* KPI Strip */}
           {(() => {
-            // KDP monthly reports have no per-day royalty breakdown, so Total Est. Revenue
-            // always includes the full-period royalties regardless of the date filter.
-            // displayUnits / displayKENP fall back to monthly aggregate when no daily data.
-            const estKu = Math.round(displayKENP * 0.0045 * 100) / 100
-            const totalEstRevenue = Math.round((displayRoyalties + estKu) * 100) / 100
+            // Use pre-computed estRevenue from aggregateKdp which avoids double-counting KU.
+            // Extension royalties already include KU; only CSV months add KENP × rate.
+            const totalEstRevenue = Math.round((kdpSalesData?.estRevenue ?? (displayRoyalties + displayKENP * 0.0045)) * 100) / 100
             const prev = allAnalyses[1]?.kdp
             const unitsDelta = prev ? displayUnits - prev.totalUnits : null
             const kenpDelta  = prev ? displayKENP  - prev.totalKENP  : null
