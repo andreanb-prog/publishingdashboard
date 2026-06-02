@@ -1203,16 +1203,15 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
             {/* Section 2 — Calendar */}
             <Calendar swaps={swaps} today={today} />
 
-            {/* Section 3 — Up Next + Partner Ledger */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" style={{ marginBottom: 20 }}>
+            {/* Section 3 — Up Next (full-width) */}
+            <div style={{ marginBottom: 20 }}>
               <UpNextPanel swaps={swaps} today={today} />
-              <PartnerLedger swaps={swaps} />
             </div>
 
             {/* Section 4 — Action Required Banner */}
             <ActionBanner swaps={swaps} onStatusChange={handleStatusChange} />
 
-            {/* Section 4 — Upcoming Swaps */}
+            {/* Section 5 — Upcoming Swaps */}
             {upcomingSwaps.length === 0 ? (
               <div style={{ background: 'white', borderRadius: 16, border: '1px solid rgba(30,45,61,0.08)' }}>
                 <EmptyState onAdd={() => setShowModal(true)} />
@@ -1253,10 +1252,15 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
               </div>
             )}
 
-            {/* Section 5 — Past Swaps (collapsible) */}
+            {/* Section 6 — Past Swaps (collapsible) */}
             {pastSwaps.length > 0 && (
               <PastSwapsSection groups={pastGrouped} onStatusChange={handleStatusChange} />
             )}
+
+            {/* Section 7 — Partner Ledger (full-width, last section) */}
+            <div style={{ marginTop: 32 }}>
+              <PartnerLedger swaps={swaps} />
+            </div>
           </>
         )}
       </div>
