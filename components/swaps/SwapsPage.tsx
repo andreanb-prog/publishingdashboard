@@ -420,6 +420,284 @@ function Calendar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
   )
 }
 
+// ─── Up Next Panel ───────────────────────────────────────────────────────────
+
+function UpNextPanel({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
+  const upNext = swaps
+    .filter(s =>
+      s.direction === 'you_promote' &&
+      s.status === 'booked' &&
+      promoDateStr(s.promoDate) >= today
+    )
+    .sort((a, b) => a.promoDate.localeCompare(b.promoDate))
+    .slice(0, 10)
+
+  return (
+    <div style={{
+      background: 'white', borderRadius: 12, border: '0.5px solid rgba(30,45,61,0.12)',
+      padding: '16px 18px',
+    }}>
+      <p style={{
+        fontSize: 11, fontWeight: 700, color: 'rgba(30,45,61,0.4)',
+        letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 14px',
+      }}>
+        Up Next
+      </p>
+
+      {upNext.length === 0 ? (
+        <p style={{ fontSize: 13, color: '#9CA3AF', margin: '24px 0', textAlign: 'center' }}>
+          No upcoming sends booked.
+        </p>
+      ) : (
+        <div>
+          {upNext.map((s, i) => {
+            const color = getBookColorByTitle(s.bookTitle)
+            const dateLabel = new Date(promoDateStr(s.promoDate) + 'T12:00:00')
+              .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            return (
+              <div
+                key={s.id}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '8px 0',
+                  borderBottom: i < upNext.length - 1 ? '0.5px solid rgba(30,45,61,0.06)' : 'none',
+                }}
+              >
+                {/* Book color dot */}
+                <div style={{
+                  width: 7, height: 7, borderRadius: '50%',
+                  background: color, flexShrink: 0,
+                }} />
+
+                {/* Partner name */}
+                <span style={{
+                  fontSize: 13, fontWeight: 600, color: '#1E2D3D',
+                  flex: 1, minWidth: 0,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {s.partnerName}
+                </span>
+
+                {/* List / launch window (muted) */}
+                {s.launchWindow && (
+                  <span style={{
+                    fontSize: 11, color: '#9CA3AF', flexShrink: 1,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 64,
+                  }}>
+                    {s.launchWindow}
+                  </span>
+                )}
+
+                {/* Date */}
+                <span style={{ fontSize: 11, color: 'rgba(30,45,61,0.45)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  {dateLabel}
+                </span>
+
+                {/* Sub count */}
+                {s.partnerListSize != null && s.partnerListSize > 0 && (
+                  <span style={{ fontSize: 11, color: '#9CA3AF', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    {s.partnerListSize >= 1000
+                      ? `${(s.partnerListSize / 1000).toFixed(1)}K`
+                      : String(s.partnerListSize)}
+                  </span>
+                )}
+
+                {/* Status pill */}
+                <StatusBadge status={s.status} />
+
+                {/* Kind badge */}
+                {s.promoFormat && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99,
+                    background: 'rgba(30,45,61,0.06)', color: 'rgba(30,45,61,0.5)',
+                    whiteSpace: 'nowrap', flexShrink: 0,
+                  }}>
+                    {s.promoFormat}
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Partner Ledger ───────────────────────────────────────────────────────────
+
+interface PartnerRow {
+  partnerName: string
+  youSend:    number  // you_promote count
+  theySend:   number  // they_promote count
+  /** youSend - theySend: positive = they owe you, negative = you owe them */
+  balance:    number
+  lastSwapDate: string
+}
+
+function BalanceBar({ balance }: { balance: number }) {
+  const abs      = Math.abs(balance)
+  // Each unit fills 1/3 of a half (max half at ±3)
+  const fillPct  = Math.min(abs / 3, 1) * 50
+  const label    = balance > 0 ? `you +${abs}` : balance < 0 ? `owe ${abs}` : 'even'
+  // sage = they owe you (right fill), coral = you owe them (left fill)
+  const fillColor = balance > 0 ? '#6EBF8B' : balance < 0 ? '#F97B6B' : 'transparent'
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: 80 }}>
+      {/* Bar track */}
+      <div style={{
+        width: 80, height: 6, background: 'rgba(30,45,61,0.07)',
+        borderRadius: 3, position: 'relative', overflow: 'hidden',
+      }}>
+        {/* Center divider */}
+        <div style={{
+          position: 'absolute', top: 0, left: '50%', width: 1, height: '100%',
+          background: 'rgba(30,45,61,0.2)', transform: 'translateX(-50%)',
+        }} />
+        {/* Colored fill */}
+        {balance !== 0 && (
+          <div style={{
+            position: 'absolute', top: 0, height: '100%',
+            width: `${fillPct}%`,
+            background: fillColor,
+            // fills left from center when you owe; right from center when they owe
+            left: balance < 0 ? `${50 - fillPct}%` : '50%',
+          }} />
+        )}
+      </div>
+      {/* Text label */}
+      <span style={{
+        fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap',
+        color: balance > 0 ? '#6EBF8B' : balance < 0 ? '#F97B6B' : '#9CA3AF',
+      }}>
+        {label}
+      </span>
+    </div>
+  )
+}
+
+function PartnerLedger({ swaps }: { swaps: SwapRecord[] }) {
+  const nonCancelled = swaps.filter(s => s.status !== 'cancelled')
+
+  // Aggregate per partner
+  const map: Record<string, { youSend: number; theySend: number; dates: string[] }> = {}
+  for (const s of nonCancelled) {
+    if (!map[s.partnerName]) map[s.partnerName] = { youSend: 0, theySend: 0, dates: [] }
+    const r = map[s.partnerName]
+    if (s.direction === 'you_promote') r.youSend++
+    else r.theySend++
+    r.dates.push(promoDateStr(s.promoDate))
+  }
+
+  const rows: PartnerRow[] = Object.entries(map).map(([name, d]) => ({
+    partnerName:  name,
+    youSend:      d.youSend,
+    theySend:     d.theySend,
+    balance:      d.youSend - d.theySend,
+    lastSwapDate: [...d.dates].sort().reverse()[0] ?? '',
+  }))
+  // Most imbalanced (you owe most = most negative balance) first
+  rows.sort((a, b) => a.balance - b.balance)
+
+  const colGrid = '1fr 26px 28px 80px 46px 54px'
+
+  return (
+    <div style={{
+      background: 'white', borderRadius: 12, border: '0.5px solid rgba(30,45,61,0.12)',
+      padding: '16px 18px',
+    }}>
+      <p style={{
+        fontSize: 11, fontWeight: 700, color: 'rgba(30,45,61,0.4)',
+        letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 14px',
+      }}>
+        Partner Ledger
+      </p>
+
+      {rows.length === 0 ? (
+        <p style={{ fontSize: 13, color: '#9CA3AF', margin: '24px 0', textAlign: 'center' }}>
+          No partners yet.
+        </p>
+      ) : (
+        <>
+          {/* Column headers */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: colGrid,
+            gap: 4, paddingBottom: 8,
+            borderBottom: '0.5px solid rgba(30,45,61,0.08)', marginBottom: 2,
+            alignItems: 'center',
+          }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(30,45,61,0.35)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Partner</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(30,45,61,0.35)', letterSpacing: '0.05em', textTransform: 'uppercase', textAlign: 'center' }}>You→</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(30,45,61,0.35)', letterSpacing: '0.05em', textTransform: 'uppercase', textAlign: 'center' }}>→You</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(30,45,61,0.35)', letterSpacing: '0.05em', textTransform: 'uppercase', textAlign: 'center' }}>Balance</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(30,45,61,0.35)', letterSpacing: '0.05em', textTransform: 'uppercase', textAlign: 'center' }}>Last</span>
+            <span />
+          </div>
+
+          {/* Data rows */}
+          {rows.map((row, i) => {
+            const lastFmt = row.lastSwapDate
+              ? new Date(row.lastSwapDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+              : '—'
+            const youOwe  = row.balance < 0
+            const theyOwe = row.balance > 0
+
+            return (
+              <div
+                key={row.partnerName}
+                style={{
+                  display: 'grid', gridTemplateColumns: colGrid,
+                  gap: 4, alignItems: 'center',
+                  padding: '9px 0',
+                  borderBottom: i < rows.length - 1 ? '0.5px solid rgba(30,45,61,0.06)' : 'none',
+                }}
+              >
+                <span style={{
+                  fontSize: 13, fontWeight: 600, color: '#1E2D3D',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {row.partnerName}
+                </span>
+                <span style={{ fontSize: 12, color: 'rgba(30,45,61,0.6)', textAlign: 'center' }}>
+                  {row.youSend}
+                </span>
+                <span style={{ fontSize: 12, color: 'rgba(30,45,61,0.6)', textAlign: 'center' }}>
+                  {row.theySend}
+                </span>
+                <BalanceBar balance={row.balance} />
+                <span style={{ fontSize: 11, color: '#9CA3AF', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                  {lastFmt}
+                </span>
+                {youOwe ? (
+                  <button style={{
+                    fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99,
+                    background: '#E9A020', color: '#1E2D3D', border: 'none',
+                    cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit',
+                  }}>
+                    Book
+                  </button>
+                ) : theyOwe ? (
+                  <button style={{
+                    fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 99,
+                    background: 'none', color: 'rgba(30,45,61,0.5)',
+                    border: '1px solid rgba(30,45,61,0.2)', cursor: 'pointer',
+                    whiteSpace: 'nowrap', fontFamily: 'inherit',
+                  }}>
+                    Ask
+                  </button>
+                ) : (
+                  <div />
+                )}
+              </div>
+            )
+          })}
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── Swap Card (used in upcoming + past sections) ─────────────────────────────
 
 function SwapCard({ swap, onStatusChange }: {
@@ -925,7 +1203,13 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
             {/* Section 2 — Calendar */}
             <Calendar swaps={swaps} today={today} />
 
-            {/* Section 3 — Action Required Banner */}
+            {/* Section 3 — Up Next + Partner Ledger */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" style={{ marginBottom: 20 }}>
+              <UpNextPanel swaps={swaps} today={today} />
+              <PartnerLedger swaps={swaps} />
+            </div>
+
+            {/* Section 4 — Action Required Banner */}
             <ActionBanner swaps={swaps} onStatusChange={handleStatusChange} />
 
             {/* Section 4 — Upcoming Swaps */}
