@@ -936,7 +936,7 @@ export default function MetaPage() {
           <BoutiqueEmptyState
             message="No Meta data yet"
             ctaLabel="Upload Files →"
-            ctaHref="/dashboard?upload=1"
+            ctaAction={() => window.dispatchEvent(new CustomEvent('open-upload-modal'))}
           />
         )
       ) : (

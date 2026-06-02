@@ -1,7 +1,7 @@
 'use client'
 // components/TopBar.tsx — three-zone header: greeting | date range (dashboard only) | check-in + status + upload
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { ConnectionStatus } from './ConnectionStatus'
 import { FetchStatusPill } from './FetchStatusPill'
 import { UploadModal } from './UploadModal'
@@ -45,6 +45,7 @@ function getGreeting(): string {
 export function TopBar({ user }: TopBarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   // Client-only time-derived values (avoid server/client timezone mismatch)
   const [greeting, setGreeting] = useState('')
@@ -137,14 +138,13 @@ export function TopBar({ user }: TopBarProps) {
 
   // Open modal when ?upload=1 query param is present (used by "Upload to unlock" links)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('upload') === '1') {
+    if (searchParams.get('upload') === '1') {
       setUploadOpen(true)
       const url = new URL(window.location.href)
       url.searchParams.delete('upload')
       window.history.replaceState({}, '', url.toString())
     }
-  }, [])
+  }, [searchParams])
 
   const handleUploadClose = useCallback(() => setUploadOpen(false), [])
 
@@ -308,7 +308,7 @@ export function TopBar({ user }: TopBarProps) {
 
           {/* Upload button */}
           <button
-            onClick={() => router.push('/dashboard/upload')}
+            onClick={() => setUploadOpen(true)}
             className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all hover:opacity-90"
             style={{
               background: '#E9A020',

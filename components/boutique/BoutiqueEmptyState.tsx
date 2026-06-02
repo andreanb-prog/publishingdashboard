@@ -6,12 +6,14 @@ interface BoutiqueEmptyStateProps {
   message?: string
   ctaLabel?: string
   ctaHref?: string
+  ctaAction?: () => void
 }
 
 export function BoutiqueEmptyState({
   message = 'No data yet',
   ctaLabel = 'Upload to unlock →',
   ctaHref,
+  ctaAction,
 }: BoutiqueEmptyStateProps) {
   return (
     <div style={{
@@ -44,7 +46,25 @@ export function BoutiqueEmptyState({
         {message}
       </p>
 
-      {ctaLabel && ctaHref && (
+      {ctaLabel && ctaAction && (
+        <button
+          onClick={ctaAction}
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+            color: 'var(--amber-text)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        >
+          {ctaLabel}
+        </button>
+      )}
+      {ctaLabel && ctaHref && !ctaAction && (
         <Link
           href={ctaHref}
           style={{

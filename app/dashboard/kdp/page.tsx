@@ -1291,9 +1291,9 @@ export default function KDPPage() {
                     return isToday
                       ? <>Showing data from today&apos;s upload</>
 
-                      : <>Showing data from your last upload — {uploadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload a new report</a> to see the latest numbers.</>
+                      : <>Showing data from your last upload — {uploadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. <button onClick={() => window.dispatchEvent(new CustomEvent('open-upload-modal'))} style={{ color: '#E9A020', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Upload a new report</button> to see the latest numbers.</>
                   })()
-                : <>No data uploaded yet. <a href="/dashboard?upload=1" style={{ color: '#E9A020', textDecoration: 'underline' }}>Upload your KDP report</a> to get started.</>
+                : <>No data uploaded yet. <button onClick={() => window.dispatchEvent(new CustomEvent('open-upload-modal'))} style={{ color: '#E9A020', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Upload your KDP report</button> to get started.</>
               }
             </p>
             <p className="text-[11px] mt-0.5" style={{ color: 'var(--ink4)' }}>
@@ -1331,7 +1331,7 @@ export default function KDPPage() {
         <BoutiqueEmptyState
           message="No KDP data yet"
           ctaLabel="Upload Files →"
-          ctaHref="/dashboard?upload=1"
+          ctaAction={() => window.dispatchEvent(new CustomEvent('open-upload-modal'))}
         />
       ) : (
         <>
