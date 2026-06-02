@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { CalendarDays, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react'
+import { BOOK_COLORS } from '@/lib/bookColors'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,12 +63,21 @@ function fmtDateGroupHeader(dateStr: string): string {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
-function bookColor(title: string): string {
+// Maps book title → design-system color (B1=coral, B2=peach, B3=plum, ...)
+function getBookColorByTitle(title: string): string {
   const t = title.toLowerCase()
-  if (t.includes('billionaire') || t.includes('protector')) return '#F97B6B'
-  if (t.includes('roommate')) return '#F4A261'
-  if (t.includes('secret baby') || t.includes(' ex')) return '#8B5CF6'
-  return '#1E2D3D'
+  if (t.includes('roommate')) return BOOK_COLORS[0]
+  if (t.includes('billionaire') || t.includes('protector')) return BOOK_COLORS[1]
+  if (t.includes("ex'") || t.includes('secret baby') || t.includes(' ex ') || t.includes('ex,')) return BOOK_COLORS[2]
+  // deterministic hash for unknown titles
+  let h = 0
+  for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) & 0xffff
+  return BOOK_COLORS[h % BOOK_COLORS.length]
+}
+
+function bookShortName(title: string): string {
+  const words = title.trim().split(/\s+/)
+  return words.slice(0, 4).join(' ') + (words.length > 4 ? '…' : '')
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
@@ -91,7 +101,7 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-// ─── Direction Badge ──────────────────────────────────────────────────────────
+// ─── Direction Badge (used in SwapCard) ───────────────────────────────────────
 
 function DirectionBadge({ direction }: { direction: string }) {
   const isYou = direction === 'you_promote'
@@ -108,51 +118,63 @@ function DirectionBadge({ direction }: { direction: string }) {
   )
 }
 
-// ─── Metrics Row ──────────────────────────────────────────────────────────────
+// ─── Stats Bar ────────────────────────────────────────────────────────────────
 
-function MetricsRow({ swaps }: { swaps: SwapRecord[] }) {
-  const totalReach = swaps.reduce((sum, s) => sum + (s.partnerListSize ?? 0), 0)
-  const sendsPending = swaps.filter(s =>
-    s.direction === 'you_promote' && !['sent', 'complete', 'cancelled'].includes(s.status)
-  ).length
-  const incomingPromos = swaps.filter(s =>
-    s.direction === 'they_promote' && !['complete', 'cancelled'].includes(s.status)
+function StatsBar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
+  const nonCancelled = swaps.filter(s => s.status !== 'cancelled')
+
+  const totalSwaps = nonCancelled.length
+
+  const estReach = nonCancelled
+    .filter(s => s.direction === 'you_promote')
+    .reduce((sum, s) => sum + (s.partnerListSize ?? 0), 0)
+
+  const sendsPending = nonCancelled.filter(s =>
+    s.direction === 'you_promote' &&
+    s.status === 'booked' &&
+    promoDateStr(s.promoDate) >= today
   ).length
 
-  const metrics: Array<{ label: string; value: string; estimated?: boolean }> = [
-    { label: 'Total Swaps',       value: String(swaps.length) },
-    { label: 'Est. Total Reach',  value: fmtReach(totalReach), estimated: true },
-    { label: 'Your Sends Pending', value: String(sendsPending) },
-    { label: 'Incoming Promos',   value: String(incomingPromos) },
+  const incomingBooked = nonCancelled.filter(s =>
+    s.direction === 'they_promote' &&
+    s.status === 'booked' &&
+    promoDateStr(s.promoDate) >= today
+  ).length
+
+  const stats: Array<{ label: string; value: string; estimated?: boolean }> = [
+    { label: 'Total Swaps',     value: String(totalSwaps) },
+    { label: 'Est. Reach',      value: fmtReach(estReach), estimated: true },
+    { label: 'Sends Pending',   value: String(sendsPending) },
+    { label: 'Incoming Booked', value: String(incomingBooked) },
   ]
 
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
-      background: 'white', borderRadius: 16, border: '1px solid rgba(30,45,61,0.08)',
-      marginBottom: 24, padding: '0 4px',
+      background: 'white', borderRadius: 12, border: '0.5px solid rgba(30,45,61,0.12)',
+      marginBottom: 20, overflow: 'hidden',
     }}>
-      {metrics.map((m, i) => (
-        <div key={m.label} style={{
-          padding: '18px 16px',
-          borderRight: i < 3 ? '1px solid rgba(30,45,61,0.06)' : 'none',
+      {stats.map((stat, i) => (
+        <div key={stat.label} style={{
+          padding: '18px 20px',
+          borderRight: i < 3 ? '0.5px solid rgba(30,45,61,0.08)' : 'none',
         }}>
-          <div style={{
-            fontSize: 10, fontWeight: 700, color: 'rgba(30,45,61,0.4)',
-            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8,
+          <p style={{
+            fontSize: 11, fontWeight: 600, color: 'rgba(30,45,61,0.4)',
+            letterSpacing: '0.07em', textTransform: 'uppercase', margin: '0 0 8px',
           }}>
-            {m.label}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {stat.label}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <span style={{ fontSize: 28, fontWeight: 600, color: '#1E2D3D', lineHeight: 1 }}>
-              {m.value}
+              {stat.value}
             </span>
-            {m.estimated && (
+            {stat.estimated && (
               <span style={{
-                fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
-                background: '#FEF3C7', color: '#92400E',
+                fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99,
+                background: 'rgba(233,160,32,0.15)', color: '#E9A020',
               }}>
-                ⚠ estimated
+                ⚠ est
               </span>
             )}
           </div>
@@ -162,16 +184,87 @@ function MetricsRow({ swaps }: { swaps: SwapRecord[] }) {
   )
 }
 
-// ─── Heatmap Calendar ────────────────────────────────────────────────────────
+// ─── Day Panel Swap Card (used inside calendar day panel) ─────────────────────
 
-function HeatmapCalendar({ swaps, today, onDayClick }: {
-  swaps: SwapRecord[]
-  today: string
-  onDayClick: (dateStr: string) => void
-}) {
+function DaySwapCard({ swap }: { swap: SwapRecord }) {
+  const color = getBookColorByTitle(swap.bookTitle)
+  const shortName = bookShortName(swap.bookTitle)
+  const isSend = swap.direction === 'you_promote'
+  const kind = swap.promoFormat
+
+  return (
+    <div style={{
+      background: 'white', border: '0.5px solid rgba(30,45,61,0.1)', borderRadius: 10,
+      padding: '12px 14px',
+    }}>
+      {/* Row 1: partner name + direction pill + kind badge */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 8, marginBottom: 6, flexWrap: 'wrap',
+      }}>
+        <span style={{
+          fontSize: 14, fontWeight: 700, color: '#1E2D3D',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {swap.partnerName}
+        </span>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 99,
+            letterSpacing: '0.05em', whiteSpace: 'nowrap',
+            background: isSend ? 'rgba(233,160,32,0.15)' : 'rgba(110,191,139,0.15)',
+            color: isSend ? '#E9A020' : '#6EBF8B',
+          }}>
+            {isSend ? 'YOU SEND' : 'INCOMING'}
+          </span>
+          {kind && (
+            <span style={{
+              fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 99,
+              background: 'rgba(30,45,61,0.06)', color: 'rgba(30,45,61,0.55)',
+              whiteSpace: 'nowrap',
+            }}>
+              {kind}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Row 2: book dot + short name + subs + status pill */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: color, flexShrink: 0,
+          }} />
+          <span style={{
+            fontSize: 12, color: 'rgba(30,45,61,0.55)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {shortName}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+          {swap.partnerListSize != null && swap.partnerListSize > 0 && (
+            <span style={{ fontSize: 12, color: '#9CA3AF' }}>
+              {fmtListSize(swap.partnerListSize)}
+            </span>
+          )}
+          <StatusBadge status={swap.status} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Calendar ─────────────────────────────────────────────────────────────────
+
+function Calendar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
   const now = new Date()
-  const [year, setYear]   = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth()) // 0-indexed
+  const [year,        setYear]        = useState(now.getFullYear())
+  const [month,       setMonth]       = useState(now.getMonth())
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   function prevMonth() {
     if (month === 0) { setYear(y => y - 1); setMonth(11) }
@@ -182,7 +275,7 @@ function HeatmapCalendar({ swaps, today, onDayClick }: {
     else setMonth(m => m + 1)
   }
 
-  // Build dateStr → swaps map
+  // Build dateStr → swaps[]
   const dateMap: Record<string, SwapRecord[]> = {}
   for (const s of swaps) {
     const d = promoDateStr(s.promoDate)
@@ -192,6 +285,7 @@ function HeatmapCalendar({ swaps, today, onDayClick }: {
 
   const firstDayOfWeek = new Date(year, month, 1).getDay()
   const daysInMonth    = new Date(year, month + 1, 0).getDate()
+  const monthLabel     = new Date(year, month, 15).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   const cells: (string | null)[] = []
   for (let i = 0; i < firstDayOfWeek; i++) cells.push(null)
@@ -199,44 +293,41 @@ function HeatmapCalendar({ swaps, today, onDayClick }: {
     cells.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`)
   }
 
-  function cellBg(count: number): string {
-    if (count === 0)  return '#F5F0EB'
-    if (count <= 2)   return '#C0DD97'
-    if (count <= 5)   return '#97C459'
-    if (count <= 9)   return '#EF9F27'
-    if (count <= 14)  return '#E8692A'
-    return '#C23B1E'
+  function handleDayClick(dateStr: string) {
+    const count = (dateMap[dateStr] ?? []).length
+    if (count === 0) return
+    setSelectedDay(prev => prev === dateStr ? null : dateStr)
   }
 
-  const monthLabel = new Date(year, month, 15).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const selectedSwaps = selectedDay ? (dateMap[selectedDay] ?? []) : []
 
   return (
     <div style={{
-      background: 'white', borderRadius: 16, padding: '20px 20px 16px',
-      marginBottom: 24, border: '1px solid rgba(30,45,61,0.08)',
+      background: 'white', borderRadius: 12, border: '0.5px solid rgba(30,45,61,0.12)',
+      padding: '20px 20px 16px', marginBottom: 20,
     }}>
-      {/* Month nav */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+      {/* Month navigation */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <button
           onClick={prevMonth}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#9CA3AF', display: 'flex', alignItems: 'center' }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', color: '#9CA3AF', display: 'flex', alignItems: 'center' }}
         >
           <ChevronLeft size={16} strokeWidth={2} />
         </button>
         <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2D3D' }}>{monthLabel}</span>
         <button
           onClick={nextMonth}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#9CA3AF', display: 'flex', alignItems: 'center' }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', color: '#9CA3AF', display: 'flex', alignItems: 'center' }}
         >
           <ChevronRight size={16} strokeWidth={2} />
         </button>
       </div>
 
       {/* Day-of-week headers */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginBottom: 3 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
           <div key={d} style={{
-            textAlign: 'center', fontSize: 9, fontWeight: 700,
+            textAlign: 'center', fontSize: 10, fontWeight: 700,
             color: '#9CA3AF', letterSpacing: '0.04em', paddingBottom: 4,
           }}>
             {d}
@@ -245,98 +336,91 @@ function HeatmapCalendar({ swaps, today, onDayClick }: {
       </div>
 
       {/* Day cells */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
         {cells.map((dateStr, i) => {
-          if (!dateStr) return <div key={`e-${i}`} style={{ aspectRatio: '1' }} />
-          const daySwaps = dateMap[dateStr] ?? []
-          const count    = daySwaps.length
-          const isToday  = dateStr === today
-          const dayNum   = new Date(dateStr + 'T12:00:00').getDate()
+          if (!dateStr) return <div key={`e-${i}`} style={{ minHeight: 54 }} />
+          const daySwaps  = dateMap[dateStr] ?? []
+          const count     = daySwaps.length
+          const isToday   = dateStr === today
+          const isSelected = dateStr === selectedDay
+          const dayNum    = new Date(dateStr + 'T12:00:00').getDate()
 
           return (
             <div
               key={dateStr}
-              onClick={() => count > 0 && onDayClick(dateStr)}
+              onClick={() => handleDayClick(dateStr)}
               style={{
-                aspectRatio: '1',
-                background: cellBg(count),
+                minHeight: 54,
                 borderRadius: 6,
+                background: isSelected ? '#FFF8F0' : count > 0 ? '#FAFAFA' : 'transparent',
+                border: isToday
+                  ? '1.5px solid #1E2D3D'
+                  : isSelected
+                    ? '1px solid rgba(233,160,32,0.45)'
+                    : '0.5px solid transparent',
+                cursor: count > 0 ? 'pointer' : 'default',
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: count > 0 ? 'pointer' : 'default',
-                outline: isToday ? '2px solid #1E2D3D' : 'none',
-                outlineOffset: '-2px',
-                padding: 2,
-                gap: 1,
+                padding: '5px 5px 0',
+                overflow: 'hidden',
+                transition: 'background 0.1s',
               }}
             >
-              <div style={{
+              {/* Date number */}
+              <span style={{
                 fontSize: 11, lineHeight: 1,
-                fontWeight: count > 0 ? 700 : 400,
-                color: count > 0 ? '#1E2D3D' : '#9CA3AF',
+                fontWeight: isToday ? 700 : count > 0 ? 600 : 400,
+                color: isToday ? '#1E2D3D' : count > 0 ? '#1E2D3D' : '#C9C9C9',
+                marginBottom: 2,
               }}>
                 {dayNum}
-              </div>
+              </span>
+
+              {/* Stacked book-color bars (one per swap, max 5 shown) */}
               {count > 0 && (
-                <>
-                  <div style={{ fontSize: 9, fontWeight: 600, color: '#1E2D3D', lineHeight: 1 }}>
-                    {count}
-                  </div>
-                  <div style={{ display: 'flex', gap: 1 }}>
-                    {daySwaps.slice(0, 4).map((s, j) => (
-                      <div key={j} style={{
-                        width: 4, height: 4, borderRadius: '50%',
-                        background: bookColor(s.bookTitle), flexShrink: 0,
-                      }} />
-                    ))}
-                  </div>
-                </>
+                <div style={{
+                  display: 'flex', flexDirection: 'column', gap: 1.5,
+                  flex: 1, justifyContent: 'flex-end', paddingBottom: 4,
+                }}>
+                  {daySwaps.slice(0, 5).map((s, j) => (
+                    <div key={j} style={{
+                      height: 3, borderRadius: 2,
+                      background: getBookColorByTitle(s.bookTitle),
+                    }} />
+                  ))}
+                  {count > 5 && (
+                    <div style={{ height: 3, borderRadius: 2, background: '#E5E7EB' }} />
+                  )}
+                </div>
               )}
             </div>
           )
         })}
       </div>
 
-      {/* Legends */}
-      <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 700 }}>Volume:</span>
-          {[
-            { bg: '#F5F0EB', label: '0' },
-            { bg: '#C0DD97', label: '1–2' },
-            { bg: '#97C459', label: '3–5' },
-            { bg: '#EF9F27', label: '6–9' },
-            { bg: '#E8692A', label: '10–14' },
-            { bg: '#C23B1E', label: '15+' },
-          ].map(item => (
-            <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 2, background: item.bg, border: '1px solid rgba(0,0,0,0.06)' }} />
-              <span style={{ fontSize: 10, color: '#9CA3AF' }}>{item.label}</span>
-            </div>
-          ))}
+      {/* Inline day panel */}
+      {selectedDay && selectedSwaps.length > 0 && (
+        <div style={{
+          marginTop: 16, paddingTop: 16,
+          borderTop: '0.5px solid rgba(30,45,61,0.08)',
+        }}>
+          <p style={{
+            fontSize: 13, fontWeight: 700, color: '#1E2D3D', margin: '0 0 12px',
+          }}>
+            {fmtDateGroupHeader(selectedDay)}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {selectedSwaps.map(s => (
+              <DaySwapCard key={s.id} swap={s} />
+            ))}
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 700 }}>Books:</span>
-          {[
-            { color: '#F97B6B', label: 'Billionaire / Protector' },
-            { color: '#F4A261', label: 'Roommate' },
-            { color: '#8B5CF6', label: 'Secret Baby / Ex' },
-            { color: '#1E2D3D', label: 'Other' },
-          ].map(item => (
-            <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: item.color }} />
-              <span style={{ fontSize: 10, color: '#9CA3AF' }}>{item.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   )
 }
 
-// ─── Swap Card ────────────────────────────────────────────────────────────────
+// ─── Swap Card (used in upcoming + past sections) ─────────────────────────────
 
 function SwapCard({ swap, onStatusChange }: {
   swap: SwapRecord
@@ -368,12 +452,10 @@ function SwapCard({ swap, onStatusChange }: {
         style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}
         onClick={() => setExpanded(e => !e)}
       >
-        {/* Left dot */}
         <div style={{ paddingTop: 5, flexShrink: 0 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor }} />
         </div>
 
-        {/* Center */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
             <DirectionBadge direction={swap.direction} />
@@ -391,7 +473,6 @@ function SwapCard({ swap, onStatusChange }: {
           )}
         </div>
 
-        {/* Right */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
           <StatusBadge status={swap.status} />
           <ChevronDown
@@ -401,7 +482,6 @@ function SwapCard({ swap, onStatusChange }: {
         </div>
       </div>
 
-      {/* Expanded actions */}
       {expanded && (
         <div style={{
           marginTop: 12, paddingTop: 12,
@@ -613,13 +693,13 @@ function AddSwapModal({ onClose, onCreated }: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          partnerName:    form.partnerName,
-          bookTitle:      form.bookTitle,
-          promoDate:      form.promoDate,
-          direction:      form.direction,
-          promoFormat:    form.promoFormat    || null,
+          partnerName:     form.partnerName,
+          bookTitle:       form.bookTitle,
+          promoDate:       form.promoDate,
+          direction:       form.direction,
+          promoFormat:     form.promoFormat    || null,
           partnerListSize: form.partnerListSize ? Number(form.partnerListSize) : null,
-          partnerEmail:   form.partnerEmail   || null,
+          partnerEmail:    form.partnerEmail   || null,
           source: 'direct',
         }),
       })
@@ -778,14 +858,8 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
     setShowModal(false)
   }
 
-  function handleDayClick(dateStr: string) {
-    const el = document.getElementById(`date-group-${dateStr}`)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
   const today = todayDateStr()
 
-  // Split into upcoming / past
   const upcomingSwaps = swaps
     .filter(s => promoDateStr(s.promoDate) >= today)
     .sort((a, b) => a.promoDate.localeCompare(b.promoDate))
@@ -794,7 +868,6 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
     .filter(s => promoDateStr(s.promoDate) < today)
     .sort((a, b) => b.promoDate.localeCompare(a.promoDate))
 
-  // Group upcoming by date
   const upcomingByDate: Array<{ dateStr: string; swaps: SwapRecord[] }> = []
   for (const s of upcomingSwaps) {
     const d = promoDateStr(s.promoDate)
@@ -803,7 +876,6 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
     else upcomingByDate.push({ dateStr: d, swaps: [s] })
   }
 
-  // Group past by month (most recent first)
   const pastGrouped: Array<{ monthKey: string; swaps: SwapRecord[] }> = []
   for (const s of pastSwaps) {
     const monthKey = getMonthKey(promoDateStr(s.promoDate))
@@ -838,7 +910,7 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
           </button>
         </div>
 
-        {/* Empty state — no swaps at all */}
+        {/* Empty state */}
         {swaps.length === 0 && (
           <div style={{ background: 'white', borderRadius: 16, border: '1px solid rgba(30,45,61,0.08)' }}>
             <EmptyState onAdd={() => setShowModal(true)} />
@@ -847,11 +919,11 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
 
         {swaps.length > 0 && (
           <>
-            {/* Section 1 — Metrics */}
-            <MetricsRow swaps={swaps} />
+            {/* Section 1 — Stats Bar */}
+            <StatsBar swaps={swaps} today={today} />
 
-            {/* Section 2 — Heatmap Calendar */}
-            <HeatmapCalendar swaps={swaps} today={today} onDayClick={handleDayClick} />
+            {/* Section 2 — Calendar */}
+            <Calendar swaps={swaps} today={today} />
 
             {/* Section 3 — Action Required Banner */}
             <ActionBanner swaps={swaps} onStatusChange={handleStatusChange} />
@@ -871,7 +943,6 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
                   const dailyReach = group.swaps.reduce((sum, s) => sum + (s.partnerListSize ?? 0), 0)
                   return (
                     <div key={group.dateStr} id={`date-group-${group.dateStr}`} style={{ marginBottom: 20 }}>
-                      {/* Date group header */}
                       <div style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         marginBottom: 8,
@@ -906,7 +977,6 @@ export function SwapsPage({ swaps: initialSwaps }: { swaps: SwapRecord[] }) {
         )}
       </div>
 
-      {/* Modal */}
       {showModal && (
         <AddSwapModal onClose={() => setShowModal(false)} onCreated={handleSwapCreated} />
       )}
