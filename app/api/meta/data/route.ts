@@ -140,15 +140,16 @@ export async function GET(req: NextRequest) {
     }
 
     const token = user!.metaAccessToken as string
-    const HARDCODED_ACCOUNT_ID = 'act_940232825191906'
+    // Prefer the account ID saved during sync; fall back to the original default
+    const accountId = user!.metaAdAccountId ?? 'act_940232825191906'
 
     const allAds: MetaAd[] = []
 
     try {
-      const ads = await fetchAccountAds(token, HARDCODED_ACCOUNT_ID, startDate, endDate)
+      const ads = await fetchAccountAds(token, accountId, startDate, endDate)
       allAds.push(...ads)
     } catch (err) {
-      console.error(`[Meta Data] Error fetching ${HARDCODED_ACCOUNT_ID}:`, err)
+      console.error(`[Meta Data] Error fetching ${accountId}:`, err)
     }
 
     // If live API returned nothing, fall back to uploaded DB data

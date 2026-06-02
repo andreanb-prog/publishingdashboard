@@ -811,7 +811,11 @@ export default function MetaPage() {
     }
   }
 
-  const meta       = metaOverride !== undefined ? metaOverride : analysis?.meta
+  // metaOverride=undefined → still loading, use analysis cache
+  // metaOverride=null     → date range fetch returned no data; fall back to analysis cache
+  //                         so cached meta is never blanked out by a failed live fetch
+  // metaOverride={...}    → use live data
+  const meta       = metaOverride ?? analysis?.meta
   const rescueAds  = meta?.ads.filter(ad => ad.clicks === 0 || ad.ctr < 1) ?? []
   const maxCTR     = meta ? Math.max(...meta.ads.map(a => a.ctr), 1) : 1
   const activeColDefs = ALL_COLUMNS.filter(c => activeCols.has(c.key))

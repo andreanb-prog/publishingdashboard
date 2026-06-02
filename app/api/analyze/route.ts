@@ -425,6 +425,14 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Backfill meta from the most recent analysis that has it — same pattern as KDP backfill
+  const metaRecord = recentRecords.find(r => (r.data as any)?.meta)
+  if (metaRecord && !analysis?.meta) {
+    analysis = analysis
+      ? { ...analysis, meta: (metaRecord.data as any).meta }
+      : (metaRecord.data as any)
+  }
+
   // Prefer UploadLog for last upload timestamp — it's set at parse time, not analysis time
   try {
     const kdpLog = await db.uploadLog.findFirst({
