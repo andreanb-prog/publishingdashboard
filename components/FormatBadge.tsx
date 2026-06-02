@@ -4,6 +4,7 @@ import { BookOpen, BookMarked, Book, Headphones, Globe } from 'lucide-react'
 const FORMAT_CONFIG: Record<string, { label: string; Icon: React.ElementType }> = {
   ebook:       { label: 'Ebook',       Icon: BookOpen },
   paperback:   { label: 'Paperback',   Icon: BookMarked },
+  pb:          { label: 'PB',          Icon: BookMarked },
   hardcover:   { label: 'Hardcover',   Icon: Book },
   audiobook:   { label: 'Audiobook',   Icon: Headphones },
   translation: { label: 'Translation', Icon: Globe },

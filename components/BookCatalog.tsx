@@ -279,11 +279,12 @@ function SortableBookCard({
       </div>
 
       {/* Format badges */}
-      {book.formatBadges?.length > 0 && (
+      {(book.formatBadges?.length > 0 || book.asinPaperback) && (
         <div className="flex items-center gap-1 shrink-0 flex-wrap">
-          {book.formatBadges.map(fmt => (
+          {book.formatBadges?.map(fmt => (
             <FormatBadge key={fmt} format={fmt} />
           ))}
+          {book.asinPaperback && <FormatBadge format="pb" />}
         </div>
       )}
 
@@ -1372,11 +1373,12 @@ export function BookCatalog() {
                     </div>
                   )}
                   </div>
-                  {book.formatBadges?.length > 0 && (
+                  {(book.formatBadges?.length > 0 || book.asinPaperback) && (
                     <div className="flex items-center gap-1 shrink-0 flex-wrap">
-                      {book.formatBadges.map(fmt => (
+                      {book.formatBadges?.map(fmt => (
                         <FormatBadge key={fmt} format={fmt} />
                       ))}
+                      {book.asinPaperback && <FormatBadge format="pb" />}
                     </div>
                   )}
                   <div className="flex items-center gap-1 shrink-0">
