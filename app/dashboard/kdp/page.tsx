@@ -1029,6 +1029,21 @@ function MailerLiteEmailChartSection({ data }: { data: DailyData[] }) {
   )
 }
 
+// ── Book color system — ASIN-first, positional fallback ──────────────────────
+const ASIN_COLORS: Record<string, string> = {
+  'B0GQD4J6VT': '#F97B6B', // B1 coral
+  'B0GSC2RTF8': '#F4A261', // B2 peach
+  'B0GX2ZXLHR': '#8B5CF6', // B3 plum
+}
+const BOOK_COLOR_PALETTE = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA', '#F472B6']
+
+function getBookColor(asin: string, bookColorMap: Record<string, number>): string {
+  const upper = (asin || '').trim().toUpperCase()
+  if (ASIN_COLORS[upper]) return ASIN_COLORS[upper]
+  const idx = bookColorMap[upper]
+  return idx !== undefined ? (BOOK_COLOR_PALETTE[idx] ?? '#6B7280') : '#6B7280'
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function KDPPage() {
   const [coachTitle, setCoachTitle] = useState('Your marketing coach says')
@@ -1380,7 +1395,6 @@ export default function KDPPage() {
 
           {/* Filter Bar — Book selector + Format toggle */}
           {displayBooks.filter(isBookVisible).length > 0 && (() => {
-            const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
             const visibleFilterBooks = displayBooks.filter(isBookVisible)
             return (
               <div className="mb-6 rounded-xl overflow-hidden" style={{ background: '#FFF8F0', border: '1.5px solid rgba(30,45,61,0.1)' }}>
@@ -1397,9 +1411,8 @@ export default function KDPPage() {
                   >
                     All Books
                   </button>
-                  {visibleFilterBooks.map((b, visibleIdx) => {
-                    const colorIdx = bookColorMap[b.asin?.trim().toUpperCase() ?? ''] ?? visibleIdx
-                    const c = BOOK_COLORS[colorIdx] || '#6B7280'
+                  {visibleFilterBooks.map((b) => {
+                    const c = getBookColor(b.asin ?? '', bookColorMap)
                     const isSelected = selectedBooks.has(b.asin)
                     return (
                       <button
@@ -1472,7 +1485,6 @@ export default function KDPPage() {
 
           {/* Book Performance Charts */}
           {(() => {
-            const BOOK_COLORS = ['#F97B6B', '#F4A261', '#8B5CF6', '#5BBFB5', '#60A5FA']
             const dashboardBooks = displayBooks.filter(isBookVisible)
             const visibleBooks = selectedBooks.size > 0
               ? dashboardBooks.filter(b => selectedBooks.has(b.asin))
@@ -1490,9 +1502,8 @@ export default function KDPPage() {
                 <div className="rounded p-5" style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   <h3 className="text-[14px] font-semibold mb-4" style={{ color: '#1E2D3D' }}>{title}</h3>
                   <div className="space-y-3">
-                    {books.map((b, visibleIdx) => {
-                      const colorIdx = bookColorMap[b.asin?.trim().toUpperCase() ?? ''] ?? visibleIdx
-                      const color = BOOK_COLORS[colorIdx] || '#6B7280'
+                    {books.map((b) => {
+                      const color = getBookColor(b.asin ?? '', bookColorMap)
                       const val = getValue(b)
                       const barWidthPct = (val / maxVal) * 100
                       return (
@@ -1535,8 +1546,8 @@ export default function KDPPage() {
 
             return (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <BookBar books={visibleBooks} title="Sales by Title" metric="units" show={activeFormat !== 'ku'} />
-                <BookBar books={visibleBooks} title="Reader Engagement by Title" metric="kenp" show={activeFormat === 'ku'} />
+                <BookBar books={visibleBooks} title="Sales by Title" metric="units" show={true} />
+                <BookBar books={visibleBooks} title="Reader Engagement by Title" metric="kenp" show={true} />
               </div>
             )
           })()}

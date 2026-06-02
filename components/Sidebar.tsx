@@ -29,7 +29,6 @@ const SIMPLE_ITEMS: NavItem[] = [
   { label: 'Book Swaps',      desc: 'Swap calendar & sends',    href: '/dashboard/swaps',            Icon: ArrowLeftRight },
   { label: 'Write',           desc: '12-day streak · 1,842 w.', href: '/dashboard/writing-notebook', Icon: PenTool },
   { label: 'Content Studio',  desc: 'Social calendar & posts',  href: '/content',                    Icon: CalendarDays },
-  { label: 'Coach',           desc: '3 nudges waiting',         href: '/dashboard/tasks',            Icon: Bot, badge: '3', badgeType: 'count' },
 ]
 
 const LESS_OFTEN_ITEMS: NavItem[] = [
@@ -38,7 +37,6 @@ const LESS_OFTEN_ITEMS: NavItem[] = [
 
 const ALL_MAIN: NavItem[] = [
   { label: 'My Dashboard',    desc: 'Overview & insights', href: '/dashboard',       Icon: LayoutDashboard },
-  { label: 'Task Center',     desc: 'Your action plan',    href: '/dashboard/tasks', Icon: ListChecks },
   { label: 'Launch Planner',  desc: 'Book launches',       href: '/dashboard/launch', Icon: Rocket },
   { label: 'Content Planner', desc: 'Plan content',        href: '/content',          Icon: CalendarDays },
 ]
