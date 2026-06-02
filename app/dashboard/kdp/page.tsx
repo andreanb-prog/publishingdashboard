@@ -1452,19 +1452,14 @@ export default function KDPPage() {
 
           {/* KPI Strip */}
           {(() => {
-            // Use pre-computed estRevenue from aggregateKdp which avoids double-counting KU.
-            // Extension royalties already include KU; only CSV months add KENP × rate.
-            const totalEstRevenue = Math.round((kdpSalesData?.estRevenue ?? (displayRoyalties + displayKENP * 0.0045)) * 100) / 100
             const prev = allAnalyses[1]?.kdp
             const unitsDelta = prev ? displayUnits - prev.totalUnits : null
             const kenpDelta  = prev ? displayKENP  - prev.totalKENP  : null
-            const revDelta   = prev ? totalEstRevenue - Math.round((prev.totalRoyaltiesUSD + prev.totalKENP * 0.0045) * 100) / 100 : null
             return (
               <>
                 <BoutiqueSectionLabel label="Revenue" />
                 <div style={{ marginBottom: 32 }}>
-                  <BoutiqueDataGrid cols={4}>
-                    <BoutiqueMetricCard label="Est. Revenue" value={fmtCurrency(totalEstRevenue)} colorDot="#F97B6B" isProjection delta={revDelta} />
+                  <BoutiqueDataGrid cols={3}>
                     <BoutiqueMetricCard label="Royalties" value={fmtCurrency(displayRoyalties)} colorDot="#F97B6B" />
                     <BoutiqueMetricCard label="KENP Reads" value={displayKENP.toLocaleString()} colorDot="#F97B6B" delta={kenpDelta} />
                     <BoutiqueMetricCard label="Units Sold" value={displayUnits.toLocaleString()} colorDot="#F97B6B" delta={unitsDelta} />
