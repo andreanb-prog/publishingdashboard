@@ -1118,13 +1118,16 @@ export default function KDPPage() {
       setExcludedAsins(excluded)
 
       // Build known-ASINs set from My Books (non-excluded).
-      // When non-empty, any KDP book whose ASIN is not in this set will be hidden —
-      // this filters out books from other pen names (e.g. "162 Questions…").
+      // Includes both the primary ebook ASIN and asinPaperback so paperback rows
+      // are never flagged as "not in your catalog."
       const known = new Set<string>(
         books
           .filter((b: any) => b.asin)
           .map((b: any) => String(b.asin).trim().toUpperCase())
       )
+      books
+        .filter((b: any) => b.asinPaperback)
+        .forEach((b: any) => known.add(String(b.asinPaperback).trim().toUpperCase()))
       setKnownAsins(known)
     }).finally(() => setLoading(false))
   }, [preset, customStart, customEnd])
@@ -1186,6 +1189,17 @@ export default function KDPPage() {
   const displayBooks: { asin: string; title: string; shortTitle: string; units: number; kenp: number; royalties: number; format?: string }[] =
     kdpSalesData?.books ?? kdp?.books ?? []
 
+  // Maps paperback ASIN → parent ebook ASIN for data attribution.
+  const paperbackToEbookAsin = useMemo(() => {
+    const map = new Map<string, string>()
+    myBooksList.forEach((b: any) => {
+      if (b.asin && b.asinPaperback) {
+        map.set(String(b.asinPaperback).trim().toUpperCase(), String(b.asin).trim().toUpperCase())
+      }
+    })
+    return map
+  }, [myBooksList])
+
   // Deduplicated, visibility-filtered books for the filter bar and bar charts.
   // Groups by base title (before first colon), preferring ebook ASIN over paperback
   // ISBN (978/979 prefix). When both are non-ISBN, keeps the one with more data.
@@ -1198,19 +1212,70 @@ export default function KDPPage() {
     })
     const isISBN = (asin?: string) => !!(asin?.startsWith('978') || asin?.startsWith('979'))
     const isPaperback = (b: typeof visible[0]) => b.format === 'paperback' || isISBN(b.asin)
-    const seen = new Map<string, typeof visible[0]>()
+
+    // Two-pass merge:
+    // 1. Build ebook entries (and accumulate pending paperback data)
+    // 2. Fold pending paperback data into parent ebook entries
+    type BookEntry = typeof visible[0]
+    const byAsin = new Map<string, BookEntry>()   // canonical (ebook) ASIN or title key → entry
+    const byTitle = new Map<string, string>()      // titleKey → map key in byAsin
+    const pbPending = new Map<string, { units: number; royalties: number }>() // parentAsin → pb totals
+
     for (const b of visible) {
-      const key = b.title.split(':')[0].trim().toLowerCase()
-      const existing = seen.get(key)
-      if (!existing) { seen.set(key, b); continue }
-      if (isPaperback(existing) && !isPaperback(b)) {
-        seen.set(key, b)
-      } else if (!isPaperback(existing) && !isPaperback(b)) {
-        if ((b.units + b.kenp) > (existing.units + existing.kenp)) seen.set(key, b)
+      const asinUpper = b.asin?.trim().toUpperCase() ?? ''
+      const parentAsin = paperbackToEbookAsin.get(asinUpper)
+
+      if (parentAsin) {
+        // This is a paperback linked to a catalog ebook — merge into parent
+        const parent = byAsin.get(parentAsin)
+        if (parent) {
+          parent.units += b.units
+          parent.royalties += b.royalties
+          // KENP not merged — paperbacks have none
+        } else {
+          const acc = pbPending.get(parentAsin)
+          if (acc) { acc.units += b.units; acc.royalties += b.royalties }
+          else pbPending.set(parentAsin, { units: b.units, royalties: b.royalties })
+        }
+        continue
+      }
+
+      // Non-paperback-linked entry: deduplicate by title key, merging metrics
+      const titleKey = b.title.split(':')[0].trim().toLowerCase()
+      const mapKey = asinUpper || titleKey
+      const existingMapKey = byTitle.get(titleKey)
+
+      if (!existingMapKey) {
+        byAsin.set(mapKey, { ...b })
+        byTitle.set(titleKey, mapKey)
+      } else {
+        const existing = byAsin.get(existingMapKey)!
+        if (isPaperback(existing) && !isPaperback(b)) {
+          // Upgrade ISBN/paperback entry to ebook — carry over accumulated data
+          byAsin.delete(existingMapKey)
+          byAsin.set(mapKey, { ...b, units: existing.units + b.units, royalties: existing.royalties + b.royalties })
+          byTitle.set(titleKey, mapKey)
+        } else {
+          existing.units += b.units
+          existing.kenp += b.kenp
+          existing.royalties += b.royalties
+        }
+      }
+
+      // If pending paperback data exists for this ebook ASIN, fold it in now
+      if (asinUpper) {
+        const pending = pbPending.get(asinUpper)
+        if (pending) {
+          const currentKey = byTitle.get(titleKey) ?? asinUpper
+          const entry = byAsin.get(currentKey)
+          if (entry) { entry.units += pending.units; entry.royalties += pending.royalties }
+          pbPending.delete(asinUpper)
+        }
       }
     }
-    return Array.from(seen.values())
-  }, [displayBooks, excludedAsins, knownAsins])
+
+    return Array.from(byAsin.values())
+  }, [displayBooks, excludedAsins, knownAsins, paperbackToEbookAsin])
 
   // Map ASIN → color index based on My Books sort order (B1=0, B2=1, …).
   // This ensures color assignment is stable and tied to ASIN, not array position.
