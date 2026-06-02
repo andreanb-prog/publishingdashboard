@@ -11,14 +11,9 @@ function openUploadModal() {
 }
 import { Rocket } from 'lucide-react'
 import {
-  IconKDP, IconMeta, IconMailerLite, IconSwaps, IconPinterest,
-  IconMetrics, IconRank, IconROAS, IconListBuilding, IconMyData,
-  PenLine, ListChecks,
+  IconKDP, IconMeta, IconMailerLite, IconPinterest,
+  IconMetrics, IconRank, IconMyData,
 } from '@/components/icons'
-
-function IconTaskCenter({ size = 20, color = '#E9A020' }: { size?: number; color?: string }) {
-  return <ListChecks size={size} color={color} />
-}
 
 type NavEntry = {
   label: string
@@ -39,22 +34,20 @@ const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
 
 const ALL_NAV: NavEntry[] = [
   { section: 'Overview', label: 'My Dashboard',   href: '/dashboard',              render: ph(House) },
-  // HIDDEN — re-enable when ready:
-  // { label: 'Writing Notebook',                    href: '/dashboard/writing-notebook',       render: () => <PenLine size={20} color="#E9A020" /> },
   { section: 'Channels', label: 'KDP',            href: '/dashboard/kdp',          render: ic(IconKDP, '#E9A020') },
   { label: 'Meta / Facebook',                     href: '/dashboard/meta',         render: ic(IconMeta, '#60A5FA') },
   { label: 'MailerLite',                           href: '/dashboard/mailerlite',   render: ic(IconMailerLite, '#34d399') },
-  // HIDDEN — re-enable when Swaps & Promos is ready:
-  // { label: 'Swaps & Promos',                       href: '/dashboard/swaps',        render: ic(IconSwaps, '#E9A020') },
-{ label: 'Pinterest',                            href: '/dashboard/pinterest',    render: ic(IconPinterest, '#fb7185') },
-  { section: 'Tools', label: 'Launch Planner',     href: '/dashboard/launch',       render: () => <Rocket size={20} color="#E9A020" /> },
-  { label: 'Advanced Metrics',                    href: '/dashboard/metrics',      render: ic(IconMetrics, '#E9A020') },
-  { label: 'Rank Tracker',                        href: '/dashboard/rank',         render: ic(IconRank, '#34d399') },
-  // { label: 'Daily ROAS Log',                      href: '/dashboard/roas',         render: ic(IconROAS, '#E9A020') },
-  // { label: 'List Building ROAS',                  href: '/dashboard/list-building', render: ic(IconListBuilding, '#34d399') },
-  { label: 'Learn the Terms',                     href: '/dashboard/learn',        render: ph(GraduationCap) },
+  { section: 'Tools', label: 'Advanced Metrics',  href: '/dashboard/metrics',      render: ic(IconMetrics, '#E9A020') },
   { label: 'Settings',                             href: '/dashboard/settings',     render: ph(Gear) },
   { label: 'My Data',                              href: '/dashboard/data-vault',   render: ic(IconMyData, '#fb7185') },
+]
+
+const DEV_NAV: NavEntry[] = [
+  { label: 'Content Planner',  href: '/content',              render: () => <Rocket size={20} color="#6B7280" /> },
+  { label: 'Launch Planner',   href: '/dashboard/launch',     render: () => <Rocket size={20} color="#6B7280" /> },
+  { label: 'ROAS Hub',         href: '/dashboard/rank',       render: ic(IconRank, '#6B7280') },
+  { label: 'Pinterest',        href: '/dashboard/pinterest',  render: ic(IconPinterest, '#6B7280') },
+  { label: 'Learn the Terms',  href: '#',                     render: ph(GraduationCap) },
 ]
 
 export function MobileNav() {
@@ -155,6 +148,37 @@ export function MobileNav() {
                   </div>
                 )
               })}
+
+              {/* In Development */}
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #EEEBE6' }}>
+                <div className="text-[10px] font-bold tracking-[1.8px] uppercase px-3 pb-1.5 pt-1"
+                  style={{ color: 'rgba(30,45,61,0.4)' }}>
+                  In Development
+                </div>
+                {DEV_NAV.map(item => {
+                  const nonClickable = item.href === '#'
+                  const inner = (
+                    <div
+                      className="flex items-center gap-3 px-3 py-3 rounded-lg text-[14px]"
+                      style={{ opacity: 0.5, minHeight: 44, color: '#1E2D3D', fontWeight: 400, cursor: nonClickable ? 'default' : undefined }}
+                    >
+                      {item.render()}
+                      {item.label}
+                    </div>
+                  )
+                  if (nonClickable) return <div key={item.href}>{inner}</div>
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className="no-underline block"
+                    >
+                      {inner}
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
           </nav>
         </div>

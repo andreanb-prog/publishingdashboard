@@ -28,7 +28,6 @@ const SIMPLE_ITEMS: NavItem[] = [
   { label: 'Readers',         desc: 'Your email list',          href: '/dashboard/mailerlite',       Icon: Mail },
   { label: 'Book Swaps',      desc: 'Swap calendar & sends',    href: '/dashboard/swaps',            Icon: ArrowLeftRight },
   { label: 'Write',           desc: '12-day streak · 1,842 w.', href: '/dashboard/writing-notebook', Icon: PenTool },
-  { label: 'Content Studio',  desc: 'Social calendar & posts',  href: '/content',                    Icon: CalendarDays },
 ]
 
 const LESS_OFTEN_ITEMS: NavItem[] = [
@@ -37,8 +36,6 @@ const LESS_OFTEN_ITEMS: NavItem[] = [
 
 const ALL_MAIN: NavItem[] = [
   { label: 'My Dashboard',    desc: 'Overview & insights', href: '/dashboard',       Icon: LayoutDashboard },
-  { label: 'Launch Planner',  desc: 'Book launches',       href: '/dashboard/launch', Icon: Rocket },
-  { label: 'Content Planner', desc: 'Plan content',        href: '/content',          Icon: CalendarDays },
 ]
 
 const ALL_CHANNELS: NavItem[] = [
@@ -46,16 +43,21 @@ const ALL_CHANNELS: NavItem[] = [
   { label: 'Meta / Facebook', desc: 'Ad performance',    href: '/dashboard/meta',        Icon: TrendingUp },
   { label: 'MailerLite',      desc: 'Email list',        href: '/dashboard/mailerlite',  Icon: Mail },
   { label: 'Book Swaps',      desc: 'Swap calendar',     href: '/dashboard/swaps',       Icon: ArrowLeftRight },
-  { label: 'Pinterest',       desc: 'Pinterest traffic', href: '/dashboard/pinterest',   Icon: Pin },
 ]
 
 const ALL_TOOLS: NavItem[] = [
   { label: 'Category Research', desc: 'Research categories', href: '/dashboard/kdp#category-intelligence', Icon: Search },
   { label: 'Advanced Metrics',  desc: 'Deep analytics',      href: '/dashboard/metrics',    Icon: BarChart2 },
-  { label: 'ROAS Hub',          desc: 'Ad returns tracking', href: '/dashboard/rank',       Icon: BarChart2 },
-  { label: 'Learn the Terms',   desc: 'Publishing terms',    href: '/dashboard/learn',      Icon: GraduationCap },
   { label: 'My Data',           desc: 'Raw data vault',      href: '/dashboard/data-vault', Icon: Database },
   { label: 'Settings',          desc: 'Account · connections', href: '/dashboard/settings', Icon: Settings2 },
+]
+
+const IN_DEV_ITEMS: NavItem[] = [
+  { label: 'Content Planner', desc: 'Social calendar & posts',  href: '/content',              Icon: CalendarDays },
+  { label: 'Launch Planner',  desc: 'Book launches',            href: '/dashboard/launch',     Icon: Rocket },
+  { label: 'ROAS Hub',        desc: 'Ad returns tracking',      href: '/dashboard/rank',       Icon: BarChart2 },
+  { label: 'Pinterest',       desc: 'Pinterest traffic',        href: '/dashboard/pinterest',  Icon: Pin },
+  { label: 'Learn the Terms', desc: 'Publishing terms',         href: '#',                     Icon: GraduationCap },
 ]
 
 export function Sidebar() {
@@ -155,6 +157,50 @@ export function Sidebar() {
     )
   }
 
+  function DevNavLink({ label, desc, href, Icon }: NavItem) {
+    const nonClickable = href === '#'
+    const inner = (
+      <div style={{
+        opacity: 0.5,
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '7px 8px', borderRadius: 12, marginBottom: 2,
+        cursor: nonClickable ? 'default' : undefined,
+      }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'var(--paper2)',
+        }}>
+          <Icon size={16} strokeWidth={1.75} color="var(--ink3)" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div style={{
+            fontSize: 14, fontWeight: 400, lineHeight: 1.2,
+            color: 'var(--ink)', fontFamily: 'var(--font-sans)',
+          }}>
+            {label}
+          </div>
+          <div style={{
+            fontSize: 11, lineHeight: 1.2, marginTop: 1,
+            color: 'var(--ink4)', fontFamily: 'var(--font-sans)',
+          }}>
+            {desc}
+          </div>
+        </div>
+      </div>
+    )
+    if (nonClickable) return inner
+    return (
+      <Link href={href} className="no-underline block"
+        style={{ borderRadius: 12 }}
+        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'var(--paper2)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent' }}
+      >
+        {inner}
+      </Link>
+    )
+  }
+
   return (
     <aside
       className="w-[240px] flex-shrink-0 flex-col hidden md:flex"
@@ -214,6 +260,19 @@ export function Sidebar() {
             {ALL_TOOLS.map(item => <NavLink key={item.href} {...item} />)}
           </>
         )}
+
+        {/* In Development */}
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+          <div style={{
+            fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+            fontSize: 10, fontWeight: 500,
+            letterSpacing: '0.2em', textTransform: 'uppercase',
+            color: 'rgba(30,45,61,0.4)', padding: '0 8px 5px',
+          }}>
+            In Development
+          </div>
+          {IN_DEV_ITEMS.map(item => <DevNavLink key={item.href} {...item} />)}
+        </div>
       </nav>
 
       {/* Footer */}
