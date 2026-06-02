@@ -51,6 +51,9 @@ export interface DashboardState {
   setKdpLastUploadedAt: React.Dispatch<React.SetStateAction<string | null>>
   // KDP direct totals (source of truth for hero metrics)
   kdpTotals: { totalUnits: number; totalRoyalties: number; totalKENP: number }
+  // Date range applied by the picker (null = all-time / SSR data)
+  selectedRange: { from: string; to: string } | null
+  hasMonthGranularData: boolean
   // Derived / animated
   coachTitle: string
   greeting: string
@@ -100,7 +103,9 @@ export function useDashboardData({
   const [analyses,  setAnalyses]  = useState<Analysis[]>(initialData?.analyses ?? [])
   const [rankLogs,  setRankLogs]  = useState<RankLog[]>(initialData?.rankLogs ?? [])
   const [roasLogs,  setRoasLogs]  = useState<RoasLog[]>(initialData?.roasLogs ?? [])
-  const [kdpTotals] = useState(initialData?.kdpTotals ?? { totalUnits: 0, totalRoyalties: 0, totalKENP: 0 })
+  const [kdpTotals, setKdpTotals] = useState(initialData?.kdpTotals ?? { totalUnits: 0, totalRoyalties: 0, totalKENP: 0 })
+  const [selectedRange, setSelectedRange] = useState<{ from: string; to: string } | null>(null)
+  const [hasMonthGranularData, setHasMonthGranularData] = useState(false)
   const [loading,   setLoading]   = useState(!hasInitial)
   const [generating, setGenerating] = useState(false)
   const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(initialData?.kdpLastUploadedAt ?? null)
@@ -227,13 +232,14 @@ export function useDashboardData({
 
   useEffect(() => {
     if (hasInitial && refreshKey === 0) return
-    const { from, to } = (() => {
+    const rangeFromStorage = (() => {
       try {
         const stored = localStorage.getItem('authordash_date_range')
         if (stored) return JSON.parse(stored) as { from: string; to: string }
       } catch {}
-      return getDefaultDateRange()
+      return null
     })()
+    const { from, to } = rangeFromStorage ?? getDefaultDateRange()
     const dateParams = new URLSearchParams({ from, to }).toString()
 
     Promise.all([
@@ -253,6 +259,12 @@ export function useDashboardData({
       setRankLogs(rankData.logs ?? [])
       setRoasLogs(roasData.logs ?? [])
       if (mlData?.data) setLiveML(mlData.data)
+      if (analyzeData.kdpTotals) {
+        const { hasMonthGranularData: hmg, ...totals } = analyzeData.kdpTotals
+        setKdpTotals(totals)
+        setHasMonthGranularData(hmg ?? false)
+      }
+      setSelectedRange(rangeFromStorage)
     }).catch(console.error).finally(() => setLoading(false))
   }, [refreshKey, hasInitial])
 
@@ -411,6 +423,7 @@ export function useDashboardData({
   return {
     userName, initialData,
     analysis, analyses, rankLogs, roasLogs, liveML, swapCalendar, kdpTotals,
+    selectedRange, hasMonthGranularData,
     kdpLastUploadedAt, metaLastSync,
     loading, generating, metaErrorBanner, setMetaErrorBanner,
     storyMode, toggleStoryMode, isFresh,

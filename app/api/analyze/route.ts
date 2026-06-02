@@ -5,6 +5,7 @@ import { getAugmentedSession } from '@/lib/getSession'
 import { analyzeLimiter, checkRateLimit, RATE_LIMIT_RESPONSE } from '@/lib/ratelimit'
 import { anthropic, CLAUDE_MODEL, COACHING_SYSTEM_PROMPT } from '@/lib/anthropic'
 import { db } from '@/lib/db'
+import { resolveKdpRows, aggregateKdp } from '@/lib/kdpDataPriority'
 import type { KDPData, MetaData, MailerLiteData, PinterestData, Analysis } from '@/types'
 
 // ── KDP data quality validation ───────────────────────────────────────────────
@@ -453,5 +454,21 @@ export async function GET(req: NextRequest) {
   console.log('[GET] kdpLastUploadedAt:', kdpLastUploadedAt)
 
   const metaLastSync = userRow?.metaLastSync ? userRow.metaLastSync.toISOString() : null
-  return NextResponse.json({ analyses, analysis: analysis || null, kdpLastUploadedAt, metaLastSync })
+
+  // Compute date-range-scoped KDP totals from the KdpSale table
+  const kdpAllRows = await db.kdpSale.findMany({
+    where: { userId: session.user.id },
+    select: { asin: true, title: true, date: true, monthKey: true, source: true, units: true, kenp: true, royalties: true },
+  }).catch(() => [] as never[])
+  const kdpResolved = resolveKdpRows(kdpAllRows)
+  const kdpRange = (fromDate && toDate) ? { start: fromDate, end: toDate } : undefined
+  const kdpAgg = aggregateKdp(kdpResolved, kdpRange)
+  const kdpTotals = {
+    totalUnits:     kdpAgg.units,
+    totalRoyalties: kdpAgg.royalties,
+    totalKENP:      kdpAgg.kenp,
+    hasMonthGranularData: kdpAgg.hasMonthGranularData,
+  }
+
+  return NextResponse.json({ analyses, analysis: analysis || null, kdpLastUploadedAt, metaLastSync, kdpTotals })
 }

@@ -117,8 +117,21 @@ export function BoutiqueChannelCardsRow({
   )
 }
 
+function formatRangeBadge(range: { from: string; to: string } | null): string {
+  if (!range) return 'All Time'
+  const now = new Date()
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const today = now.toISOString().slice(0, 10)
+  if (range.from === `${thisMonth}-01` && (range.to === today || range.to >= `${thisMonth}-28`)) return 'MTD'
+  const fmt = (d: string) => {
+    const [y, m, day] = d.split('-').map(Number)
+    return new Date(y, m - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+  return `${fmt(range.from)} – ${fmt(range.to)}`
+}
+
 export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; userName?: string | null }) {
-  const { analysis, analyses, liveML, animRev, animUnits, animKenp, animCtr, _netVal, greeting, initialData, kdpLastUploadedAt, kdpTotals } = dashboard
+  const { analysis, analyses, liveML, animRev, animUnits, animKenp, animCtr, _netVal, greeting, initialData, kdpLastUploadedAt, kdpTotals, selectedRange, hasMonthGranularData } = dashboard
 
   const hasMailerLiteKey = initialData?.hasMailerLiteKey ?? !!liveML
   const hasKdpData = !!analysis?.kdp || !!kdpLastUploadedAt
@@ -201,8 +214,13 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
       <div className="mb-4" style={{ background: 'white', border: '1px solid var(--line, #d8cfbd)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', padding: '28px 28px 22px' }}>
         <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--green-text, #245c3f)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green-text, #245c3f)', display: 'inline-block', flexShrink: 0 }} />
-          Est. Revenue · All Time
+          Est. Revenue · {formatRangeBadge(selectedRange ?? null)}
         </div>
+        {selectedRange && hasMonthGranularData && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#FEF3C7', border: '1px solid #E9A020', borderRadius: 20, padding: '2px 8px', fontSize: 10, color: '#92400E', marginBottom: 8, fontFamily: 'var(--font-mono, ui-monospace, monospace)', letterSpacing: '0.06em' }}>
+            ⚠ Month snapshot — can't split by day
+          </div>
+        )}
 
         {analysis?.kdp ? (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 1, lineHeight: 1 }}>
