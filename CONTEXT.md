@@ -1,234 +1,165 @@
-# AuthorDash â Claude Code Context File
-> Read this at the start of every session before making any changes.
+# AuthorDash — Claude Code Context File
+> Read this at the start of every session before making changes. Confirm the working directory first.
 
----
+## Product
+AuthorDash is an AI publishing and business-intelligence dashboard for independent romance authors in the KU market. It aggregates KDP sales, Meta ads, MailerLite email stats, newsletter swap data, and BSR into one dashboard with an AI coaching layer. In beta with paying users.
+Live: https://authordash.io
+Pricing: $37/month regular, $17/month FPA student (code FPA2026)
 
-## Product Overview
-AuthorDash is an AI-powered publishing dashboard for indie romance authors. It turns raw KDP sales data, Meta ad performance, and MailerLite email stats into daily action plans, insights, and benchmarks. Think: "smart chief of staff for working authors."
-
-**Live URL:** https://authordash.io  
-**GitHub:** https://github.com/andreanb-prog/publishingdashboard  
-**Vercel project:** publishingdashboard  
-
----
+## Repos
+Main app: publishingdashboard
+  Path: /Users/andrea/Documents/github/GitHub/publishingdashboard
+  GitHub: andreanb-prog/publishingdashboard
+  Vercel: publishingdashboard
+Chrome extension "Fetch": authordash-sync
+  Path: /Users/andrea/Documents/github/GitHub/authordash-sync
+  GitHub: andreanb-prog/authordash-sync
+  (no CONTEXT.md yet)
 
 ## Owner
-- **Author name:** Andrea Bonilla (writes as Elle Wilder)
-- **Genre:** Romance (steamy)
-- **Books:** My Off-Limits Roommate (B0GSC2RTF8), Fake Dating My Billionaire Protector (B0GQD4J6VT), My Ex's Secret Baby (B0GX2ZXLHR)
-- **Email:** andreanbonilla@gmail.com / info@ellewilderbooks.com
-- **Beta pricing:** $37/month regular, $17/month FPA students (code: FPA2026)
-
----
+Andrea Bonilla (writes as Elle Wilder). Steamy romance, Stillwater series.
+Emails: andreanbonilla@gmail.com / info@ellewilderbooks.com
+The pen name Elle Wilder must never appear on public-facing AuthorDash pages. Public attribution is Andrea Bonilla.
 
 ## Tech Stack
-- **Framework:** Next.js 14 (App Router)
-- **Styling:** Tailwind CSS
-- **Database:** Neon PostgreSQL + Prisma ORM
-- **Auth:** NextAuth v5 with Google SSO
-- **AI:** Anthropic SDK (claude-sonnet-4-5)
-- **Email:** MailerLite API
-- **Payments:** Stripe (subscriptions)
-- **Hosting:** Vercel
-- **Font:** Plus Jakarta Sans (import from Google Fonts â use everywhere)
+Next.js 14 (App Router), Tailwind, Prisma + Neon PostgreSQL, NextAuth v5 Google SSO, Anthropic SDK, MailerLite API, Stripe, Vercel. UI font: Plus Jakarta Sans.
 
----
+## Workflow Rules (enforce every session)
+- Read this file first. Confirm working directory before editing.
+- Never create a branch or PR. Commit directly to main: git add -A && git commit -m "..." && git push origin main
+- Do not create claude/ branches.
+- Run npx tsc --noEmit before committing.
+- Read files back after writing, before committing (catches stale components left behind).
+- One Claude Code session at a time. Wait for a green Vercel build before the next.
+- No workarounds. Every fix must be customer-ready. Never substitute a manual workaround for a real fix.
 
-## Brand & Design System
+## Book Catalog (FIXED — Stillwater series)
+One entry per title. Ebook ASIN is primary; paperback ASIN lives in asinPaperback. Colors are looked up by ASIN, never by array index.
+- B1: Fake Dating My Billionaire Protector — ASIN B0GQD4J6VT — coral #F97B6B
+- B2: My Off-Limits Roommate — ASIN B0GSC2RTF8 — peach #F4A261
+- B3: My Ex's Secret Baby — ASIN B0GX2ZXLHR — plum #8B5CF6 (launched April 2026)
+Reserved for future titles: B4 teal #5BBFB5, B5 sky #60A5FA, B6 rose #F472B6
 
-### Colors (use ONLY these â no others)
-```
-cream:      #FFF8F0  (backgrounds)
-navy:       #1E2D3D  (primary text, headings)
-amber:      #E9A020  (CTAs, accents, highlights)
-sage:       #6EBF8B  (positive, growing, success)
-coral:      #F97B6B  (negative, urgent, fix this)
-peach:      #F4A261  (B2 book color)
-plum:       #8B5CF6  (B3 book color, warm plum)
-teal:       #5BBFB5  (B4 book color)
-sky:        #60A5FA  (B5 book color, info)
-rose:       #F472B6  (B6 book color)
-```
+## Design System
+Use ONLY these colors:
+cream #FFF8F0 (backgrounds), navy #1E2D3D (text/headings), amber #E9A020 (CTAs/accents), sage #6EBF8B (positive), coral #F97B6B (ALERTS ONLY), peach #F4A261, plum #8B5CF6, teal #5BBFB5, sky #60A5FA, rose #F472B6
+Rules:
+- Light mode only. No dark backgrounds.
+- Fonts: Plus Jakarta Sans (UI), Playfair Display (headings/bylines), JetBrains Mono (labels).
+- White cards, 0.5px borders, rounded-lg. Cream for insight cards.
+- Amber for all CTAs. Coral reserved strictly for alerts.
+- SVG stroke icons, not emoji, on professional surfaces.
+- Insight cards load COLLAPSED by default on every page load.
+- Empty states: muted dashed circle + "No data yet" + amber "Upload to unlock".
+- Every metric: (i) tooltip with formula, plain-English explanation, and example.
 
-### Book Color System (FIXED â never changes)
-- B1 = coral #F97B6B
-- B2 = peach #F4A261
-- B3 = plum #8B5CF6
-- B4 = teal #5BBFB5
-- B5 = sky #60A5FA
-- B6 = rose #F472B6
+## Copy / Voice
+Direct, grounded, useful. Encouraging, not cheesy. One literary reference per card max.
+- "Independent" not "indie". "Publisher" as the insider term.
+- No em dashes in Andrea's voice.
+- Plain language over analytics jargon. Specific AI insights, not generic.
+- Alert labels: "Watch This" (amber), "Nice Work" (sage).
+- CTA verbs: Fix, Scale, Send, Upload, Track, Improve. Avoid: Consider, Explore, You may want to.
 
-### Design Rules
-- **Light mode only** â NO dark backgrounds anywhere
-- **Font:** Plus Jakarta Sans throughout
-- **Cards:** white bg, 0.5px border, border-radius-lg, cream #FFF8F0 for insight cards
-- **Metric numbers:** 28px, font-weight 600, navy
-- **Insight cards:** load COLLAPSED by default, expand on click
-- **Empty states:** muted dashed circle icon + "No data yet" + "Upload to unlock â" amber link
-- **CTA buttons:** "Read the Full Story â" (channel pages), "Dive into the Data â" (actions)
-- **Projection badges:** â  amber pill for estimated metrics, ~ prefix for proxy metrics
-- **Every metric:** has (i) tooltip with formula, plain-English explanation, example
+## KDP Data Model & Priority (LOCKED)
+- Source priority in lib/kdpDataPriority.ts: csv=1 > extension=2 > manual=3. CSV never conflicts with extension regardless of upload order.
+- Extension MTD row = monthly truth per book/month. CSV rows = daily shape only when extension data exists. Never sum both for the same book/month.
+- estRevenue = extensionRoyalties + csvRoyalties + (csvKenp x 0.0045). Set in aggregateKdp, used everywhere. Extension royalties already include KU. Do not double-count.
+- Royalties is the primary metric (dashboard hero banner). Est. Revenue is secondary/projected, shown only when it differs.
+- KDP uploads are additive, never destructive. The Analysis record is rebuilt from all KdpSale rows after every upload.
+- KdpSale has a monthKey field with a unique constraint so extension syncs overwrite monthly snapshots instead of stacking.
+- Upload is a gate: unknown ASINs block writes and show an amber warning card linking to Settings > My Books. knownAsins also checks asinPaperback, so paperback ASINs do not trigger false "not in catalog" warnings.
+- Uploads accept .csv and .xlsx (KDP and Meta export as Excel).
 
----
+## Fetch Extension (authordash-sync)
+- MV3 Chrome extension, animated golden retriever mascot. Read-only forever. Never writes to any platform.
+- Syncs KDP sales (month-to-date), Author Central BSR, and BookClicker swap data.
+- Trust voice: "I fetch. I don't sell. You drive."
+- All content scripts write to chrome.storage.local (NOT chrome.runtime.sendMessage) to survive MV3 service-worker sleep. Worker wakes via chrome.storage.onChanged.
+- SPA navigation detection via pushState/popstate patching.
+- Author Central replaces OpenWeb Ninja for BSR on Andrea's own books.
 
-## Product Voice & Tone
-- Direct, grounded, useful â not robotic or fluffy
-- Encouraging but not cheesy
-- **Literary framing** woven naturally into insight copy (one reference per card max):
-  - "This is your story's rising action â keep going."
-  - "Think of this as your inciting incident."
-  - "Plot twist â your readers are showing up in a big way."
-  - "This is your dark moment before the breakthrough."
-- **Alert labels:** "Watch This" (amber) and "Nice Work" (sage) â keep these labels
-- **CTA language:** Fix, Scale, Send, Upload, Track, Improve
-- **Avoid:** Consider, Explore, You may want to, fluffy marketing speak
+## Dashboard Structure (main page, in order)
+1. Header: greeting, Daily Check-In popover, Connected status, Upload Files button
+2. Today's Priorities: 3 accordion cards (coral/amber/sky)
+3. What's Working: 4 metric tiles, sage labels
+4. Needs Attention Soon: 2 columns
+5. Performance by Channel: KDP, Meta, MailerLite, Pinterest
+6. Your Growth Roadmap: numbered steps
+7. Cross-Channel Action Plan: Scale / Fix / Cut / Test Next
+Hero shows Royalties as the primary banner with a date-range badge. Est. Revenue is a small secondary line. Hero stays a skeleton until kdpReady to avoid SSR flicker.
 
----
-
-## Dashboard Structure (main page sections in order)
-1. Header â greeting, Daily Check-In popover, Connected status, Upload Files button
-2. Today's Priorities â 3 accordion cards, color coded (coral/amber/sky), expand for detail
-3. What's Working â 4 horizontal metric tiles, no borders, sage green labels
-4. Needs Attention Soon â 2 column layout, sage dots left, coral dots right
-5. Performance by Channel â 4 cards (KDP, Meta, MailerLite, Pinterest) â NO Swaps card
-6. Your Growth Roadmap â numbered steps, navy filled = done, amber outline = upcoming
-7. Cross-Channel Action Plan â 4 columns: Scale/Fix/Cut/Test Next
-
----
-
-## Channel Pages
-- **KDP:** Sales & Royalties â Units Sold, KENP Reads, Est. KU Revenue, Total Est. Revenue, Reader Depth
-- **Meta/Facebook:** Ad performance â CTR, CPC, spend, impressions, top ad
-- **MailerLite:** Email marketing â open rate, click rate, list size, unsubscribes, automation health
-- **Newsletter Swaps:** (in sidebar only, not in channel cards â coming later)
-- **Pinterest:** (placeholder for now)
-- **Advanced Metrics:** Cross-channel â ROAS, Cost per Subscriber, Funnel view
-
----
+## Channel / Feature Pages
+- KDP (/dashboard/kdp): 3 tiles — Royalties, KENP Reads, Units Sold. (Est. Revenue tile removed.)
+- Meta: CTR, CPC, spend, impressions, top ad.
+- MailerLite: open rate, click rate, list size, unsubscribes, automation health.
+- Book Swaps (/dashboard/swaps): live. Stats bar, month calendar with book-colored dots, Up Next queue, Partner Ledger. Real BookClicker data.
+- StoryPost (/content): manuscript upload, quote extraction, 30-day calendar generator, platform copy, scheduler CSV export.
+- Pinterest, Content Planner, Launch Planner, ROAS Hub, Advanced Metrics: IN DEVELOPMENT (sidebar, muted).
+- Sidebar: Task Center hidden. "Learn the Terms" present (non-clickable).
 
 ## Key Formulas
-```
-Est. KU Revenue = KENP Ã $0.0045  â  Projection
-Total Est. Revenue = Royalties + KU Revenue  â  Projection
-Reader Depth = KENP Ã· Units Sold  ~ Early indicator
-Cost per 1K KENP = (Ad Spend Ã· KENP) Ã 1000
-Total ROAS = Total Revenue Ã· Ad Spend
-Cost per Subscriber = Ad Spend Ã· New Subscribers
-```
+Est. KU Revenue = KENP x 0.0045 (Projection)
+estRevenue = extensionRoyalties + csvRoyalties + (csvKenp x 0.0045)
+Reader Depth = KENP / Units Sold (early indicator)
+Cost per 1K KENP = (Ad Spend / KENP) x 1000
+Total ROAS = Total Revenue / Ad Spend
+Cost per Subscriber = Ad Spend / New Subscribers
 
 ## Health Benchmarks
-| Metric | Weak | Healthy | Strong |
-|---|---|---|---|
-| CTR | <1% | 1â3% | 4%+ |
-| Email Open Rate | <20% | 20â30% | 35%+ |
-| Email Click Rate | <2% | 2â4% | 5%+ |
-| Reader Depth | <20 | 20â60 | 60+ |
-| Cost per Subscriber | >$5 | $2â5 | <$2 |
-| Cost per 1K KENP | >$120 | $60â120 | <$60 |
+CTR: weak <1%, healthy 1-3%, strong 4%+
+Email Open Rate: weak <20%, healthy 20-30%, strong 35%+
+Email Click Rate: weak <2%, healthy 2-4%, strong 5%+
+Reader Depth: weak <20, healthy 20-60, strong 60+
+Cost per Subscriber: weak >$5, healthy $2-5, strong <$2
+Cost per 1K KENP: weak >$120, healthy $60-120, strong <$60
 
----
+## MailerLite (v3 ONLY)
+- Header: Authorization: Bearer {MAILERLITE_API_KEY}
+- Active: GET /api/subscribers?filter[status]=active&limit=1 then read meta.total
+- Unsubscribed: GET /api/subscribers?filter[status]=unsubscribed&limit=1 then read meta.total
+- Automation health: GET /api/automations (not groups)
+- NEVER use v2 endpoints or the X-MailerLite-ApiKey header. They fail silently.
+- Use the shared lib/mailerlite.ts service.
 
-## Environment Variables (all set in Vercel)
-```
-ANTHROPIC_API_KEY
-MAILERLITE_API_KEY
-NOTION_API_KEY
-NEXTAUTH_URL
-NEXTAUTH_SECRET
-DATABASE_URL (Neon)
-STRIPE_SECRET_KEY
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-STRIPE_WEBHOOK_SECRET
-STRIPE_REGULAR_PRICE_ID
-STRIPE_FPA_PRICE_ID
-META_APP_ID
-META_APP_SECRET
-META_REDIRECT_URI
-```
+## Meta API (CONFIRM before next Meta work)
+- Redirect URI: https://authordash.io/api/meta/callback
+- Scopes: ads_read, ads_management, business_management
+- Development mode (only Andrea's account can connect). App review needed before beta users connect.
+- App ID and Ad Account ID: CONFIRM current values during the Meta fix. Older notes conflict: act_940232825191906 vs act_898774062895926. Do not hardcode until confirmed.
+- OAuth and connection popup work. OPEN BUG: Meta data disappears on navigation.
 
----
+## Environment Variables (Vercel)
+ANTHROPIC_API_KEY, MAILERLITE_API_KEY, NOTION_API_KEY, NEXTAUTH_URL, NEXTAUTH_SECRET, DATABASE_URL (Neon), STRIPE_SECRET_KEY, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_REGULAR_PRICE_ID, STRIPE_FPA_PRICE_ID, META_APP_ID, META_APP_SECRET, META_REDIRECT_URI, META_AD_ACCOUNT_ID
+Gotchas:
+- NEXTAUTH_SECRET gets wiped when manually editing Vercel env vars. Re-verify after any env change.
+- vercel.json redirect destinations have a 4,096-char limit. Long Claude deep links must use a Next.js API route with NextResponse.redirect().
 
 ## Notion Workspace IDs
-```
-Product Roadmap:  3351503444438165a19de76f51bec5de
-Bug Tracker:      101ba3e5260242c697c1438338a7f8d5
-Feedback DB:      694bfdad3ac34b61997f41be25d9dd33
-GitHub Issues:    3351503444438125aabae7ec7deba251
-```
+Product Roadmap: 3351503444438165a19de76f51bec5de (parent type page_id for child spec pages)
+Bug Tracker DB: 550bb8c7-d62d-46c6-9183-bf9ff7e18adb (use data_source_id as parent when creating bug rows)
+Bug Tracker page: 101ba3e5-2602-42c6-97c1-438338a7f8d5
+Feedback DB: 694bfdad-3ac3-4b61-997f-41be25d9dd33
+Swap Campaigns DB: 31d15034-4443-8044-ad48-000b8c60189a
+Notes: notion-update-page update_content can time out on large payloads. Create a child spec page instead. Copy IDs exactly. Malformed IDs fail silently.
 
----
+## Open Bugs
+- Meta data disappears on navigation (only confirmed open item as of June 2, 2026).
+- Verify: Fetch popup connected-state speech bubble in edge cases.
 
-## Open GitHub Issues
-- **#49** â KDP page upgrade (full spec in Notion)
-- **#18** â Stripe integration
+## Stripe
+- Regular $37/month: STRIPE_REGULAR_PRICE_ID
+- FPA $17/month: STRIPE_FPA_PRICE_ID, code FPA2026 (54% off)
+- Webhook: https://authordash.io/api/stripe/webhook
+- 14-day free trial on first Google SSO login.
 
----
-
-## Known Bugs / Watch Out For
-- KDP export format: Two multi-sheet XLSX formats are supported. (1) KDP Sales Dashboard XLSX (Combined Sales + KENP Read + Paperback Royalty) — detected by presence of both "Combined Sales" and "Paperback Royalty" sheets. (2) KDP Royalties Estimator XLSX (Combined Sales + KENP Read + Summary + Orders Processed) — detected by "Combined Sales" without "Paperback Royalty". Legacy multi-sheet format detected by "Orders Processed"/"KENP Read" without "Combined Sales". Flat CSV/XLSX is the final fallback. Royalty totals always USD-only (filter Currency = "USD").
-- Postmark inbound address: `{POSTMARK_INBOUND_TOKEN}@inbound.postmarkapp.com` — no per-user plus-addressing or mailbox hash. All users forward to the same address. `POSTMARK_INBOUND_TOKEN` env var must be set in Vercel (just the token, not the full address).
-- File upload `<input type="file">` must NEVER be conditionally mounted â always in DOM, hidden with CSS
-- MailerLite API v3 ONLY: use `connect.mailerlite.com/api` with `Authorization: Bearer {key}` header. Subscriber counts: `GET /subscribers?limit=0` → `{ total }` (active by default), `GET /subscribers?limit=0&filter[status]=unsubscribed` → `{ total }` for unsubs. The `/subscribers/stats` endpoint has rates/engagement data, NOT subscriber counts. NEVER use `api.mailerlite.com/api/v2`, `/api/v2/stats`, or `X-MailerLite-ApiKey` header.
-- Meta Ads sync: TWO possible Elle Wilder Books accounts — `act_898774062895926` (Facebook-visible) and `act_940232825191906` (created via Instagram `ellewilderbooks`, may not appear in standard discovery). Always try both. Discovery paths: /me/adaccounts, /me/businesses → owned_ad_accounts, /me/instagram_accounts → adaccounts, plus hardcoded fallback. OAuth scope must include `instagram_basic`. Use `date_preset=last_30_days`.
-- Automation Health was pulling groups instead of automations â use `GET /api/automations` endpoint
-- Feedback button posts to Notion DB `694bfdad3ac34b61997f41be25d9dd33` â verify NOTION_API_KEY is set
-- All insight cards must load COLLAPSED by default on every page load
-- No dark backgrounds anywhere â if you see dark navy sections replace with cream #FFF8F0
-
----
-
-## Stripe Setup
-- Regular plan: $37/month â use STRIPE_REGULAR_PRICE_ID
-- FPA plan: $17/month â use STRIPE_FPA_PRICE_ID
-- Discount code: FPA2026 (54% off, applied programmatically for FPA plan)
-- Dev code: DEVACCESS2026 (100% off, once, max 3 redemptions) â enter at checkout promo field
-- Webhook endpoint: https://authordash.io/api/stripe/webhook
-- 14-day free trial on first Google SSO login
-- Promo code field is visible on regular-plan checkout (allow_promotion_codes: true)
-- FPA plan uses direct coupon (discounts param) â promo field not shown for FPA
-
-### Creating DEVACCESS2026 in Stripe (one-time, after deploy)
-Call the setup endpoint once with the Stripe secret key as the auth header:
-```
-curl -X POST https://authordash.io/api/stripe/setup-promo \
-  -H "x-setup-secret: <STRIPE_SECRET_KEY>"
-```
-This creates the coupon + promotion code idempotently. Safe to call again — returns status
-"already_exists" if already set up. Also verifies FPA2026 is still active.
-
----
-
-## Meta API Setup
-- App name: AuthorDash (in Meta Developer Portal)
-- Redirect URI: https://authordash.io/api/meta/callback
-- Permissions needed: ads_read, ads_management, business_management
-- Currently in Development mode (only Andrea's account can connect)
-- App review needed before beta users can connect
-
----
-
-## Legal Pages (live at)
-- https://authordash.io/privacy
-- https://authordash.io/terms
-- https://authordash.io/data (user data deletion â required by Meta)
-
----
+## Legal Pages
+https://authordash.io/privacy, /terms, /data (user data deletion, required by Meta).
 
 ## Component Conventions
-- `MetricCard` â reusable, accepts: label, value, helperText, isProjection, isEarlyIndicator, benchmarkConfig, tooltipContent
-- `InsightCard` â always collapsed by default, amber left border for Watch This, sage for Nice Work
-- `BookPerformance` â uses fixed book color system, title picker with multi-select
-- `TodaysPriorities` â accordion rows, coral/amber/sky color coded
-- Always use optional chaining: `data?.kdp` never `data.kdp`
-- Always add null checks and loading skeleton states â never crash on missing data
-
----
-
-## Session Tips
-- ALWAYS work on main. Run `git checkout main` before touching any files.
-- NEVER create a branch. Never use `git checkout -b` or `git switch -c`.
-- Commit directly to main: `git add -A && git commit -m "..." && git push origin main`
-- One feature per session â don't mix unrelated changes
-- Start a fresh Claude Code session for each major feature
-- Redeploy Vercel after adding new environment variables
-- Check Vercel logs if something breaks in production
+- MetricCard: label, value, helperText, isProjection, isEarlyIndicator, benchmarkConfig, tooltipContent.
+- InsightCard: collapsed by default. Amber left border for "Watch This", sage for "Nice Work".
+- BookPerformance: fixed book color system (ASIN lookup), title multi-select.
+- TodaysPriorities: accordion rows, coral/amber/sky.
+- HeroPanel: skeleton until kdpReady.
+- Always use optional chaining (data?.kdp) and null checks with loading skeletons. Never crash on missing data.
