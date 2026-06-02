@@ -188,7 +188,6 @@ function StatsBar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
 
 function DaySwapCard({ swap }: { swap: SwapRecord }) {
   const color = getBookColorByTitle(swap.bookTitle)
-  const shortName = bookShortName(swap.bookTitle)
   const isSend = swap.direction === 'you_promote'
   const kind = swap.promoFormat
 
@@ -200,7 +199,7 @@ function DaySwapCard({ swap }: { swap: SwapRecord }) {
       {/* Row 1: partner name + direction pill + kind badge */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 8, marginBottom: 6, flexWrap: 'wrap',
+        gap: 8, marginBottom: 4, flexWrap: 'wrap',
       }}>
         <span style={{
           fontSize: 14, fontWeight: 700, color: '#1E2D3D',
@@ -229,7 +228,16 @@ function DaySwapCard({ swap }: { swap: SwapRecord }) {
         </div>
       </div>
 
-      {/* Row 2: book dot + short name + subs + status pill */}
+      {/* Row 1b: book title in book color (RESTORE 2) */}
+      {/* Note: getBookColorByTitle indices for B1 coral and B2 peach are swapped — pre-existing bug, out of scope */}
+      <p style={{
+        fontSize: 12, fontWeight: 600, color, margin: '0 0 8px',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {swap.bookTitle}
+      </p>
+
+      {/* Row 2: book dot + launchWindow label + subs + status pill */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
       }}>
@@ -238,12 +246,15 @@ function DaySwapCard({ swap }: { swap: SwapRecord }) {
             width: 8, height: 8, borderRadius: '50%',
             background: color, flexShrink: 0,
           }} />
-          <span style={{
-            fontSize: 12, color: 'rgba(30,45,61,0.55)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {shortName}
-          </span>
+          {/* launchWindow (RESTORE 1): "List: …" — hidden when null */}
+          {swap.launchWindow && (
+            <span style={{
+              fontSize: 11, color: 'rgba(30,45,61,0.5)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              List: {swap.launchWindow}
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
           {swap.partnerListSize != null && swap.partnerListSize > 0 && (
@@ -383,7 +394,7 @@ function Calendar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
                   flex: 1, justifyContent: 'flex-end', paddingBottom: 4,
                 }}>
                   {daySwaps.slice(0, 5).map((s, j) => (
-                    <div key={j} style={{
+                    <div key={j} title={s.bookTitle} style={{
                       height: 3, borderRadius: 2,
                       background: getBookColorByTitle(s.bookTitle),
                     }} />
