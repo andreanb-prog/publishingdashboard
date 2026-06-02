@@ -50,7 +50,9 @@ export interface DashboardState {
   setAnalysis: React.Dispatch<React.SetStateAction<any>>
   setKdpLastUploadedAt: React.Dispatch<React.SetStateAction<string | null>>
   // KDP direct totals (source of truth for hero metrics)
-  kdpTotals: { totalUnits: number; totalRoyalties: number; totalKENP: number }
+  kdpTotals: { totalUnits: number; totalRoyalties: number; totalKENP: number } | null
+  // true once the first client-side fetch has resolved (prevents SSR-value flicker)
+  kdpReady: boolean
   // Date range applied by the picker (null = all-time / SSR data)
   selectedRange: { from: string; to: string } | null
   hasMonthGranularData: boolean
@@ -103,7 +105,8 @@ export function useDashboardData({
   const [analyses,  setAnalyses]  = useState<Analysis[]>(initialData?.analyses ?? [])
   const [rankLogs,  setRankLogs]  = useState<RankLog[]>(initialData?.rankLogs ?? [])
   const [roasLogs,  setRoasLogs]  = useState<RoasLog[]>(initialData?.roasLogs ?? [])
-  const [kdpTotals, setKdpTotals] = useState(initialData?.kdpTotals ?? { totalUnits: 0, totalRoyalties: 0, totalKENP: 0 })
+  const [kdpTotals, setKdpTotals] = useState<{ totalUnits: number; totalRoyalties: number; totalKENP: number } | null>(null)
+  const [kdpReady,  setKdpReady]  = useState(false)
   const [selectedRange, setSelectedRange] = useState<{ from: string; to: string } | null>(null)
   const [hasMonthGranularData, setHasMonthGranularData] = useState(false)
   const [loading,   setLoading]   = useState(!hasInitial)
@@ -183,9 +186,9 @@ export function useDashboardData({
     if (new URLSearchParams(window.location.search).get('fresh') === '1') setIsFresh(true)
   }, [])
 
-  const _revTarget   = Math.round((kdpTotals.totalRoyalties + kdpTotals.totalKENP * 0.0045) * 100) / 100
-  const _unitsTarget = kdpTotals.totalUnits
-  const _kenpTarget  = kdpTotals.totalKENP
+  const _revTarget   = kdpTotals ? Math.round((kdpTotals.totalRoyalties + kdpTotals.totalKENP * 0.0045) * 100) / 100 : 0
+  const _unitsTarget = kdpTotals?.totalUnits ?? 0
+  const _kenpTarget  = kdpTotals?.totalKENP ?? 0
   const _ctrTarget   = analysis?.meta?.bestAd?.ctr ?? 0
   const animRev   = useCountUp(_revTarget,   isFresh && !!analysis?.kdp)
   const animUnits = useCountUp(_unitsTarget, isFresh && !!analysis?.kdp)
@@ -231,7 +234,11 @@ export function useDashboardData({
   }, [])
 
   useEffect(() => {
-    if (hasInitial && refreshKey === 0) return
+    if (hasInitial && refreshKey === 0) {
+      if (initialData?.kdpTotals) setKdpTotals(initialData.kdpTotals)
+      setKdpReady(true)
+      return
+    }
     const rangeFromStorage = (() => {
       try {
         const stored = localStorage.getItem('authordash_date_range')
@@ -264,6 +271,7 @@ export function useDashboardData({
         setKdpTotals(totals)
         setHasMonthGranularData(hmg ?? false)
       }
+      setKdpReady(true)
       setSelectedRange(rangeFromStorage)
     }).catch(console.error).finally(() => setLoading(false))
   }, [refreshKey, hasInitial])
@@ -422,7 +430,7 @@ export function useDashboardData({
 
   return {
     userName, initialData,
-    analysis, analyses, rankLogs, roasLogs, liveML, swapCalendar, kdpTotals,
+    analysis, analyses, rankLogs, roasLogs, liveML, swapCalendar, kdpTotals, kdpReady,
     selectedRange, hasMonthGranularData,
     kdpLastUploadedAt, metaLastSync,
     loading, generating, metaErrorBanner, setMetaErrorBanner,

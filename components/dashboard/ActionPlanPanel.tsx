@@ -59,7 +59,7 @@ export function ActionPlanPanel({ dashboard }: { dashboard: DashboardState }) {
                     Story
                   </button>
                 </div>
-                <BoutiqueChannelCardsRow analysis={analysis} liveML={liveML} analyses={analyses} kdpTotals={kdpTotals} />
+                <BoutiqueChannelCardsRow analysis={analysis} liveML={liveML} analyses={analyses} kdpTotals={kdpTotals ?? { totalUnits: 0, totalRoyalties: 0, totalKENP: 0 }} />
               </div>
             ),
           },

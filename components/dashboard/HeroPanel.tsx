@@ -131,7 +131,8 @@ function formatRangeBadge(range: { from: string; to: string } | null): string {
 }
 
 export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; userName?: string | null }) {
-  const { analysis, analyses, liveML, animRev, animUnits, animKenp, animCtr, _netVal, greeting, initialData, kdpLastUploadedAt, kdpTotals, selectedRange, hasMonthGranularData } = dashboard
+  const { analysis, analyses, liveML, animRev, animUnits, animKenp, animCtr, _netVal, greeting, initialData, kdpLastUploadedAt, kdpTotals, kdpReady, selectedRange, hasMonthGranularData } = dashboard
+  const kdpTotalsOrEmpty = kdpTotals ?? { totalUnits: 0, totalRoyalties: 0, totalKENP: 0 }
 
   const hasMailerLiteKey = initialData?.hasMailerLiteKey ?? !!liveML
   const hasKdpData = !!analysis?.kdp || !!kdpLastUploadedAt
@@ -144,11 +145,11 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
         <div className="mb-5">
           <p style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(20px, 2.5vw, 30px)', fontWeight: 500, lineHeight: 1.3, color: 'var(--ink, #14110f)', margin: 0 }}>
             {greeting}{userName ? `, ${userName.split(' ')[0]}` : ''}
-            {buildStorySentence(analysis, kdpTotals) && (
+            {buildStorySentence(analysis, kdpTotalsOrEmpty) && (
               <>
                 {' — '}
                 <em style={{ fontStyle: 'italic', color: 'var(--amber-text, #a56b13)' }}>
-                  {buildStorySentence(analysis, kdpTotals)}
+                  {buildStorySentence(analysis, kdpTotalsOrEmpty)}
                 </em>
               </>
             )}
@@ -222,52 +223,71 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
           </div>
         )}
 
-        {analysis?.kdp ? (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 1, lineHeight: 1 }}>
-            <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(36px, 5vw, 58px)', fontWeight: 500, color: 'var(--ink3, #564e46)', lineHeight: 1 }}>$</span>
-            <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(64px, 9vw, 104px)', fontWeight: 500, color: 'var(--ink, #14110f)', lineHeight: 1 }}>{Math.floor(animRev).toLocaleString()}</span>
-            <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 500, color: 'var(--ink3, #564e46)', lineHeight: 1 }}>.{String(Math.round((animRev % 1) * 100)).padStart(2, '0')}</span>
-          </div>
-        ) : (
-          <div style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 80, fontWeight: 300, color: 'var(--ink4, #8a8076)', lineHeight: 1 }}>—</div>
-        )}
-
-        {analysis?.kdp && (
-          <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px dashed var(--line, #d8cfbd)', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 11, color: 'var(--ink3, #564e46)' }}>
-            <span>${animRev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} gross</span>
-            {(analysis.meta?.totalSpend ?? 0) > 0 && (
-              <>
-                <span style={{ color: 'var(--ink4, #8a8076)' }}> · minus </span>
-                <span style={{ color: '#dc2626' }}>${(analysis.meta.totalSpend).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                <span style={{ color: 'var(--ink4, #8a8076)' }}> Meta spend</span>
-              </>
-            )}
-            <span style={{ color: 'var(--ink4, #8a8076)' }}> · minus $0 returns = </span>
-            <span style={{ color: _netVal < 0 ? '#F97B6B' : 'var(--ink, #14110f)', fontWeight: 600 }}>
-              {_netVal < 0 ? `-$${Math.abs(_netVal).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `$${_netVal.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} net
-            </span>
-          </div>
-        )}
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line, #d8cfbd)' }}>
-          {[
-            { label: 'Units Sold', value: analysis?.kdp ? Math.round(animUnits).toLocaleString() : null },
-            { label: 'KENP Reads', value: analysis?.kdp ? Math.round(animKenp).toLocaleString()  : null },
-            { label: 'Best CTR',   value: analysis?.meta?.bestAd ? `${animCtr.toFixed(1)}%`       : null },
-          ].map(stat => (
-            <div key={stat.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink4, #8a8076)', marginBottom: 3 }}>{stat.label}</div>
-              {stat.value != null ? (
-                <div style={{ fontFamily: 'var(--font-sans)', fontSize: 20, fontWeight: 600, color: 'var(--ink, #14110f)' }}>{stat.value}</div>
-              ) : (
-                <div>
-                  <div style={{ fontSize: 13, color: 'var(--ink4, #8a8076)', marginBottom: 2 }}>No data</div>
-                  <Link href="/dashboard?upload=1" style={{ fontSize: 10, color: '#D97706', textDecoration: 'none', fontWeight: 600 }}>Upload →</Link>
-                </div>
-              )}
+        {!kdpReady ? (
+          <>
+            <div className="animate-pulse bg-gray-100 rounded" style={{ height: 'clamp(64px, 9vw, 104px)', width: 220, marginBottom: 14 }} />
+            <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px dashed var(--line, #d8cfbd)' }}>
+              <div className="animate-pulse bg-gray-100 rounded" style={{ height: 14, width: 260 }} />
             </div>
-          ))}
-        </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line, #d8cfbd)' }}>
+              {['Units Sold', 'KENP Reads', 'Best CTR'].map(label => (
+                <div key={label} style={{ textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink4, #8a8076)', marginBottom: 6 }}>{label}</div>
+                  <div className="animate-pulse bg-gray-100 rounded" style={{ height: 20, width: 48, margin: '0 auto' }} />
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            {analysis?.kdp ? (
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 1, lineHeight: 1 }}>
+                <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(36px, 5vw, 58px)', fontWeight: 500, color: 'var(--ink3, #564e46)', lineHeight: 1 }}>$</span>
+                <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(64px, 9vw, 104px)', fontWeight: 500, color: 'var(--ink, #14110f)', lineHeight: 1 }}>{Math.floor(animRev).toLocaleString()}</span>
+                <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 500, color: 'var(--ink3, #564e46)', lineHeight: 1 }}>.{String(Math.round((animRev % 1) * 100)).padStart(2, '0')}</span>
+              </div>
+            ) : (
+              <div style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 80, fontWeight: 300, color: 'var(--ink4, #8a8076)', lineHeight: 1 }}>—</div>
+            )}
+
+            {analysis?.kdp && (
+              <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px dashed var(--line, #d8cfbd)', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 11, color: 'var(--ink3, #564e46)' }}>
+                <span>${animRev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} gross</span>
+                {(analysis.meta?.totalSpend ?? 0) > 0 && (
+                  <>
+                    <span style={{ color: 'var(--ink4, #8a8076)' }}> · minus </span>
+                    <span style={{ color: '#dc2626' }}>${(analysis.meta.totalSpend).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    <span style={{ color: 'var(--ink4, #8a8076)' }}> Meta spend</span>
+                  </>
+                )}
+                <span style={{ color: 'var(--ink4, #8a8076)' }}> · minus $0 returns = </span>
+                <span style={{ color: _netVal < 0 ? '#F97B6B' : 'var(--ink, #14110f)', fontWeight: 600 }}>
+                  {_netVal < 0 ? `-$${Math.abs(_netVal).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `$${_netVal.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} net
+                </span>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line, #d8cfbd)' }}>
+              {[
+                { label: 'Units Sold', value: analysis?.kdp ? Math.round(animUnits).toLocaleString() : null },
+                { label: 'KENP Reads', value: analysis?.kdp ? Math.round(animKenp).toLocaleString()  : null },
+                { label: 'Best CTR',   value: analysis?.meta?.bestAd ? `${animCtr.toFixed(1)}%`       : null },
+              ].map(stat => (
+                <div key={stat.label} style={{ textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink4, #8a8076)', marginBottom: 3 }}>{stat.label}</div>
+                  {stat.value != null ? (
+                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: 20, fontWeight: 600, color: 'var(--ink, #14110f)' }}>{stat.value}</div>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize: 13, color: 'var(--ink4, #8a8076)', marginBottom: 2 }}>No data</div>
+                      <Link href="/dashboard?upload=1" style={{ fontSize: 10, color: '#D97706', textDecoration: 'none', fontWeight: 600 }}>Upload →</Link>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* What's Working metric tiles */}
@@ -277,11 +297,11 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
             {(() => {
               const meta = analysis.meta
               const ml = liveML ?? analysis?.mailerLite
-              const hasKdp = kdpTotals.totalUnits > 0 || kdpTotals.totalRoyalties > 0 || kdpTotals.totalKENP > 0
-              const estRevenue = hasKdp ? Math.round((kdpTotals.totalRoyalties + kdpTotals.totalKENP * 0.0045) * 100) / 100 : null
-              const royaltiesZero = hasKdp && kdpTotals.totalRoyalties === 0
+              const hasKdp = kdpTotalsOrEmpty.totalUnits > 0 || kdpTotalsOrEmpty.totalRoyalties > 0 || kdpTotalsOrEmpty.totalKENP > 0
+              const estRevenue = hasKdp ? Math.round((kdpTotalsOrEmpty.totalRoyalties + kdpTotalsOrEmpty.totalKENP * 0.0045) * 100) / 100 : null
+              const royaltiesZero = hasKdp && kdpTotalsOrEmpty.totalRoyalties === 0
               const tiles = [
-                { stat: estRevenue != null ? fmtCurrency(estRevenue) : '—', label: 'EST. REVENUE', estimate: royaltiesZero, sub: kdpTotals.totalUnits > 0 ? `${kdpTotals.totalUnits} units sold` : 'No data yet' },
+                { stat: estRevenue != null ? fmtCurrency(estRevenue) : '—', label: 'EST. REVENUE', estimate: royaltiesZero, sub: kdpTotalsOrEmpty.totalUnits > 0 ? `${kdpTotalsOrEmpty.totalUnits} units sold` : 'No data yet' },
                 { stat: meta?.avgCTR ? fmtPct(meta.avgCTR) : '—', label: 'META ADS CTR', estimate: false, sub: meta?.avgCTR && meta.avgCTR >= 2 ? 'Exceptional performance (top 10%)' : meta?.avgCTR ? 'Room to improve' : 'No data yet' },
                 { stat: ml?.openRate ? fmtPct(ml.openRate) : '—', label: 'EMAIL OPEN RATE', estimate: false, sub: ml?.openRate && ml.openRate >= 25 ? 'Well above 20–25% author average' : ml?.openRate ? 'Near author average' : 'No data yet' },
                 { stat: ml?.clickRate ? fmtPct(ml.clickRate) : '—', label: 'EMAIL CLICK RATE', estimate: false, sub: ml?.clickRate && ml.clickRate >= 4 ? 'Strong reader engagement' : ml?.clickRate ? 'Room to grow' : 'No data yet' },
