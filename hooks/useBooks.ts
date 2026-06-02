@@ -38,11 +38,38 @@ function mapRaw(raw: RawBook[]): BookRecord[] {
   }))
 }
 
+/** True when an ASIN is a paperback ISBN (978/979 prefix). */
+function isISBN(asin: string | null): boolean {
+  return !!(asin?.startsWith('978') || asin?.startsWith('979'))
+}
+
+/**
+ * Deduplicate book records by base title (text before the first colon).
+ * Within a title group, prefers the ebook entry (non-ISBN ASIN) over a
+ * paperback ISBN. Falls back to keeping the first entry seen.
+ */
+function deduplicateBooks(books: BookRecord[]): BookRecord[] {
+  const seen = new Map<string, BookRecord>()
+  for (const b of books) {
+    const key = b.title.split(':')[0].trim().toLowerCase()
+    const existing = seen.get(key)
+    if (!existing) {
+      seen.set(key, b)
+      continue
+    }
+    // Prefer ebook ASIN over paperback ISBN
+    if (isISBN(existing.asin) && !isISBN(b.asin)) {
+      seen.set(key, b)
+    }
+  }
+  return Array.from(seen.values())
+}
+
 export function useBooks(initialData?: RawBook[]) {
   const skipFetch = useRef(initialData !== undefined)
 
   const [books, setBooks] = useState<BookRecord[]>(() =>
-    initialData ? mapRaw(initialData) : []
+    initialData ? deduplicateBooks(mapRaw(initialData)) : []
   )
   const [loading, setLoading] = useState(!skipFetch.current)
 
@@ -52,7 +79,7 @@ export function useBooks(initialData?: RawBook[]) {
       .then(r => r.json())
       .then(d => {
         const raw: RawBook[] = d.books ?? d.data ?? []
-        setBooks(mapRaw(raw))
+        setBooks(deduplicateBooks(mapRaw(raw)))
       })
       .catch(() => setBooks([]))
       .finally(() => setLoading(false))

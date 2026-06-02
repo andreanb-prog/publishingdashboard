@@ -1186,6 +1186,32 @@ export default function KDPPage() {
   const displayBooks: { asin: string; title: string; shortTitle: string; units: number; kenp: number; royalties: number; format?: string }[] =
     kdpSalesData?.books ?? kdp?.books ?? []
 
+  // Deduplicated, visibility-filtered books for the filter bar and bar charts.
+  // Groups by base title (before first colon), preferring ebook ASIN over paperback
+  // ISBN (978/979 prefix). When both are non-ISBN, keeps the one with more data.
+  const dedupedVisibleBooks = useMemo(() => {
+    const visible = displayBooks.filter(b => {
+      const asinUpper = b.asin?.trim().toUpperCase() ?? ''
+      if (excludedAsins.has(asinUpper)) return false
+      if (knownAsins.size > 0 && asinUpper && !knownAsins.has(asinUpper)) return false
+      return true
+    })
+    const isISBN = (asin?: string) => !!(asin?.startsWith('978') || asin?.startsWith('979'))
+    const isPaperback = (b: typeof visible[0]) => b.format === 'paperback' || isISBN(b.asin)
+    const seen = new Map<string, typeof visible[0]>()
+    for (const b of visible) {
+      const key = b.title.split(':')[0].trim().toLowerCase()
+      const existing = seen.get(key)
+      if (!existing) { seen.set(key, b); continue }
+      if (isPaperback(existing) && !isPaperback(b)) {
+        seen.set(key, b)
+      } else if (!isPaperback(existing) && !isPaperback(b)) {
+        if ((b.units + b.kenp) > (existing.units + existing.kenp)) seen.set(key, b)
+      }
+    }
+    return Array.from(seen.values())
+  }, [displayBooks, excludedAsins, knownAsins])
+
   // Map ASIN → color index based on My Books sort order (B1=0, B2=1, …).
   // This ensures color assignment is stable and tied to ASIN, not array position.
   const bookColorMap = useMemo(() => {
@@ -1394,8 +1420,8 @@ export default function KDPPage() {
           {coach && <BoutiqueCoachBox>{coach}</BoutiqueCoachBox>}
 
           {/* Filter Bar — Book selector + Format toggle */}
-          {displayBooks.filter(isBookVisible).length > 0 && (() => {
-            const visibleFilterBooks = displayBooks.filter(isBookVisible)
+          {dedupedVisibleBooks.length > 0 && (() => {
+            const visibleFilterBooks = dedupedVisibleBooks
             return (
               <div className="mb-6 rounded-xl overflow-hidden" style={{ background: '#FFF8F0', border: '1.5px solid rgba(30,45,61,0.1)' }}>
                 {/* Row 1 — Book selector */}
@@ -1485,7 +1511,7 @@ export default function KDPPage() {
 
           {/* Book Performance Charts */}
           {(() => {
-            const dashboardBooks = displayBooks.filter(isBookVisible)
+            const dashboardBooks = dedupedVisibleBooks
             const visibleBooks = selectedBooks.size > 0
               ? dashboardBooks.filter(b => selectedBooks.has(b.asin))
               : dashboardBooks
