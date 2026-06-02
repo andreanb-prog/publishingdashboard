@@ -421,9 +421,40 @@ function Calendar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
             {fmtDateGroupHeader(selectedDay)}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {selectedSwaps.map(s => (
-              <DaySwapCard key={s.id} swap={s} />
-            ))}
+            {(() => {
+              const active    = selectedSwaps.filter(s => s.status !== 'cancelled')
+              const cancelled = selectedSwaps.filter(s => s.status === 'cancelled')
+              return (
+                <>
+                  {active.map(s => (
+                    <DaySwapCard key={s.id} swap={s} />
+                  ))}
+                  {cancelled.length > 0 && (
+                    <>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        marginTop: active.length > 0 ? 4 : 0,
+                      }}>
+                        <div style={{ flex: 1, height: '0.5px', background: 'rgba(30,45,61,0.08)' }} />
+                        <span style={{
+                          fontSize: 11, fontWeight: 700,
+                          color: 'rgba(30,45,61,0.35)',
+                          letterSpacing: '0.07em', textTransform: 'uppercase',
+                        }}>
+                          Cancelled
+                        </span>
+                        <div style={{ flex: 1, height: '0.5px', background: 'rgba(30,45,61,0.08)' }} />
+                      </div>
+                      {cancelled.map(s => (
+                        <div key={s.id} style={{ opacity: 0.5 }}>
+                          <DaySwapCard swap={s} />
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </>
+              )
+            })()}
           </div>
         </div>
       )}
