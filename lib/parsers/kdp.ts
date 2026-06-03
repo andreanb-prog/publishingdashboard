@@ -284,8 +284,7 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
 
   // ── Parse Combined Sales (ebooks) ─────────────────────────────────────────
   for (const row of combinedData) {
-    const { asin, title, date, units, royalties: royalty, currency } = row
-    const isUSD = currency === 'USD' || currency === ''
+    const { asin, title, date, units, royalties: royalty } = row
 
     const key = asin || title
     if (!bookMap.has(key)) {
@@ -297,9 +296,9 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
       })
     }
     bookMap.get(key)!.units     += units
-    bookMap.get(key)!.royalties += isUSD ? royalty : 0
+    bookMap.get(key)!.royalties += royalty
 
-    if (isUSD) totalRoyaltiesUSD += royalty
+    totalRoyaltiesUSD += royalty
     paidUnits += units
 
     if (date) dailyUnitsMap.set(date, (dailyUnitsMap.get(date) ?? 0) + units)
@@ -311,9 +310,7 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
     const title    = str(pick(row, 'Title'))
     const units    = num(pick(row, 'Net Units Sold'))
     const royalty  = num(pick(row, 'Royalty (USD)', 'Royalties (USD)', 'Net Royalty', 'Net Royalties', 'Royalty'))
-    const currency = str(pick(row, 'Royalty Currency', 'Currency')).toUpperCase().trim()
     const date     = toISODate(pick(row, 'Royalty Date', 'Date'))
-    const isUSD    = currency === 'USD' || currency === ''
 
     if (!asin && !title) continue
 
@@ -327,9 +324,9 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
       })
     }
     bookMap.get(key)!.units     += units
-    bookMap.get(key)!.royalties += isUSD ? royalty : 0
+    bookMap.get(key)!.royalties += royalty
 
-    if (isUSD) totalRoyaltiesUSD += royalty
+    totalRoyaltiesUSD += royalty
     paperbackUnits += units
 
     if (date) dailyUnitsMap.set(date, (dailyUnitsMap.get(date) ?? 0) + units)
@@ -409,11 +406,10 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
   for (const row of combinedData) {
     const na = norm(row.asin || row.title)
     if (!na) continue
-    const isUSD = row.currency === 'USD' || row.currency === ''
     const key = `${na}::${rDate(row.date)}`
     const e = rawMap.get(key)
-    if (e) { e.units += row.units; e.royalties += isUSD ? row.royalties : 0 }
-    else rawMap.set(key, { asin: na, title: row.title, date: rDate(row.date), units: row.units, kenp: 0, royalties: isUSD ? row.royalties : 0, format: 'ebook' })
+    if (e) { e.units += row.units; e.royalties += row.royalties }
+    else rawMap.set(key, { asin: na, title: row.title, date: rDate(row.date), units: row.units, kenp: 0, royalties: row.royalties, format: 'ebook' })
   }
 
   for (const row of paperbackData) {
@@ -421,14 +417,13 @@ function parseDashboardFormat(workbook: XLSX.WorkBook): KDPData {
     const title = str(pick(row, 'Title'))
     const units = num(pick(row, 'Net Units Sold'))
     const royalty = num(pick(row, 'Royalty (USD)', 'Royalties (USD)', 'Net Royalty', 'Net Royalties', 'Royalty'))
-    const currency = str(pick(row, 'Royalty Currency', 'Currency')).toUpperCase().trim()
     const date = toISODate(pick(row, 'Royalty Date', 'Date'))
     if (!asin && !title) continue
-    const na = norm(asin || title); const isUSD = currency === 'USD' || currency === ''
+    const na = norm(asin || title)
     const key = `${na}::${rDate(date)}`
     const e = rawMap.get(key)
-    if (e) { e.units += units; e.royalties += isUSD ? royalty : 0 }
-    else rawMap.set(key, { asin: na, title, date: rDate(date), units, kenp: 0, royalties: isUSD ? royalty : 0, format: 'paperback' })
+    if (e) { e.units += units; e.royalties += royalty }
+    else rawMap.set(key, { asin: na, title, date: rDate(date), units, kenp: 0, royalties: royalty, format: 'paperback' })
   }
 
   for (const row of kenpData) {
@@ -543,8 +538,7 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
     ))
     const currency    = str(pick(row, 'Currency', 'currency')).toUpperCase().trim()
 
-    // Sum USD royalties from all rows (currency blank = assume USD)
-    if (currency === 'USD' || currency === '') ordersRoyaltiesUSD += royalty
+    ordersRoyaltiesUSD += royalty
 
     if (!asin) continue
     // Detect paperback: 60%/40% royalty rate, or explicit "print"/"paperback" labels
@@ -559,7 +553,7 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
       })
     }
     bookMap.get(asin)!.units += units
-    bookMap.get(asin)!.royalties += currency === 'USD' || currency === '' ? royalty : 0
+    bookMap.get(asin)!.royalties += royalty
   }
   // Prefer per-row royalty sum over the Summary single-row value (which may be
   // per-marketplace or incomplete). Fall back to Summary value if orders sheet
@@ -635,12 +629,11 @@ function parseMultiSheetFormat(workbook: XLSX.WorkBook): KDPData {
     const royalty = num(pick(row, 'Royalty', 'Net Royalty', 'Est. Royalty', 'Royalties', 'Net Royalties', 'Total Royalty', 'Total Royalties', 'Estimated Royalty'))
     const currency = str(pick(row, 'Currency', 'currency')).toUpperCase().trim()
     const date = toISODate(pick(row, 'Date', 'Transaction Date', 'Royalty Date'))
-    const isUSD = currency === 'USD' || currency === ''
     const na = mNorm(asin || title); const d = mRDate(date)
     const key = `${na}::${d}`
     const e = mRawMap.get(key)
-    if (e) { e.units += units; e.royalties += isUSD ? royalty : 0 }
-    else mRawMap.set(key, { asin: na, title, date: d, units, kenp: 0, royalties: isUSD ? royalty : 0, format: 'ebook' })
+    if (e) { e.units += units; e.royalties += royalty }
+    else mRawMap.set(key, { asin: na, title, date: d, units, kenp: 0, royalties: royalty, format: 'ebook' })
   }
 
   for (const row of kenpData) {
@@ -690,10 +683,9 @@ function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
   let totalRoyaltiesUSD = 0
   let paidUnits = 0
 
-  // Parse Combined Sales — USD rows only for royalties
+  // Parse Combined Sales
   for (const row of combinedData) {
-    const { asin, title, date, units, royalties: royalty, currency } = row
-    const isUSD = currency === 'USD' || currency === ''
+    const { asin, title, date, units, royalties: royalty } = row
 
     const key = asin || title
     if (!key) continue
@@ -706,9 +698,9 @@ function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
       })
     }
     bookMap.get(key)!.units     += units
-    bookMap.get(key)!.royalties += isUSD ? royalty : 0
+    bookMap.get(key)!.royalties += royalty
 
-    if (isUSD) totalRoyaltiesUSD += royalty
+    totalRoyaltiesUSD += royalty
     paidUnits += units
 
     if (date) dailyUnitsMap.set(date, (dailyUnitsMap.get(date) ?? 0) + units)
@@ -782,11 +774,10 @@ function parseRoyaltiesEstimatorFormat(workbook: XLSX.WorkBook): KDPData {
   for (const row of combinedData) {
     const na = reNorm(row.asin || row.title)
     if (!na) continue
-    const isUSD = row.currency === 'USD' || row.currency === ''
     const key = `${na}::${reRDate(row.date)}`
     const e = reRawMap.get(key)
-    if (e) { e.units += row.units; e.royalties += isUSD ? row.royalties : 0 }
-    else reRawMap.set(key, { asin: na, title: row.title, date: reRDate(row.date), units: row.units, kenp: 0, royalties: isUSD ? row.royalties : 0, format: 'ebook' })
+    if (e) { e.units += row.units; e.royalties += row.royalties }
+    else reRawMap.set(key, { asin: na, title: row.title, date: reRDate(row.date), units: row.units, kenp: 0, royalties: row.royalties, format: 'ebook' })
   }
 
   for (const row of kenpData) {
@@ -885,9 +876,6 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
           'Total Royalty', 'Total Royalties', 'Est. KU Royalty', 'Estimated Royalty',
         ))
 
-    const currency = str(pick(row, 'Currency', 'currency')).toUpperCase().trim()
-    const isUSD    = currency === 'USD' || currency === ''
-
     const key = asin || title
     if (!bookMap.has(key)) {
       bookMap.set(key, {
@@ -899,10 +887,10 @@ function parseFlatFormat(workbook: XLSX.WorkBook): KDPData {
     const book = bookMap.get(key)!
     book.units     += units
     book.kenp      += kenp
-    book.royalties += isUSD ? royalty : 0
+    book.royalties += royalty
 
     totalKENP         += kenp
-    if (isUSD) totalRoyaltiesUSD += royalty
+    totalRoyaltiesUSD += royalty
     paidUnits         += units
     rowCount++
   }
@@ -981,9 +969,6 @@ function parsePriorMonthRoyaltiesFormat(workbook: XLSX.WorkBook): KDPData {
     const royalty = exactRoyaltyKey !== null
       ? num(row[exactRoyaltyKey])
       : num(pick(row, 'Royalties (USD)', 'Net Royalty', 'Est. Royalty'))
-    const currency = str(pick(row, 'Currency', 'currency')).toUpperCase().trim()
-    const isUSD    = currency === 'USD' || currency === ''
-
     const key = asin || title
     if (!bookMap.has(key)) {
       bookMap.set(key, {
@@ -994,9 +979,9 @@ function parsePriorMonthRoyaltiesFormat(workbook: XLSX.WorkBook): KDPData {
     }
     const book = bookMap.get(key)!
     book.units     += units
-    book.royalties += isUSD ? royalty : 0
+    book.royalties += royalty
 
-    if (isUSD) totalRoyaltiesUSD += royalty
+    totalRoyaltiesUSD += royalty
     paidUnits += units
     rowCount++
   }
