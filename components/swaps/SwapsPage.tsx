@@ -1138,8 +1138,16 @@ export function SwapsPage({ swaps: initialSwaps, books }: { swaps: SwapRecord[];
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 16 }}>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1E2D3D', margin: '0 0 4px' }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1E2D3D', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
               Book Swaps
+              <span style={{
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                color: '#E9A020', background: 'rgba(233,160,32,0.12)', padding: '3px 10px',
+                borderRadius: 999, fontFamily: "'Plus Jakarta Sans', sans-serif",
+                lineHeight: 1.4,
+              }}>
+                In Dev
+              </span>
             </h1>
             <p style={{ fontSize: 14, color: 'rgba(30,45,61,0.5)', margin: 0 }}>
               Your swap calendar and send responsibilities
