@@ -86,9 +86,9 @@ export function isKdpLoggedInUrl(rawUrl: string | undefined | null): boolean {
     return false
   }
   const host = url.hostname.toLowerCase()
-  const path = url.pathname.toLowerCase()
-  const isSignin = path.includes('/signin') || path.startsWith('/ap/') || path.includes('/ap/signin')
-  return host.endsWith('kdp.amazon.com') && !isSignin
+  // Only consider kdpreports.amazon.com as "logged in" — the marketing page
+  // (kdp.amazon.com) and any sign-in pages must not trigger a false positive.
+  return host === 'kdpreports.amazon.com'
 }
 
 // Polls the live session's open pages and reports whether the user has reached a

@@ -635,6 +635,8 @@ export default function SettingsPage() {
   const [kdpPanelOpen,    setKdpPanelOpen]    = useState(false)
   const [kdpJustConnected,setKdpJustConnected]= useState(false)        // post-connect confirmation
   const [kdpError,        setKdpError]        = useState<string | null>(null)
+  const [kdpVerifying,    setKdpVerifying]    = useState(false)        // running the check-auth call
+  const [kdpVerifyError,  setKdpVerifyError]  = useState<string | null>(null)
 
   // ── Profile ───────────────────────────────────────────────────────────────
   const [penName,               setPenName]               = useState('')
@@ -827,31 +829,34 @@ export default function SettingsPage() {
     setKdpJustConnected(false)
   }
 
-  // Poll check-auth every 5s while the KDP Live View panel is open.
-  useEffect(() => {
-    if (!kdpPanelOpen || !kdpSessionId) return
-    let active = true
-    const poll = async () => {
-      try {
-        const res = await fetch('/api/browserbase/check-auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId: kdpSessionId }),
-        })
-        const json = await res.json()
-        if (active && json.status === 'connected') {
-          setKdpSyncStatus('connected')
-          setKdpLastSyncAt(json.lastSyncAt ?? new Date().toISOString())
-          setKdpPanelOpen(false)
-          setKdpLiveUrl(null)
-          setKdpSessionId(null)
-          setKdpJustConnected(true)
-        }
-      } catch { /* keep polling */ }
+  // Manual login confirmation — called when user clicks "I've logged in →"
+  async function confirmKdpLogin() {
+    if (!kdpSessionId) return
+    setKdpVerifying(true)
+    setKdpVerifyError(null)
+    try {
+      const res = await fetch('/api/browserbase/check-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: kdpSessionId }),
+      })
+      const json = await res.json()
+      if (json.status === 'connected') {
+        setKdpSyncStatus('connected')
+        setKdpLastSyncAt(json.lastSyncAt ?? new Date().toISOString())
+        setKdpPanelOpen(false)
+        setKdpLiveUrl(null)
+        setKdpSessionId(null)
+        setKdpJustConnected(true)
+      } else {
+        setKdpVerifyError('Please complete login first')
+      }
+    } catch {
+      setKdpVerifyError('Could not verify — please try again')
+    } finally {
+      setKdpVerifying(false)
     }
-    const id = setInterval(poll, 5000)
-    return () => { active = false; clearInterval(id) }
-  }, [kdpPanelOpen, kdpSessionId])
+  }
 
   // ── BookFunnel handlers ──────────────────────────────────────────────────
   async function regenerateBfSecret() {
@@ -1127,21 +1132,33 @@ export default function SettingsPage() {
                         </span>
                       </div>
                     ) : (
-                      <iframe
-                        src={kdpLiveUrl}
-                        title="KDP Live View"
-                        className="w-full block"
-                        style={{ height: 600, minHeight: 600, border: 'none', background: 'white' }}
-                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-                        allow="clipboard-read; clipboard-write"
-                      />
+                      <>
+                        <p className="px-4 py-2 text-[11px]" style={{ color: '#6B7280', borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}>
+                          Log into Amazon KDP inside this window, then click the button below.
+                        </p>
+                        <iframe
+                          src={kdpLiveUrl}
+                          title="KDP Live View"
+                          className="w-full block"
+                          style={{ height: 650, minHeight: 650, border: 'none', background: 'white' }}
+                          sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                          allow="clipboard-read; clipboard-write"
+                        />
+                        <div className="px-4 py-3 flex flex-col gap-1.5" style={{ borderTop: '0.5px solid rgba(30,45,61,0.08)' }}>
+                          {kdpVerifyError && (
+                            <span className="text-[11px]" style={{ color: '#F97B6B' }}>{kdpVerifyError}</span>
+                          )}
+                          <button
+                            onClick={confirmKdpLogin}
+                            disabled={kdpVerifying}
+                            className="w-full py-2 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-2"
+                            style={{ background: '#E9A020', color: '#fff', border: 'none', cursor: kdpVerifying ? 'not-allowed' : 'pointer', opacity: kdpVerifying ? 0.7 : 1 }}
+                          >
+                            {kdpVerifying ? <><Spinner /> Verifying…</> : "I've logged in →"}
+                          </button>
+                        </div>
+                      </>
                     )}
-                    <div className="px-4 py-2.5" style={{ borderTop: '0.5px solid rgba(30,45,61,0.08)' }}>
-                      <span className="text-[10px] flex items-center gap-1.5" style={{ color: '#9CA3AF' }}>
-                        <Spinner />
-                        Waiting for you to finish logging in…
-                      </span>
-                    </div>
                   </div>
                 </div>
               )}
