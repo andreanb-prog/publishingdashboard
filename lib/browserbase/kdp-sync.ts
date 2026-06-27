@@ -90,14 +90,18 @@ export async function syncKdpForUser(userId: string): Promise<void> {
     const page = stagehand.context.activePage()
     if (!page) throw new Error('No active page in Browserbase session')
 
-    await page.goto(KDP_DASHBOARD_URL, { waitUntil: 'load', timeoutMs: 60_000 })
+    await page.goto(KDP_DASHBOARD_URL, { waitUntil: 'load', timeoutMs: 15_000 })
 
-    // 4. Check for redirect to login
+    // Let the page fully render before checking URL or extracting
+    await page.waitForTimeout(3000)
+
+    // 4. Check for redirect to login or landing on the marketing homepage
     const currentUrl = page.url()
     const isLoginPage =
       currentUrl.includes('/ap/signin') ||
       currentUrl.includes('/signin') ||
-      (!currentUrl.includes('kdpreports.amazon.com') && !currentUrl.includes('kdp.amazon.com'))
+      currentUrl.includes('kdp.amazon.com') ||
+      !currentUrl.includes('kdpreports.amazon.com/dashboard')
 
     if (isLoginPage) {
       await db.user.update({
@@ -110,7 +114,7 @@ export async function syncKdpForUser(userId: string): Promise<void> {
           status: 'expired',
           completedAt: new Date(),
           errorType: 'session_expired',
-          errorDetail: `Redirected to login: ${currentUrl}`,
+          errorDetail: `Redirected away from dashboard: ${currentUrl}`,
         },
       })
       return
@@ -118,10 +122,10 @@ export async function syncKdpForUser(userId: string): Promise<void> {
 
     // 5. Click the "This month" tab
     await stagehand.act('Click the "This month" tab or button to show the current month totals')
-    await page.waitForTimeout(2000)
+    await page.waitForTimeout(3000)
 
-    // 6. Extract aggregate totals from the dashboard
-    const result = await stagehand.extract(
+    // 6. Extract aggregate totals from the dashboard (30s hard timeout)
+    const extractPromise = stagehand.extract(
       `Extract the three summary metrics shown on the KDP dashboard for the current period.
 Return:
 - royalties: the "Estimated royalties" dollar amount as a float (e.g. 113.59)
@@ -130,6 +134,10 @@ Return:
 If a value shows a dash or is missing, return 0.`,
       DashboardSchema,
     )
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('KDP extraction timed out after 30s')), 30_000),
+    )
+    const result = await Promise.race([extractPromise, timeoutPromise])
 
     const monthKey = currentMonthKey()
 
