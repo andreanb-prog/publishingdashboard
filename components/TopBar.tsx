@@ -2,9 +2,21 @@
 // components/TopBar.tsx — three-zone header: greeting | date range (dashboard only) | check-in + status + upload
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { ConnectionStatus } from './ConnectionStatus'
 import { FetchStatusPill } from './FetchStatusPill'
 import { UploadModal } from './UploadModal'
+
+function formatKdpLastSync(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 2) return 'just now'
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return days === 1 ? 'yesterday' : `${days} days ago`
+}
 
 function getDefaultDateRange() {
   const to = new Date().toISOString().slice(0, 10)
@@ -46,6 +58,24 @@ export function TopBar({ user }: TopBarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  // KDP sync status — fetched from /api/settings
+  const [kdpLastSyncAt, setKdpLastSyncAt] = useState<string | null>(null)
+  const [kdpSyncStatus, setKdpSyncStatus] = useState<string | null>(null)
+  const [kdpSyncFetched, setKdpSyncFetched] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setKdpLastSyncAt(data.kdpLastSyncAt ?? null)
+          setKdpSyncStatus(data.kdpSyncStatus ?? null)
+        }
+        setKdpSyncFetched(true)
+      })
+      .catch(() => setKdpSyncFetched(true))
+  }, [])
 
   // Client-only time-derived values (avoid server/client timezone mismatch)
   const [greeting, setGreeting] = useState('')
@@ -303,6 +333,18 @@ export function TopBar({ user }: TopBarProps) {
           {/* Fetch sync status */}
           <FetchStatusPill />
 
+          {/* KDP last sync label */}
+          {kdpSyncFetched && (
+            <span
+              className="text-[11px] flex-shrink-0 hidden lg:block"
+              style={{ color: '#9CA3AF', fontFamily: 'var(--font-sans)' }}
+            >
+              {kdpLastSyncAt
+                ? `Last synced ${formatKdpLastSync(kdpLastSyncAt)}`
+                : 'First sync pending'}
+            </span>
+          )}
+
           {/* Connection status */}
           <ConnectionStatus />
 
@@ -321,6 +363,28 @@ export function TopBar({ user }: TopBarProps) {
           </button>
         </div>
       </div>
+
+      {/* KDP reauth banner */}
+      {kdpSyncStatus === 'needs_reauth' && (
+        <div
+          className="flex items-center justify-between px-6 py-2.5"
+          style={{ background: '#E9A020' }}
+        >
+          <span
+            className="text-[13px] font-medium"
+            style={{ color: 'white', fontFamily: 'var(--font-sans)' }}
+          >
+            KDP needs reconnecting to keep your data fresh.
+          </span>
+          <Link
+            href="/dashboard/settings#connections"
+            className="text-[13px] font-semibold no-underline hover:underline flex-shrink-0 ml-4"
+            style={{ color: 'white' }}
+          >
+            Reconnect now →
+          </Link>
+        </div>
+      )}
 
       {/* Toast — success notification */}
       {showToast && (

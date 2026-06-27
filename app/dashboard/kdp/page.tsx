@@ -1057,6 +1057,61 @@ export default function KDPPage() {
   const [heatmapView, setHeatmapView] = useState(false)
   const [loading,       setLoading]       = useState(true)
   const [downloading,   setDownloading]   = useState(false)
+
+  // Sync Now state machine
+  type SyncNowState = 'idle' | 'syncing' | 'done' | 'error'
+  const [syncNowState, setSyncNowState] = useState<SyncNowState>('idle')
+  const [kdpBaselineSyncAt, setKdpBaselineSyncAt] = useState<string | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  function stopPolling() {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+  }
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.kdpLastSyncAt) setKdpBaselineSyncAt(data.kdpLastSyncAt) })
+      .catch(() => {})
+    return () => stopPolling()
+  }, [])
+
+  async function handleSyncNow() {
+    if (syncNowState === 'syncing') return
+    setSyncNowState('syncing')
+    const baseline = kdpBaselineSyncAt
+
+    // Poll every 30s while sync is in progress
+    pollRef.current = setInterval(async () => {
+      try {
+        const data = await fetch('/api/settings').then(r => r.ok ? r.json() : null)
+        if (data?.kdpLastSyncAt && data.kdpLastSyncAt !== baseline) {
+          stopPolling()
+          setKdpBaselineSyncAt(data.kdpLastSyncAt)
+        }
+      } catch { /* ignore */ }
+    }, 30000)
+
+    try {
+      const res = await fetch('/api/browserbase/sync-now', { method: 'POST' })
+      stopPolling()
+      if (res.ok) {
+        setSyncNowState('done')
+        fetchData()
+        fetch('/api/settings').then(r => r.ok ? r.json() : null)
+          .then(data => { if (data?.kdpLastSyncAt) setKdpBaselineSyncAt(data.kdpLastSyncAt) })
+          .catch(() => {})
+        setTimeout(() => setSyncNowState('idle'), 5000)
+      } else {
+        setSyncNowState('error')
+        setTimeout(() => setSyncNowState('idle'), 6000)
+      }
+    } catch {
+      stopPolling()
+      setSyncNowState('error')
+      setTimeout(() => setSyncNowState('idle'), 6000)
+    }
+  }
   const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set())
   const [excludedAsins, setExcludedAsins] = useState<Set<string>>(new Set())
   // ASINs the user has registered in Settings → My Books (used to filter out unknown titles)
@@ -1385,6 +1440,32 @@ export default function KDPPage() {
         subtitle="Amazon royalties"
         actions={
           <div>
+            <div className="flex items-center justify-end gap-2 mb-3">
+              <button
+                onClick={handleSyncNow}
+                disabled={syncNowState === 'syncing'}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-opacity disabled:opacity-60"
+                style={{
+                  background: syncNowState === 'done' ? '#6EBF8B'
+                    : syncNowState === 'error' ? '#F97B6B'
+                    : '#E9A020',
+                  color: 'white',
+                  border: 'none',
+                  cursor: syncNowState === 'syncing' ? 'not-allowed' : 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              >
+                {syncNowState === 'syncing' && (
+                  <svg className="animate-spin" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <circle cx="6" cy="6" r="4" stroke="white" strokeWidth="1.5" strokeDasharray="8 4" />
+                  </svg>
+                )}
+                {syncNowState === 'idle'    && 'Sync Now'}
+                {syncNowState === 'syncing' && 'Syncing your KDP data…'}
+                {syncNowState === 'done'    && 'Done — your data is up to date.'}
+                {syncNowState === 'error'   && 'Sync failed — try again or reconnect in Settings.'}
+              </button>
+            </div>
             <DateRangePicker preset={preset} onPreset={handlePreset}
               customStart={customStart} customEnd={customEnd}
               onApply={(s, e) => { setCustomStart(s); setCustomEnd(e) }} />
