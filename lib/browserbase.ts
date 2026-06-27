@@ -31,40 +31,47 @@ export interface KdpLiveSession {
   liveViewUrl: string
 }
 
-// Creates a persistent context + a live session bound to it, navigates the live
-// session to the KDP sign-in page, and returns the embeddable Live View URL.
+// Creates a persistent context + a live session bound to it and returns the
+// embeddable Live View URL. No navigation — the user drives the browser themselves.
 export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpLiveSession> {
   const bb = browserbaseClient(cfg)
+  console.log('[browserbase] createKdpLiveSession — start, projectId:', cfg.projectId)
 
   // 1. Persistent context — stores the user's KDP/Amazon cookies for future syncs.
-  const context = await bb.contexts.create({ projectId: cfg.projectId })
-
-  // 2. Live session bound to that context, persisting cookies back into it on close.
-  const session = await bb.sessions.create({
-    projectId: cfg.projectId,
-    browserSettings: { context: { id: context.id, persist: true } },
-  })
-
-  // 3. Navigate the remote browser to KDP's sign-in page so the user lands there
-  //    inside the Live View. Best-effort: if navigation fails the user can still
-  //    drive the browser manually, so we never fail the whole request on it.
+  let context: { id: string }
   try {
-    const { chromium } = await import('playwright-core')
-    const browser = await chromium.connectOverCDP(session.connectUrl)
-    const ctx = browser.contexts()[0]
-    const page = ctx?.pages()[0] ?? (await ctx?.newPage())
-    if (page) {
-      await page.goto(KDP_START_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 })
-    }
-    // Do NOT call browser.close() — Playwright's CDP close sends Browser.close to
-    // Browserbase, which terminates the session. The WebSocket drops naturally
-    // when this serverless function ends, leaving the remote session alive.
-  } catch {
-    // Non-fatal: live view still opens, user can navigate to KDP themselves.
+    context = await bb.contexts.create({ projectId: cfg.projectId })
+    console.log('[browserbase] context created — contextId:', context.id)
+  } catch (err) {
+    console.error('[browserbase] FAILED to create context — message:', err instanceof Error ? err.message : String(err))
+    console.error('[browserbase] FAILED to create context — stack:', err instanceof Error ? err.stack : '(no stack)')
+    throw err
   }
 
-  // 4. Live View URL for the iframe.
-  const live = await bb.sessions.debug(session.id)
+  // 2. Live session bound to that context, persisting cookies back into it on close.
+  let session: { id: string; connectUrl: string }
+  try {
+    session = await bb.sessions.create({
+      projectId: cfg.projectId,
+      browserSettings: { context: { id: context.id, persist: true } },
+    })
+    console.log('[browserbase] session created — sessionId:', session.id)
+  } catch (err) {
+    console.error('[browserbase] FAILED to create session — message:', err instanceof Error ? err.message : String(err))
+    console.error('[browserbase] FAILED to create session — stack:', err instanceof Error ? err.stack : '(no stack)')
+    throw err
+  }
+
+  // 3. Live View URL for the iframe.
+  let live: { debuggerFullscreenUrl: string }
+  try {
+    live = await bb.sessions.debug(session.id)
+    console.log('[browserbase] debug URL fetched — liveViewUrl:', live.debuggerFullscreenUrl)
+  } catch (err) {
+    console.error('[browserbase] FAILED to fetch debug URL — message:', err instanceof Error ? err.message : String(err))
+    console.error('[browserbase] FAILED to fetch debug URL — stack:', err instanceof Error ? err.stack : '(no stack)')
+    throw err
+  }
 
   return {
     contextId: context.id,
