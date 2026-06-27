@@ -59,7 +59,7 @@ Your numbers are heading in the right direction. Keep going.
 
 -- Your AuthorDash coach
 
-View your full dashboard → ${process.env.NEXTAUTH_URL || 'https://authordash.com'}/dashboard
+View your full dashboard → ${(process.env.NEXTAUTH_URL || 'https://authordash.io').replace(/[./]+$/, '')}/dashboard
 `
 }
 
