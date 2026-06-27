@@ -130,7 +130,7 @@ Cost per 1K KENP: weak >$120, healthy $60-120, strong <$60
 - OAuth and connection popup work. OPEN BUG: Meta data disappears on navigation.
 
 ## Environment Variables (Vercel)
-ANTHROPIC_API_KEY, MAILERLITE_API_KEY, NOTION_API_KEY, NEXTAUTH_URL, NEXTAUTH_SECRET, DATABASE_URL (Neon), STRIPE_SECRET_KEY, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_REGULAR_PRICE_ID, STRIPE_FPA_PRICE_ID, META_APP_ID, META_APP_SECRET, META_REDIRECT_URI, META_AD_ACCOUNT_ID
+ANTHROPIC_API_KEY, MAILERLITE_API_KEY, NOTION_API_KEY, NEXTAUTH_URL, NEXTAUTH_SECRET, DATABASE_URL (Neon), STRIPE_SECRET_KEY, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_REGULAR_PRICE_ID, STRIPE_FPA_PRICE_ID, META_APP_ID, META_APP_SECRET, META_REDIRECT_URI, META_AD_ACCOUNT_ID, BROWSERBASE_API_KEY, BROWSERBASE_PROJECT_ID, CRON_SECRET
 Gotchas:
 - NEXTAUTH_SECRET gets wiped when manually editing Vercel env vars. Re-verify after any env change.
 - vercel.json redirect destinations have a 4,096-char limit. Long Claude deep links must use a Next.js API route with NextResponse.redirect().
@@ -146,6 +146,12 @@ Notes: notion-update-page update_content can time out on large payloads. Create 
 ## Open Bugs
 - Meta data disappears on navigation (only confirmed open item as of June 2, 2026).
 - Verify: Fetch popup connected-state speech bubble in edge cases.
+
+## Browserbase / Cron Notes
+- Browserbase Contexts persist KDP sessions server-side (no re-login on each sync).
+- KDP sync runs nightly at 2am Hawaii time via /api/cron/sync (protected by CRON_SECRET header).
+- BSR fetch runs hourly via /api/cron/bsr (same CRON_SECRET protection).
+- Admin sync health dashboard at /admin/sync-health (admin emails only).
 
 ## Stripe
 - Regular $37/month: STRIPE_REGULAR_PRICE_ID
