@@ -15,8 +15,13 @@ export async function POST() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const apiKey = process.env.BROWSERBASE_API_KEY
+  const projectId = process.env.BROWSERBASE_PROJECT_ID
+  console.log('[browserbase/create-context] env check — BROWSERBASE_API_KEY present:', !!apiKey, '| BROWSERBASE_PROJECT_ID present:', !!projectId)
+
   const cfg = getBrowserbaseConfig()
   if (!cfg) {
+    console.error('[browserbase/create-context] missing env vars — BROWSERBASE_API_KEY:', !!apiKey, 'BROWSERBASE_PROJECT_ID:', !!projectId)
     return NextResponse.json(
       { error: 'Browserbase is not configured. Add BROWSERBASE_API_KEY and BROWSERBASE_PROJECT_ID.' },
       { status: 503 },
@@ -36,7 +41,9 @@ export async function POST() {
 
     return NextResponse.json({ contextId, sessionId, liveViewUrl })
   } catch (err) {
-    console.error('[browserbase/create-context] failed:', err)
+    console.error('[browserbase/create-context] failed — message:', err instanceof Error ? err.message : String(err))
+    console.error('[browserbase/create-context] failed — stack:', err instanceof Error ? err.stack : '(no stack)')
+    console.error('[browserbase/create-context] failed — full error:', err)
     // Record the failed attempt for the sync audit trail.
     try {
       await db.syncLog.create({
