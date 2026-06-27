@@ -820,6 +820,13 @@ export default function SettingsPage() {
     setKdpSessionId(null)
   }
 
+  async function disconnectKdp() {
+    await fetch('/api/browserbase/kdp-context', { method: 'DELETE' })
+    setKdpSyncStatus(null)
+    setKdpLastSyncAt(null)
+    setKdpJustConnected(false)
+  }
+
   // Poll check-auth every 5s while the KDP Live View panel is open.
   useEffect(() => {
     if (!kdpPanelOpen || !kdpSessionId) return
@@ -1055,8 +1062,16 @@ export default function SettingsPage() {
                       : 'Connect to sync your sales and royalties automatically.'}
                   </div>
                 </div>
-                <div className="shrink-0">
-                  {kdpSyncStatus !== 'connected' && (
+                <div className="shrink-0 flex items-center gap-3">
+                  {kdpSyncStatus === 'connected' ? (
+                    <button
+                      onClick={disconnectKdp}
+                      className="text-[11px] bg-transparent border-none cursor-pointer hover:underline"
+                      style={{ color: '#F97B6B' }}
+                    >
+                      Disconnect
+                    </button>
+                  ) : (
                     <AmberBtn onClick={connectKdp} disabled={kdpConnecting && kdpPanelOpen}>
                       {kdpConnecting && kdpPanelOpen
                         ? <Spinner />
