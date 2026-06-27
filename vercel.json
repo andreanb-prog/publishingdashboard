@@ -24,6 +24,14 @@
     {
       "path": "/api/cron/bsr-refresh",
       "schedule": "0 5,17 * * *"
+    },
+    {
+      "path": "/api/cron/sync",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/bsr",
+      "schedule": "0 * * * *"
     }
   ]
 }
