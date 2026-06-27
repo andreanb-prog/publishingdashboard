@@ -7,7 +7,7 @@ process.emitWarning = (warning, ...args) => {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['xlsx', 'pdfjs-dist', 'pdf-parse', 'mammoth'],
+    serverComponentsExternalPackages: ['xlsx', 'pdfjs-dist', 'pdf-parse', 'mammoth', 'playwright-core', '@browserbasehq/sdk'],
     serverActions: {
       bodySizeLimit: '50mb',
     },
@@ -30,7 +30,7 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https: http:",
               "connect-src 'self' https://api.anthropic.com https://connect.mailerlite.com https://api.freepik.com https://vitals.vercel-insights.com https://*.upstash.io wss:",
-              "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+              "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.browserbase.com",
               "object-src 'none'",
               "base-uri 'self'",
             ].join('; '),

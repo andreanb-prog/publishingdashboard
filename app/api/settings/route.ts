@@ -20,6 +20,7 @@ export async function GET() {
       apiKey: true, mailerLiteKey: true, books: true, subscriptionStatus: true,
       penName: true, preferredGreetingName: true,
       anthropicApiKey: true, anthropicKeyAddedAt: true, writingOnboardingComplete: true, writingKillList: true,
+      kdpSyncStatus: true, kdpLastSyncAt: true,
     },
   })
 
@@ -79,6 +80,8 @@ export async function GET() {
     metaLastSync,
     mlSubscribers,
     kdpLastUpload,
+    kdpSyncStatus:          user?.kdpSyncStatus ?? null,
+    kdpLastSyncAt:          user?.kdpLastSyncAt?.toISOString() ?? null,
     stripeActive,
     anthropicApiKey:           user?.anthropicApiKey ? mask(user.anthropicApiKey) : null,
     anthropicKeyAddedAt:       user?.anthropicKeyAddedAt?.toISOString() ?? null,

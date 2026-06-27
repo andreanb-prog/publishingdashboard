@@ -626,6 +626,16 @@ export default function SettingsPage() {
   const [kdpLastUpload,  setKdpLastUpload]  = useState<string | null>(null)
   const [mlSubscribers,  setMlSubscribers]  = useState<number | null>(null)
 
+  // ── KDP connection (Browserbase Live View) ─────────────────────────────────
+  const [kdpSyncStatus,   setKdpSyncStatus]   = useState<string | null>(null)
+  const [kdpLastSyncAt,   setKdpLastSyncAt]   = useState<string | null>(null)
+  const [kdpConnecting,   setKdpConnecting]   = useState(false)        // creating context / loading panel
+  const [kdpLiveUrl,      setKdpLiveUrl]      = useState<string | null>(null)
+  const [kdpSessionId,    setKdpSessionId]    = useState<string | null>(null)
+  const [kdpPanelOpen,    setKdpPanelOpen]    = useState(false)
+  const [kdpJustConnected,setKdpJustConnected]= useState(false)        // post-connect confirmation
+  const [kdpError,        setKdpError]        = useState<string | null>(null)
+
   // ── Profile ───────────────────────────────────────────────────────────────
   const [penName,               setPenName]               = useState('')
   const [preferredGreetingName, setPreferredGreetingName] = useState('')
@@ -696,6 +706,8 @@ export default function SettingsPage() {
       setMetaLastSync(d.metaLastSync ?? null)
       setKdpLastUpload(d.kdpLastUpload ?? null)
       setMlSubscribers(d.mlSubscribers ?? null)
+      setKdpSyncStatus(d.kdpSyncStatus ?? null)
+      setKdpLastSyncAt(d.kdpLastSyncAt ?? null)
       setPenName(d.penName ?? '')
       setPreferredGreetingName(d.preferredGreetingName ?? '')
       setHasWritingKey(!!d.anthropicApiKey)
@@ -778,6 +790,61 @@ export default function SettingsPage() {
     setMetaError(false)
     try { window.dispatchEvent(new CustomEvent('meta:disconnected')) } catch {}
   }
+
+  // ── KDP connection handlers (Browserbase Live View) ────────────────────────
+  async function connectKdp() {
+    setKdpError(null)
+    setKdpJustConnected(false)
+    setKdpConnecting(true)
+    setKdpPanelOpen(true)
+    setKdpLiveUrl(null)
+    setKdpSessionId(null)
+    try {
+      const res = await fetch('/api/browserbase/create-context', { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Could not start the KDP connection.')
+      setKdpLiveUrl(json.liveViewUrl ?? null)
+      setKdpSessionId(json.sessionId ?? null)
+      setKdpSyncStatus('never_connected')
+    } catch (err) {
+      setKdpError(err instanceof Error ? err.message : 'Could not start the KDP connection.')
+      setKdpPanelOpen(false)
+    } finally {
+      setKdpConnecting(false)
+    }
+  }
+
+  function closeKdpPanel() {
+    setKdpPanelOpen(false)
+    setKdpLiveUrl(null)
+    setKdpSessionId(null)
+  }
+
+  // Poll check-auth every 5s while the KDP Live View panel is open.
+  useEffect(() => {
+    if (!kdpPanelOpen || !kdpSessionId) return
+    let active = true
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/browserbase/check-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: kdpSessionId }),
+        })
+        const json = await res.json()
+        if (active && json.status === 'connected') {
+          setKdpSyncStatus('connected')
+          setKdpLastSyncAt(json.lastSyncAt ?? new Date().toISOString())
+          setKdpPanelOpen(false)
+          setKdpLiveUrl(null)
+          setKdpSessionId(null)
+          setKdpJustConnected(true)
+        }
+      } catch { /* keep polling */ }
+    }
+    const id = setInterval(poll, 5000)
+    return () => { active = false; clearInterval(id) }
+  }, [kdpPanelOpen, kdpSessionId])
 
   // ── BookFunnel handlers ──────────────────────────────────────────────────
   async function regenerateBfSecret() {
@@ -945,6 +1012,127 @@ export default function SettingsPage() {
       <div>
         <PanelHeader title="Connections" subtitle="Manage your integrations and data sources" />
         <div className="px-8 py-6">
+
+          {/* ── Connected Sources ─────────────────────────────────────────── */}
+          <div className="mb-6">
+            <BoutiqueSectionLabel label="Connected Sources" />
+            <div
+              className="rounded-[10px] overflow-hidden mt-3"
+              style={{ background: 'white', border: '0.5px solid rgba(30,45,61,0.1)' }}
+            >
+              {/* KDP row */}
+              <div className="flex items-center gap-3 px-4 py-4">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: '#FFF3E0' }}
+                >
+                  <BookOpen size={16} strokeWidth={1.75} color="#E9A020" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
+                      Amazon KDP
+                    </span>
+                    {(() => {
+                      const connected = kdpSyncStatus === 'connected'
+                      const needsReauth = kdpSyncStatus === 'needs_reauth'
+                      const dot = connected ? '#6EBF8B' : needsReauth ? '#E9A020' : '#F97B6B'
+                      const label = connected ? 'Connected' : needsReauth ? 'Needs Reconnection' : 'Not Connected'
+                      const labelColor = connected ? '#16a34a' : needsReauth ? '#92610a' : '#F97B6B'
+                      return (
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full inline-block" style={{ background: dot }} />
+                          <span className="text-[11px] font-semibold" style={{ color: labelColor }}>{label}</span>
+                        </span>
+                      )
+                    })()}
+                  </div>
+                  <div className="text-[10px] mt-0.5" style={{ color: '#9CA3AF' }}>
+                    {kdpSyncStatus === 'connected'
+                      ? kdpLastSyncAt
+                        ? `Last synced ${fmtDate(kdpLastSyncAt)}`
+                        : 'Connected — first sync running'
+                      : 'Connect to sync your sales and royalties automatically.'}
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  {kdpSyncStatus !== 'connected' && (
+                    <AmberBtn onClick={connectKdp} disabled={kdpConnecting && kdpPanelOpen}>
+                      {kdpConnecting && kdpPanelOpen
+                        ? <Spinner />
+                        : kdpSyncStatus === 'needs_reauth' ? 'Reconnect KDP' : 'Connect KDP'}
+                    </AmberBtn>
+                  )}
+                </div>
+              </div>
+
+              {/* Connection error */}
+              {kdpError && !kdpPanelOpen && (
+                <div className="mx-4 mb-4 text-[11px] font-semibold px-2.5 py-2 rounded-md"
+                  style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
+                  {kdpError}
+                </div>
+              )}
+
+              {/* Success confirmation */}
+              {kdpJustConnected && (
+                <div className="mx-4 mb-4 text-[11px] font-semibold px-3 py-2.5 rounded-md leading-relaxed"
+                  style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
+                  KDP connected. Your first sync is running — data will appear within 2 minutes.
+                </div>
+              )}
+
+              {/* Live View panel */}
+              {kdpPanelOpen && (
+                <div className="px-4 pb-4">
+                  <div
+                    className="rounded-[10px] overflow-hidden"
+                    style={{ background: '#FFF8F0', border: '0.5px solid rgba(30,45,61,0.12)' }}
+                  >
+                    <div
+                      className="flex items-center justify-between px-4 py-3"
+                      style={{ borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}
+                    >
+                      <span className="text-[12px] font-semibold" style={{ color: '#1E2D3D' }}>
+                        Log in to KDP — we&apos;ll handle everything after that.
+                      </span>
+                      <button
+                        onClick={closeKdpPanel}
+                        className="text-[10px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
+                        style={{ color: '#9CA3AF' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {kdpConnecting || !kdpLiveUrl ? (
+                      <div className="flex flex-col items-center justify-center gap-3 py-16">
+                        <Spinner />
+                        <span className="text-[11px]" style={{ color: '#6B7280' }}>
+                          Setting up your secure browser…
+                        </span>
+                      </div>
+                    ) : (
+                      <iframe
+                        src={kdpLiveUrl}
+                        title="KDP Live View"
+                        className="w-full block"
+                        style={{ height: 520, border: 'none', background: 'white' }}
+                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                        allow="clipboard-read; clipboard-write"
+                      />
+                    )}
+                    <div className="px-4 py-2.5" style={{ borderTop: '0.5px solid rgba(30,45,61,0.08)' }}>
+                      <span className="text-[10px] flex items-center gap-1.5" style={{ color: '#9CA3AF' }}>
+                        <Spinner />
+                        Waiting for you to finish logging in…
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
 
             {/* MailerLite */}
