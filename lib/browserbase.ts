@@ -51,17 +51,14 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
   try {
     const { chromium } = await import('playwright-core')
     const browser = await chromium.connectOverCDP(session.connectUrl)
-    try {
-      const ctx = browser.contexts()[0]
-      const page = ctx?.pages()[0] ?? (await ctx?.newPage())
-      if (page) {
-        await page.goto(KDP_START_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 })
-      }
-    } finally {
-      // Disconnects our CDP client without ending the remote session — the user
-      // keeps interacting with the same live session.
-      await browser.close()
+    const ctx = browser.contexts()[0]
+    const page = ctx?.pages()[0] ?? (await ctx?.newPage())
+    if (page) {
+      await page.goto(KDP_START_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 })
     }
+    // Do NOT call browser.close() — Playwright's CDP close sends Browser.close to
+    // Browserbase, which terminates the session. The WebSocket drops naturally
+    // when this serverless function ends, leaving the remote session alive.
   } catch {
     // Non-fatal: live view still opens, user can navigate to KDP themselves.
   }
