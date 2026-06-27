@@ -105,6 +105,15 @@ model User {
   bcClickRate  Float?
   bcLastSync   DateTime?
   extensionConnectedAt   DateTime?
+  // Browserbase contexts (KDP / BookClicker server-side sync)
+  kdpContextId            String?
+  kdpSyncStatus           String?    // "never_connected" | "connected" | "needs_reauth"
+  kdpLastSyncAt           DateTime?
+  kdpConnectedAt          DateTime?
+  bookclickerContextId    String?
+  bookclickerSyncStatus   String?
+  bookclickerLastSyncAt   DateTime?
+  bookclickerConnectedAt  DateTime?
   writingKillList            String?  // JSON: { word: string, scope: 'global'|'book' }[]
   launches      Launch[]
   swapEntries   SwapEntry[]
@@ -121,6 +130,7 @@ model User {
   storyPostProjects       StoryPostProject[]
   extensionSyncLogs       ExtensionSyncLog[]
   connectionTokens        ConnectionToken[]
+  syncLogs                SyncLog[]
   createdAt     DateTime       @default(now())
 }
 
@@ -790,6 +800,22 @@ model ExtensionSyncLog {
 
   @@index([userId])
   @@index([userId, platform])
+}
+
+model SyncLog {
+  id          String    @id @default(cuid())
+  userId      String
+  source      String    // "kdp" | "bookclicker" | "bsr" | "meta" | "mailerlite"
+  attemptedAt DateTime  @default(now())
+  completedAt DateTime?
+  status      String    // "success" | "failed" | "expired" | "rate_limited" | "needs_human"
+  rowsFetched Int?
+  errorType   String?
+  errorDetail String?
+  sessionId   String?
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 model ExtensionRateLimit {
