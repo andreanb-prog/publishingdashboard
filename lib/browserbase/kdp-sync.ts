@@ -1,39 +1,23 @@
 // lib/browserbase/kdp-sync.ts
 // Server-side KDP sync via Browserbase + Stagehand.
-// Uses the user's stored kdpContextId so Amazon cookies persist across runs.
+// Navigates to kdpreports.amazon.com/dashboard, clicks "This month",
+// and extracts aggregate Royalties / Orders / KENP totals.
 import { Stagehand } from '@browserbasehq/stagehand'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { getBrowserbaseConfig } from '@/lib/browserbase'
 
-const KDP_REPORT_URL = 'https://kdp.amazon.com/en_US/report/bookReport'
+const KDP_DASHBOARD_URL = 'https://kdpreports.amazon.com/dashboard'
 
-const BookRowSchema = z.object({
-  asin: z.string(),
-  title: z.string(),
-  units: z.number(),
-  kenp: z.number(),
-  royalties: z.number(),
-  dateRange: z.string(),
+// Aggregate totals shown on the dashboard page for a given time period.
+const DashboardSchema = z.object({
+  royalties: z.number(),   // Estimated royalties in USD
+  orders:    z.number(),   // Total orders (units sold)
+  kenp:      z.number(),   // KENP pages read
 })
 
-const ExtractSchema = z.object({
-  books: z.array(BookRowSchema),
-})
-
-// Derives a YYYY-MM key from a date-range string like "June 1 – June 26, 2026".
-// Falls back to current month if parsing fails.
-function monthKeyFromDateRange(dateRange: string): string {
-  const months: Record<string, string> = {
-    January: '01', February: '02', March: '03', April: '04',
-    May: '05', June: '06', July: '07', August: '08',
-    September: '09', October: '10', November: '11', December: '12',
-  }
-  const match = dateRange.match(/(\w+)\s+\d+[^,]*,\s*(\d{4})/)
-  if (match) {
-    const mo = months[match[1]]
-    if (mo) return `${match[2]}-${mo}`
-  }
+// Returns YYYY-MM for the current month.
+function currentMonthKey(): string {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
@@ -92,7 +76,6 @@ export async function syncKdpForUser(userId: string): Promise<void> {
     await stagehand.init()
     bbSessionId = stagehand.browserbaseSessionID ?? undefined
 
-    // Write SyncLog row immediately with sessionId
     const syncLogEntry = await db.syncLog.create({
       data: {
         userId,
@@ -103,18 +86,18 @@ export async function syncKdpForUser(userId: string): Promise<void> {
     })
     syncLogId = syncLogEntry.id
 
-    // 3. Navigate to KDP report page
+    // 3. Navigate to KDP dashboard
     const page = stagehand.context.activePage()
     if (!page) throw new Error('No active page in Browserbase session')
 
-    await page.goto(KDP_REPORT_URL, { waitUntil: 'load', timeoutMs: 60_000 })
+    await page.goto(KDP_DASHBOARD_URL, { waitUntil: 'load', timeoutMs: 60_000 })
 
     // 4. Check for redirect to login
     const currentUrl = page.url()
     const isLoginPage =
       currentUrl.includes('/ap/signin') ||
       currentUrl.includes('/signin') ||
-      !currentUrl.includes('kdp.amazon.com')
+      (!currentUrl.includes('kdpreports.amazon.com') && !currentUrl.includes('kdp.amazon.com'))
 
     if (isLoginPage) {
       await db.user.update({
@@ -133,78 +116,54 @@ export async function syncKdpForUser(userId: string): Promise<void> {
       return
     }
 
-    // 5. Extract current month and previous month data
-    const months: Array<{ books: z.infer<typeof BookRowSchema>[]; monthKey: string }> = []
+    // 5. Click the "This month" tab
+    await stagehand.act('Click the "This month" tab or button to show the current month totals')
+    await page.waitForTimeout(2000)
 
-    for (const monthOffset of [0, -1]) {
-      const label = monthOffset === 0 ? 'current month' : 'previous month'
+    // 6. Extract aggregate totals from the dashboard
+    const result = await stagehand.extract(
+      `Extract the three summary metrics shown on the KDP dashboard for the current period.
+Return:
+- royalties: the "Estimated royalties" dollar amount as a float (e.g. 113.59)
+- orders: the "Orders" count as an integer (e.g. 48)
+- kenp: the "KENP" or "KENP Read" pages count as an integer (e.g. 18385)
+If a value shows a dash or is missing, return 0.`,
+      DashboardSchema,
+    )
 
-      if (monthOffset === -1) {
-        // Try to navigate to the previous month tab if available
-        try {
-          await stagehand.act('Click the button or link to view the previous month\'s sales data')
-          await page.waitForTimeout(2000)
-        } catch {
-          // Not all KDP reports show a previous-month tab — skip gracefully
-          break
-        }
-      }
+    const monthKey = currentMonthKey()
 
-      // 5a. Extract book rows from the report table
-      const result = await stagehand.extract(
-        `Extract the KDP sales report table for the ${label}.
-For each book row return: asin (ASIN/ISBN-13 shown in the table), title, units sold as an integer,
-KENP pages read as an integer (0 if column is missing or shows a dash),
-royalties as a float in USD (0 if missing), and the date range displayed at the top of the report
-as a plain string (e.g. "June 1 - June 26, 2026"). If a value shows a dash use 0.`,
-        ExtractSchema,
-      )
+    // 7. Upsert aggregate row — overwrites any prior browserbase row for this month
+    await db.kdpSale.upsert({
+      where: {
+        userId_asin_source_monthKey: {
+          userId,
+          asin:     'ALL_BOOKS',
+          source:   'browserbase',
+          monthKey,
+        },
+      },
+      update: {
+        title:     'All Books (Dashboard Total)',
+        units:     result.orders,
+        kenp:      result.kenp,
+        royalties: result.royalties,
+      },
+      create: {
+        userId,
+        asin:      'ALL_BOOKS',
+        title:     'All Books (Dashboard Total)',
+        date:      `${monthKey}-01`,
+        units:     result.orders,
+        kenp:      result.kenp,
+        royalties: result.royalties,
+        format:    'ebook',
+        source:    'browserbase',
+        monthKey,
+      },
+    })
 
-      if (result?.books?.length) {
-        const firstBook = result.books[0]
-        const mk = monthKeyFromDateRange(firstBook?.dateRange ?? '')
-        months.push({ books: result.books, monthKey: mk })
-      }
-    }
-
-    // 6. Upsert into KdpSale
-    let totalRows = 0
-
-    for (const { books, monthKey } of months) {
-      for (const book of books) {
-        await db.kdpSale.upsert({
-          where: {
-            userId_asin_source_monthKey: {
-              userId,
-              asin: book.asin,
-              source: 'browserbase',
-              monthKey,
-            },
-          },
-          update: {
-            title: book.title,
-            units: book.units,
-            kenp: book.kenp,
-            royalties: book.royalties,
-          },
-          create: {
-            userId,
-            asin: book.asin,
-            title: book.title,
-            date: `${monthKey}-01`,
-            units: book.units,
-            kenp: book.kenp,
-            royalties: book.royalties,
-            format: 'ebook',
-            source: 'browserbase',
-            monthKey,
-          },
-        })
-        totalRows++
-      }
-    }
-
-    // 7. Update user sync metadata and mark success
+    // 8. Update user sync metadata and mark success
     await db.user.update({
       where: { id: userId },
       data: { kdpLastSyncAt: new Date() },
@@ -213,21 +172,20 @@ as a plain string (e.g. "June 1 - June 26, 2026"). If a value shows a dash use 0
     await db.syncLog.update({
       where: { id: syncLogEntry.id },
       data: {
-        status: 'success',
+        status:      'success',
         completedAt: new Date(),
-        rowsFetched: totalRows,
+        rowsFetched: 1,
       },
     })
   } catch (err) {
-    // 8. Write failure — never fail silently
     const msg = err instanceof Error ? err.message : String(err)
     if (syncLogId) {
       await db.syncLog.update({
         where: { id: syncLogId },
         data: {
-          status: 'failed',
+          status:      'failed',
           completedAt: new Date(),
-          errorType: 'sync_error',
+          errorType:   'sync_error',
           errorDetail: msg.slice(0, 1000),
         },
       }).catch(() => undefined)
@@ -235,17 +193,16 @@ as a plain string (e.g. "June 1 - June 26, 2026"). If a value shows a dash use 0
       await db.syncLog.create({
         data: {
           userId,
-          source: 'kdp',
-          status: 'failed',
-          sessionId: bbSessionId,
+          source:      'kdp',
+          status:      'failed',
+          sessionId:   bbSessionId,
           completedAt: new Date(),
-          errorType: 'sync_error',
+          errorType:   'sync_error',
           errorDetail: msg.slice(0, 1000),
         },
       })
     }
   } finally {
-    // 9. Always close the session
     try {
       await stagehand.close()
     } catch {

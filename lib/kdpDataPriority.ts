@@ -81,18 +81,28 @@ export type AggregateResult = {
 }
 
 /**
- * Groups rows by (asin, calendar-month) and marks CSV/manual rows as
- * shapeOnly when an extension MTD row exists for the same book-month.
+ * Groups rows by (asin, calendar-month) and marks rows as shapeOnly when a
+ * higher-authority MTD row exists for the same month.
  *
- * Rule: extension row = monthly total of record.
- *       CSV rows in the same month = daily shape only; never summed with extension.
- *       Months with no extension row: sum all CSV/manual rows as normal.
+ * Rules:
+ *   browserbase row  = aggregate dashboard total for the month; overrides ALL
+ *                      per-book rows (extension + csv) for that month.
+ *   extension row    = per-book MTD total; overrides csv rows for that book-month.
+ *   CSV/manual rows  = daily shape only when a higher-authority row exists.
  */
 export function resolveKdpRows<T extends KdpSaleRow>(rows: T[]): ResolvedRow<T>[] {
-  // Group by asin + calendar month
+  // Detect which calendar months have a browserbase aggregate row.
+  const browserbaseMonths = new Set<string>()
+  for (const row of rows) {
+    if (row.source === 'browserbase') {
+      browserbaseMonths.add(row.monthKey ?? row.date.substring(0, 7))
+    }
+  }
+
+  // Group by asin + calendar month for extension-vs-csv dedup
   const groups = new Map<string, T[]>()
   for (const row of rows) {
-    const month = row.monthKey ?? row.date.substring(0, 7) // YYYY-MM
+    const month = row.monthKey ?? row.date.substring(0, 7)
     const key   = `${row.asin}::${month}`
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(row)
@@ -100,12 +110,21 @@ export function resolveKdpRows<T extends KdpSaleRow>(rows: T[]): ResolvedRow<T>[
 
   const result: ResolvedRow<T>[] = []
   Array.from(groups.values()).forEach(groupRows => {
+    const month       = groupRows[0].monthKey ?? groupRows[0].date.substring(0, 7)
+    const hasBb       = browserbaseMonths.has(month)
     const hasExtension = groupRows.some((r: T) => r.source === 'extension')
+
     groupRows.forEach(row => {
-      result.push({
-        ...row,
-        shapeOnly: hasExtension && row.source !== 'extension',
-      } as ResolvedRow<T>)
+      // If a browserbase aggregate exists for this month, every non-browserbase
+      // row becomes shapeOnly (daily chart shape only, not counted in totals).
+      const isBb = row.source === 'browserbase'
+      let shapeOnly: boolean
+      if (hasBb) {
+        shapeOnly = !isBb
+      } else {
+        shapeOnly = hasExtension && row.source !== 'extension'
+      }
+      result.push({ ...row, shapeOnly } as ResolvedRow<T>)
     })
   })
   return result
@@ -143,7 +162,7 @@ export function aggregateKdp<T extends KdpSaleRow>(
     if (!row.shapeOnly) {
       let include = false
 
-      if (isExtension && row.monthKey) {
+      if ((isExtension || row.source === 'browserbase') && row.monthKey) {
         // MTD snapshot: include when the selected range overlaps its calendar month
         if (!range) {
           include = true
@@ -162,20 +181,24 @@ export function aggregateKdp<T extends KdpSaleRow>(
         units     += row.units
         kenp      += row.kenp
         royalties += row.royalties
-        // Track source-split for estRevenue: extension royalties already include KU;
-        // CSV/manual royalties are paid-only so we add KENP × rate separately.
-        if (isExtension) {
+        // Track source-split for estRevenue: extension and browserbase royalties
+        // already include KU; CSV/manual royalties are paid-only so we add KENP × rate.
+        const isBrowserbase = row.source === 'browserbase'
+        if (isExtension || isBrowserbase) {
           extensionRoyalties += row.royalties
         } else {
           csvRoyalties += row.royalties
           csvKenp      += row.kenp
         }
-        if (!byBook[row.asin]) {
-          byBook[row.asin] = { asin: row.asin, title: row.title, units: 0, kenp: 0, royalties: 0 }
+        // Skip aggregate sentinel rows from the per-book breakdown.
+        if (row.asin !== 'ALL_BOOKS') {
+          if (!byBook[row.asin]) {
+            byBook[row.asin] = { asin: row.asin, title: row.title, units: 0, kenp: 0, royalties: 0 }
+          }
+          byBook[row.asin].units     += row.units
+          byBook[row.asin].kenp      += row.kenp
+          byBook[row.asin].royalties += row.royalties
         }
-        byBook[row.asin].units     += row.units
-        byBook[row.asin].kenp      += row.kenp
-        byBook[row.asin].royalties += row.royalties
       }
     }
 
