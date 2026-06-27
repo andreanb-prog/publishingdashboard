@@ -5,7 +5,7 @@
 // whether the user has finished logging into KDP.
 import Browserbase from '@browserbasehq/sdk'
 
-const KDP_START_URL = 'https://kdp.amazon.com/'
+const KDP_SIGNIN_URL = 'https://kdp.amazon.com/en_US/signin'
 
 export interface BrowserbaseConfig {
   apiKey: string
@@ -49,12 +49,27 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
   }
 
   // 2. Live session bound to that context, persisting cookies back into it on close.
-  let session: { id: string; connectUrl: string }
+  // The Browserbase SDK does not expose startUrl, so we call the REST API directly
+  // to pass startUrl and land the remote browser on the KDP sign-in page immediately.
+  let session: { id: string }
   try {
-    session = await bb.sessions.create({
-      projectId: cfg.projectId,
-      browserSettings: { context: { id: context.id, persist: true } },
+    const res = await fetch('https://www.browserbase.com/v1/sessions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-BB-API-Key': cfg.apiKey,
+      },
+      body: JSON.stringify({
+        projectId: cfg.projectId,
+        browserSettings: { context: { id: context.id, persist: true } },
+        startUrl: KDP_SIGNIN_URL,
+      }),
     })
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(`Browserbase sessions API ${res.status}: ${text}`)
+    }
+    session = await res.json() as { id: string }
     console.log('[browserbase] session created — sessionId:', session.id)
   } catch (err) {
     console.error('[browserbase] FAILED to create session — message:', err instanceof Error ? err.message : String(err))
