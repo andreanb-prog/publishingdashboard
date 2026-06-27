@@ -31,7 +31,6 @@ import {
   peakPoints,
 } from '@/lib/chartConfig'
 import { LastUploadBadge } from '@/components/LastUploadBadge'
-import { FetchSyncBadge } from '@/components/FetchSyncBadge'
 import CategoryIntelligence from '@/components/CategoryIntelligence'
 import BsrTracker from '@/components/BsrTracker'
 import type { Analysis, DailyData, RoasLog, MailerLiteCampaign } from '@/types'
@@ -1505,7 +1504,6 @@ export default function KDPPage() {
       />
       <Suspense fallback={null}><FreshBanner /></Suspense>
       <LastUploadBadge channel="kdp" />
-      <FetchSyncBadge channel="kdp" />
       {unmatchedBooks.length > 0 && (
         <div className="mb-4 px-4 py-3"
           style={{ background: 'rgba(233,160,32,0.06)', borderLeft: '2px solid #E9A020' }}>

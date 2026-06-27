@@ -98,13 +98,11 @@ model User {
   bookFunnelDownloads   BookFunnelDownload[]
   bookfunnelWebhookSecret String?
   inboundEmailAddress     String?   // Postmark inbound address for swap auto-detection
-  extensionKey           String?   @unique
-  // BookClicker list stats (synced via extension)
+  // BookClicker list stats (synced via Browserbase)
   bcListSize   Int?
   bcOpenRate   Float?
   bcClickRate  Float?
   bcLastSync   DateTime?
-  extensionConnectedAt   DateTime?
   // Browserbase contexts (KDP / BookClicker server-side sync)
   kdpContextId            String?
   kdpSyncStatus           String?    // "never_connected" | "connected" | "needs_reauth"
@@ -128,7 +126,6 @@ model User {
   swaps                   Swap[]
   mailerLiteLists         MailerLiteList[]
   storyPostProjects       StoryPostProject[]
-  extensionSyncLogs       ExtensionSyncLog[]
   connectionTokens        ConnectionToken[]
   syncLogs                SyncLog[]
   createdAt     DateTime       @default(now())
@@ -789,19 +786,6 @@ model ConnectionToken {
   @@index([userId])
 }
 
-model ExtensionSyncLog {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  platform   String
-  syncedAt   DateTime @default(now())
-  dataPoints Int
-  status     String   @default("success")
-
-  @@index([userId])
-  @@index([userId, platform])
-}
-
 model SyncLog {
   id          String    @id @default(cuid())
   userId      String
@@ -816,15 +800,6 @@ model SyncLog {
   user        User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
-}
-
-model ExtensionRateLimit {
-  id           String   @id @default(cuid())
-  extensionKey String
-  windowStart  DateTime
-  requestCount Int      @default(1)
-
-  @@unique([extensionKey, windowStart])
 }
 
 model AdminAuditLog {

@@ -11,10 +11,6 @@ Main app: publishingdashboard
   Path: /Users/andrea/Documents/github/GitHub/publishingdashboard
   GitHub: andreanb-prog/publishingdashboard
   Vercel: publishingdashboard
-Chrome extension "Fetch": authordash-sync
-  Path: /Users/andrea/Documents/github/GitHub/authordash-sync
-  GitHub: andreanb-prog/authordash-sync
-  (no CONTEXT.md yet)
 
 ## Owner
 Andrea Bonilla (writes as Elle Wilder). Steamy romance, Stillwater series.
@@ -62,22 +58,14 @@ Direct, grounded, useful. Encouraging, not cheesy. One literary reference per ca
 - CTA verbs: Fix, Scale, Send, Upload, Track, Improve. Avoid: Consider, Explore, You may want to.
 
 ## KDP Data Model & Priority (LOCKED)
-- Source priority in lib/kdpDataPriority.ts: csv=1 > extension=2 > manual=3. CSV never conflicts with extension regardless of upload order.
-- Extension MTD row = monthly truth per book/month. CSV rows = daily shape only when extension data exists. Never sum both for the same book/month.
+- Source priority in lib/kdpDataPriority.ts: csv=1 > browserbase=2 > manual=3. CSV never conflicts with Browserbase sync regardless of upload order.
+- Browserbase MTD row = monthly truth per book/month. CSV rows = daily shape only when Browserbase data exists. Never sum both for the same book/month.
 - estRevenue = extensionRoyalties + csvRoyalties + (csvKenp x 0.0045). Set in aggregateKdp, used everywhere. Extension royalties already include KU. Do not double-count.
 - Royalties is the primary metric (dashboard hero banner). Est. Revenue is secondary/projected, shown only when it differs.
 - KDP uploads are additive, never destructive. The Analysis record is rebuilt from all KdpSale rows after every upload.
 - KdpSale has a monthKey field with a unique constraint so extension syncs overwrite monthly snapshots instead of stacking.
 - Upload is a gate: unknown ASINs block writes and show an amber warning card linking to Settings > My Books. knownAsins also checks asinPaperback, so paperback ASINs do not trigger false "not in catalog" warnings.
 - Uploads accept .csv and .xlsx (KDP and Meta export as Excel).
-
-## Fetch Extension (authordash-sync)
-- MV3 Chrome extension, animated golden retriever mascot. Read-only forever. Never writes to any platform.
-- Syncs KDP sales (month-to-date), Author Central BSR, and BookClicker swap data.
-- Trust voice: "I fetch. I don't sell. You drive."
-- All content scripts write to chrome.storage.local (NOT chrome.runtime.sendMessage) to survive MV3 service-worker sleep. Worker wakes via chrome.storage.onChanged.
-- SPA navigation detection via pushState/popstate patching.
-- Author Central replaces OpenWeb Ninja for BSR on Andrea's own books.
 
 ## Dashboard Structure (main page, in order)
 1. Header: greeting, Daily Check-In popover, Connected status, Upload Files button
@@ -145,7 +133,6 @@ Notes: notion-update-page update_content can time out on large payloads. Create 
 
 ## Open Bugs
 - Meta data disappears on navigation (only confirmed open item as of June 2, 2026).
-- Verify: Fetch popup connected-state speech bubble in edge cases.
 
 ## Browserbase / Cron Notes
 - Browserbase Contexts persist KDP sessions server-side (no re-login on each sync).

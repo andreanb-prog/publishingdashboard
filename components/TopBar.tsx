@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ConnectionStatus } from './ConnectionStatus'
-import { FetchStatusPill } from './FetchStatusPill'
 import { UploadModal } from './UploadModal'
 
 function formatKdpLastSync(iso: string): string {
@@ -329,9 +328,6 @@ export function TopBar({ user }: TopBarProps) {
           >
             📖 Story Mode
           </button> */}
-
-          {/* Fetch sync status */}
-          <FetchStatusPill />
 
           {/* KDP last sync label */}
           {kdpSyncFetched && (
