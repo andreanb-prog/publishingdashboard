@@ -49,28 +49,13 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
   }
 
   // 2. Live session bound to that context, persisting cookies back into it on close.
-  // The Browserbase SDK does not expose startUrl, so we call the REST API directly
-  // to pass startUrl and land the remote browser on the KDP sign-in page immediately.
   let session: { id: string }
   try {
-    const res = await fetch('https://www.browserbase.com/v1/sessions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-BB-API-Key': cfg.apiKey,
-      },
-      body: JSON.stringify({
-        projectId: cfg.projectId,
-        browserSettings: { context: { id: context.id, persist: true } },
-        timeout: 300,
-        startUrl: KDP_SIGNIN_URL,
-      }),
+    session = await bb.sessions.create({
+      projectId: cfg.projectId,
+      browserSettings: { context: { id: context.id, persist: true } },
+      timeout: 300,
     })
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`Browserbase sessions API ${res.status}: ${text}`)
-    }
-    session = await res.json() as { id: string }
     console.log('[browserbase] session created — sessionId:', session.id)
   } catch (err) {
     console.error('[browserbase] FAILED to create session — message:', err instanceof Error ? err.message : String(err))
