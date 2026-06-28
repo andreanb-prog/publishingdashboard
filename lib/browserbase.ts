@@ -78,6 +78,30 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
     throw err
   }
 
+  // 4. Give the session 1 second to initialize, then navigate to KDP signin via
+  // the REST API so the Live View iframe shows the login page rather than about:blank.
+  await new Promise(resolve => setTimeout(resolve, 1000))
+  try {
+    const navRes = await fetch(
+      `https://www.browserbase.com/v1/sessions/${session.id}/navigate`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-bb-api-key': cfg.apiKey,
+        },
+        body: JSON.stringify({ url: KDP_SIGNIN_URL }),
+      },
+    )
+    console.log('[browserbase] navigate response status:', navRes.status)
+    if (!navRes.ok) {
+      const text = await navRes.text()
+      console.error('[browserbase] navigate failed — body:', text)
+    }
+  } catch (err) {
+    console.error('[browserbase] FAILED to navigate session — message:', err instanceof Error ? err.message : String(err))
+  }
+
   return {
     contextId: context.id,
     sessionId: session.id,
