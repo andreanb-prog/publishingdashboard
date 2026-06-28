@@ -4,11 +4,10 @@ export const maxDuration = 30
 import { NextRequest, NextResponse } from 'next/server'
 import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
-import { getBrowserbaseConfig, checkKdpLoggedIn } from '@/lib/browserbase'
+import { getBrowserbaseConfig, browserbaseClient } from '@/lib/browserbase'
 
 // POST — polled every 5s by Settings while the KDP Live View panel is open.
-// Reads the live session's page URL to see whether the user has finished logging
-// into KDP. On success, flips kdpSyncStatus to 'connected' and stamps timestamps.
+// Retrieves the existing session status; if RUNNING, marks the user as connected.
 // Body: { sessionId: string }
 export async function POST(req: NextRequest) {
   const session = await getAugmentedSession()
@@ -44,9 +43,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { loggedIn } = await checkKdpLoggedIn(cfg, sessionId)
+    const bb = browserbaseClient(cfg)
+    const bbSession = await bb.sessions.retrieve(sessionId)
 
-    if (!loggedIn) {
+    if (bbSession.status !== 'RUNNING') {
       return NextResponse.json({ status: 'pending' })
     }
 
@@ -61,8 +61,6 @@ export async function POST(req: NextRequest) {
       select: { kdpLastSyncAt: true },
     })
 
-    // Open the sync audit trail: the connection succeeded; the first data sync
-    // is handled by the sync worker.
     try {
       await db.syncLog.create({
         data: {
