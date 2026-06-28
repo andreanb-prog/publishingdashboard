@@ -1104,7 +1104,7 @@ export default function SettingsPage() {
 
               {/* Live View panel */}
               {kdpPanelOpen && (
-                <div className="px-4 pb-4">
+                <div className="pb-4">
                   <div
                     className="rounded-[10px] overflow-hidden w-full"
                     style={{ background: '#FFF8F0', border: '0.5px solid rgba(30,45,61,0.12)' }}
@@ -1140,7 +1140,7 @@ export default function SettingsPage() {
                           src={kdpLiveUrl}
                           title="KDP Live View"
                           className="w-full block"
-                          style={{ height: 650, minHeight: 650, border: 'none', background: 'white' }}
+                          style={{ height: 700, minHeight: 700, border: 'none', background: 'white' }}
                           sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
                           allow="clipboard-read; clipboard-write"
                         />

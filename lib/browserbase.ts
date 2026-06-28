@@ -62,6 +62,7 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
       body: JSON.stringify({
         projectId: cfg.projectId,
         browserSettings: { context: { id: context.id, persist: true } },
+        timeout: 300,
         startUrl: KDP_SIGNIN_URL,
       }),
     })
