@@ -54,7 +54,6 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
     session = await bb.sessions.create({
       projectId: cfg.projectId,
       browserSettings: { context: { id: context.id, persist: true } },
-      timeout: 300,
     })
     console.log('[browserbase] session created — sessionId:', session.id)
   } catch (err) {
