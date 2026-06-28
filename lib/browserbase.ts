@@ -63,11 +63,16 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
     throw err
   }
 
-  // 3. Live View URL for the iframe.
-  let live: { debuggerFullscreenUrl: string }
+  // 3. Live View URL for the iframe — use the page-specific debuggerUrl so the
+  // iframe shows the active tab rather than about:blank.
+  let liveViewUrl: string
   try {
-    live = await bb.sessions.debug(session.id)
-    console.log('[browserbase] debug URL fetched — liveViewUrl:', live.debuggerFullscreenUrl)
+    const live = await bb.sessions.debug(session.id)
+    console.log('[browserbase] debug — debuggerFullscreenUrl:', live.debuggerFullscreenUrl)
+    console.log('[browserbase] debug — pages:', JSON.stringify(live.pages ?? []))
+    const pageUrl = live.pages?.[0]?.debuggerUrl
+    liveViewUrl = pageUrl ?? live.debuggerFullscreenUrl
+    console.log('[browserbase] using liveViewUrl:', liveViewUrl)
   } catch (err) {
     console.error('[browserbase] FAILED to fetch debug URL — message:', err instanceof Error ? err.message : String(err))
     console.error('[browserbase] FAILED to fetch debug URL — stack:', err instanceof Error ? err.stack : '(no stack)')
@@ -77,7 +82,7 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
   return {
     contextId: context.id,
     sessionId: session.id,
-    liveViewUrl: live.debuggerFullscreenUrl,
+    liveViewUrl,
   }
 }
 
