@@ -97,11 +97,15 @@ export async function syncKdpForUser(userId: string): Promise<void> {
 
     // 4. Check for redirect to login or landing on the marketing homepage
     const currentUrl = page.url()
+    let currentHost = ''
+    try { currentHost = new URL(currentUrl).hostname.toLowerCase() } catch { /* keep empty */ }
+    // Logged in when we're anywhere on the reports host (root OR /dashboard —
+    // Amazon sometimes drops the path). Only treat as a login bounce if we were
+    // sent to a sign-in page or the marketing site (kdp.amazon.com).
     const isLoginPage =
       currentUrl.includes('/ap/signin') ||
       currentUrl.includes('/signin') ||
-      currentUrl.includes('kdp.amazon.com') ||
-      !currentUrl.includes('kdpreports.amazon.com/dashboard')
+      currentHost !== 'kdpreports.amazon.com'
 
     if (isLoginPage) {
       await db.user.update({
@@ -120,22 +124,28 @@ export async function syncKdpForUser(userId: string): Promise<void> {
       return
     }
 
-    // 5. Click the "This month" tab
-    await stagehand.act('Click the "This month" tab or button to show the current month totals')
-    await page.waitForTimeout(3000)
+    // 5. Make sure the "This month" view is selected. NON-FATAL: it may already
+    // be the active tab (nothing to click), so a failure here must not abort the
+    // whole sync — we just proceed to extract whatever the current view shows.
+    try {
+      await stagehand.act('Select the "This month" tab so the summary shows current-month totals')
+      await page.waitForTimeout(2500)
+    } catch (actErr) {
+      console.warn('[kdp-sync] "This month" tab select skipped:', actErr instanceof Error ? actErr.message : String(actErr))
+    }
 
-    // 6. Extract aggregate totals from the dashboard (30s hard timeout)
+    // 6. Extract aggregate totals from the dashboard (60s hard timeout)
     const extractPromise = stagehand.extract(
-      `Extract the three summary metrics shown on the KDP dashboard for the current period.
-Return:
-- royalties: the "Estimated royalties" dollar amount as a float (e.g. 113.59)
-- orders: the "Orders" count as an integer (e.g. 48)
-- kenp: the "KENP" or "KENP Read" pages count as an integer (e.g. 18385)
+      `On this Amazon KDP reports dashboard, read the current-month ("This month") summary
+totals shown near the top — the row containing Estimated royalties, Orders, and KENP. Return:
+- royalties: the Estimated royalties amount as a number, ignoring "$", commas and any trailing "*" (e.g. 121.00)
+- orders: the Orders count as an integer, ignoring commas (e.g. 50)
+- kenp: the KENP (also labelled "KENP Read" or "Pages") count as an integer, ignoring commas (e.g. 19753)
 If a value shows a dash or is missing, return 0.`,
       DashboardSchema,
     )
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('KDP extraction timed out after 30s')), 30_000),
+      setTimeout(() => reject(new Error('KDP extraction timed out after 60s')), 60_000),
     )
     const result = await Promise.race([extractPromise, timeoutPromise])
 
