@@ -73,7 +73,19 @@ export async function syncKdpForUser(userId: string): Promise<void> {
   let syncLogId: string | undefined
 
   try {
-    await stagehand.init()
+    // Hard cap on init/connect so a stuck Browserbase session can't hang the
+    // whole function until Vercel kills it (which leaves NO error logged and a
+    // 5-minute ghost session). If this fires, the catch block records a real
+    // 'failed' SyncLog with this message.
+    await Promise.race([
+      stagehand.init(),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Stagehand init/connect timed out after 90s — Browserbase session never became drivable (likely a locked Context from an unreleased login session)')),
+          90_000,
+        ),
+      ),
+    ])
     bbSessionId = stagehand.browserbaseSessionID ?? undefined
 
     const syncLogEntry = await db.syncLog.create({

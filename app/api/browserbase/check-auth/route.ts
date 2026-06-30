@@ -61,18 +61,27 @@ export async function POST(req: NextRequest) {
       select: { kdpLastSyncAt: true },
     })
 
+    // Release the login Live View session now that auth succeeded. This is the
+    // critical fix: leaving it RUNNING holds a lock on the persistent Context for
+    // ~5 minutes, which makes the very next data sync HANG waiting for that lock
+    // (the function then gets killed before it can even log an error). Releasing
+    // it frees the lock AND persists the Amazon cookies into the Context so
+    // future syncs start already logged in.
     try {
-      await db.syncLog.create({
-        data: {
-          userId: session.user.id,
-          source: 'kdp',
-          status: 'success',
-          completedAt: now,
-          sessionId,
-        },
+      await bb.sessions.update(sessionId, {
+        status: 'REQUEST_RELEASE',
+        projectId: cfg.projectId,
       })
-    } catch { /* non-fatal */ }
+    } catch (releaseErr) {
+      console.warn(
+        '[browserbase/check-auth] session release failed:',
+        releaseErr instanceof Error ? releaseErr.message : String(releaseErr),
+      )
+    }
 
+    // Intentionally NOT writing a 'success' SyncLog here — connecting is not a
+    // data sync. SyncLog should only record real extraction attempts so the ops
+    // dashboard isn't polluted with fake successes.
     return NextResponse.json({ status: 'connected', lastSyncAt: updated.kdpLastSyncAt })
   } catch (err) {
     console.error('[browserbase/check-auth] failed:', err)
