@@ -61,6 +61,16 @@ export async function syncKdpForUser(userId: string): Promise<void> {
     env: 'BROWSERBASE',
     apiKey: cfg.apiKey,
     projectId: cfg.projectId,
+    // Stagehand's default logger uses pino + the pino-pretty transport, which is
+    // unavailable in Vercel's serverless runtime and throws
+    // "unable to determine transport target for pino-pretty" at construction —
+    // crashing the whole sync before it opens a browser. Disable the pino
+    // backend and route logs through a plain console logger instead.
+    disablePino: true,
+    verbose: 0,
+    logger: (line) => {
+      try { console.log('[stagehand]', typeof line === 'string' ? line : JSON.stringify(line)) } catch { /* ignore */ }
+    },
     browserbaseSessionCreateParams: {
       projectId: cfg.projectId,
       browserSettings: {
