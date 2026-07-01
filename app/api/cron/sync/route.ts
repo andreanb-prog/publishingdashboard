@@ -1,6 +1,7 @@
 // app/api/cron/sync/route.ts
 // Nightly sync: KDP for connected users, then BSR for all users with books.
 // Triggered by Vercel Cron — protected by x-cron-secret header.
+export const maxDuration = 300 // syncs drive a real browser and may backfill months
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { syncKdpForUser } from '@/lib/browserbase/kdp-sync'

@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ConnectionStatus } from './ConnectionStatus'
 import { UploadModal } from './UploadModal'
+import { getDefaultDateRange, loadStoredDateRange } from '@/lib/clientDateRange'
 
 function formatKdpLastSync(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -17,19 +18,8 @@ function formatKdpLastSync(iso: string): string {
   return days === 1 ? 'yesterday' : `${days} days ago`
 }
 
-function getDefaultDateRange() {
-  const to = new Date().toISOString().slice(0, 10)
-  const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-  return { from, to }
-}
-
-function loadStoredDateRange(): { from: string; to: string } {
-  try {
-    const stored = localStorage.getItem('authordash_date_range')
-    if (stored) return JSON.parse(stored)
-  } catch {}
-  return getDefaultDateRange()
-}
+// Default window + stale-range handling live in lib/clientDateRange.ts —
+// shared with useDashboardData so both always agree on "this month".
 
 const DAILY_CHECKS = [
   { key: 'priorities', label: 'Review priorities' },

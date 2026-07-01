@@ -1049,7 +1049,9 @@ export default function KDPPage() {
   useEffect(() => { setCoachTitle(getCoachTitle()) }, [])
   const [allAnalyses, setAllAnalyses] = useState<Analysis[]>([])
   const [roasLogs,    setRoasLogs]    = useState<RoasLog[]>([])
-  const [preset,      setPreset]      = useState<Preset>('last30')
+  // Default is 'thisMonth' — matches KDP's own default view, and the Browserbase
+  // sync stores exact monthly totals, so this view always matches KDP to the penny.
+  const [preset,      setPreset]      = useState<Preset>('thisMonth')
   const [customStart, setCustomStart] = useState('')
   const [customEnd,   setCustomEnd]   = useState('')
   const [compareMode, setCompareMode] = useState(false)

@@ -18,6 +18,10 @@ export type DashboardData = {
   bookCount: number
   hasMailerLiteKey: boolean
   kdpTotals: { totalUnits: number; totalRoyalties: number; totalKENP: number }
+  /** The date range the server used for kdpTotals — lets the client detect
+   *  when its own effective range differs (saved range or timezone skew)
+   *  and refetch. */
+  kdpRangeUsed: { from: string; to: string }
 }
 
 // React cache() deduplicates within a single server render,
@@ -110,8 +114,16 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
   const metaLastSync = userRow?.metaLastSync ? userRow.metaLastSync.toISOString() : null
 
   // Resolve deduped totals: extension MTD row wins over CSV for the same book-month.
+  // Default window is THIS MONTH (server clock, UTC) — matches the client default
+  // in lib/clientDateRange.ts. Never all-time: the first number a user sees must
+  // correspond to their KDP dashboard's default "This month" view.
+  const now = new Date()
+  const kdpRangeUsed = {
+    from: `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-01`,
+    to:   now.toISOString().slice(0, 10),
+  }
   const kdpResolved = resolveKdpRows(kdpAllRows ?? [])
-  const kdpAgg      = aggregateKdp(kdpResolved) // no range = all-time
+  const kdpAgg      = aggregateKdp(kdpResolved, { start: kdpRangeUsed.from, end: kdpRangeUsed.to })
   const kdpTotals = {
     totalUnits:     kdpAgg.units,
     totalRoyalties: kdpAgg.royalties,
@@ -129,5 +141,6 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
     bookCount,
     hasMailerLiteKey: !!userRow?.mailerLiteKey,
     kdpTotals,
+    kdpRangeUsed,
   }
 })

@@ -5,6 +5,7 @@ import { buildCoachPromptAction } from '@/app/actions/buildCoachPrompt'
 import { getCoachTitle } from '@/lib/coachTitle'
 import type { Analysis, ChannelScore, RankLog, RoasLog, Task } from '@/types'
 import type { DashboardData } from '@/lib/dashboard-data'
+import { getDefaultDateRange, loadStoredDateRange } from '@/lib/clientDateRange'
 
 export type SwapCalendarEntry = {
   id: string; partnerName: string; bookTitle: string
@@ -89,11 +90,8 @@ function useCountUp(target: number, active: boolean, duration = 800): number {
   return val
 }
 
-function getDefaultDateRange() {
-  const to = new Date().toISOString().slice(0, 10)
-  const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-  return { from, to }
-}
+// Default window ("this month") + stale-range handling are shared with
+// TopBar via lib/clientDateRange.ts so both always agree.
 
 export function useDashboardData({
   userName, initialData,
@@ -108,7 +106,7 @@ export function useDashboardData({
   const [roasLogs,  setRoasLogs]  = useState<RoasLog[]>(initialData?.roasLogs ?? [])
   const [kdpTotals, setKdpTotals] = useState<{ totalUnits: number; totalRoyalties: number; totalKENP: number; estRevenue?: number } | null>(null)
   const [kdpReady,  setKdpReady]  = useState(false)
-  const [selectedRange, setSelectedRange] = useState<{ from: string; to: string } | null>(null)
+  const [selectedRange, setSelectedRange] = useState<{ from: string; to: string } | null>(() => getDefaultDateRange())
   const [hasMonthGranularData, setHasMonthGranularData] = useState(false)
   const [loading,   setLoading]   = useState(!hasInitial)
   const [generating, setGenerating] = useState(false)
@@ -201,13 +199,16 @@ export function useDashboardData({
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('authordash_date_range')
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        const def = getDefaultDateRange()
-        if (parsed.from !== def.from || parsed.to !== def.to) setRefreshKey(k => k + 1)
+      // Refetch on the client when the effective range differs from what the
+      // server used for initialData — either a user-saved (non-stale) range, or
+      // a server/client "today" mismatch (server runs in UTC, user may not).
+      const effective = loadStoredDateRange()
+      const serverRange = initialData?.kdpRangeUsed
+      if (!serverRange || effective.from !== serverRange.from || effective.to !== serverRange.to) {
+        setRefreshKey(k => k + 1)
       }
     } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const [refreshKey,   setRefreshKey]   = useState(0)
@@ -242,14 +243,7 @@ export function useDashboardData({
       setKdpReady(true)
       return
     }
-    const rangeFromStorage = (() => {
-      try {
-        const stored = localStorage.getItem('authordash_date_range')
-        if (stored) return JSON.parse(stored) as { from: string; to: string }
-      } catch {}
-      return null
-    })()
-    const { from, to } = rangeFromStorage ?? getDefaultDateRange()
+    const { from, to } = loadStoredDateRange()
     const dateParams = new URLSearchParams({ from, to }).toString()
 
     Promise.all([
@@ -275,7 +269,7 @@ export function useDashboardData({
         setHasMonthGranularData(hmg ?? false)
       }
       setKdpReady(true)
-      setSelectedRange(rangeFromStorage)
+      setSelectedRange({ from, to })
     }).catch(console.error).finally(() => setLoading(false))
   }, [refreshKey, hasInitial])
 

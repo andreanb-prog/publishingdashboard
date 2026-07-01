@@ -8,3 +8,4 @@ prisma/seed-swaps.ts
 .vercel
 .claire
 *.zip
+tsconfig.tsbuildinfo
