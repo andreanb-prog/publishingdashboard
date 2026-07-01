@@ -1,6 +1,9 @@
 // app/api/db-health/route.ts — write+read+delete test to confirm DB persistence
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { ADMIN_EMAILS } from '@/lib/getSession'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +18,11 @@ function maskUrl(url: string | undefined): string {
 }
 
 export async function GET() {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email || !ADMIN_EMAILS.includes(session.user.email)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const start = Date.now()
   const databaseUrl = maskUrl(process.env.DATABASE_URL)
   let writeId: string | null = null

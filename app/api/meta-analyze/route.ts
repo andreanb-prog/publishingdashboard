@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { getAugmentedSession } from '@/lib/getSession'
 
 const anthropic = new Anthropic()
 
 export async function POST(req: NextRequest) {
+  const session = await getAugmentedSession()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   try {
     const { prompt } = await req.json()
     const message = await anthropic.messages.create({

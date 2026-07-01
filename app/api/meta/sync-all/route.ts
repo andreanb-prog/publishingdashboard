@@ -2,12 +2,16 @@
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { isCronAuthorized } from '@/lib/cronAuth'
 
 const GRAPH_URL = 'https://graph.facebook.com/v19.0'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isCronAuthorized(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   console.log('[Meta Sync-All] Starting cron sync...')
 
   try {

@@ -280,8 +280,34 @@ async function detectAndCreateSwap(
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
+// Verify the request actually came from Postmark. Configure the inbound webhook
+// URL with `?token=<POSTMARK_INBOUND_SECRET>` (or HTTP Basic auth whose password
+// is the same secret). Without this, anyone could POST a forged `MailboxHash` and
+// write swap records into an arbitrary user's account.
+function isPostmarkAuthorized(req: NextRequest): boolean {
+  const secret = process.env.POSTMARK_INBOUND_SECRET
+  if (!secret) return false
+
+  const token = req.nextUrl.searchParams.get('token')
+  if (token && token === secret) return true
+
+  const auth = req.headers.get('authorization')
+  if (auth?.startsWith('Basic ')) {
+    try {
+      const decoded = Buffer.from(auth.slice(6), 'base64').toString('utf8')
+      if (decoded.split(':').pop() === secret) return true
+    } catch { /* fall through to reject */ }
+  }
+  return false
+}
+
 export async function POST(req: NextRequest) {
   console.log('[INBOUND] POST received from Postmark')
+
+  if (!isPostmarkAuthorized(req)) {
+    console.warn('[INBOUND] Rejected — missing or invalid inbound secret')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   let payload: PostmarkInboundPayload
 
@@ -314,20 +340,11 @@ export async function POST(req: NextRequest) {
     if (!user) console.log('[INBOUND] No user found for id:', userId)
   }
 
-  // ── Beta fallback: no MailboxHash — find first active user ───────────────
+  // No "first active user" fallback: routing an email to an arbitrary account
+  // corrupts that user's swap data. If the MailboxHash doesn't resolve a real
+  // user, drop the email (still 200 so Postmark stops retrying).
   if (!user) {
-    console.log('[INBOUND] No userId in MailboxHash — trying beta fallback. Hash was:', MailboxHash)
-    user = await db.user.findFirst({
-      where: { metaAccessToken: { not: null } },
-      select: { id: true, email: true },
-    })
-    if (user) {
-      console.log('[INBOUND] Beta fallback resolved user:', user.email)
-    }
-  }
-
-  if (!user) {
-    console.log('[INBOUND] No user found — skipping email')
+    console.log('[INBOUND] No user resolved from MailboxHash — skipping email. Hash was:', MailboxHash)
     return ok()
   }
   console.log('[INBOUND] User found:', user.email)

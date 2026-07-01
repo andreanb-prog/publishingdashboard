@@ -1,9 +1,10 @@
 // app/api/cron/sync/route.ts
 // Nightly sync: KDP for connected users, then BSR for all users with books.
-// Triggered by Vercel Cron — protected by x-cron-secret header.
+// Triggered by Vercel Cron — protected by the Authorization: Bearer ${CRON_SECRET} header.
 export const maxDuration = 300 // syncs drive a real browser and may backfill months
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { isCronAuthorized } from '@/lib/cronAuth'
 import { syncKdpForUser } from '@/lib/browserbase/kdp-sync'
 import { fetchBsrForUser } from '@/lib/browserbase/bsr-fetch'
 
@@ -33,8 +34,7 @@ async function runInBatches(
 }
 
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get('x-cron-secret')
-  if (!secret || secret !== process.env.CRON_SECRET) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

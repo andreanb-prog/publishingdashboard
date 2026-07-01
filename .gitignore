@@ -9,3 +9,4 @@ prisma/seed-swaps.ts
 .claire
 *.zip
 tsconfig.tsbuildinfo
+._tmp_check.mjs

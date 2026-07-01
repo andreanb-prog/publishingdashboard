@@ -1,7 +1,8 @@
 // app/api/reports/weekly/route.ts
 // Weekly digest email — called by Vercel cron every Monday at 8am
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { isCronAuthorized } from '@/lib/cronAuth'
 import type { Analysis } from '@/types'
 
 function compareMetric(label: string, curr: number, prev: number): string {
@@ -63,7 +64,10 @@ View your full dashboard → ${(process.env.NEXTAUTH_URL || 'https://authordash.
 `
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isCronAuthorized(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   try {
     // Find all users who have at least 2 analyses and haven't opted out
     const users = await db.user.findMany({

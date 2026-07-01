@@ -1,15 +1,15 @@
 // app/api/cron/bsr/route.ts
 // Hourly BSR fetch for all users with at least one book ASIN.
-// Protected by x-cron-secret header — only Vercel Cron can trigger it.
+// Protected by the Authorization: Bearer ${CRON_SECRET} header — only Vercel Cron can trigger it.
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { isCronAuthorized } from '@/lib/cronAuth'
 import { fetchBsrForUser } from '@/lib/browserbase/bsr-fetch'
 
 const BATCH_SIZE = 10
 
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get('x-cron-secret')
-  if (!secret || secret !== process.env.CRON_SECRET) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

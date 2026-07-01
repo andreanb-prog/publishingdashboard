@@ -1,8 +1,12 @@
 // app/api/health/digest/route.ts — Daily health digest (7am HST / 5pm UTC)
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { isCronAuthorized } from '@/lib/cronAuth'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isCronAuthorized(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   const now = new Date()
 
   // Gather health stats

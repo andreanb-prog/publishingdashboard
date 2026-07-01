@@ -226,6 +226,48 @@ If a value shows a dash or is missing, return 0.`,
     // 7. Backfill: pull prior months that have no browserbase row yet (~90 days
     // of coverage). Runs on first sync / after gaps; steady-state nights skip it.
     // Every step is NON-FATAL — a failed backfill month never fails the sync.
+    //
+    // CRITICAL SAFETY: the date-range switch is VERIFIED before any write. An
+    // earlier version trusted stagehand.act() blindly and wrote the current
+    // month's totals under prior monthKeys when the click silently failed.
+    // Backfill extraction therefore also reads the date range text the page is
+    // ACTUALLY showing, and the row is only written when that text matches the
+    // target month. No verification → no write.
+    const BackfillSchema = DashboardSchema.extend({
+      periodLabel: z.string(), // the date range text currently displayed by the selector
+    })
+
+    const extractWithPeriod = async (): Promise<z.infer<typeof BackfillSchema>> => {
+      const p = stagehand.extract(
+        `On this Amazon KDP reports dashboard, read the summary totals shown near the top
+for the CURRENTLY SELECTED date range — the row containing Estimated royalties, Orders, and KENP. Return:
+- royalties: the Estimated royalties amount as a number, ignoring "$", commas and any trailing "*" (e.g. 121.00)
+- orders: the Orders count as an integer, ignoring commas (e.g. 50)
+- kenp: the KENP (also labelled "KENP Read" or "Pages") count as an integer, ignoring commas (e.g. 19753)
+- periodLabel: the EXACT text currently displayed by the date range selector/dropdown (e.g. "Last month", "Jun 1, 2026 - Jun 30, 2026", "This month"). Copy it verbatim.
+If a value shows a dash or is missing, return 0.`,
+        BackfillSchema,
+      )
+      const t = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('KDP backfill extraction timed out after 60s')), 60_000),
+      )
+      return Promise.race([p, t])
+    }
+
+    // Does the selector text plausibly refer to the target month?
+    // Accepts "June", "Jun", "06/2026", "2026-06", or "Last month" for ago===1.
+    const labelMatchesMonth = (periodLabel: string, monthKey: string, ago: number): boolean => {
+      const lower = periodLabel.toLowerCase()
+      const { label } = monthMeta(monthKey)             // "June 2026"
+      const monthName = label.split(' ')[0].toLowerCase() // "june"
+      const [year, mm] = monthKey.split('-')
+      if (lower.includes(monthName.slice(0, 3))) return true
+      if (lower.includes(`${mm}/`) && lower.includes(year)) return true
+      if (lower.includes(monthKey)) return true
+      if (ago === 1 && lower.includes('last month')) return true
+      return false
+    }
+
     for (let ago = 1; ago <= BACKFILL_MONTHS; ago++) {
       const monthKey = monthKeyAgo(ago)
       try {
@@ -240,16 +282,35 @@ If a value shows a dash or is missing, return 0.`,
         if (existing) continue
 
         const { label, lastDay } = monthMeta(monthKey)
-        const instruction = ago === 1
-          ? 'Open the date range selector and choose the "Last month" option so the summary shows last month\'s totals'
-          : `Open the date range selector and choose a custom date range covering all of ${label} — from ${label.split(' ')[0]} 1 to ${label.split(' ')[0]} ${lastDay}, ${monthKey.slice(0, 4)} — then apply it so the summary shows that month's totals`
-        await stagehand.act(instruction)
-        await page.waitForTimeout(3000)
+        const monthName = label.split(' ')[0]
+        const year = monthKey.slice(0, 4)
+        const instructions = ago === 1
+          ? [
+              'Click the date range selector/dropdown near the top of the dashboard, then click the "Last month" option in the list that appears',
+              `Open the date range picker and select a custom range from ${monthName} 1, ${year} to ${monthName} ${lastDay}, ${year}, then apply it`,
+            ]
+          : [
+              `Click the date range selector/dropdown near the top of the dashboard and select a custom date range from ${monthName} 1, ${year} to ${monthName} ${lastDay}, ${year}, then apply it`,
+              `Open the date range picker, navigate to ${label}, select the full month (${monthName} 1 to ${monthName} ${lastDay}), and apply`,
+            ]
 
-        const totals = await extractTotals()
-        await upsertMonthRow(monthKey, totals)
-        rowsFetched++
-        console.log(`[kdp-sync] backfilled ${monthKey}: $${totals.royalties} / ${totals.orders} orders / ${totals.kenp} KENP`)
+        let written = false
+        for (const instruction of instructions) {
+          await stagehand.act(instruction)
+          await page.waitForTimeout(4000)
+          const totals = await extractWithPeriod()
+          if (labelMatchesMonth(totals.periodLabel, monthKey, ago)) {
+            await upsertMonthRow(monthKey, totals)
+            rowsFetched++
+            written = true
+            console.log(`[kdp-sync] backfilled ${monthKey} ("${totals.periodLabel}"): $${totals.royalties} / ${totals.orders} orders / ${totals.kenp} KENP`)
+            break
+          }
+          console.warn(`[kdp-sync] backfill ${monthKey}: range switch NOT verified (selector shows "${totals.periodLabel}") — not writing, retrying`)
+        }
+        if (!written) {
+          console.warn(`[kdp-sync] backfill ${monthKey}: could not verify the date range switch after ${instructions.length} attempts — month skipped, no data written`)
+        }
       } catch (backfillErr) {
         console.warn(`[kdp-sync] backfill for ${monthKey} skipped:`, backfillErr instanceof Error ? backfillErr.message : String(backfillErr))
       }

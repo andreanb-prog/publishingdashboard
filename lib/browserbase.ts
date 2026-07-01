@@ -53,7 +53,12 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
   try {
     session = await bb.sessions.create({
       projectId: cfg.projectId,
-      browserSettings: { context: { id: context.id, persist: true } },
+      browserSettings: {
+        context: { id: context.id, persist: true },
+        // Match the Live View modal size so the remote page renders ~1:1 instead
+        // of a 1920px viewport scaled down into a small iframe (unreadable login).
+        viewport: { width: 1280, height: 800 },
+      },
     })
     console.log('[browserbase] session created — sessionId:', session.id)
   } catch (err) {

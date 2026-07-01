@@ -1,11 +1,20 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { ADMIN_EMAILS } from '@/lib/getSession'
 import { getBrowserbaseConfig, browserbaseClient } from '@/lib/browserbase'
 
 // GET — diagnostic endpoint to verify Browserbase env vars and SDK init.
 // Returns JSON with env presence, partial key preview, and SDK init result.
+// Admin-only: it creates billable Browserbase contexts and previews API keys.
 export async function GET() {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email || !ADMIN_EMAILS.includes(session.user.email)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const apiKey = process.env.BROWSERBASE_API_KEY
   const projectId = process.env.BROWSERBASE_PROJECT_ID
 

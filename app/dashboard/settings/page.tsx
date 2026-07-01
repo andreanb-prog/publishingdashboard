@@ -1102,12 +1102,17 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* Live View panel */}
+              {/* Live View panel — full-screen modal so the KDP login is readable.
+                  Rendered as a fixed overlay: the embedded remote browser used to be
+                  squeezed into the settings column and was too small to log in with. */}
               {kdpPanelOpen && (
-                <div className="pb-4">
+                <div
+                  className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                  style={{ background: 'rgba(30,45,61,0.55)' }}
+                >
                   <div
-                    className="rounded-[10px] overflow-hidden w-full"
-                    style={{ background: '#FFF8F0', border: '0.5px solid rgba(30,45,61,0.12)' }}
+                    className="rounded-[10px] overflow-hidden flex flex-col"
+                    style={{ background: '#FFF8F0', border: '0.5px solid rgba(30,45,61,0.12)', width: 'min(1320px, 96vw)', maxHeight: '94vh' }}
                   >
                     <div
                       className="flex items-center justify-between px-4 py-3"
@@ -1140,7 +1145,7 @@ export default function SettingsPage() {
                           src={kdpLiveUrl}
                           title="KDP Live View"
                           className="w-full block"
-                          style={{ height: 700, minHeight: 700, border: 'none', background: 'white' }}
+                          style={{ height: 'calc(94vh - 170px)', minHeight: 500, border: 'none', background: 'white' }}
                           sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
                           allow="clipboard-read; clipboard-write"
                         />
