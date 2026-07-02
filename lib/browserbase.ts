@@ -93,6 +93,7 @@ export async function createLiveSessionForUrl(
   cfg: BrowserbaseConfig,
   startUrl: string,
   urlMatch: string,
+  opts?: { proxies?: boolean },
 ): Promise<KdpLiveSession> {
   const bb = browserbaseClient(cfg)
   console.log('[browserbase] createLiveSessionForUrl — start,', urlMatch, 'projectId:', cfg.projectId)
@@ -113,6 +114,10 @@ export async function createLiveSessionForUrl(
   try {
     session = await createSessionWithRetry(cfg, {
       projectId: cfg.projectId,
+      // Residential proxy when requested (Meta): Facebook serves its login and
+      // two-factor pages an EMPTY SHELL on datacenter IPs — users got stuck on
+      // a blank 2FA screen. Through a residential IP the pages render normally.
+      ...(opts?.proxies ? { proxies: true } : {}),
       browserSettings: {
         context: { id: context.id, persist: true },
         // Small viewport on purpose: the Live View scales the remote page to fit
@@ -228,7 +233,7 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
 }
 
 export async function createMetaLiveSession(cfg: BrowserbaseConfig): Promise<KdpLiveSession> {
-  return createLiveSessionForUrl(cfg, META_LOGIN_URL, 'facebook')
+  return createLiveSessionForUrl(cfg, META_LOGIN_URL, 'facebook', { proxies: true })
 }
 
 export function metaLoginUrl(): string {

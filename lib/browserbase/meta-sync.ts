@@ -100,6 +100,10 @@ export async function syncMetaForUser(userId: string): Promise<void> {
     },
     browserbaseSessionCreateParams: {
       projectId: cfg.projectId,
+      // Residential proxy: Facebook white-screens datacenter IPs (see
+      // createLiveSessionForUrl). The sync needs the same treatment or Ads
+      // Manager may refuse to render.
+      proxies: true,
       browserSettings: {
         context: { id: user.metaContextId, persist: true },
       },
