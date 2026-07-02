@@ -119,6 +119,8 @@ model User {
   metaContextId           String?
   metaSyncStatus          String?    // "never_connected" | "connected" | "needs_reauth"
   metaConnectedAt         DateTime?
+  metaConnectMethod       String?    // "fetch" | "liveview" — how Meta was connected
+  extensionKey            String?    @unique // Bearer key the Fetch extension uses
   writingKillList            String?  // JSON: { word: string, scope: 'global'|'book' }[]
   launches      Launch[]
   swapEntries   SwapEntry[]

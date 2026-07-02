@@ -39,6 +39,84 @@ export interface KdpLiveSession {
   liveViewUrl: string
 }
 
+// ── Fetch cookie injection (Meta) ─────────────────────────────────────────────
+// The "Fetch" extension reads the user's Facebook session cookies in their own
+// browser and hands them to us. We create a fresh Browserbase Context, plant the
+// cookies in it, verify Ads Manager loads, and close — Browserbase persists the
+// cookies into the Context so nightly syncs resume that session. No remote login,
+// no 2FA, no checkpoint: authentication already happened on the user's device.
+//
+// Returns the new contextId to store as user.metaContextId, plus whether Ads
+// Manager rendered (login confirmed).
+export interface MetaCookieInput {
+  cUser: string  // Facebook "c_user" cookie (the user id)
+  xs:    string  // Facebook "xs" cookie (the session secret)
+}
+
+export async function injectMetaCookies(
+  cfg: BrowserbaseConfig,
+  cookies: MetaCookieInput,
+): Promise<{ contextId: string; loggedIn: boolean; adAccountId: string | null }> {
+  const bb = browserbaseClient(cfg)
+
+  // 1. Fresh persistent context to hold this user's Facebook session.
+  const context = await bb.contexts.create({ projectId: cfg.projectId })
+
+  // 2. Session on that context, routed through residential proxy so the planted
+  //    session's IP is consistent with a normal browser (avoids the "unusual
+  //    login" checkpoint that fires on datacenter IPs).
+  const session = await createSessionWithRetry(cfg, {
+    projectId: cfg.projectId,
+    proxies: true,
+    browserSettings: { context: { id: context.id, persist: true } },
+  })
+
+  const { Stagehand } = await import('@browserbasehq/stagehand')
+  const stagehand = new Stagehand({
+    env: 'BROWSERBASE',
+    apiKey: cfg.apiKey,
+    projectId: cfg.projectId,
+    browserbaseSessionID: session.id,
+    disablePino: true,
+    verbose: 0,
+    logger: () => { /* quiet */ },
+  })
+
+  try {
+    await Promise.race([
+      stagehand.init(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('attach timed out after 20s')), 20_000)),
+    ])
+    const page = stagehand.context.activePage()
+    if (!page) throw new Error('No active page to inject cookies into')
+
+    // 3. Plant the two Facebook cookies across the domains Ads Manager needs.
+    const common = { path: '/', httpOnly: true, secure: true, sameSite: 'None' as const }
+    const cookieList = ['.facebook.com', '.adsmanager.facebook.com'].flatMap(domain => ([
+      { name: 'c_user', value: cookies.cUser, domain, ...common, httpOnly: false },
+      { name: 'xs',     value: cookies.xs,    domain, ...common },
+    ]))
+    // Playwright-style addCookies on the underlying browser context.
+    const ctx = (page as unknown as { context: () => { addCookies: (c: unknown[]) => Promise<void> } }).context()
+    await ctx.addCookies(cookieList)
+
+    // 4. Verify: load Ads Manager. If cookies are valid we land on the ads UI;
+    //    if not we bounce to login. Never write "connected" unless verified.
+    await page.goto(META_ADSMANAGER_URL, { waitUntil: 'domcontentloaded', timeoutMs: 20_000 })
+    await page.waitForTimeout(4000)
+    const url = page.url()
+    const loggedIn = isMetaLoggedInUrl(url)
+    let adAccountId: string | null = null
+    try { adAccountId = new URL(url).searchParams.get('act') } catch { /* ignore */ }
+
+    return { contextId: context.id, loggedIn, adAccountId }
+  } finally {
+    // Close persists cookies into the Context. Safe here (unlike the live-view
+    // flow) because no user is watching this session.
+    try { await stagehand.close() } catch { /* ignore */ }
+  }
+}
+
 // ── Session hygiene ───────────────────────────────────────────────────────────
 // Browserbase enforces a concurrent-session cap. Abandoned connect-flow sessions
 // (user closed the tab, an error mid-flow) keep RUNNING and clog the cap, which

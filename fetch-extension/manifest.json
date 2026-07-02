@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Fetch by AuthorDash",
+  "version": "1.0.0",
+  "description": "Securely connect your Meta Ads account to AuthorDash. Fetch reads only your login session — never your password — and sends nothing to anyone but AuthorDash.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Fetch by AuthorDash",
+    "default_icon": {
+      "16": "icons/dog-16.png",
+      "48": "icons/dog-48.png",
+      "128": "icons/dog-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/dog-16.png",
+    "48": "icons/dog-48.png",
+    "128": "icons/dog-128.png"
+  },
+  "permissions": ["cookies"],
+  "host_permissions": [
+    "https://*.facebook.com/",
+    "https://authordash.io/"
+  ]
+}

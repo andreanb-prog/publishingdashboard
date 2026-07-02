@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    :root {
+      --cream: #FFF8F0; --navy: #1E2D3D; --amber: #E9A020;
+      --sage: #6EBF8B; --coral: #F97B6B; --line: rgba(30,45,61,0.12);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--cream); color: var(--navy); padding: 18px;
+    }
+    .head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .head img { width: 34px; height: 34px; }
+    .head h1 { font-size: 15px; font-weight: 700; }
+    .head span { font-size: 11px; color: #6B7280; display: block; font-weight: 500; }
+    .card {
+      background: #fff; border: 0.5px solid var(--line); border-radius: 10px;
+      padding: 14px; margin-bottom: 12px;
+    }
+    p { font-size: 12px; line-height: 1.5; color: #4B5563; }
+    button {
+      width: 100%; padding: 10px; border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 10px;
+    }
+    .primary { background: var(--amber); color: #fff; }
+    .primary:disabled { opacity: 0.6; cursor: default; }
+    .ghost { background: rgba(30,45,61,0.06); color: var(--navy); }
+    .status { font-size: 12px; font-weight: 600; padding: 9px 11px; border-radius: 8px; margin-top: 10px; display: none; }
+    .status.ok { background: rgba(110,191,139,0.12); color: #16a34a; display: block; }
+    .status.err { background: rgba(249,123,107,0.12); color: var(--coral); display: block; }
+    .status.info { background: rgba(233,160,32,0.1); color: #92610a; display: block; }
+    .foot { font-size: 10px; color: #9CA3AF; margin-top: 12px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="head">
+    <img src="icons/dog-48.png" alt="Fetch" />
+    <div>
+      <h1>Fetch</h1>
+      <span>by AuthorDash</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <p id="lead">Connecting Fetch to your AuthorDash account…</p>
+    <div id="actions"></div>
+    <div id="status" class="status"></div>
+  </div>
+
+  <div class="foot">
+    Fetch reads only your Facebook <b>login session</b> to link your Meta Ads to AuthorDash. It never sees your password and never sends data anywhere but AuthorDash.
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
