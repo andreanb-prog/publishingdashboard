@@ -13,12 +13,27 @@ async function respondFromDB(userId: string, startDate: string, endDate: string)
 
   console.log('[Meta data] querying DB:', { startDate, endDate, startUTC: start.toISOString(), endUTC: end.toISOString() })
 
-  const dbRows = await db.metaAdData.findMany({
+  const dbRowsRaw = await db.metaAdData.findMany({
     where: { userId, date: { gte: start, lte: end } },
     orderBy: { date: 'asc' },
   })
 
-  console.log(`[Meta data] DB returned ${dbRows.length} rows`)
+  // Dedup: a browserbase MTD row is the monthly truth for its campaign-month.
+  // When one exists, uploaded/API rows for the SAME campaign in the SAME month
+  // are excluded from totals so nothing is double-counted (mirrors KdpSale).
+  const bbMonths = new Set(
+    dbRowsRaw
+      .filter(r => (r as { source?: string }).source === 'browserbase')
+      .map(r => `${r.campaignName}::${(r as { monthKey?: string | null }).monthKey ?? r.date.toISOString().slice(0, 7)}`),
+  )
+  const dbRows = dbRowsRaw.filter(r => {
+    const source = (r as { source?: string }).source ?? 'upload'
+    if (source === 'browserbase') return true
+    const month = r.date.toISOString().slice(0, 7)
+    return !bbMonths.has(`${r.campaignName}::${month}`)
+  })
+
+  console.log(`[Meta data] DB returned ${dbRowsRaw.length} rows (${dbRows.length} after browserbase dedup)`)
 
   if (dbRows.length === 0) {
     // Return the actual date range of stored data so the UI can offer a one-click switch

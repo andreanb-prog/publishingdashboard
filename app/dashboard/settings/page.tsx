@@ -656,6 +656,17 @@ export default function SettingsPage() {
   const [metaSuccess, setMetaSuccess] = useState(false)
   const [metaError,   setMetaError]   = useState(false)
 
+  // ── Meta connection (Browserbase Live View — mirrors the KDP flow) ────────
+  const [mbSyncStatus,    setMbSyncStatus]    = useState<string | null>(null)
+  const [mbLastSyncAt,    setMbLastSyncAt]    = useState<string | null>(null)
+  const [mbConnecting,    setMbConnecting]    = useState(false)
+  const [mbLiveUrl,       setMbLiveUrl]       = useState<string | null>(null)
+  const [mbSessionId,     setMbSessionId]     = useState<string | null>(null)
+  const [mbPanelOpen,     setMbPanelOpen]     = useState(false)
+  const [mbJustConnected, setMbJustConnected] = useState(false)
+  const [mbError,         setMbError]         = useState<string | null>(null)
+  const [mbNavRetrying,   setMbNavRetrying]   = useState(false)
+
   // ── Benchmarks ────────────────────────────────────────────────────────────
   const [benchmarks, setBenchmarks] = useState({
     email_open_rate:  '25',
@@ -710,6 +721,8 @@ export default function SettingsPage() {
       setMlSubscribers(d.mlSubscribers ?? null)
       setKdpSyncStatus(d.kdpSyncStatus ?? null)
       setKdpLastSyncAt(d.kdpLastSyncAt ?? null)
+      setMbSyncStatus(d.metaSyncStatus ?? null)
+      setMbLastSyncAt(d.metaBrowserLastSync ?? null)
       setPenName(d.penName ?? '')
       setPreferredGreetingName(d.preferredGreetingName ?? '')
       setHasWritingKey(!!d.anthropicApiKey)
@@ -820,6 +833,107 @@ export default function SettingsPage() {
     setKdpPanelOpen(false)
     setKdpLiveUrl(null)
     setKdpSessionId(null)
+  }
+
+  // ── Meta browser-connect handlers (mirror the KDP flow) ────────────────────
+  async function connectMetaBrowser() {
+    setMbError(null)
+    setMbJustConnected(false)
+    setMbConnecting(true)
+    setMbPanelOpen(true)
+    setMbLiveUrl(null)
+    setMbSessionId(null)
+    try {
+      const res = await fetch('/api/browserbase/meta/create-context', { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Could not start the Meta connection.')
+      setMbLiveUrl(json.liveViewUrl ?? null)
+      setMbSessionId(json.sessionId ?? null)
+      setMbSyncStatus('never_connected')
+    } catch (err) {
+      setMbError(err instanceof Error ? err.message : 'Could not start the Meta connection.')
+      setMbPanelOpen(false)
+    } finally {
+      setMbConnecting(false)
+    }
+  }
+
+  function closeMbPanel() {
+    setMbPanelOpen(false)
+    setMbLiveUrl(null)
+    setMbSessionId(null)
+  }
+
+  function completeMetaBrowserConnect(lastSyncAt?: string | null) {
+    setMbSyncStatus('connected')
+    setMbLastSyncAt(lastSyncAt ?? new Date().toISOString())
+    setMbPanelOpen(false)
+    setMbLiveUrl(null)
+    setMbSessionId(null)
+    setMbJustConnected(true)
+    // Auto-run the first Meta sync (delayed so the login session releases first).
+    setTimeout(() => {
+      fetch('/api/browserbase/meta/sync-now', { method: 'POST' }).catch(() => {})
+    }, 10_000)
+  }
+
+  // Auto-detect Facebook login: poll every 5s while the Meta connect window is
+  // open; the window closes itself the moment Ads Manager is reached.
+  useEffect(() => {
+    if (!mbPanelOpen || !mbSessionId) return
+    const iv = setInterval(async () => {
+      try {
+        const res = await fetch('/api/browserbase/meta/check-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: mbSessionId }),
+        })
+        const json = await res.json()
+        if (json.status === 'connected') completeMetaBrowserConnect(json.lastSyncAt)
+      } catch { /* keep polling */ }
+    }, 5000)
+    return () => clearInterval(iv)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mbPanelOpen, mbSessionId])
+
+  async function handleMetaBrowserSync() {
+    if (metaSyncing) return
+    setMetaSyncing(true)
+    setMetaSuccess(false)
+    setMetaError(false)
+    try {
+      const res = await fetch('/api/browserbase/meta/sync-now', { method: 'POST' })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        setMetaSuccess(true)
+        if (json.metaLastSync) setMbLastSyncAt(json.metaLastSync)
+        if (json.metaSyncStatus) setMbSyncStatus(json.metaSyncStatus)
+        setTimeout(() => setMetaSuccess(false), 6000)
+      } else {
+        if (json.metaSyncStatus) setMbSyncStatus(json.metaSyncStatus)
+        setMetaError(true)
+        setTimeout(() => setMetaError(false), 6000)
+      }
+    } catch {
+      setMetaError(true)
+      setTimeout(() => setMetaError(false), 6000)
+    } finally {
+      setMetaSyncing(false)
+    }
+  }
+
+  async function retryMbNavigate() {
+    if (!mbSessionId || mbNavRetrying) return
+    setMbNavRetrying(true)
+    try {
+      await fetch('/api/browserbase/meta/navigate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: mbSessionId }),
+      })
+    } catch { /* non-fatal */ } finally {
+      setTimeout(() => setMbNavRetrying(false), 3000)
+    }
   }
 
   async function disconnectKdp() {
@@ -1292,75 +1406,137 @@ export default function SettingsPage() {
               )}
             </IntegCard>
 
-            {/* Meta Ads */}
+            {/* Meta Ads — Browserbase sync is the primary path (no app review needed) */}
             <IntegCard
               iconBg="#E8F0FE"
               icon={<Megaphone size={16} strokeWidth={1.75} color="#60A5FA" />}
               name="Meta Ads"
               subtitle={
-                metaConnected && metaLastSync
-                  ? `Synced ${fmtDate(metaLastSync)} · OAuth`
-                  : metaConnected
-                  ? 'Connected via OAuth'
-                  : 'Connect via OAuth'
+                mbSyncStatus === 'connected' && mbLastSyncAt
+                  ? `Synced ${fmtDate(mbLastSyncAt)} · Browser sync`
+                  : mbSyncStatus === 'connected'
+                  ? 'Connected · first sync running'
+                  : mbSyncStatus === 'needs_reauth'
+                  ? 'Needs a quick re-login'
+                  : 'Connect to sync your ad performance nightly'
               }
               statusPill={
-                metaConnected ? (
+                mbSyncStatus === 'connected' ? (
+                  <StatusPill active label="● Active" />
+                ) : mbSyncStatus === 'needs_reauth' ? (
                   <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                    style={{ background: 'rgba(233,160,32,0.12)', color: '#E9A020' }}>
-                    Dev mode
+                    style={{ background: 'rgba(249,123,107,0.12)', color: '#F97B6B' }}>
+                    Re-login needed
                   </span>
                 ) : (
                   <StatusPill active={false} label="Not connected" />
                 )
               }
             >
-              {metaConnected ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <AmberBtn onClick={handleMetaSync} disabled={metaSyncing}>
-                      {metaSyncing ? <Spinner /> : 'Sync now'}
-                    </AmberBtn>
-                    <button onClick={handleMetaDisconnect}
-                      className="text-[10px] font-semibold px-3 py-1.5 rounded-[5px] border-none cursor-pointer"
-                      style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
-                      Disconnect
-                    </button>
-                  </div>
-                  {isAdmin ? (
-                    <div className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
-                      style={{ background: 'rgba(233,160,32,0.06)', border: '0.5px solid rgba(233,160,32,0.25)', color: '#92610a' }}>
-                      Only your account can connect in development mode.{' '}
-                      <a href="https://developers.facebook.com/docs/app-review" target="_blank" rel="noopener noreferrer"
-                        className="font-semibold hover:underline" style={{ color: '#E9A020' }}>
-                        Submit for app review →
-                      </a>
-                    </div>
-                  ) : (
-                    <div className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
-                      style={{ background: 'rgba(30,45,61,0.04)', border: '0.5px solid rgba(30,45,61,0.1)', color: '#6B7280' }}>
-                      Meta Ads connection coming soon — check back shortly.
-                    </div>
-                  )}
-                  {metaSuccess && (
-                    <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
-                      style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
-                      ✓ Connected! Syncing your ad data now…
-                    </div>
-                  )}
-                </>
+              {mbSyncStatus === 'connected' ? (
+                <div className="flex items-center gap-2">
+                  <AmberBtn onClick={handleMetaBrowserSync} disabled={metaSyncing}>
+                    {metaSyncing ? <Spinner /> : 'Sync now'}
+                  </AmberBtn>
+                  <button onClick={connectMetaBrowser}
+                    className="text-[10px] font-semibold px-3 py-1.5 rounded-[5px] border-none cursor-pointer"
+                    style={{ background: 'rgba(30,45,61,0.06)', color: '#1E2D3D' }}>
+                    Reconnect
+                  </button>
+                </div>
               ) : (
-                <>
-                  <AmberBtn onClick={connectMeta}>Connect Meta Ads →</AmberBtn>
-                  {metaError && (
-                    <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
-                      style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
-                      ✕ Couldn&apos;t connect — check permissions and try again.
-                    </div>
-                  )}
-                </>
+                <AmberBtn onClick={connectMetaBrowser} disabled={mbConnecting && mbPanelOpen}>
+                  {mbConnecting && mbPanelOpen
+                    ? <Spinner />
+                    : mbSyncStatus === 'needs_reauth' ? 'Reconnect Meta' : 'Connect Meta Ads'}
+                </AmberBtn>
+              )}
+              {mbError && !mbPanelOpen && (
+                <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
+                  style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
+                  {mbError}
+                </div>
+              )}
+              {mbJustConnected && (
+                <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md leading-relaxed"
+                  style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
+                  Meta connected. Your first sync is running — ad data will appear within 2 minutes.
+                </div>
+              )}
+              {metaSuccess && (
+                <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
+                  style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
+                  ✓ Sync complete — fresh numbers are on your Meta page.
+                </div>
+              )}
+              {metaError && (
+                <div className="text-[11px] font-semibold px-2.5 py-2 rounded-md"
+                  style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
+                  ✕ Sync hit a problem — try again, or reconnect if it persists.
+                </div>
               )}
             </IntegCard>
+
+            {/* Meta Live View panel — full-screen modal, identical UX to the KDP connect */}
+            {mbPanelOpen && (
+              <div
+                className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                style={{ background: 'rgba(30,45,61,0.55)' }}
+              >
+                <div
+                  className="rounded-[10px] overflow-hidden flex flex-col"
+                  style={{ background: '#FFF8F0', border: '0.5px solid rgba(30,45,61,0.12)', width: 'min(1320px, 96vw)', height: 'min(860px, 94vh)' }}
+                >
+                  <div
+                    className="flex items-center justify-between px-4 py-3"
+                    style={{ borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}
+                  >
+                    <span className="text-[12px] font-semibold" style={{ color: '#1E2D3D' }}>
+                      Log in to Facebook — we&apos;ll finish connecting automatically.
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={retryMbNavigate}
+                        disabled={mbNavRetrying}
+                        className="text-[11px] font-semibold px-2.5 py-1.5 rounded-md cursor-pointer"
+                        style={{ background: 'rgba(233,160,32,0.12)', color: '#B87A0E', border: '0.5px solid rgba(233,160,32,0.4)', opacity: mbNavRetrying ? 0.6 : 1 }}
+                      >
+                        {mbNavRetrying ? 'Loading…' : 'Blank window? Load Facebook sign-in'}
+                      </button>
+                      <button
+                        onClick={closeMbPanel}
+                        className="text-[10px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
+                        style={{ color: '#9CA3AF' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                  {mbConnecting || !mbLiveUrl ? (
+                    <div className="flex flex-col items-center justify-center gap-3 py-16" style={{ flex: '1 1 auto' }}>
+                      <Spinner />
+                      <span className="text-[11px]" style={{ color: '#6B7280' }}>
+                        Setting up your secure browser…
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="px-4 py-2 text-[11px]" style={{ color: '#6B7280', borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}>
+                        Log into Facebook inside this window (including any two-factor step). As soon as your Ads Manager loads, this window closes itself and your first sync starts — nothing else to click.
+                      </p>
+                      <iframe
+                        src={mbLiveUrl}
+                        title="Meta Live View"
+                        className="w-full block"
+                        style={{ flex: '1 1 auto', minHeight: 300, border: 'none', background: 'white' }}
+                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                        allow="clipboard-read; clipboard-write"
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* KDP Report */}
             <IntegCard

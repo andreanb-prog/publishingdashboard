@@ -21,6 +21,7 @@ export async function GET() {
       penName: true, preferredGreetingName: true,
       anthropicApiKey: true, anthropicKeyAddedAt: true, writingOnboardingComplete: true, writingKillList: true,
       kdpSyncStatus: true, kdpLastSyncAt: true,
+      metaSyncStatus: true, metaLastSync: true,
     },
   })
 
@@ -82,6 +83,8 @@ export async function GET() {
     kdpLastUpload,
     kdpSyncStatus:          user?.kdpSyncStatus ?? null,
     kdpLastSyncAt:          user?.kdpLastSyncAt?.toISOString() ?? null,
+    metaSyncStatus:         user?.metaSyncStatus ?? null,
+    metaBrowserLastSync:    user?.metaLastSync?.toISOString() ?? null,
     stripeActive,
     anthropicApiKey:           user?.anthropicApiKey ? mask(user.anthropicApiKey) : null,
     anthropicKeyAddedAt:       user?.anthropicKeyAddedAt?.toISOString() ?? null,

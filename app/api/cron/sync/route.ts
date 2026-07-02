@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { isCronAuthorized } from '@/lib/cronAuth'
 import { syncKdpForUser } from '@/lib/browserbase/kdp-sync'
+import { syncMetaForUser } from '@/lib/browserbase/meta-sync'
 import { fetchBsrForUser } from '@/lib/browserbase/bsr-fetch'
 
 const BATCH_SIZE = 10
@@ -54,7 +55,23 @@ export async function GET(req: NextRequest) {
     console.error(`[cron/sync] KDP failed for ${r.userId}:`, r.error)
   }
 
-  // 2. BSR fetch — all users who have at least one book with an ASIN
+  // 2. Meta sync — users who have connected Meta Ads via Browserbase
+  const metaUsers = await db.user.findMany({
+    where: { metaSyncStatus: 'connected' },
+    select: { id: true },
+  })
+  console.log(`[cron/sync] Meta: ${metaUsers.length} connected users`)
+
+  const metaResults = await runInBatches(
+    metaUsers.map(u => u.id),
+    syncMetaForUser,
+  )
+
+  for (const r of metaResults.filter(r => r.status === 'rejected')) {
+    console.error(`[cron/sync] Meta failed for ${r.userId}:`, r.error)
+  }
+
+  // 3. BSR fetch — all users who have at least one book with an ASIN
   const bsrUsers = await db.user.findMany({
     where: { bookCatalog: { some: { asin: { not: null } } } },
     select: { id: true },
@@ -76,6 +93,11 @@ export async function GET(req: NextRequest) {
       total: kdpUsers.length,
       ok: kdpResults.filter(r => r.status === 'fulfilled').length,
       failed: kdpResults.filter(r => r.status === 'rejected').length,
+    },
+    meta: {
+      total: metaUsers.length,
+      ok: metaResults.filter(r => r.status === 'fulfilled').length,
+      failed: metaResults.filter(r => r.status === 'rejected').length,
     },
     bsr: {
       total: bsrUsers.length,

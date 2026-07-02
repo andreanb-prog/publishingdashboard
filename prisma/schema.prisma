@@ -1,6 +1,10 @@
 // prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
+  // native = wherever generate runs (Mac dev, Vercel build). The extra targets
+  // keep the client working across Andrea's Mac and CI/sandbox environments
+  // regardless of which one ran `prisma generate` last.
+  binaryTargets = ["native", "darwin-arm64", "linux-arm64-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -112,6 +116,9 @@ model User {
   bookclickerSyncStatus   String?
   bookclickerLastSyncAt   DateTime?
   bookclickerConnectedAt  DateTime?
+  metaContextId           String?
+  metaSyncStatus          String?    // "never_connected" | "connected" | "needs_reauth"
+  metaConnectedAt         DateTime?
   writingKillList            String?  // JSON: { word: string, scope: 'global'|'book' }[]
   launches      Launch[]
   swapEntries   SwapEntry[]
@@ -749,8 +756,16 @@ model MetaAdData {
   cpc           Float    @default(0)
   results       Float?
   costPerResult Float?
+  // Browserbase sync fields (mirror KdpSale): source distinguishes uploaded xlsx
+  // rows from synced MTD snapshots; monthKey enables per-month upserts so nightly
+  // syncs overwrite instead of stacking.
+  source          String   @default("upload") // "upload" | "api" | "browserbase"
+  monthKey        String?  // YYYY-MM — set only on browserbase MTD rows
+  reach           Int?
+  resultIndicator String?  // e.g. "actions:omni_landing_page_view"
   createdAt     DateTime @default(now())
 
+  @@unique([userId, campaignName, source, monthKey])
   @@index([userId, date])
 }
 
