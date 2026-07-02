@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 120 // CDP attach + navigation can take ~15s per attempt
 
 import { NextResponse } from 'next/server'
 import { getAugmentedSession } from '@/lib/getSession'

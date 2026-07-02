@@ -74,9 +74,9 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
   // before navigating; when the navigate call silently failed, users saw a blank
   // page in the connect modal.)
   await new Promise(resolve => setTimeout(resolve, 1000))
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
     await navigateSessionToKdp(cfg, session.id)
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    await new Promise(resolve => setTimeout(resolve, 1000))
     if (await sessionPageOnAmazon(cfg, session.id)) break
     console.warn(`[browserbase] page not on Amazon after navigate attempt ${attempt}`)
   }
@@ -88,7 +88,8 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
   try {
     const live = await bb.sessions.debug(session.id)
     console.log('[browserbase] debug — pages:', JSON.stringify((live.pages ?? []).map(p => ({ url: p.url }))))
-    const page = live.pages?.[0]
+    // Prefer the page that's actually on Amazon over any stray blank target.
+    const page = live.pages?.find(p => (p.url ?? '').includes('amazon')) ?? live.pages?.[0]
     liveViewUrl = page?.debuggerFullscreenUrl ?? live.debuggerFullscreenUrl ?? page?.debuggerUrl
     console.log('[browserbase] using liveViewUrl:', liveViewUrl)
   } catch (err) {
@@ -103,25 +104,37 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
   }
 }
 
-// Drives the remote session to the KDP sign-in page via the Browserbase REST
-// API. Used at connect time and by the "Load Amazon sign-in" fallback button.
+// Drives the remote session to the KDP sign-in page by ATTACHING to the running
+// session over CDP (Stagehand session-resume) and calling page.goto directly.
+// This replaces a REST "/navigate" endpoint that DOES NOT EXIST in the
+// Browserbase API — it 404'd on every call, which is why the Live View kept
+// opening on about:blank no matter how many times the flow was "fixed".
+// IMPORTANT: never call stagehand.close() here — that would end the session
+// and kill the Live View the user is looking at. Disconnecting without close
+// leaves the session running (sessions survive dropped connections).
 export async function navigateSessionToKdp(cfg: BrowserbaseConfig, sessionId: string): Promise<boolean> {
   try {
-    const navRes = await fetch(
-      `https://www.browserbase.com/v1/sessions/${sessionId}/navigate`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-bb-api-key': cfg.apiKey,
-        },
-        body: JSON.stringify({ url: KDP_SIGNIN_URL }),
-      },
-    )
-    if (!navRes.ok) {
-      console.error('[browserbase] navigate failed — status:', navRes.status, 'body:', await navRes.text().catch(() => ''))
+    const { Stagehand } = await import('@browserbasehq/stagehand')
+    const stagehand = new Stagehand({
+      env: 'BROWSERBASE',
+      apiKey: cfg.apiKey,
+      projectId: cfg.projectId,
+      browserbaseSessionID: sessionId, // attach to the EXISTING live session
+      disablePino: true,
+      verbose: 0,
+      logger: () => { /* quiet */ },
+    })
+    await Promise.race([
+      stagehand.init(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('attach timed out after 20s')), 20_000)),
+    ])
+    const page = stagehand.context.activePage()
+    if (!page) {
+      console.error('[browserbase] navigate: no active page on session', sessionId)
       return false
     }
+    await page.goto(KDP_SIGNIN_URL, { waitUntil: 'domcontentloaded', timeoutMs: 15_000 })
+    console.log('[browserbase] navigated session to KDP sign-in via CDP attach')
     return true
   } catch (err) {
     console.error('[browserbase] FAILED to navigate session — message:', err instanceof Error ? err.message : String(err))
