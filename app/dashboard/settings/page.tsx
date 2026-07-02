@@ -1438,7 +1438,7 @@ export default function SettingsPage() {
                   <AmberBtn onClick={handleMetaBrowserSync} disabled={metaSyncing}>
                     {metaSyncing ? <Spinner /> : 'Sync now'}
                   </AmberBtn>
-                  <button onClick={connectMetaBrowser}
+                  <button onClick={connectMeta}
                     className="text-[10px] font-semibold px-3 py-1.5 rounded-[5px] border-none cursor-pointer"
                     style={{ background: 'rgba(30,45,61,0.06)', color: '#1E2D3D' }}>
                     Reconnect
@@ -1446,20 +1446,12 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <AmberBtn onClick={connectMetaBrowser} disabled={mbConnecting && mbPanelOpen}>
-                    {mbConnecting && mbPanelOpen
-                      ? <Spinner />
-                      : mbSyncStatus === 'needs_reauth' ? 'Reconnect Meta' : 'Connect Meta Ads'}
+                  {/* OAuth connect — official Graph API flow. Works in dev mode for
+                      the app owner and any Tester, and is the flow App Review approves.
+                      (The Browserbase cookie flow was retired — it locked FB accounts.) */}
+                  <AmberBtn onClick={connectMeta}>
+                    {mbSyncStatus === 'needs_reauth' ? 'Reconnect Meta' : 'Connect Meta Ads'}
                   </AmberBtn>
-                  <div className="text-[10px] leading-relaxed px-2.5 py-2 rounded-md"
-                    style={{ background: 'rgba(30,45,61,0.04)', border: '0.5px solid rgba(30,45,61,0.1)', color: '#6B7280' }}>
-                    Facebook blocking the login window? Install{' '}
-                    <a href="https://chrome.google.com/webstore" target="_blank" rel="noopener noreferrer"
-                      className="font-semibold hover:underline" style={{ color: '#E9A020' }}>
-                      Fetch
-                    </a>
-                    {' '}— it connects Meta from the browser you&apos;re already logged into, no login window needed.
-                  </div>
                 </div>
               )}
               {mbError && !mbPanelOpen && (

@@ -47,8 +47,9 @@ async function pair() {
     if (!res.ok) throw new Error('pair failed')
     const data = await res.json()
     extensionKey = data.extensionKey
-    lead.textContent = `Signed in as ${data.account}. Connect your Meta Ads to sync ad performance to AuthorDash.`
-    actions.appendChild(button('Connect Meta Ads', 'primary', connectMeta))
+    lead.textContent = `Signed in as ${data.account}. Connect a source to sync it to AuthorDash.`
+    actions.appendChild(button('Connect KDP', 'primary', connectKdp))
+    // Meta connect is temporarily disabled — the in-browser reader ships next.
   } catch {
     lead.textContent = 'Could not reach AuthorDash. Check your connection and try again.'
     actions.appendChild(button('Retry', 'ghost', pair))
@@ -60,6 +61,53 @@ function getCookie(name) {
   return new Promise((resolve) => {
     chrome.cookies.get({ url: 'https://www.facebook.com', name }, (c) => resolve(c ? c.value : null))
   })
+}
+
+// ── Connect KDP: read all Amazon cookies, hand them to AuthorDash ─────────────
+function getAllAmazonCookies() {
+  return new Promise((resolve) => {
+    chrome.cookies.getAll({ domain: 'amazon.com' }, (cookies) => {
+      resolve((cookies || []).map(c => ({
+        name: c.name, value: c.value, domain: c.domain,
+        path: c.path, secure: c.secure, httpOnly: c.httpOnly,
+      })))
+    })
+  })
+}
+
+async function connectKdp() {
+  const btn = actions.querySelector('button')
+  if (btn) { btn.disabled = true; btn.textContent = 'Connecting…' }
+  setStatus('Reading your Amazon session…', 'info')
+
+  const cookies = await getAllAmazonCookies()
+  const hasAuth = cookies.some(c => c.name === 'at-main' || c.name === 'sess-at-main')
+  if (!hasAuth) {
+    setStatus('You\'re not logged into Amazon KDP in this browser. Log in at kdp.amazon.com, then try again.', 'err')
+    if (btn) { btn.disabled = false; btn.textContent = 'Connect KDP' }
+    actions.appendChild(button('Open KDP', 'ghost', () => chrome.tabs.create({ url: 'https://kdp.amazon.com' })))
+    return
+  }
+
+  setStatus('Linking your KDP account to AuthorDash…', 'info')
+  try {
+    const res = await fetch(`${AUTHORDASH}/api/extension/kdp-cookies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${extensionKey}` },
+      body: JSON.stringify({ cookies }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (res.ok && data.ok) {
+      setStatus('✓ KDP connected! Your sales are syncing — check AuthorDash in a minute.', 'ok')
+      if (btn) btn.remove()
+    } else {
+      setStatus(data.error || 'Could not connect. Try again in a minute.', 'err')
+      if (btn) { btn.disabled = false; btn.textContent = 'Try again' }
+    }
+  } catch {
+    setStatus('Could not reach AuthorDash. Try again in a minute.', 'err')
+    if (btn) { btn.disabled = false; btn.textContent = 'Try again' }
+  }
 }
 
 async function connectMeta() {

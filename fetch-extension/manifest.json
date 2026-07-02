@@ -20,6 +20,7 @@
   "permissions": ["cookies"],
   "host_permissions": [
     "https://*.facebook.com/",
+    "https://*.amazon.com/",
     "https://authordash.io/"
   ]
 }
