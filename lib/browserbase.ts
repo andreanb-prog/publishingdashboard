@@ -55,9 +55,11 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
       projectId: cfg.projectId,
       browserSettings: {
         context: { id: context.id, persist: true },
-        // Match the Live View modal size so the remote page renders ~1:1 instead
-        // of a 1920px viewport scaled down into a small iframe (unreadable login).
-        viewport: { width: 1280, height: 800 },
+        // Small viewport on purpose: the Live View scales the remote page to fit
+        // the iframe, so a SMALLER viewport means everything renders BIGGER.
+        // At 768x576 the Amazon sign-in form fills the window and is readable
+        // for all users; a 1280+ viewport scaled down was too small to read.
+        viewport: { width: 768, height: 576 },
       },
     })
     console.log('[browserbase] session created — sessionId:', session.id)
@@ -67,28 +69,46 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
     throw err
   }
 
-  // 3. Live View URL for the iframe — use the page-specific debuggerUrl so the
-  // iframe shows the active tab rather than about:blank.
+  // 3. Navigate to KDP signin FIRST — with retries and verification — so the
+  // Live View never opens on about:blank. (Previously the debug URL was fetched
+  // before navigating; when the navigate call silently failed, users saw a blank
+  // page in the connect modal.)
+  await new Promise(resolve => setTimeout(resolve, 1000))
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await navigateSessionToKdp(cfg, session.id)
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    if (await sessionPageOnAmazon(cfg, session.id)) break
+    console.warn(`[browserbase] page not on Amazon after navigate attempt ${attempt}`)
+  }
+
+  // 4. Live View URL for the iframe — AFTER navigation so the page target is the
+  // sign-in page. Prefer the page-specific FULLSCREEN url: it has no debugger
+  // URL bar chrome, so the sign-in form gets the whole iframe (readability).
   let liveViewUrl: string
   try {
     const live = await bb.sessions.debug(session.id)
-    console.log('[browserbase] debug — debuggerFullscreenUrl:', live.debuggerFullscreenUrl)
-    console.log('[browserbase] debug — pages:', JSON.stringify(live.pages ?? []))
-    const pageUrl = live.pages?.[0]?.debuggerUrl
-    liveViewUrl = pageUrl ?? live.debuggerFullscreenUrl
+    console.log('[browserbase] debug — pages:', JSON.stringify((live.pages ?? []).map(p => ({ url: p.url }))))
+    const page = live.pages?.[0]
+    liveViewUrl = page?.debuggerFullscreenUrl ?? live.debuggerFullscreenUrl ?? page?.debuggerUrl
     console.log('[browserbase] using liveViewUrl:', liveViewUrl)
   } catch (err) {
     console.error('[browserbase] FAILED to fetch debug URL — message:', err instanceof Error ? err.message : String(err))
-    console.error('[browserbase] FAILED to fetch debug URL — stack:', err instanceof Error ? err.stack : '(no stack)')
     throw err
   }
 
-  // 4. Give the session 1 second to initialize, then navigate to KDP signin via
-  // the REST API so the Live View iframe shows the login page rather than about:blank.
-  await new Promise(resolve => setTimeout(resolve, 1000))
+  return {
+    contextId: context.id,
+    sessionId: session.id,
+    liveViewUrl,
+  }
+}
+
+// Drives the remote session to the KDP sign-in page via the Browserbase REST
+// API. Used at connect time and by the "Load Amazon sign-in" fallback button.
+export async function navigateSessionToKdp(cfg: BrowserbaseConfig, sessionId: string): Promise<boolean> {
   try {
     const navRes = await fetch(
-      `https://www.browserbase.com/v1/sessions/${session.id}/navigate`,
+      `https://www.browserbase.com/v1/sessions/${sessionId}/navigate`,
       {
         method: 'POST',
         headers: {
@@ -98,20 +118,25 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
         body: JSON.stringify({ url: KDP_SIGNIN_URL }),
       },
     )
-    console.log('[browserbase] navigate response status:', navRes.status)
     if (!navRes.ok) {
-      const text = await navRes.text()
-      console.error('[browserbase] navigate failed — body:', text)
+      console.error('[browserbase] navigate failed — status:', navRes.status, 'body:', await navRes.text().catch(() => ''))
+      return false
     }
+    return true
   } catch (err) {
     console.error('[browserbase] FAILED to navigate session — message:', err instanceof Error ? err.message : String(err))
+    return false
   }
+}
 
-  return {
-    contextId: context.id,
-    sessionId: session.id,
-    liveViewUrl,
-  }
+// True when the session's first page is anywhere on Amazon (sign-in or logged in).
+export async function sessionPageOnAmazon(cfg: BrowserbaseConfig, sessionId: string): Promise<boolean> {
+  try {
+    const bb = browserbaseClient(cfg)
+    const live = await bb.sessions.debug(sessionId)
+    const url = live.pages?.[0]?.url ?? ''
+    return url.includes('amazon')
+  } catch { return false }
 }
 
 // Decides whether a given page URL means the user is logged into KDP.

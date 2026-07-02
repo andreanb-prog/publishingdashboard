@@ -830,6 +830,21 @@ export default function SettingsPage() {
   }
 
   // Manual login confirmation — called when user clicks "I've logged in →"
+  function completeKdpConnect(lastSyncAt?: string | null) {
+    setKdpSyncStatus('connected')
+    setKdpLastSyncAt(lastSyncAt ?? new Date().toISOString())
+    setKdpPanelOpen(false)
+    setKdpLiveUrl(null)
+    setKdpSessionId(null)
+    setKdpJustConnected(true)
+    // Auto-run the first sync so the "your first sync is running" banner is
+    // true and new users never have to find Sync Now. Delayed 10s so the login
+    // session finishes releasing its Context lock first.
+    setTimeout(() => {
+      fetch('/api/browserbase/sync-now', { method: 'POST' }).catch(() => {})
+    }, 10_000)
+  }
+
   async function confirmKdpLogin() {
     if (!kdpSessionId) return
     setKdpVerifying(true)
@@ -842,12 +857,7 @@ export default function SettingsPage() {
       })
       const json = await res.json()
       if (json.status === 'connected') {
-        setKdpSyncStatus('connected')
-        setKdpLastSyncAt(json.lastSyncAt ?? new Date().toISOString())
-        setKdpPanelOpen(false)
-        setKdpLiveUrl(null)
-        setKdpSessionId(null)
-        setKdpJustConnected(true)
+        completeKdpConnect(json.lastSyncAt)
       } else {
         setKdpVerifyError('Please complete login first')
       }
@@ -855,6 +865,43 @@ export default function SettingsPage() {
       setKdpVerifyError('Could not verify — please try again')
     } finally {
       setKdpVerifying(false)
+    }
+  }
+
+  // Auto-detect login: while the connect window is open, quietly check every 5s
+  // whether the user has finished signing in — and finish the connection for
+  // them. No button hunting: the window simply closes and shows success.
+  useEffect(() => {
+    if (!kdpPanelOpen || !kdpSessionId) return
+    const iv = setInterval(async () => {
+      try {
+        const res = await fetch('/api/browserbase/check-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: kdpSessionId }),
+        })
+        const json = await res.json()
+        if (json.status === 'connected') completeKdpConnect(json.lastSyncAt)
+      } catch { /* keep polling */ }
+    }, 5000)
+    return () => clearInterval(iv)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kdpPanelOpen, kdpSessionId])
+
+  // Fallback when the window opens blank: re-drive the remote browser to the
+  // Amazon sign-in page from the server side.
+  const [kdpNavRetrying, setKdpNavRetrying] = useState(false)
+  async function retryKdpNavigate() {
+    if (!kdpSessionId || kdpNavRetrying) return
+    setKdpNavRetrying(true)
+    try {
+      await fetch('/api/browserbase/navigate-kdp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: kdpSessionId }),
+      })
+    } catch { /* non-fatal */ } finally {
+      setTimeout(() => setKdpNavRetrying(false), 3000)
     }
   }
 
@@ -1112,22 +1159,32 @@ export default function SettingsPage() {
                 >
                   <div
                     className="rounded-[10px] overflow-hidden flex flex-col"
-                    style={{ background: '#FFF8F0', border: '0.5px solid rgba(30,45,61,0.12)', width: 'min(1320px, 96vw)', maxHeight: '94vh' }}
+                    style={{ background: '#FFF8F0', border: '0.5px solid rgba(30,45,61,0.12)', width: 'min(1320px, 96vw)', height: 'min(860px, 94vh)' }}
                   >
                     <div
                       className="flex items-center justify-between px-4 py-3"
                       style={{ borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}
                     >
                       <span className="text-[12px] font-semibold" style={{ color: '#1E2D3D' }}>
-                        Log in to KDP — we&apos;ll handle everything after that.
+                        Log in to KDP — we&apos;ll finish connecting automatically.
                       </span>
-                      <button
-                        onClick={closeKdpPanel}
-                        className="text-[10px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
-                        style={{ color: '#9CA3AF' }}
-                      >
-                        Cancel
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={retryKdpNavigate}
+                          disabled={kdpNavRetrying}
+                          className="text-[11px] font-semibold px-2.5 py-1.5 rounded-md cursor-pointer"
+                          style={{ background: 'rgba(233,160,32,0.12)', color: '#B87A0E', border: '0.5px solid rgba(233,160,32,0.4)', opacity: kdpNavRetrying ? 0.6 : 1 }}
+                        >
+                          {kdpNavRetrying ? 'Loading…' : 'Blank window? Load Amazon sign-in'}
+                        </button>
+                        <button
+                          onClick={closeKdpPanel}
+                          className="text-[10px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
+                          style={{ color: '#9CA3AF' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                     {kdpConnecting || !kdpLiveUrl ? (
                       <div className="flex flex-col items-center justify-center gap-3 py-16">
@@ -1139,13 +1196,13 @@ export default function SettingsPage() {
                     ) : (
                       <>
                         <p className="px-4 py-2 text-[11px]" style={{ color: '#6B7280', borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}>
-                          Log into Amazon KDP inside this window, then click the button below.
+                          Log into Amazon KDP inside this window. As soon as you&apos;re signed in, this window closes itself and your first sync starts — nothing else to click.
                         </p>
                         <iframe
                           src={kdpLiveUrl}
                           title="KDP Live View"
                           className="w-full block"
-                          style={{ height: 'calc(94vh - 170px)', minHeight: 500, border: 'none', background: 'white' }}
+                          style={{ flex: '1 1 auto', minHeight: 300, border: 'none', background: 'white' }}
                           sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
                           allow="clipboard-read; clipboard-write"
                         />

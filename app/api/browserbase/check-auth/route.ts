@@ -4,7 +4,7 @@ export const maxDuration = 30
 import { NextRequest, NextResponse } from 'next/server'
 import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
-import { getBrowserbaseConfig, browserbaseClient } from '@/lib/browserbase'
+import { getBrowserbaseConfig, browserbaseClient, checkKdpLoggedIn } from '@/lib/browserbase'
 
 // POST — polled every 5s by Settings while the KDP Live View panel is open.
 // Retrieves the existing session status; if RUNNING, marks the user as connected.
@@ -47,6 +47,15 @@ export async function POST(req: NextRequest) {
     const bbSession = await bb.sessions.retrieve(sessionId)
 
     if (bbSession.status !== 'RUNNING') {
+      return NextResponse.json({ status: 'pending' })
+    }
+
+    // Verify the user has ACTUALLY reached a signed-in KDP page. A RUNNING
+    // session alone proves nothing — the Live View session is RUNNING from the
+    // moment the connect panel opens. Without this check, auto-polling would
+    // mark users "connected" (and release their session) before they log in.
+    const { loggedIn } = await checkKdpLoggedIn(cfg, sessionId)
+    if (!loggedIn) {
       return NextResponse.json({ status: 'pending' })
     }
 
