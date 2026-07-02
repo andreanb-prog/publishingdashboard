@@ -9,8 +9,11 @@ const KDP_SIGNIN_URL = 'https://kdp.amazon.com/en_US/signin'
 
 // Meta: send users to the Facebook login with a next= into Ads Manager so that
 // after signing in they land on the ads surface we sync from.
+// m.facebook.com on purpose: the mobile login flow renders reliably (incl. the
+// two-factor step) in the small embedded viewport, where the desktop
+// two_step_verification page rendered blank and stalled users mid-connect.
 export const META_ADSMANAGER_URL = 'https://adsmanager.facebook.com/adsmanager/manage/campaigns'
-const META_LOGIN_URL = `https://www.facebook.com/login.php?next=${encodeURIComponent(META_ADSMANAGER_URL)}`
+const META_LOGIN_URL = `https://m.facebook.com/login.php?next=${encodeURIComponent(META_ADSMANAGER_URL)}`
 
 export interface BrowserbaseConfig {
   apiKey: string
@@ -42,14 +45,14 @@ export interface KdpLiveSession {
 // then fails the NEXT connect with a RateLimitError. Best-effort sweep: release
 // RUNNING sessions older than 10 minutes — real logins finish well under that,
 // and nightly syncs release their own sessions.
-export async function releaseStaleRunningSessions(cfg: BrowserbaseConfig, keepSessionId?: string): Promise<void> {
+export async function releaseStaleRunningSessions(cfg: BrowserbaseConfig, keepSessionId?: string, maxAgeMs = 10 * 60_000): Promise<void> {
   try {
     const bb = browserbaseClient(cfg)
     const sessions = await bb.sessions.list({ status: 'RUNNING' })
     for (const s of sessions) {
       if (s.id === keepSessionId) continue
       const age = Date.now() - new Date(s.createdAt).getTime()
-      if (age > 10 * 60_000) {
+      if (age > maxAgeMs) {
         console.log('[browserbase] releasing stale session', s.id, `(${Math.round(age / 60000)}m old)`)
         await bb.sessions.update(s.id, { status: 'REQUEST_RELEASE', projectId: cfg.projectId }).catch(() => undefined)
       }
@@ -72,8 +75,11 @@ async function createSessionWithRetry(
     const msg = err instanceof Error ? err.message : String(err)
     const isLimit = /rate|429|concurrent|limit/i.test(msg)
     if (!isLimit) throw err
+    // Aggressive 2-minute threshold here: when the cap is BLOCKING a new
+    // connect, a lingering session is almost always an abandoned or stuck
+    // connect attempt (e.g. a dead 2FA page) — supersede it.
     console.warn('[browserbase] session cap hit — sweeping stale sessions and retrying once')
-    await releaseStaleRunningSessions(cfg)
+    await releaseStaleRunningSessions(cfg, undefined, 2 * 60_000)
     await new Promise(resolve => setTimeout(resolve, 4000))
     return await bb.sessions.create(params)
   }
