@@ -96,9 +96,9 @@ export async function injectMetaCookies(
       { name: 'c_user', value: cookies.cUser, domain, ...common, httpOnly: false },
       { name: 'xs',     value: cookies.xs,    domain, ...common },
     ]))
-    // Playwright-style addCookies on the underlying browser context.
-    const ctx = (page as unknown as { context: () => { addCookies: (c: unknown[]) => Promise<void> } }).context()
-    await ctx.addCookies(cookieList)
+    // stagehand.context IS the Playwright BrowserContext — addCookies lives there
+    // directly (page.context() is not exposed in Stagehand v3).
+    await (stagehand.context as unknown as { addCookies: (c: unknown[]) => Promise<void> }).addCookies(cookieList)
 
     // 4. Verify: load Ads Manager. If cookies are valid we land on the ads UI;
     //    if not we bounce to login. Never write "connected" unless verified.
