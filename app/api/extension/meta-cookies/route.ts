@@ -1,9 +1,10 @@
 export const dynamic = 'force-dynamic'
-export const maxDuration = 120 // context create + attach + verify
+export const maxDuration = 300 // context create + verify + first sync
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getBrowserbaseConfig, injectMetaCookies } from '@/lib/browserbase'
+import { syncMetaForUser } from '@/lib/browserbase/meta-sync'
 
 // POST — the Fetch extension uploads the user's Facebook session cookies here.
 // Auth is the per-user extensionKey (Bearer), NOT the site session, because the
@@ -71,6 +72,16 @@ export async function POST(req: NextRequest) {
         ...(existing?.metaAdAccountId ? {} : adAccountId ? { metaAdAccountId: adAccountId } : {}),
       },
     })
+
+    // Run the first sync NOW so data lands immediately. The Live View flow
+    // triggers this from the client on connect; the extension can't, so we do it
+    // server-side here. Non-fatal: if it fails, the nightly cron still covers it.
+    try {
+      await syncMetaForUser(user.id)
+    } catch (syncErr) {
+      console.warn('[extension/meta-cookies] first sync failed (cron will retry):',
+        syncErr instanceof Error ? syncErr.message : String(syncErr))
+    }
 
     return NextResponse.json({ ok: true, adAccountId: adAccountId ?? null })
   } catch (err) {

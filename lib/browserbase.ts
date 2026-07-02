@@ -117,6 +117,75 @@ export async function injectMetaCookies(
   }
 }
 
+// ── Fetch cookie injection (KDP) ──────────────────────────────────────────────
+// Backup to the KDP Live View flow. Amazon binds its session to a BUNDLE of
+// cookies (at-main, sess-at-main, x-main, ubid-main, session-token, …) rather
+// than two like Facebook, so the extension sends ALL .amazon.com cookies and we
+// plant every one. More fragile than Facebook (Amazon ties cookies to IP/device
+// more tightly), so this connection may need re-linking more often — that's what
+// the needs_reauth state is for.
+export interface RawCookie {
+  name:     string
+  value:    string
+  domain:   string
+  path?:    string
+  secure?:  boolean
+  httpOnly?: boolean
+}
+
+export async function injectKdpCookies(
+  cfg: BrowserbaseConfig,
+  cookies: RawCookie[],
+): Promise<{ contextId: string; loggedIn: boolean }> {
+  const bb = browserbaseClient(cfg)
+  const context = await bb.contexts.create({ projectId: cfg.projectId })
+  const session = await createSessionWithRetry(cfg, {
+    projectId: cfg.projectId,
+    browserSettings: { context: { id: context.id, persist: true } },
+  })
+
+  const { Stagehand } = await import('@browserbasehq/stagehand')
+  const stagehand = new Stagehand({
+    env: 'BROWSERBASE',
+    apiKey: cfg.apiKey,
+    projectId: cfg.projectId,
+    browserbaseSessionID: session.id,
+    disablePino: true,
+    verbose: 0,
+    logger: () => { /* quiet */ },
+  })
+
+  try {
+    await Promise.race([
+      stagehand.init(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('attach timed out after 20s')), 20_000)),
+    ])
+    const page = stagehand.context.activePage()
+    if (!page) throw new Error('No active page to inject cookies into')
+
+    const cookieList = cookies
+      .filter(c => c.name && c.value)
+      .map(c => ({
+        name: c.name,
+        value: c.value,
+        domain: c.domain?.startsWith('.') ? c.domain : `.amazon.com`,
+        path: c.path || '/',
+        secure: c.secure ?? true,
+        httpOnly: c.httpOnly ?? false,
+        sameSite: 'None' as const,
+      }))
+    await (stagehand.context as unknown as { addCookies: (c: unknown[]) => Promise<void> }).addCookies(cookieList)
+
+    await page.goto('https://kdpreports.amazon.com/dashboard', { waitUntil: 'domcontentloaded', timeoutMs: 20_000 })
+    await page.waitForTimeout(4000)
+    const loggedIn = isKdpLoggedInUrl(page.url())
+
+    return { contextId: context.id, loggedIn }
+  } finally {
+    try { await stagehand.close() } catch { /* ignore */ }
+  }
+}
+
 // ── Session hygiene ───────────────────────────────────────────────────────────
 // Browserbase enforces a concurrent-session cap. Abandoned connect-flow sessions
 // (user closed the tab, an error mid-flow) keep RUNNING and clog the cap, which
