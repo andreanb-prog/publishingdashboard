@@ -10,6 +10,13 @@ Your `ads_read` App Review submission is **built and trimmed to the clean read-o
 - `public_profile` ✓ (auto-granted, harmless)
 - **Removed:** ads_management, business_management, pages_show_list, pages_read_engagement (the bundle that sank past attempts)
 
+## ⛔ BEFORE YOU TOUCH META AGAIN — account cooldown
+Facebook locked the account **twice** on July 1 (once from Browserbase server-IP sync, once even from a normal OAuth login). The account is on a hair-trigger — Facebook has it flagged high-risk after the day's events.
+- **Change the Facebook password** (settles Facebook's trust system fastest).
+- **Wait ~24 hours of no Meta activity** before attempting the screencast. A normal OAuth login should behave once it cools off.
+- Do NOT retry Meta connect/login repeatedly — each attempt on a flagged account digs deeper.
+- AuthorDash won't touch it meanwhile: Meta is paused in DB (`needs_reauth`), cron skips it, cookie route disabled.
+
 ## The 3 steps left to submit
 1. **Reconnect Meta (to enable the screencast demo).**
    - Your OAuth token **expired June 27** — that's why data is stale.
