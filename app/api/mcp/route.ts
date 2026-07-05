@@ -328,6 +328,9 @@ function buildServer(userId: string): McpServer {
     async ({ book_id, name, channel, due_date, phase }) => {
       await autoLog()
 
+      const ownedBook = await db.book.findFirst({ where: { id: book_id, userId } })
+      if (!ownedBook) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Book not found' }) }], isError: true }
+
       const task = await db.launchTask.create({
         data: {
           userId,
@@ -356,6 +359,9 @@ function buildServer(userId: string): McpServer {
     },
     async ({ book_id, phase, summary, context }) => {
       await autoLog()
+
+      const ownedBook = await db.book.findFirst({ where: { id: book_id, userId } })
+      if (!ownedBook) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Book not found' }) }], isError: true }
 
       const decision = await db.decisionsLog.create({
         data: { userId, bookId: book_id, phase, summary, context: context ?? null },
@@ -402,6 +408,9 @@ function buildServer(userId: string): McpServer {
     },
     async ({ book_id, hook_text, trope, format }) => {
       await autoLog()
+
+      const ownedBook = await db.book.findFirst({ where: { id: book_id, userId } })
+      if (!ownedBook) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Book not found' }) }], isError: true }
 
       const hook = await db.hookTracker.create({
         data: {

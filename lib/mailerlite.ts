@@ -14,7 +14,6 @@ const ML = 'https://connect.mailerlite.com/api'
 async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; data: any }> {
   const url = `${ML}${path}`
   console.log('[mailerlite] fetching url:', url)
-  console.log('[mailerlite] key prefix:', apiKey?.slice(0, 8))
   try {
     const res = await fetch(url, {
       cache: 'no-store',
@@ -48,7 +47,7 @@ export async function getMailerLiteStats(apiKey: string, groupId?: string) {
     'Accept': 'application/json',
   }
   const opts = { headers, cache: 'no-store' as const }
-  const groupFilter = groupId ? `&filters[group_id]=${encodeURIComponent(groupId)}` : ''
+  const groupFilter = groupId ? `&filter[group_id]=${encodeURIComponent(groupId)}` : ''
 
   const [activeRes, unsubRes] = await Promise.all([
     fetch(`https://connect.mailerlite.com/api/subscribers?limit=0${groupFilter}`, opts),
@@ -94,7 +93,7 @@ export async function fetchMailerLiteStats(apiKey: string, groupId?: string): Pr
   // Note: campaign filtering by group_id requires MailerLite paid plan;
   // the filter may be silently ignored on free plans — all campaigns shown in that case
   const campPath = groupId
-    ? `/campaigns?limit=100&filter[status]=sent&sort=-sent_at&filters[group_id]=${encodeURIComponent(groupId)}`
+    ? `/campaigns?limit=100&filter[status]=sent&sort=-sent_at&filter[group_id]=${encodeURIComponent(groupId)}`
     : `/campaigns?limit=100&filter[status]=sent&sort=-sent_at`
   const campResult = await mlFetch(campPath, apiKey)
   console.log('[MailerLite] campaigns response ok:', campResult.ok, '| raw count:', campResult.data?.data?.length ?? 0)
@@ -162,19 +161,21 @@ export async function fetchMailerLiteStats(apiKey: string, groupId?: string): Pr
   }
 }
 
+// Returns null (not 0) on failure so callers can distinguish "empty list" from
+// "fetch failed" and avoid overwriting good data with a transient-outage zero.
 async function getSubscriberCount(
   apiKey: string,
   status: 'active' | 'unsubscribed',
   groupId: string,
-): Promise<number> {
+): Promise<number | null> {
   const url = `${ML}/subscribers?limit=0&filter[status]=${status}&filter[group_id]=${groupId}`
   try {
     const res = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}` } })
-    if (!res.ok) return 0
+    if (!res.ok) return null
     const json = await res.json()
     return json.total ?? 0
   } catch {
-    return 0
+    return null
   }
 }
 
@@ -194,6 +195,7 @@ export async function syncMailerLiteToAnalysis(userId: string): Promise<void> {
   // Update per-list counts and aggregate totals
   let totalActive = 0
   let totalUnsub = 0
+  let anyFailed = false
   if (lists.length > 0) {
     const results = await Promise.allSettled(
       lists.map(async (list) => {
@@ -201,17 +203,24 @@ export async function syncMailerLiteToAnalysis(userId: string): Promise<void> {
           getSubscriberCount(apiKey, 'active', list.mailerliteId),
           getSubscriberCount(apiKey, 'unsubscribed', list.mailerliteId),
         ])
+        // A failed fetch returns null — skip this list's DB update rather than
+        // writing a 0 that would clobber the last known-good count.
+        if (activeCount === null || unsubCount === null) {
+          return { failed: true as const }
+        }
         await db.mailerLiteList.update({
           where: { id: list.id },
           data: { activeCount, unsubCount, lastSyncedAt: new Date() },
         })
-        return { activeCount, unsubCount }
+        return { failed: false as const, activeCount, unsubCount }
       }),
     )
     for (const r of results) {
-      if (r.status === 'fulfilled') {
+      if (r.status === 'fulfilled' && !r.value.failed) {
         totalActive += r.value.activeCount
         totalUnsub  += r.value.unsubCount
+      } else {
+        anyFailed = true
       }
     }
   }
@@ -238,6 +247,13 @@ export async function syncMailerLiteToAnalysis(userId: string): Promise<void> {
     }
   } catch {
     // rates unavailable — continue without them
+  }
+
+  // If any list count failed to fetch, the aggregate would undercount the real
+  // list — skip the analysis write entirely rather than persist a bad total.
+  if (anyFailed) {
+    console.warn('[syncMailerLiteToAnalysis] a subscriber-count fetch failed — skipping analysis write to avoid clobbering good data')
+    return
   }
 
   // Write to the current month's analysis record

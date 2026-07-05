@@ -17,6 +17,15 @@ export interface PinterestOverviewData {
   }[]
 }
 
+// Parse an integer metric, tolerating quotes, thousands separators ("1,234"),
+// and stray whitespace. Plain parseInt("1,234") returns 1, silently dividing
+// every value ≥1000 by ~1000.
+function toInt(v: string | undefined): number {
+  if (!v) return 0
+  const n = parseInt(v.replace(/[^0-9-]/g, ''), 10)
+  return isNaN(n) ? 0 : n
+}
+
 function splitCSV(line: string): string[] {
   const result: string[] = []
   let cur = ''
@@ -56,12 +65,10 @@ export function parsePinterest(csvText: string): PinterestOverviewData {
       // Allow empty impression values — skip the row but don't break
       if (!impStr) continue
 
-      const imp = parseInt(impStr, 10)
-      if (!isNaN(imp)) {
-        totalImpressions += imp
-        if (!firstDate) firstDate = date
-        lastDate = date
-      }
+      const imp = toInt(impStr)
+      totalImpressions += imp
+      if (!firstDate) firstDate = date
+      lastDate = date
     }
   }
 
@@ -92,11 +99,11 @@ export function parsePinterest(csvText: string): PinterestOverviewData {
 
       topBoards.push({
         url,
-        impressions:    parseInt(parts[1]?.replace(/"/g, '') || '0', 10) || 0,
-        engagement:     parseInt(parts[2]?.replace(/"/g, '') || '0', 10) || 0,
-        pinClicks:      parseInt(parts[3]?.replace(/"/g, '') || '0', 10) || 0,
-        outboundClicks: parseInt(parts[4]?.replace(/"/g, '') || '0', 10) || 0,
-        saves:          parseInt(parts[5]?.replace(/"/g, '') || '0', 10) || 0,
+        impressions:    toInt(parts[1]),
+        engagement:     toInt(parts[2]),
+        pinClicks:      toInt(parts[3]),
+        outboundClicks: toInt(parts[4]),
+        saves:          toInt(parts[5]),
       })
     }
   }
@@ -123,7 +130,7 @@ export function parsePinterest(csvText: string): PinterestOverviewData {
 
       topPins.push({
         url,
-        impressions: parseInt(parts[4]?.replace(/"/g, '') || '0', 10) || 0,
+        impressions: toInt(parts[4]),
       })
     }
   }

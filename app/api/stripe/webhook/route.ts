@@ -100,7 +100,10 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (err) {
+    // Return 500 so Stripe retries — swallowing this would silently drop the
+    // subscription update (e.g. a paid user never gets marked subscribed).
     console.error('[Stripe Webhook] Handler error:', err)
+    return NextResponse.json({ error: 'Handler failed' }, { status: 500 })
   }
 
   return NextResponse.json({ received: true })

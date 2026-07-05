@@ -133,6 +133,13 @@ export async function POST() {
     )
 
     const data = await response.json()
+    // Fail loudly instead of silently returning { success: true, synced: 0 }:
+    // on a 401/429/Notion error there are no `results`, so allPages stays empty
+    // and the sync looks successful while doing nothing.
+    if (!response.ok || data.object === 'error') {
+      const detail = data?.message || `HTTP ${response.status}`
+      return NextResponse.json({ error: `Notion query failed: ${detail}` }, { status: 502 })
+    }
     allPages = allPages.concat(data.results || [])
     cursor = data.has_more ? data.next_cursor : undefined
   } while (cursor)

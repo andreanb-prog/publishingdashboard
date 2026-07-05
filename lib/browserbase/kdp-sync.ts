@@ -137,11 +137,11 @@ export async function syncKdpForUser(userId: string): Promise<void> {
     try { currentHost = new URL(currentUrl).hostname.toLowerCase() } catch { /* keep empty */ }
     // Logged in when we're anywhere on the reports host (root OR /dashboard —
     // Amazon sometimes drops the path). Only treat as a login bounce if we were
-    // sent to a sign-in page or the marketing site (kdp.amazon.com).
+    // sent to an actual sign-in page or the marketing site (kdp.amazon.com).
     const isLoginPage =
       currentUrl.includes('/ap/signin') ||
       currentUrl.includes('/signin') ||
-      currentHost !== 'kdpreports.amazon.com'
+      currentHost === 'kdp.amazon.com'
 
     if (isLoginPage) {
       await db.user.update({
@@ -158,6 +158,14 @@ export async function syncKdpForUser(userId: string): Promise<void> {
         },
       })
       return
+    }
+
+    // Any OTHER unexpected host (captcha, robot-check, error interstitial, or an
+    // unparseable URL) is a TRANSIENT failure — NOT login expiry. Throw so it's
+    // recorded as a sync_error and kdpSyncStatus stays 'connected', instead of
+    // wrongly flipping to needs_reauth and dropping the user from the nightly cron.
+    if (currentHost !== 'kdpreports.amazon.com') {
+      throw new Error(`Unexpected KDP host (transient, not reauth): ${currentUrl}`)
     }
 
     // 5. Make sure the "This month" view is selected. NON-FATAL: it may already
@@ -316,10 +324,13 @@ If a value shows a dash or is missing, return 0.`,
       }
     }
 
-    // 8. Update user sync metadata and mark success
+    // 8. Update user sync metadata and mark success. Also restore 'connected':
+    // if the user had been flagged 'needs_reauth' (possibly by a transient blip),
+    // a successful extraction proves the session is valid again — otherwise the
+    // nightly cron (which selects only kdpSyncStatus:'connected') drops them forever.
     await db.user.update({
       where: { id: userId },
-      data: { kdpLastSyncAt: new Date() },
+      data: { kdpLastSyncAt: new Date(), kdpSyncStatus: 'connected' },
     })
 
     await db.syncLog.update({

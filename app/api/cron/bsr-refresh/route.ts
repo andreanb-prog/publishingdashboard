@@ -87,16 +87,30 @@ export async function GET(req: NextRequest) {
           errorDetails.push(detail)
           errors++
         } else {
-          await db.bsrLog.create({
-            data: {
-              userId: book.userId,
-              asin,
-              bookTitle: book.title,
-              rank: result.rank,
-              date: today,
-              fetchedAt: new Date(),
-            },
+          // Update today's row if one exists (e.g. under ?force=true, which
+          // bypasses the skip check above), otherwise create — never append a
+          // duplicate same-day row.
+          const existingToday = await db.bsrLog.findFirst({
+            where: { userId: book.userId, asin, date: { gte: today, lt: dayEnd } },
+            select: { id: true },
           })
+          if (existingToday) {
+            await db.bsrLog.update({
+              where: { id: existingToday.id },
+              data: { rank: result.rank, bookTitle: book.title, fetchedAt: new Date() },
+            })
+          } else {
+            await db.bsrLog.create({
+              data: {
+                userId: book.userId,
+                asin,
+                bookTitle: book.title,
+                rank: result.rank,
+                date: today,
+                fetchedAt: new Date(),
+              },
+            })
+          }
           processed++
           console.log(`[cron/bsr-refresh] logged rank=${result.rank} for ASIN=${asin}`)
         }

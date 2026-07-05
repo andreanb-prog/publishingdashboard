@@ -2,7 +2,6 @@
 import { db } from '@/lib/db'
 import { parseKDPFile } from '@/lib/parsers/kdp'
 import { syncMailerLiteToAnalysis } from '@/lib/mailerlite'
-import { shouldOverwrite } from '@/lib/kdpDataPriority'
 import type { KDPData, KdpRawRow } from '@/types'
 
 export interface KDPUploadResult {
@@ -66,8 +65,13 @@ export async function handleKDPUpload(
   for (const month of uploadedMonths) {
     const [yr, mo] = month.split('-').map(Number)
     const nextMo = mo === 12 ? `${yr + 1}-01` : `${yr}-${String(mo + 1).padStart(2, '0')}`
+    // Only CSV rows: browserbase writes an `ALL_BOOKS` month-aggregate row and the
+    // extension writes MTD snapshot rows into the same table/month. Summing those
+    // together with the CSV per-day rows double-counts every unit/KENP/royalty and
+    // injects a phantom "ALL_BOOKS" book. Those sources are merged separately on the
+    // read path (lib/kdpDataPriority.ts); this CSV-upload analysis record is CSV-only.
     const accRows = await db.kdpSale.findMany({
-      where: { userId, date: { gte: `${month}-01`, lt: `${nextMo}-01` } },
+      where: { userId, source: 'csv', date: { gte: `${month}-01`, lt: `${nextMo}-01` } },
     })
     if (accRows.length === 0) continue
 

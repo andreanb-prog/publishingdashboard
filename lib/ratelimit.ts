@@ -27,10 +27,15 @@ export const analyzeLimiter = makeLimiter(5, 60)
 export const metaSyncLimiter = makeLimiter(10, 60)
 export const authLimiter = makeLimiter(10, 60)
 
-export const RATE_LIMIT_RESPONSE = Response.json(
-  { error: 'Too many requests, please try again shortly.' },
-  { status: 429, headers: { 'Retry-After': '60' } }
-)
+// Must be a factory, not a shared constant: a Response body can only be consumed
+// once, so returning the same instance twice throws "Body is unusable" and yields
+// a 500 instead of a 429 on every rate-limited request after the first.
+export function rateLimitResponse(): Response {
+  return Response.json(
+    { error: 'Too many requests, please try again shortly.' },
+    { status: 429, headers: { 'Retry-After': '60' } }
+  )
+}
 
 export async function checkRateLimit(
   limiter: Ratelimit | null,

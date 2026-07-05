@@ -2,7 +2,7 @@
 // API version: v21.0 (minimum required for current Insights API)
 import { NextRequest, NextResponse } from 'next/server'
 import { getAugmentedSession } from '@/lib/getSession'
-import { metaSyncLimiter, checkRateLimit, RATE_LIMIT_RESPONSE } from '@/lib/ratelimit'
+import { metaSyncLimiter, checkRateLimit, rateLimitResponse } from '@/lib/ratelimit'
 import { db } from '@/lib/db'
 import type { MetaAd, MetaData } from '@/types'
 import { GRAPH, fetchAccountAds } from '@/lib/metaGraphApi'
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { limited } = await checkRateLimit(metaSyncLimiter, `meta-sync:${session.user.id}`)
-  if (limited) return RATE_LIMIT_RESPONSE
+  if (limited) return rateLimitResponse()
 
   await req.json().catch(() => {}) // consume body
 

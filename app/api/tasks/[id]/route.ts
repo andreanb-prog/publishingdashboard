@@ -22,7 +22,16 @@ export async function PATCH(
   }
 
   const body = await req.json()
-  const data: Record<string, unknown> = { ...body }
+
+  // Whitelist updatable fields — never let the client set userId, timestamps, etc.
+  const data: Record<string, unknown> = {}
+  const allowed = [
+    'title', 'description', 'priority', 'status',
+    'category', 'assignee', 'assignedTo',
+  ] as const
+  for (const key of allowed) {
+    if (body[key] !== undefined) data[key] = body[key]
+  }
 
   if (body.dueDate !== undefined) {
     data.dueDate = body.dueDate ? new Date(body.dueDate) : null

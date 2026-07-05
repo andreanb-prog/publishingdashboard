@@ -203,7 +203,10 @@ export function aggregateKdp<T extends KdpSaleRow>(
     }
 
     // ── Daily series for chart shape (all CSV rows in range, incl. shapeOnly) ──
-    if (!isExtension) {
+    // Exclude BOTH extension and browserbase: their rows are month-aggregate MTD
+    // snapshots dated to the 1st (browserbase uses the ALL_BOOKS sentinel), so
+    // charting them would render a whole month's totals as a single-day spike.
+    if (row.source !== 'extension' && row.source !== 'browserbase') {
       const inRange = !range || (row.date >= range.start && row.date <= range.end)
       if (inRange) {
         dailySeries.push({

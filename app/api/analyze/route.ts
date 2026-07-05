@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAugmentedSession } from '@/lib/getSession'
-import { analyzeLimiter, checkRateLimit, RATE_LIMIT_RESPONSE } from '@/lib/ratelimit'
+import { analyzeLimiter, checkRateLimit, rateLimitResponse } from '@/lib/ratelimit'
 import { anthropic, CLAUDE_MODEL, COACHING_SYSTEM_PROMPT } from '@/lib/anthropic'
 import { db } from '@/lib/db'
 import { resolveKdpRows, aggregateKdp } from '@/lib/kdpDataPriority'
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { limited } = await checkRateLimit(analyzeLimiter, `analyze:${session.user.id}`)
-  if (limited) return RATE_LIMIT_RESPONSE
+  if (limited) return rateLimitResponse()
 
   // Parse body eagerly so it's available inside the async stream worker
   let body: { kdp?: KDPData; meta?: MetaData; mailerLite?: MailerLiteData; pinterest?: PinterestData; month: string }

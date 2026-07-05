@@ -2,14 +2,14 @@
 import { NextRequest } from 'next/server'
 import NextAuth from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { authLimiter, checkRateLimit, RATE_LIMIT_RESPONSE } from '@/lib/ratelimit'
+import { authLimiter, checkRateLimit, rateLimitResponse } from '@/lib/ratelimit'
 
 const handler = NextAuth(authOptions)
 
 async function rateLimitedHandler(req: NextRequest, context: { params: { nextauth: string[] } }) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
   const { limited } = await checkRateLimit(authLimiter, `auth:${ip}`)
-  if (limited) return RATE_LIMIT_RESPONSE
+  if (limited) return rateLimitResponse()
   return handler(req as any, context as any)
 }
 

@@ -10,6 +10,16 @@ function findKey(obj: Record<string, any>, candidates: string[]) {
   return candidates.find(k => k in obj) ?? null
 }
 
+// Parse a currency/number cell. XLSX may give a real number, or a formatted
+// string like "$1,234.56" — plain parseFloat("1,234.56") returns 1 and
+// parseFloat("$45") returns NaN, so strip everything but digits, sign and dot.
+function parseMoney(v: unknown): number {
+  if (typeof v === 'number') return isFinite(v) ? v : 0
+  if (v == null) return 0
+  const n = parseFloat(String(v).replace(/[^0-9.-]/g, ''))
+  return isFinite(n) ? n : 0
+}
+
 export async function POST(req: NextRequest) {
   const session = await getAugmentedSession()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -79,8 +89,8 @@ export async function POST(req: NextRequest) {
       if (isNaN(date.getTime())) continue
       if (date < cutoff) continue  // skip rows older than 21 days
 
-      const spend    = parseFloat(row[spendKey]   ?? 0) || 0
-      const earnings = earningsKey ? (parseFloat(row[earningsKey] ?? 0) || 0) : 0
+      const spend    = parseMoney(row[spendKey])
+      const earnings = earningsKey ? parseMoney(row[earningsKey]) : 0
 
       if (spend === 0) continue  // skip zero-spend rows
 
