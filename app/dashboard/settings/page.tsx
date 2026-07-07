@@ -1,6 +1,6 @@
 'use client'
 // app/dashboard/settings/page.tsx
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { BoutiquePageHeader, BoutiqueSectionLabel } from '@/components/boutique'
@@ -15,7 +15,16 @@ import {
   Trash2,
   RefreshCw,
   ShieldAlert,
+  AlertTriangle,
 } from 'lucide-react'
+
+// Live View connect timings. A blank remote browser reads as "broken", so we
+// never mount the Live View iframe until the session is confirmed on the target
+// sign-in page (readiness poll). SLOW surfaces a visible "taking longer" hint;
+// HARD converts a stuck connect into a visible failure with a retry — never a
+// silent spinner.
+const CONNECT_SLOW_MS = 15_000
+const CONNECT_HARD_MS = 45_000
 
 // ── MailerLite list types ─────────────────────────────────────────────────────
 interface MLGroup { id: string; name: string; activeCount: number }
@@ -151,6 +160,92 @@ function AmberBtn({
     >
       {children}
     </button>
+  )
+}
+
+// ── Live View connect states ──────────────────────────────────────────────────
+// Branded interstitial shown while the secure browser is being provisioned and
+// navigated. Replaces the bare spinner so the window never reads as a blank/
+// broken remote browser. `slow` surfaces a reassurance + a "Start over" escape.
+function ConnectInterstitial({
+  service,
+  slow,
+  onRetry,
+}: {
+  service: string
+  slow: boolean
+  onRetry: () => void
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center" style={{ background: '#FFF8F0' }}>
+      <div
+        className="animate-spin rounded-full"
+        style={{ width: 30, height: 30, border: '2.5px solid rgba(233,160,32,0.25)', borderTopColor: '#E9A020' }}
+      />
+      <div className="flex flex-col gap-1.5" style={{ maxWidth: 360 }}>
+        <span className="text-[14px] font-semibold" style={{ color: '#1E2D3D' }}>
+          Connecting your secure browser…
+        </span>
+        <span className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>
+          We&apos;re opening a private, secure browser for you to sign in to {service}. This usually takes a few seconds.
+        </span>
+      </div>
+      {slow && (
+        <div className="flex flex-col items-center gap-2 mt-1">
+          <span
+            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-md"
+            style={{ background: 'rgba(233,160,32,0.12)', color: '#92610a' }}
+          >
+            Still working — this is taking longer than usual.
+          </span>
+          <button
+            onClick={onRetry}
+            className="text-[11px] font-semibold bg-transparent border-none cursor-pointer hover:underline"
+            style={{ color: '#92610a' }}
+          >
+            Start over
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Visible failure state — session creation errored or the connect never became
+// ready in time. Never a silent dead button: always an error + a retry.
+function ConnectFailure({
+  message,
+  onRetry,
+  onCancel,
+}: {
+  message: string
+  onRetry: () => void
+  onCancel: () => void
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center" style={{ background: '#FFF8F0' }}>
+      <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(249,123,107,0.12)' }}>
+        <AlertTriangle size={20} strokeWidth={1.75} color="#F97B6B" />
+      </div>
+      <div className="flex flex-col gap-1.5" style={{ maxWidth: 380 }}>
+        <span className="text-[14px] font-semibold" style={{ color: '#1E2D3D' }}>
+          We couldn&apos;t open the secure browser
+        </span>
+        <span className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>
+          {message}
+        </span>
+      </div>
+      <div className="flex items-center gap-3">
+        <AmberBtn onClick={onRetry}>Try again</AmberBtn>
+        <button
+          onClick={onCancel}
+          className="text-[11px] font-semibold bg-transparent border-none cursor-pointer hover:underline"
+          style={{ color: '#9CA3AF' }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -637,6 +732,10 @@ export default function SettingsPage() {
   const [kdpError,        setKdpError]        = useState<string | null>(null)
   const [kdpVerifying,    setKdpVerifying]    = useState(false)        // running the check-auth call
   const [kdpVerifyError,  setKdpVerifyError]  = useState<string | null>(null)
+  const [kdpReady,        setKdpReady]        = useState(false)        // session confirmed on sign-in page → mount iframe
+  const [kdpSlow,         setKdpSlow]         = useState(false)        // >15s: show "taking longer" reassurance
+  const [kdpConnectErr,   setKdpConnectErr]   = useState<string | null>(null) // in-panel failure state
+  const kdpConnectStart = useRef<number>(0)
 
   // ── BookClicker connection (Browserbase Live View — mirrors the KDP flow) ──
   const [bcSyncStatus,    setBcSyncStatus]    = useState<string | null>(null)
@@ -648,6 +747,10 @@ export default function SettingsPage() {
   const [bcJustConnected, setBcJustConnected] = useState(false)
   const [bcError,         setBcError]         = useState<string | null>(null)
   const [bcSyncing,       setBcSyncing]       = useState(false)         // manual Sync Now in progress
+  const [bcReady,         setBcReady]         = useState(false)        // session confirmed on BookClicker → mount iframe
+  const [bcSlow,          setBcSlow]          = useState(false)        // >15s: show "taking longer" reassurance
+  const [bcConnectErr,    setBcConnectErr]    = useState<string | null>(null) // in-panel failure state
+  const bcConnectStart = useRef<number>(0)
 
   // ── Profile ───────────────────────────────────────────────────────────────
   const [penName,               setPenName]               = useState('')
@@ -825,27 +928,70 @@ export default function SettingsPage() {
     setKdpJustConnected(false)
     setKdpConnecting(true)
     setKdpPanelOpen(true)
+    setKdpReady(false)
+    setKdpSlow(false)
+    setKdpConnectErr(null)
     setKdpLiveUrl(null)
     setKdpSessionId(null)
+    kdpConnectStart.current = Date.now()
     try {
       const res = await fetch('/api/browserbase/create-context', { method: 'POST' })
       const json = await res.json()
-      if (!res.ok) throw new Error(json?.error || 'Could not start the KDP connection.')
-      setKdpLiveUrl(json.liveViewUrl ?? null)
-      setKdpSessionId(json.sessionId ?? null)
+      // A 200 with no liveViewUrl/sessionId used to leave a silent infinite
+      // spinner — treat it as a hard failure so the retry state shows instead.
+      if (!res.ok || !json.liveViewUrl || !json.sessionId) {
+        throw new Error(json?.error || 'Could not start the KDP connection.')
+      }
+      setKdpLiveUrl(json.liveViewUrl)
+      setKdpSessionId(json.sessionId)
       setKdpSyncStatus('never_connected')
+      // The iframe stays hidden behind the interstitial until the readiness
+      // poll below confirms the remote browser is on the Amazon sign-in page.
     } catch (err) {
-      setKdpError(err instanceof Error ? err.message : 'Could not start the KDP connection.')
-      setKdpPanelOpen(false)
+      setKdpConnectErr(err instanceof Error ? err.message : 'Could not start the KDP connection.')
     } finally {
       setKdpConnecting(false)
     }
   }
 
+  // Readiness gate: while the KDP connect panel is open and not yet ready or
+  // failed, poll until the session's page is on Amazon (then mount the iframe),
+  // surfacing a "taking longer" hint at 15s and a hard failure at 45s.
+  useEffect(() => {
+    if (!kdpPanelOpen || kdpReady || kdpConnectErr) return
+    let cancelled = false
+    const tick = async () => {
+      if (cancelled) return
+      const elapsed = Date.now() - kdpConnectStart.current
+      if (elapsed > CONNECT_HARD_MS) {
+        setKdpConnectErr('Connecting is taking too long. Please try again.')
+        return
+      }
+      if (elapsed > CONNECT_SLOW_MS) setKdpSlow(true)
+      if (!kdpSessionId) return
+      try {
+        const res = await fetch('/api/browserbase/session-ready', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: kdpSessionId, source: 'kdp' }),
+        })
+        const json = await res.json()
+        if (!cancelled && json.ready) setKdpReady(true)
+      } catch { /* keep polling */ }
+    }
+    const iv = setInterval(tick, 1500)
+    tick()
+    return () => { cancelled = true; clearInterval(iv) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kdpPanelOpen, kdpSessionId, kdpReady, kdpConnectErr])
+
   function closeKdpPanel() {
     setKdpPanelOpen(false)
     setKdpLiveUrl(null)
     setKdpSessionId(null)
+    setKdpReady(false)
+    setKdpSlow(false)
+    setKdpConnectErr(null)
   }
 
   // ── Meta browser-connect handlers (mirror the KDP flow) ────────────────────
@@ -962,27 +1108,69 @@ export default function SettingsPage() {
     setBcJustConnected(false)
     setBcConnecting(true)
     setBcPanelOpen(true)
+    setBcReady(false)
+    setBcSlow(false)
+    setBcConnectErr(null)
     setBcLiveUrl(null)
     setBcSessionId(null)
+    bcConnectStart.current = Date.now()
     try {
       const res = await fetch('/api/browserbase/bookclicker-context', { method: 'POST' })
       const json = await res.json()
-      if (!res.ok) throw new Error(json?.error || 'Could not start the BookClicker connection.')
-      setBcLiveUrl(json.liveViewUrl ?? null)
-      setBcSessionId(json.sessionId ?? null)
+      // A 200 with no liveViewUrl/sessionId used to leave a silent infinite
+      // spinner — treat it as a hard failure so the retry state shows instead.
+      if (!res.ok || !json.liveViewUrl || !json.sessionId) {
+        throw new Error(json?.error || 'Could not start the BookClicker connection.')
+      }
+      setBcLiveUrl(json.liveViewUrl)
+      setBcSessionId(json.sessionId)
       setBcSyncStatus('never_connected')
+      // The iframe stays hidden behind the interstitial until the readiness
+      // poll below confirms the remote browser is on BookClicker.
     } catch (err) {
-      setBcError(err instanceof Error ? err.message : 'Could not start the BookClicker connection.')
-      setBcPanelOpen(false)
+      setBcConnectErr(err instanceof Error ? err.message : 'Could not start the BookClicker connection.')
     } finally {
       setBcConnecting(false)
     }
   }
 
+  // Readiness gate (mirrors the KDP flow): hold the interstitial until the
+  // session lands on BookClicker, then mount the iframe. Visible slow/fail states.
+  useEffect(() => {
+    if (!bcPanelOpen || bcReady || bcConnectErr) return
+    let cancelled = false
+    const tick = async () => {
+      if (cancelled) return
+      const elapsed = Date.now() - bcConnectStart.current
+      if (elapsed > CONNECT_HARD_MS) {
+        setBcConnectErr('Connecting is taking too long. Please try again.')
+        return
+      }
+      if (elapsed > CONNECT_SLOW_MS) setBcSlow(true)
+      if (!bcSessionId) return
+      try {
+        const res = await fetch('/api/browserbase/session-ready', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: bcSessionId, source: 'bookclicker' }),
+        })
+        const json = await res.json()
+        if (!cancelled && json.ready) setBcReady(true)
+      } catch { /* keep polling */ }
+    }
+    const iv = setInterval(tick, 1500)
+    tick()
+    return () => { cancelled = true; clearInterval(iv) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bcPanelOpen, bcSessionId, bcReady, bcConnectErr])
+
   function closeBcPanel() {
     setBcPanelOpen(false)
     setBcLiveUrl(null)
     setBcSessionId(null)
+    setBcReady(false)
+    setBcSlow(false)
+    setBcConnectErr(null)
   }
 
   function completeBookclickerConnect(lastSyncAt?: string | null) {
