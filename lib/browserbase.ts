@@ -7,6 +7,11 @@ import Browserbase from '@browserbasehq/sdk'
 
 const KDP_SIGNIN_URL = 'https://kdp.amazon.com/en_US/signin'
 
+// BookClicker: friendly Rails app, cookie session, no 2FA. We open the dashboard;
+// if signed out it redirects to the sign-in/benefits page where the user logs in
+// via Live View, then lands back on an authed page.
+const BOOKCLICKER_DASHBOARD_URL = 'https://www.bookclicker.com/dashboard'
+
 // Meta: send users to the Facebook login with a next= into Ads Manager so that
 // after signing in they land on the ads surface we sync from.
 // m.facebook.com on purpose: the mobile login flow renders reliably (incl. the
@@ -381,6 +386,45 @@ export async function createKdpLiveSession(cfg: BrowserbaseConfig): Promise<KdpL
 
 export async function createMetaLiveSession(cfg: BrowserbaseConfig): Promise<KdpLiveSession> {
   return createLiveSessionForUrl(cfg, META_LOGIN_URL, 'facebook', { proxies: true })
+}
+
+export async function createBookclickerLiveSession(cfg: BrowserbaseConfig): Promise<KdpLiveSession> {
+  return createLiveSessionForUrl(cfg, BOOKCLICKER_DASHBOARD_URL, 'bookclicker.com')
+}
+
+// ── BookClicker login detection ───────────────────────────────────────────────
+// Signed IN when on a bookclicker.com authed route (/dashboard, /calendars,
+// /my_lists, /confirm_promos, /marketplace). Signed OUT lands on the marketing
+// page (/benefits) or a Devise sign-in/up path.
+export function isBookclickerLoggedInUrl(rawUrl: string | undefined | null): boolean {
+  if (!rawUrl) return false
+  let url: URL
+  try { url = new URL(rawUrl) } catch { return false }
+  if (!url.hostname.toLowerCase().includes('bookclicker.com')) return false
+  const path = url.pathname.toLowerCase()
+  if (path.includes('/sign_in') || path.includes('/sign_up') || path.startsWith('/benefits')) return false
+  return (
+    path.startsWith('/dashboard') ||
+    path.startsWith('/calendars') ||
+    path.startsWith('/my_lists') ||
+    path.startsWith('/confirm_promos') ||
+    path.startsWith('/marketplace') ||
+    path.startsWith('/my_books')
+  )
+}
+
+// Polls the live session's open pages and reports whether the user has reached a
+// signed-in BookClicker page yet. Read-only — never ends the session.
+export async function checkBookclickerLoggedIn(
+  cfg: BrowserbaseConfig,
+  sessionId: string,
+): Promise<{ loggedIn: boolean; url: string | null }> {
+  const bb = browserbaseClient(cfg)
+  const live = await bb.sessions.debug(sessionId)
+  const pages = live.pages ?? []
+  const match = pages.find(p => isBookclickerLoggedInUrl(p.url))
+  if (match) return { loggedIn: true, url: match.url ?? null }
+  return { loggedIn: false, url: pages[0]?.url ?? null }
 }
 
 export function metaLoginUrl(): string {

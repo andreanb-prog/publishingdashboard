@@ -7,6 +7,7 @@ import { db } from '@/lib/db'
 import { isCronAuthorized } from '@/lib/cronAuth'
 import { syncKdpForUser } from '@/lib/browserbase/kdp-sync'
 import { syncMetaForUser } from '@/lib/browserbase/meta-sync'
+import { syncBookclickerForUser } from '@/lib/browserbase/bookclicker-sync'
 import { fetchBsrForUser } from '@/lib/browserbase/bsr-fetch'
 
 const BATCH_SIZE = 10
@@ -71,7 +72,23 @@ export async function GET(req: NextRequest) {
     console.error(`[cron/sync] Meta failed for ${r.userId}:`, r.error)
   }
 
-  // 3. BSR fetch — all users who have at least one book with an ASIN
+  // 3. BookClicker sync — users who have connected BookClicker via Browserbase
+  const bcUsers = await db.user.findMany({
+    where: { bookclickerSyncStatus: 'connected' },
+    select: { id: true },
+  })
+  console.log(`[cron/sync] BookClicker: ${bcUsers.length} connected users`)
+
+  const bcResults = await runInBatches(
+    bcUsers.map(u => u.id),
+    syncBookclickerForUser,
+  )
+
+  for (const r of bcResults.filter(r => r.status === 'rejected')) {
+    console.error(`[cron/sync] BookClicker failed for ${r.userId}:`, r.error)
+  }
+
+  // 4. BSR fetch — all users who have at least one book with an ASIN
   const bsrUsers = await db.user.findMany({
     where: { bookCatalog: { some: { asin: { not: null } } } },
     select: { id: true },
@@ -98,6 +115,11 @@ export async function GET(req: NextRequest) {
       total: metaUsers.length,
       ok: metaResults.filter(r => r.status === 'fulfilled').length,
       failed: metaResults.filter(r => r.status === 'rejected').length,
+    },
+    bookclicker: {
+      total: bcUsers.length,
+      ok: bcResults.filter(r => r.status === 'fulfilled').length,
+      failed: bcResults.filter(r => r.status === 'rejected').length,
     },
     bsr: {
       total: bsrUsers.length,

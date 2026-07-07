@@ -22,6 +22,7 @@ export async function GET() {
       anthropicApiKey: true, anthropicKeyAddedAt: true, writingOnboardingComplete: true, writingKillList: true,
       kdpSyncStatus: true, kdpLastSyncAt: true,
       metaSyncStatus: true, metaLastSync: true,
+      bookclickerSyncStatus: true, bookclickerLastSyncAt: true,
     },
   })
 
@@ -85,6 +86,8 @@ export async function GET() {
     kdpLastSyncAt:          user?.kdpLastSyncAt?.toISOString() ?? null,
     metaSyncStatus:         user?.metaSyncStatus ?? null,
     metaBrowserLastSync:    user?.metaLastSync?.toISOString() ?? null,
+    bookclickerSyncStatus:  user?.bookclickerSyncStatus ?? null,
+    bookclickerLastSyncAt:  user?.bookclickerLastSyncAt?.toISOString() ?? null,
     stripeActive,
     anthropicApiKey:           user?.anthropicApiKey ? mask(user.anthropicApiKey) : null,
     anthropicKeyAddedAt:       user?.anthropicKeyAddedAt?.toISOString() ?? null,

@@ -638,6 +638,16 @@ export default function SettingsPage() {
   const [kdpVerifying,    setKdpVerifying]    = useState(false)        // running the check-auth call
   const [kdpVerifyError,  setKdpVerifyError]  = useState<string | null>(null)
 
+  // ── BookClicker connection (Browserbase Live View — mirrors the KDP flow) ──
+  const [bcSyncStatus,    setBcSyncStatus]    = useState<string | null>(null)
+  const [bcLastSyncAt,    setBcLastSyncAt]    = useState<string | null>(null)
+  const [bcConnecting,    setBcConnecting]    = useState(false)
+  const [bcLiveUrl,       setBcLiveUrl]       = useState<string | null>(null)
+  const [bcSessionId,     setBcSessionId]     = useState<string | null>(null)
+  const [bcPanelOpen,     setBcPanelOpen]     = useState(false)
+  const [bcJustConnected, setBcJustConnected] = useState(false)
+  const [bcError,         setBcError]         = useState<string | null>(null)
+
   // ── Profile ───────────────────────────────────────────────────────────────
   const [penName,               setPenName]               = useState('')
   const [preferredGreetingName, setPreferredGreetingName] = useState('')
@@ -723,6 +733,8 @@ export default function SettingsPage() {
       setKdpLastSyncAt(d.kdpLastSyncAt ?? null)
       setMbSyncStatus(d.metaSyncStatus ?? null)
       setMbLastSyncAt(d.metaBrowserLastSync ?? null)
+      setBcSyncStatus(d.bookclickerSyncStatus ?? null)
+      setBcLastSyncAt(d.bookclickerLastSyncAt ?? null)
       setPenName(d.penName ?? '')
       setPreferredGreetingName(d.preferredGreetingName ?? '')
       setHasWritingKey(!!d.anthropicApiKey)
@@ -942,6 +954,74 @@ export default function SettingsPage() {
     setKdpLastSyncAt(null)
     setKdpJustConnected(false)
   }
+
+  // ── BookClicker connect handlers (mirror the KDP/Meta Live View flow) ──────
+  async function connectBookclicker() {
+    setBcError(null)
+    setBcJustConnected(false)
+    setBcConnecting(true)
+    setBcPanelOpen(true)
+    setBcLiveUrl(null)
+    setBcSessionId(null)
+    try {
+      const res = await fetch('/api/browserbase/bookclicker-context', { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Could not start the BookClicker connection.')
+      setBcLiveUrl(json.liveViewUrl ?? null)
+      setBcSessionId(json.sessionId ?? null)
+      setBcSyncStatus('never_connected')
+    } catch (err) {
+      setBcError(err instanceof Error ? err.message : 'Could not start the BookClicker connection.')
+      setBcPanelOpen(false)
+    } finally {
+      setBcConnecting(false)
+    }
+  }
+
+  function closeBcPanel() {
+    setBcPanelOpen(false)
+    setBcLiveUrl(null)
+    setBcSessionId(null)
+  }
+
+  function completeBookclickerConnect(lastSyncAt?: string | null) {
+    setBcSyncStatus('connected')
+    setBcLastSyncAt(lastSyncAt ?? new Date().toISOString())
+    setBcPanelOpen(false)
+    setBcLiveUrl(null)
+    setBcSessionId(null)
+    setBcJustConnected(true)
+    // Auto-run the first sync (delayed so the login session releases its Context lock first).
+    setTimeout(() => {
+      fetch('/api/browserbase/bookclicker-sync-now', { method: 'POST' }).catch(() => {})
+    }, 10_000)
+  }
+
+  async function disconnectBookclicker() {
+    await fetch('/api/browserbase/bookclicker-context', { method: 'DELETE' })
+    setBcSyncStatus(null)
+    setBcLastSyncAt(null)
+    setBcJustConnected(false)
+  }
+
+  // Auto-detect BookClicker login: poll every 5s while the connect window is open;
+  // the window closes itself the moment an authed BookClicker page is reached.
+  useEffect(() => {
+    if (!bcPanelOpen || !bcSessionId) return
+    const iv = setInterval(async () => {
+      try {
+        const res = await fetch('/api/browserbase/bookclicker-check-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: bcSessionId }),
+        })
+        const json = await res.json()
+        if (json.status === 'connected') completeBookclickerConnect(json.lastSyncAt)
+      } catch { /* keep polling */ }
+    }, 5000)
+    return () => clearInterval(iv)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bcPanelOpen, bcSessionId])
 
   // Manual login confirmation — called when user clicks "I've logged in →"
   function completeKdpConnect(lastSyncAt?: string | null) {
