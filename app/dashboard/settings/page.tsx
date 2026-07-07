@@ -1418,6 +1418,125 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
+
+              {/* ── BookClicker row ─────────────────────────────────────────── */}
+              <div className="flex items-center gap-3 px-4 py-4" style={{ borderTop: '0.5px solid rgba(30,45,61,0.08)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: '#EAF3EC' }}
+                >
+                  <RefreshCw size={16} strokeWidth={1.75} color="#6EBF8B" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-semibold" style={{ color: '#1E2D3D' }}>
+                      BookClicker
+                    </span>
+                    {(() => {
+                      const connected = bcSyncStatus === 'connected'
+                      const needsReauth = bcSyncStatus === 'needs_reauth'
+                      const dot = connected ? '#6EBF8B' : needsReauth ? '#E9A020' : '#F97B6B'
+                      const label = connected ? 'Connected' : needsReauth ? 'Needs Reconnection' : 'Not Connected'
+                      const labelColor = connected ? '#16a34a' : needsReauth ? '#92610a' : '#F97B6B'
+                      return (
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full inline-block" style={{ background: dot }} />
+                          <span className="text-[11px] font-semibold" style={{ color: labelColor }}>{label}</span>
+                        </span>
+                      )
+                    })()}
+                  </div>
+                  <div className="text-[10px] mt-0.5" style={{ color: '#9CA3AF' }}>
+                    {bcSyncStatus === 'connected'
+                      ? bcLastSyncAt
+                        ? `Last synced ${fmtDate(bcLastSyncAt)}`
+                        : 'Connected — first sync running'
+                      : 'Connect to sync your newsletter swaps automatically.'}
+                  </div>
+                </div>
+                <div className="shrink-0 flex items-center gap-3">
+                  {bcSyncStatus === 'connected' ? (
+                    <button
+                      onClick={disconnectBookclicker}
+                      className="text-[11px] bg-transparent border-none cursor-pointer hover:underline"
+                      style={{ color: '#F97B6B' }}
+                    >
+                      Disconnect
+                    </button>
+                  ) : (
+                    <AmberBtn onClick={connectBookclicker} disabled={bcConnecting && bcPanelOpen}>
+                      {bcConnecting && bcPanelOpen
+                        ? <Spinner />
+                        : bcSyncStatus === 'needs_reauth' ? 'Reconnect BookClicker' : 'Connect BookClicker'}
+                    </AmberBtn>
+                  )}
+                </div>
+              </div>
+
+              {bcError && !bcPanelOpen && (
+                <div className="mx-4 mb-4 text-[11px] font-semibold px-2.5 py-2 rounded-md"
+                  style={{ background: 'rgba(249,123,107,0.1)', color: '#F97B6B' }}>
+                  {bcError}
+                </div>
+              )}
+
+              {bcJustConnected && (
+                <div className="mx-4 mb-4 text-[11px] font-semibold px-3 py-2.5 rounded-md leading-relaxed"
+                  style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
+                  BookClicker connected. Your first swap sync is running — data will appear within 2 minutes.
+                </div>
+              )}
+
+              {/* BookClicker Live View panel */}
+              {bcPanelOpen && (
+                <div
+                  className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                  style={{ background: 'rgba(30,45,61,0.55)' }}
+                >
+                  <div
+                    className="rounded-[10px] overflow-hidden flex flex-col"
+                    style={{ background: '#FFF8F0', border: '0.5px solid rgba(30,45,61,0.12)', width: 'min(1320px, 96vw)', height: 'min(860px, 94vh)' }}
+                  >
+                    <div
+                      className="flex items-center justify-between px-4 py-3"
+                      style={{ borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}
+                    >
+                      <span className="text-[12px] font-semibold" style={{ color: '#1E2D3D' }}>
+                        Log in to BookClicker — we&apos;ll finish connecting automatically.
+                      </span>
+                      <button
+                        onClick={closeBcPanel}
+                        className="text-[10px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
+                        style={{ color: '#9CA3AF' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {bcConnecting || !bcLiveUrl ? (
+                      <div className="flex flex-col items-center justify-center gap-3 py-16">
+                        <Spinner />
+                        <span className="text-[11px]" style={{ color: '#6B7280' }}>
+                          Setting up your secure browser…
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="px-4 py-2 text-[11px]" style={{ color: '#6B7280', borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}>
+                          Log into BookClicker inside this window. As soon as you&apos;re signed in, this window closes itself and your first sync starts — nothing else to click.
+                        </p>
+                        <iframe
+                          src={bcLiveUrl}
+                          title="BookClicker Live View"
+                          className="w-full block"
+                          style={{ flex: '1 1 auto', minHeight: 300, border: 'none', background: 'white' }}
+                          sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                          allow="clipboard-read; clipboard-write"
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
