@@ -194,10 +194,10 @@ function PromotingPanel({ rows }: { rows: SerializedSwap[] }) {
   )
 }
 
-function RequestsPanel({ rows, onDecide }: {
-  rows: SerializedSwap[]
-  onDecide: (swap: SerializedSwap, accept: boolean) => void
-}) {
+// Requests are decided ON BookClicker (its confirm-promos flow carries the
+// partner's list stats and message) — this panel only surfaces them, so the
+// sole action is a link out. The next sync picks up whatever was decided.
+function RequestsPanel({ rows }: { rows: SerializedSwap[] }) {
   return (
     <div style={{ ...card, padding: '16px 18px' }}>
       <SectionLabel>Requests</SectionLabel>
@@ -206,55 +206,46 @@ function RequestsPanel({ rows, onDecide }: {
           No open requests.
         </p>
       ) : (
-        rows.map((s, i) => (
-          <div key={s.id} style={{
-            padding: '8px 0',
-            borderTop: i > 0 ? '0.5px solid rgba(30,45,61,0.06)' : 'none',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-              <div style={{ paddingTop: 5 }}><Dot color={AMBER} /></div>
-              <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: 12.5, fontWeight: 700, color: NAVY, margin: 0 }}>
-                  {s.partnerName}
-                  <span style={{ fontWeight: 400, color: 'rgba(30,45,61,0.45)' }}>
-                    {' · '}{fmtShort(dstr(s.promoDate))}
-                  </span>
-                </p>
-                {s.bookTitle && (
-                  <p style={{
-                    fontSize: 11.5, color: 'rgba(30,45,61,0.5)', margin: '2px 0 0',
-                    fontStyle: 'italic',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {s.bookTitle}
+        <>
+          {rows.map((s, i) => (
+            <div key={s.id} style={{
+              padding: '8px 0',
+              borderTop: i > 0 ? '0.5px solid rgba(30,45,61,0.06)' : 'none',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ paddingTop: 5 }}><Dot color={AMBER} /></div>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: 12.5, fontWeight: 700, color: NAVY, margin: 0 }}>
+                    {s.partnerName}
+                    <span style={{ fontWeight: 400, color: 'rgba(30,45,61,0.45)' }}>
+                      {' · '}{fmtShort(dstr(s.promoDate))}
+                    </span>
                   </p>
-                )}
+                  {s.bookTitle && (
+                    <p style={{
+                      fontSize: 11.5, color: 'rgba(30,45,61,0.5)', margin: '2px 0 0',
+                      fontStyle: 'italic',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {s.bookTitle}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 6, marginLeft: 15 }}>
-              <button
-                onClick={() => onDecide(s, true)}
-                style={{
-                  fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 99,
-                  background: 'rgba(110,191,139,0.15)', color: '#3D8A5C',
-                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                Accept
-              </button>
-              <button
-                onClick={() => onDecide(s, false)}
-                style={{
-                  fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 99,
-                  background: 'none', color: '#9CA3AF',
-                  border: '1px solid #E5E7EB', cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                Decline
-              </button>
-            </div>
-          </div>
-        ))
+          ))}
+          <a
+            href="https://www.bookclicker.com/confirm_promos"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-block', marginTop: 10,
+              fontSize: 12, fontWeight: 700, color: AMBER, textDecoration: 'none',
+            }}
+          >
+            Review on BookClicker →
+          </a>
+        </>
       )}
     </div>
   )
@@ -373,10 +364,6 @@ export function SendQueuePage({ swaps: initialSwaps, lastSyncAt }: {
   function toggleSent(swap: SerializedSwap) {
     // Unchecking a just-marked send is forgiving: it goes back to approved.
     patchConfirmation(swap, swap.confirmation === 'complete' ? 'confirmed' : 'complete')
-  }
-
-  function decideRequest(swap: SerializedSwap, accept: boolean) {
-    patchConfirmation(swap, accept ? 'confirmed' : 'cancelled')
   }
 
   async function syncNow() {
@@ -546,7 +533,7 @@ export function SendQueuePage({ swaps: initialSwaps, lastSyncAt }: {
               {/* Right rail */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <PromotingPanel rows={derived.promoting} />
-                <RequestsPanel rows={derived.requests} onDecide={decideRequest} />
+                <RequestsPanel rows={derived.requests} />
                 <CatchUpPanel rows={derived.catchUp} multiList={derived.multiList} onToggle={toggleSent} />
               </div>
             </div>
