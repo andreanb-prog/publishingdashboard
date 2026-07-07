@@ -20,7 +20,22 @@ interface SwapRecord {
   launchWindow: string | null
   createdAt: string
   updatedAt: string
+  // Raw SwapEntry fields (present on synced + manual rows) for precise decisions.
+  confirmation?: string      // 'applied' | 'approved' | 'complete' | 'cancelled'
+  role?: string | null       // 'inbound' | 'outbound' | null
+  paymentType?: string       // 'swap' | 'paid'
 }
+
+// A pending inbound request targets my LIST, not a specific book — the sync stores
+// the list label (e.g. "Elle Wilder (Contemporary Romance, Slow Burn, Small Town)")
+// in bookTitle. Detect it by the parenthetical genre tag: real book titles/codes
+// (Fake Dating My Billionaire Protector, FDMBP, MOLR…) never contain "(". Flag these
+// so the book column shows the list name in muted italic rather than styling it as a
+// book title (no invented book match).
+function isListTarget(s: SwapRecord): boolean {
+  return s.role === 'inbound' && s.bookTitle.includes('(')
+}
+const LIST_TARGET_COLOR = '#9CA3AF'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -124,15 +139,17 @@ function StatsBar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
     .filter(s => s.direction === 'you_promote')
     .reduce((sum, s) => sum + (s.partnerListSize ?? 0), 0)
 
+  // Sends I still owe: my outbound promos that are scheduled (not yet complete).
   const sendsPending = nonCancelled.filter(s =>
     s.direction === 'you_promote' &&
-    s.status === 'booked' &&
+    (s.status === 'booked' || s.status === 'confirmed') &&
     promoDateStr(s.promoDate) >= today
   ).length
 
+  // Incoming Booked: inbound rows with approved/upcoming status.
   const incomingBooked = nonCancelled.filter(s =>
     s.direction === 'they_promote' &&
-    s.status === 'booked' &&
+    s.confirmation === 'approved' &&
     promoDateStr(s.promoDate) >= today
   ).length
 
@@ -182,7 +199,8 @@ function StatsBar({ swaps, today }: { swaps: SwapRecord[]; today: string }) {
 // ─── Day Panel Swap Card (used inside calendar day panel) ─────────────────────
 
 function DaySwapCard({ swap, catalog }: { swap: SwapRecord; catalog: { title: string }[] }) {
-  const color = getBookColor(swap.bookTitle, catalog)
+  const listTarget = isListTarget(swap)
+  const color = listTarget ? LIST_TARGET_COLOR : getBookColor(swap.bookTitle, catalog)
   const isSend = swap.direction === 'you_promote'
   const kind = swap.promoFormat
 
@@ -223,9 +241,11 @@ function DaySwapCard({ swap, catalog }: { swap: SwapRecord; catalog: { title: st
         </div>
       </div>
 
-      {/* Row 1b: book title in book color (RESTORE 2) */}
-<p style={{
-        fontSize: 12, fontWeight: 600, color, margin: '0 0 8px',
+      {/* Row 1b: book title in book color — or, for a pending list request, the
+          list name in muted italic (it targets my list, not a specific book) */}
+      <p style={{
+        fontSize: 12, fontWeight: listTarget ? 500 : 600, color, margin: '0 0 8px',
+        fontStyle: listTarget ? 'italic' : 'normal',
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
         {swap.bookTitle}
@@ -462,7 +482,7 @@ function UpNextPanel({ swaps, today, catalog }: { swaps: SwapRecord[]; today: st
   const upNext = swaps
     .filter(s =>
       s.direction === 'you_promote' &&
-      s.status === 'booked' &&
+      (s.status === 'booked' || s.status === 'confirmed') &&
       promoDateStr(s.promoDate) >= today
     )
     .sort((a, b) => a.promoDate.localeCompare(b.promoDate))
@@ -708,7 +728,13 @@ function SwapCard({ swap, onStatusChange }: {
             <DirectionBadge direction={swap.direction} />
             <span style={{ fontSize: 13, fontWeight: 500, color: '#1E2D3D' }}>{swap.partnerName}</span>
           </div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#1E2D3D', marginBottom: 3 }}>
+          <div style={{
+            fontSize: 13,
+            fontWeight: isListTarget(swap) ? 400 : 600,
+            fontStyle: isListTarget(swap) ? 'italic' : 'normal',
+            color: isListTarget(swap) ? '#9CA3AF' : '#1E2D3D',
+            marginBottom: 3,
+          }}>
             {swap.bookTitle}
           </div>
           {(swap.promoFormat || swap.partnerListSize) && (
