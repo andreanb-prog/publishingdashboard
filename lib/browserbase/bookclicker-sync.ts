@@ -11,18 +11,34 @@
 // Concurrency is guarded with bookclickerSyncStatus as a lock ('syncing'), released
 // in a finally block; a lock whose heartbeat (bookclickerLastSyncAt) is older than
 // STALE_LOCK_MS is treated as stale and reclaimed.
+//
+// Besides the dashboard lists (the user's own promo requests), the sync also captures
+// SEND OBLIGATIONS — swaps the user must send for partners — from each mailing list's
+// calendar via its per-date JSON endpoint (/api/one_day_inventories). Lists are
+// enumerated from /my_lists (accounts can have several); rows are stored as role
+// 'outbound-send' with the list's pen name in myList.
 import { Stagehand } from '@browserbasehq/stagehand'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { getBrowserbaseConfig, isBookclickerLoggedInUrl } from '@/lib/browserbase'
 
 const BOOKCLICKER_DASHBOARD_URL = 'https://www.bookclicker.com/dashboard'
+const BOOKCLICKER_MY_LISTS_URL  = 'https://www.bookclicker.com/my_lists'
 
 const INIT_TIMEOUT_MS  = 90_000        // hard cap on attach/init (catches a locked Context)
 const CHUNK_TIMEOUT_MS = 50_000        // default per-list extraction cap
 const LONG_CHUNK_TIMEOUT_MS = 120_000  // "Promos Sent for You" + "Recent Requests" are the long lists
 const INTER_CHUNK_MS   = 1_000         // small breather between chunks (avoids LLM rate spikes)
 export const STALE_LOCK_MS = 10 * 60_000 // a 'syncing' lock older than this is stale
+
+// Send-obligation scan (what Andrea sends for OTHERS, off the list calendar's
+// per-date JSON endpoint /api/one_day_inventories?date=...&list_id=...).
+const SEND_SCAN_DAYS_AHEAD = 60        // scan today → +60 days
+const SEND_DATE_TIMEOUT_MS = 60_000    // per-date fetch cap
+const SEND_INTER_DATE_MS   = 150       // breather between per-date fetches
+const SEND_MAX_CONSECUTIVE_FAILURES = 3 // endpoint clearly broken — stop scanning
+const SEND_MAX_LISTS = 10              // sanity cap on lists scanned per account
+const SYNC_BUDGET_MS = 270_000         // route has 300s; stop iterating dates near it
 
 // A single promo row as read off a dashboard list. promoDate is asked for as an ISO
 // date so the model resolves "Thursday, July 23rd" against the current year for us.
@@ -39,7 +55,7 @@ const CalendarSchema = z.object({
 })
 
 type Role = 'inbound' | 'outbound'
-type ChunkResult = { name: string; extracted: number; upserted: number; ms: number; error?: string }
+type ChunkResult = { name: string; extracted: number; upserted: number; ms: number; error?: string; detail?: string }
 
 // Map a BookClicker status label onto the SwapEntry `confirmation` enum
 // ("applied" | "approved" | "cancelled" | "complete") and payment type.
@@ -178,6 +194,253 @@ async function runCalendarChunk(stagehand: Stagehand, page: any, calendarUrl: st
   }
 }
 
+// ── Send obligations (role 'outbound-send') ──────────────────────────────────
+// BookClicker's list calendar is fed by GET /api/one_day_inventories?date=YYYY-MM-DD
+// &list_id=<id> (discovered 2026-07-06: fired on day-tile click, plain session-cookie
+// GET). Its accepted_system_bookings / pending_system_bookings (grouped solo/feature/
+// mention) are the swaps ANDREA MUST SEND for partners on that date — the under-
+// captured half of the swap ledger. We fetch it in-page (same origin, cookies attached),
+// no LLM extraction needed.
+
+// Minimal booking shape returned by the in-page fetch (see buildSendFetchScript).
+type SendBooking = {
+  invType: string | null        // "solo" | "feature" | "mention"
+  phase: 'accepted' | 'pending'
+  author: string | null         // partner pen name (book.author)
+  penName: string | null        // fallback partner name (swap_offer_list.adopted_pen_name)
+  title: string | null          // partner's book title (best-effort / placeholder)
+  listName: string | null       // partner's list name
+  listSize: number | null       // partner's active_member_count
+  paymentOffer: number | null   // >0 → paid promo, else swap
+  sendConfirmed: boolean
+  cancelled: boolean
+}
+
+// The in-page fetch, as a string IIFE so no closure/arg marshalling is needed.
+// dateISO and listId are validated by the caller before interpolation.
+function buildSendFetchScript(listId: number, dateISO: string): string {
+  return `(async () => {
+    const r = await fetch('/api/one_day_inventories?date=${dateISO}&list_id=${listId}', {
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'include',
+    })
+    if (!r.ok) return { ok: false, status: r.status }
+    const j = await r.json()
+    const pick = (b, group, phase) => ({
+      invType: b.inv_type ?? group,
+      phase,
+      author: b.book?.author ?? null,
+      penName: b.swap_offer_list?.adopted_pen_name ?? null,
+      title: b.book?.title ?? null,
+      listName: b.swap_offer_list?.name ?? null,
+      listSize: b.swap_offer_list?.active_member_count ?? null,
+      paymentOffer: b.payment_offer ?? null,
+      sendConfirmed: !!b['send_confirmed?'],
+      cancelled: !!(b.buyer_cancelled_at || b.seller_cancelled_at || b.system_cancelled_at),
+    })
+    const bookings = []
+    for (const group of ['solo', 'feature', 'mention']) {
+      for (const b of (j.accepted_system_bookings?.[group] ?? [])) bookings.push(pick(b, group, 'accepted'))
+      for (const b of (j.pending_system_bookings?.[group] ?? [])) bookings.push(pick(b, group, 'pending'))
+    }
+    return { ok: true, status: r.status, bookings }
+  })()`
+}
+
+// One of the account's BookClicker mailing lists, as read off /my_lists.
+type BookclickerList = {
+  penName: string          // the list's public pen name → stored as myList
+  listId: number           // BookClicker list/calendar id
+  calendarUrl: string
+  size: number | null      // subscriber count (log-only)
+}
+
+// Enumerate the account's lists from /my_lists: a table with one row per mailing
+// list (Public Pen Name, Size, Platform, …) and a calendar-icon link per row to
+// that list's calendar. Pure DOM read, no LLM. Users can have several lists
+// (a known beta user has 3), each with its own calendar — never assume one.
+// Navigates away from wherever the page was.
+async function enumerateBookclickerLists(page: any): Promise<BookclickerList[]> {
+  await page.goto(BOOKCLICKER_MY_LISTS_URL, { waitUntil: 'load', timeoutMs: 20_000 })
+  await page.waitForTimeout(2000)
+  const raw: Array<{ penName: string; calendarUrl: string; size: number | null }> =
+    await page.evaluate(() => {
+      const out: Array<{ penName: string; calendarUrl: string; size: number | null }> = []
+      for (const a of Array.from(document.querySelectorAll('a'))) {
+        const href = (a as HTMLAnchorElement).href
+        if (!/\/calendars\/\d+/.test(href)) continue
+        const row = a.closest('tr')
+        if (!row) continue
+        const cells = Array.from(row.querySelectorAll('td')).map(td => (td.textContent || '').trim())
+        const penName = (cells.find(t => t && !/^[\d,.]+%?$/.test(t)) || '').split('\n')[0].trim()
+        const sizeText = cells.find(t => /^[\d,]+$/.test(t))
+        out.push({ penName, calendarUrl: href, size: sizeText ? Number(sizeText.replace(/,/g, '')) : null })
+      }
+      return out
+    })
+
+  // Dedupe by calendar id (a row can carry more than one link to its calendar).
+  const byId = new Map<number, BookclickerList>()
+  for (const r of raw ?? []) {
+    const m = r.calendarUrl.match(/\/calendars\/(\d+)/)
+    if (!m) continue
+    const listId = Number(m[1])
+    if (!byId.has(listId)) {
+      byId.set(listId, { penName: r.penName || `List ${listId}`, listId, calendarUrl: r.calendarUrl, size: r.size })
+    }
+  }
+  const lists = Array.from(byId.values()).slice(0, SEND_MAX_LISTS)
+  console.log(`[bc-sync] my_lists: ${lists.length} list(s) — ${lists.map(l => `${l.penName} (#${l.listId}${l.size != null ? `, ${l.size} subs` : ''})`).join('; ')}`)
+  return lists
+}
+
+// Upsert one send obligation. Natural key: list + partner name + promo date
+// (+ inv type, which is fixed per booking) — the same partner can book sends on
+// two of the user's lists for the same date, so the list is part of the key.
+// Titles can be placeholders, so they are stored best-effort in theirBook but
+// never used to match. The BookClicker list id has no dedicated column yet, so
+// it rides in notes (schema gap — see sync log docs).
+async function upsertSendObligation(
+  userId: string,
+  list: BookclickerList,
+  promoDate: Date,
+  b: SendBooking,
+): Promise<'created' | 'updated' | 'skipped'> {
+  const partnerName = (b.author || b.penName || '').trim()
+  if (!partnerName) return 'skipped'
+
+  const confirmation =
+    b.cancelled ? 'cancelled' :
+    b.sendConfirmed ? 'complete' :
+    b.phase === 'pending' ? 'applied' : 'approved'
+  const paymentType = (b.paymentOffer ?? 0) > 0 ? 'paid' : 'swap'
+  const swapType = normalizeStyle(b.invType)
+
+  const existing = await db.swapEntry.findFirst({
+    where: { userId, platform: 'bookclicker', role: 'outbound-send', myList: list.penName, partnerName, promoDate, swapType },
+    select: { id: true },
+  })
+  const shared = {
+    confirmation,
+    paymentType,
+    theirBook: b.title ?? null,
+    partnerListName: b.listName ?? null,
+    partnerListSize: b.listSize ?? null,
+  }
+  if (existing) {
+    await db.swapEntry.update({ where: { id: existing.id }, data: shared })
+    return 'updated'
+  }
+  await db.swapEntry.create({
+    data: {
+      userId,
+      promoType: paymentType === 'paid' ? 'paid_promo' : 'swap',
+      role: 'outbound-send',
+      platform: 'bookclicker',
+      partnerName,
+      myList: list.penName,
+      swapType,
+      promoDate,
+      notes: `Synced from BookClicker send calendar (list ${list.listId})`,
+      ...shared,
+    },
+  })
+  return 'created'
+}
+
+// Scans ONE list's calendar, yesterday → +SEND_SCAN_DAYS_AHEAD days, against the
+// per-date JSON endpoint (yesterday because Vercel runs UTC and Andrea is UTC-10 —
+// UTC "today" can already be tomorrow in Hawaii). One fetch per date, 60s cap each,
+// upsert after each date, per-date outcome logged and rolled up per month. Stops
+// gracefully when the sync nears the 300s route budget or the endpoint fails
+// repeatedly; upserts are idempotent so the next sync resumes the remainder.
+// Navigates to the list's calendar page for a same-origin fetch context, so
+// callers must return to the dashboard afterward.
+async function runSendObligationsChunk(
+  page: any,
+  userId: string,
+  list: BookclickerList,
+  syncStartMs: number,
+): Promise<ChunkResult> {
+  const t0 = Date.now()
+  const name = `sendObligations:${list.penName}`
+  const listId = list.listId
+
+  try {
+    await page.goto(list.calendarUrl, { waitUntil: 'load', timeoutMs: 20_000 })
+    await page.waitForTimeout(1500)
+
+    const dates: string[] = []
+    for (let d = -1; d <= SEND_SCAN_DAYS_AHEAD; d++) {
+      dates.push(new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10))
+    }
+
+    let extracted = 0
+    let upserted = 0
+    let consecutiveFailures = 0
+    const datesWithBookings: string[] = []
+    let stoppedEarly: string | null = null
+
+    for (let i = 0; i < dates.length; i++) {
+      const dateISO = dates[i]
+      const elapsedTotal = Date.now() - syncStartMs
+      if (elapsedTotal > SYNC_BUDGET_MS) {
+        stoppedEarly = `budget: ${dates.length - i} dates unprocessed (${dates[i]}…${dates[dates.length - 1]}); next sync resumes`
+        console.warn(`[bc-sync] sendObligations stopping at ${(elapsedTotal / 1000).toFixed(0)}s cumulative elapsed — ${stoppedEarly}`)
+        break
+      }
+
+      try {
+        const out = await withTimeout(
+          page.evaluate(buildSendFetchScript(listId, dateISO)) as Promise<{ ok: boolean; status: number; bookings?: SendBooking[] }>,
+          SEND_DATE_TIMEOUT_MS, `send scan ${dateISO}`,
+        )
+        if (!out?.ok) throw new Error(`HTTP ${out?.status ?? '?'}`)
+        consecutiveFailures = 0
+        const bookings = out.bookings ?? []
+        extracted += bookings.length
+        let dayUpserts = 0
+        for (const b of bookings) {
+          const outcome = await upsertSendObligation(userId, list, new Date(dateISO), b)
+          if (outcome !== 'skipped') { upserted++; dayUpserts++ }
+        }
+        if (bookings.length > 0) {
+          datesWithBookings.push(`${dateISO}:${bookings.length}`)
+          console.log(`[bc-sync] send scan [${list.penName}] ${dateISO}: ${bookings.length} bookings / ${dayUpserts} upserted`)
+        }
+      } catch (err) {
+        consecutiveFailures++
+        const msg = err instanceof Error ? err.message : String(err)
+        console.warn(`[bc-sync] send scan [${list.penName}] ${dateISO} FAILED (${consecutiveFailures} consecutive): ${msg}`)
+        if (consecutiveFailures >= SEND_MAX_CONSECUTIVE_FAILURES) {
+          stoppedEarly = `endpoint failing: stopped at ${dateISO}, ${dates.length - i - 1} dates unprocessed`
+          break
+        }
+      }
+      await page.waitForTimeout(SEND_INTER_DATE_MS)
+    }
+
+    // Per-month rollup for the chunk log (e.g. "2026-07: 47 across 7 dates").
+    const byMonth = new Map<string, { bookings: number; days: number }>()
+    for (const entry of datesWithBookings) {
+      const [dateISO, n] = entry.split(':')
+      const month = dateISO.slice(0, 7)
+      const agg = byMonth.get(month) ?? { bookings: 0, days: 0 }
+      agg.bookings += Number(n); agg.days++
+      byMonth.set(month, agg)
+    }
+    const detail = byMonth.size
+      ? ` [${Array.from(byMonth.entries()).map(([m, a]) => `${m}: ${a.bookings} across ${a.days} dates`).join('; ')}]`
+      : ' [no booked dates]'
+    console.log(`[bc-sync] chunk ${name}: ${extracted} bookings / ${upserted} upserted across ${dates.length} dates in ${((Date.now() - t0) / 1000).toFixed(1)}s${detail}${stoppedEarly ? ` STOPPED(${stoppedEarly})` : ''}`)
+    return { name, extracted, upserted, ms: Date.now() - t0, error: stoppedEarly ?? undefined, detail: detail.trim() }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.warn(`[bc-sync] chunk ${name} FAILED: ${msg}`)
+    return { name, extracted: 0, upserted: 0, ms: Date.now() - t0, error: msg }
+  }
+}
+
 const PENDING_PROMPT =
   `On the BookClicker dashboard, read ONLY the "Pending Sales Activity" section (inbound booking requests awaiting my confirmation). Return { rows: [...] }. For each request: partnerName = the requesting partner's name verbatim; bookTitle = my list/book named in the request or null; promoDate = the requested date as ISO YYYY-MM-DD (resolve "Thursday, July 23rd" to the nearest such date; assume the current year unless the month is clearly earlier in the year than now, then next year); promoStyle = "feature" or "mention"; statusLabel = "pending".`
 const PROMOS_FOR_ME_PROMPT =
@@ -273,6 +536,9 @@ export async function syncBookclickerForUser(userId: string): Promise<void> {
 
   let bbSessionId: string | undefined
   let syncLogId: string | undefined
+  // Wall-clock anchor for the 300s route budget — must predate init, since init
+  // (up to 90s) counts against the route too.
+  const syncStart = Date.now()
 
   try {
     await withTimeout(stagehand.init(), INIT_TIMEOUT_MS, 'Stagehand init/connect')
@@ -306,32 +572,64 @@ export async function syncBookclickerForUser(userId: string): Promise<void> {
     // land even if a late 120s chunk is killed at the 300s route budget (init 90s
     // + two 120s long chunks can exceed 300s in the worst case; per-chunk upsert
     // means everything before the kill is already persisted). Order:
-    // pendingInbound → calendar → promosForMe → outboundRequests. ──
+    // pendingInbound → calendar → sendObligations → promosForMe → outboundRequests.
+    // sendObligations sits before the long LLM chunks because it is per-date JSON
+    // fetches (no LLM) — cheap, and it is the driver this sync exists for. ──
     const chunks: ChunkResult[] = []
+    const logElapsed = () => console.log(`[bc-sync] cumulative elapsed: ${((Date.now() - syncStart) / 1000).toFixed(1)}s`)
 
     // 1. pendingInbound — small (~4 rows), reads the dashboard.
     chunks.push(await runListChunk(stagehand, userId, myList, 'pendingInbound', 'inbound', PENDING_PROMPT))
+    logElapsed()
 
     // 2. calendar — cheap/informational; navigates away from the dashboard.
-    let calendarRan = false
+    let leftDashboard = false
     if (calendarUrl) {
       chunks.push(await runCalendarChunk(stagehand, page, calendarUrl))
-      calendarRan = true
+      leftDashboard = true
+      logElapsed()
     }
 
-    // Return to the dashboard for the two long list chunks (the calendar left it).
-    if (calendarRan) {
+    // 3. sendObligations — enumerate ALL of the account's lists from /my_lists
+    // (users can have several, each with its own calendar), then per-date JSON
+    // scan of each list's calendar (what the user sends for partners). Falls back
+    // to the dashboard's calendar link if /my_lists yields nothing.
+    let lists: BookclickerList[] = []
+    try {
+      lists = await enumerateBookclickerLists(page)
+      leftDashboard = true
+    } catch (err) {
+      console.warn(`[bc-sync] my_lists enumeration FAILED: ${err instanceof Error ? err.message : String(err)}`)
+    }
+    if (lists.length === 0 && calendarUrl) {
+      const m = calendarUrl.match(/\/calendars\/(\d+)/)
+      if (m) lists = [{ penName: myList, listId: Number(m[1]), calendarUrl, size: null }]
+      console.warn('[bc-sync] my_lists empty — falling back to the dashboard calendar link')
+    }
+    if (lists.length === 0) {
+      chunks.push({ name: 'sendObligations', extracted: 0, upserted: 0, ms: 0, error: 'no lists found via /my_lists or dashboard' })
+    }
+    for (const list of lists) {
+      chunks.push(await runSendObligationsChunk(page, userId, list, syncStart))
+      leftDashboard = true
+      logElapsed()
+    }
+
+    // Return to the dashboard for the two long list chunks.
+    if (leftDashboard) {
       await page.goto(BOOKCLICKER_DASHBOARD_URL, { waitUntil: 'load', timeoutMs: 20_000 })
       await page.waitForTimeout(2000)
     }
 
-    // 3. promosForMe — long list; 120s cap, scoped to the newest 30 rows.
+    // 4. promosForMe — long list; 120s cap, scoped to the newest 30 rows.
     await page.waitForTimeout(INTER_CHUNK_MS)
     chunks.push(await runListChunk(stagehand, userId, myList, 'promosForMe', 'inbound', PROMOS_FOR_ME_PROMPT, LONG_CHUNK_TIMEOUT_MS))
+    logElapsed()
 
-    // 4. outboundRequests — longest list; 120s cap, scoped to the newest 30 rows.
+    // 5. outboundRequests — longest list; 120s cap, scoped to the newest 30 rows.
     await page.waitForTimeout(INTER_CHUNK_MS)
     chunks.push(await runListChunk(stagehand, userId, myList, 'outboundRequests', 'outbound', OUTBOUND_PROMPT, LONG_CHUNK_TIMEOUT_MS))
+    logElapsed()
 
     // ── Roll up per-chunk outcomes into the sync log. ──
     const totalUpserted = chunks.reduce((s, c) => s + c.upserted, 0)
@@ -340,7 +638,7 @@ export async function syncBookclickerForUser(userId: string): Promise<void> {
     const allRateLimited = failedChunks.length > 0 && failedChunks.every(c => /\b429\b|rate limit/i.test(c.error!))
 
     const summary = chunks.map(c =>
-      `${c.name}: ${c.extracted}extracted/${c.upserted}upserted ${(c.ms / 1000).toFixed(1)}s${c.error ? ` ERROR(${c.error.slice(0, 60)})` : ''}`
+      `${c.name}: ${c.extracted}extracted/${c.upserted}upserted ${(c.ms / 1000).toFixed(1)}s${c.detail ? ` ${c.detail}` : ''}${c.error ? ` ERROR(${c.error.slice(0, 60)})` : ''}`
     ).join(' | ')
 
     const status = okChunks > 0 ? 'success' : (allRateLimited ? 'rate_limited' : 'failed')
