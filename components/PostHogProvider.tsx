@@ -10,7 +10,10 @@ import posthog from 'posthog-js'
 import { PostHogProvider as PHProvider } from 'posthog-js/react'
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY
-const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
+// Send ingestion through our own domain (see next.config.js rewrites) so ad
+// blockers and our CSP don't block it. ui_host keeps "open in PostHog" links working.
+const POSTHOG_HOST = '/ingest'
+const POSTHOG_UI_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.posthog.com'
 
 let initialized = false
 
@@ -18,6 +21,7 @@ function initPostHog() {
   if (initialized || typeof window === 'undefined' || !POSTHOG_KEY) return
   posthog.init(POSTHOG_KEY, {
     api_host: POSTHOG_HOST,
+    ui_host: POSTHOG_UI_HOST,
     // Session replay — records clicks, navigation, and (per project settings)
     // console + network so you can diagnose bugs from the replay.
     session_recording: {

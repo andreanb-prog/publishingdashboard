@@ -12,6 +12,19 @@ const nextConfig = {
       bodySizeLimit: '50mb',
     },
   },
+  // PostHog needs its API paths to keep their trailing slashes when proxied.
+  skipTrailingSlashRedirect: true,
+  // Reverse proxy for PostHog: route analytics/session-replay through our OWN
+  // domain (/ingest) instead of posthog.com. This defeats ad blockers (first-party
+  // requests aren't blocked) AND satisfies our Content-Security-Policy (everything
+  // is same-origin 'self'). Without this, both the CSP and common blockers eat the data.
+  async rewrites() {
+    return [
+      { source: '/ingest/static/:path*', destination: 'https://us-assets.i.posthog.com/static/:path*' },
+      { source: '/ingest/:path*',        destination: 'https://us.i.posthog.com/:path*' },
+      { source: '/ingest/flags',         destination: 'https://us.i.posthog.com/flags' },
+    ]
+  },
   async headers() {
     return [
       {

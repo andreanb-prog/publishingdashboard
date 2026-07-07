@@ -1570,17 +1570,23 @@ export default function SettingsPage() {
                       style={{ borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}
                     >
                       <span className="text-[12px] font-semibold" style={{ color: '#1E2D3D' }}>
-                        Log in to KDP — we&apos;ll finish connecting automatically.
+                        {kdpConnectErr
+                          ? 'Connection problem'
+                          : kdpReady
+                            ? 'Log in to KDP — we’ll finish connecting automatically.'
+                            : 'Connecting your secure browser…'}
                       </span>
                       <div className="flex items-center gap-3">
-                        <button
-                          onClick={retryKdpNavigate}
-                          disabled={kdpNavRetrying}
-                          className="text-[11px] font-semibold px-2.5 py-1.5 rounded-md cursor-pointer"
-                          style={{ background: 'rgba(233,160,32,0.12)', color: '#B87A0E', border: '0.5px solid rgba(233,160,32,0.4)', opacity: kdpNavRetrying ? 0.6 : 1 }}
-                        >
-                          {kdpNavRetrying ? 'Loading…' : 'Blank window? Load Amazon sign-in'}
-                        </button>
+                        {kdpReady && (
+                          <button
+                            onClick={retryKdpNavigate}
+                            disabled={kdpNavRetrying}
+                            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-md cursor-pointer"
+                            style={{ background: 'rgba(233,160,32,0.12)', color: '#B87A0E', border: '0.5px solid rgba(233,160,32,0.4)', opacity: kdpNavRetrying ? 0.6 : 1 }}
+                          >
+                            {kdpNavRetrying ? 'Loading…' : 'Blank window? Load Amazon sign-in'}
+                          </button>
+                        )}
                         <button
                           onClick={closeKdpPanel}
                           className="text-[10px] font-semibold border-none bg-transparent cursor-pointer hover:underline"
@@ -1590,20 +1596,17 @@ export default function SettingsPage() {
                         </button>
                       </div>
                     </div>
-                    {kdpConnecting || !kdpLiveUrl ? (
-                      <div className="flex flex-col items-center justify-center gap-3 py-16">
-                        <Spinner />
-                        <span className="text-[11px]" style={{ color: '#6B7280' }}>
-                          Setting up your secure browser…
-                        </span>
-                      </div>
+                    {kdpConnectErr ? (
+                      <ConnectFailure message={kdpConnectErr} onRetry={connectKdp} onCancel={closeKdpPanel} />
+                    ) : !kdpReady ? (
+                      <ConnectInterstitial service="Amazon KDP" slow={kdpSlow} onRetry={connectKdp} />
                     ) : (
                       <>
                         <p className="px-4 py-2 text-[11px]" style={{ color: '#6B7280', borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}>
                           Log into Amazon KDP inside this window. As soon as you&apos;re signed in, this window closes itself and your first sync starts — nothing else to click.
                         </p>
                         <iframe
-                          src={kdpLiveUrl}
+                          src={kdpLiveUrl ?? undefined}
                           title="KDP Live View"
                           className="w-full block"
                           style={{ flex: '1 1 auto', minHeight: 300, border: 'none', background: 'white' }}
@@ -1717,7 +1720,11 @@ export default function SettingsPage() {
                       style={{ borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}
                     >
                       <span className="text-[12px] font-semibold" style={{ color: '#1E2D3D' }}>
-                        Log in to BookClicker — we&apos;ll finish connecting automatically.
+                        {bcConnectErr
+                          ? 'Connection problem'
+                          : bcReady
+                            ? 'Log in to BookClicker — we’ll finish connecting automatically.'
+                            : 'Connecting your secure browser…'}
                       </span>
                       <button
                         onClick={closeBcPanel}
@@ -1727,20 +1734,17 @@ export default function SettingsPage() {
                         Cancel
                       </button>
                     </div>
-                    {bcConnecting || !bcLiveUrl ? (
-                      <div className="flex flex-col items-center justify-center gap-3 py-16">
-                        <Spinner />
-                        <span className="text-[11px]" style={{ color: '#6B7280' }}>
-                          Setting up your secure browser…
-                        </span>
-                      </div>
+                    {bcConnectErr ? (
+                      <ConnectFailure message={bcConnectErr} onRetry={connectBookclicker} onCancel={closeBcPanel} />
+                    ) : !bcReady ? (
+                      <ConnectInterstitial service="BookClicker" slow={bcSlow} onRetry={connectBookclicker} />
                     ) : (
                       <>
                         <p className="px-4 py-2 text-[11px]" style={{ color: '#6B7280', borderBottom: '0.5px solid rgba(30,45,61,0.08)' }}>
                           Log into BookClicker inside this window. As soon as you&apos;re signed in, this window closes itself and your first sync starts — nothing else to click.
                         </p>
                         <iframe
-                          src={bcLiveUrl}
+                          src={bcLiveUrl ?? undefined}
                           title="BookClicker Live View"
                           className="w-full block"
                           style={{ flex: '1 1 auto', minHeight: 300, border: 'none', background: 'white' }}
