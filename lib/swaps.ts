@@ -21,17 +21,18 @@ export interface SerializedSwap {
   updatedAt: string
   // Raw SwapEntry fields carried through for precise UI decisions:
   confirmation: string     // 'applied' | 'approved' | 'complete' | 'cancelled'
-  role: string | null      // 'inbound' | 'outbound' | null
+  role: string | null      // 'inbound' | 'outbound' | 'outbound-send' | null
   paymentType: string      // 'swap' | 'paid'
+  myList: string           // which of MY lists this row belongs to (pen name)
+  sourceListId: string | null // platform-side list id (BookClicker calendar id)
+  notes: string | null
 }
 
-// role → the UI's direction vocab. inbound = they promote my book; outbound = I
-// promote their book. A null role (paid promos) is treated as incoming.
+// role → the UI's direction vocab. inbound = they promote my book; outbound /
+// outbound-send = I promote their book. A null role (paid promos) is treated
+// as incoming.
 export function roleToDirection(role: string | null): string {
-  return role === 'outbound' ? 'you_promote' : 'they_promote'
-}
-export function directionToRole(direction: string): 'inbound' | 'outbound' {
-  return direction === 'you_promote' ? 'outbound' : 'inbound'
+  return role?.startsWith('outbound') ? 'you_promote' : 'they_promote'
 }
 
 // SwapEntry confirmation → component status vocab.
@@ -81,5 +82,8 @@ export function serializeSwapEntry(e: SwapEntry): SerializedSwap {
     confirmation: e.confirmation,
     role: e.role,
     paymentType: e.paymentType,
+    myList: e.myList,
+    sourceListId: e.sourceListId ?? null,
+    notes: e.notes ?? null,
   }
 }
