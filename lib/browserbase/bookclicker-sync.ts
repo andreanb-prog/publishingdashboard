@@ -62,6 +62,7 @@ type ChunkResult = { name: string; extracted: number; upserted: number; ms: numb
 function mapStatus(raw: string | null): { confirmation: string; paymentType: string } {
   const s = (raw ?? '').toLowerCase().trim()
   if (s.includes('cancel') || s.includes('declin')) return { confirmation: 'cancelled', paymentType: 'swap' }
+  if (s.includes('refund'))                          return { confirmation: 'cancelled', paymentType: 'paid' }
   if (s === 'paid' || s.includes('paid'))           return { confirmation: 'approved', paymentType: 'paid' }
   if (s === 'sent')                                  return { confirmation: 'complete', paymentType: 'swap' }
   if (s === 'not sent' || s.includes('not sent'))    return { confirmation: 'approved', paymentType: 'swap' }
@@ -517,6 +518,67 @@ async function runSendObligationsChunk(
   }
 }
 
+// ── Launch Center "Recent Requests" (role 'inbound') ─────────────────────────
+// The dashboard's "Promos Sent for You" list is historical-only (confirmed
+// 2026-07-06: zero of its 30 most recent rows are future-dated). The forward-
+// looking source for WHO IS PROMOTING MY BOOKS is each book's Launch Center
+// page (/my_books/{bookId}/launch), whose "Recent Requests" table lists every
+// partner booked to send that book: List (partner name, often with their
+// genre-rules blob), List Size, Date ("February 6th", no year), Type
+// (solo/feature/mention), Status (sent/swapped/paid/pending/declined/
+// cancelled/refunded). Rows share upsertSwapEntry's natural key with
+// promosForMe rows (role 'inbound' + partner + date + book), so overlapping
+// entries update in place — and enrich them with the promo type, which the
+// dashboard list doesn't show.
+//
+// Book ids belong to the connected BookClicker account (not yet enumerated
+// from /my_books — do that before other beta users connect). Titles must
+// match the dashboard's book-title strings exactly or promosForMe rows would
+// duplicate instead of dedupe. A new launch = one new line here.
+type LaunchCenterBook = { bookId: number; title: string }
+const LAUNCH_CENTER_BOOKS: LaunchCenterBook[] = [
+  { bookId: 47662, title: 'Fake Dating My Billionaire Protector' },
+  { bookId: 49005, title: 'My Off Limits Roommate' },
+  { bookId: 49341, title: 'The Last Summer He Was Mine' },
+  { bookId: 49474, title: "My Ex's Secret Baby" },
+]
+
+const launchCenterPrompt = (title: string) =>
+  `This is a BookClicker Launch Center page for my book "${title}". Read ONLY the "Recent Requests" table (columns: List, List Size, Date, Type, Status) — the partner lists booked to send this book. The table is ordered oldest to newest and can be very long — capture ONLY the LAST 30 rows (the bottom rows, holding the most recent and future dates); ignore everything above them. Return { rows: [...] } with at most 30 items. For each row: partnerName = the List column's text verbatim (it often includes the partner's genre rules); bookTitle = null; promoDate = the Date as ISO YYYY-MM-DD — dates show no year (e.g. "February 6th") and all rows belong to the current launch cycle, so always assume the current year; promoStyle = the Type word (solo / feature / mention); statusLabel = the Status word (sent / swapped / paid / pending / declined / cancelled / refunded).`
+
+// Extracts one book's Launch Center "Recent Requests" table and upserts the
+// rows as role 'inbound' with the book's canonical title (never the LLM's —
+// guarantees the natural-key match against promosForMe rows). Navigates away
+// from the dashboard, so callers must return to it afterward.
+async function runLaunchCenterChunk(
+  stagehand: Stagehand,
+  page: any,
+  userId: string,
+  myList: string,
+  book: LaunchCenterBook,
+): Promise<ChunkResult> {
+  const name = `launchCenter:${book.title}`
+  const t0 = Date.now()
+  try {
+    await page.goto(`https://www.bookclicker.com/my_books/${book.bookId}/launch`, { waitUntil: 'load', timeoutMs: 20_000 })
+    await page.waitForTimeout(2000)
+    const out = await withTimeout(stagehand.extract(launchCenterPrompt(book.title), ListSchema), CHUNK_TIMEOUT_MS, `${name} extraction`)
+    const rows = out.rows ?? []
+    let upserted = 0
+    for (const row of rows) {
+      const outcome = await upsertSwapEntry(userId, myList, 'inbound', { ...row, bookTitle: book.title })
+      if (outcome !== 'skipped') upserted++
+    }
+    const res: ChunkResult = { name, extracted: rows.length, upserted, ms: Date.now() - t0 }
+    console.log(`[bc-sync] chunk ${name}: ${res.extracted} extracted / ${res.upserted} upserted in ${(res.ms / 1000).toFixed(1)}s`)
+    return res
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.warn(`[bc-sync] chunk ${name} FAILED after ${((Date.now() - t0) / 1000).toFixed(1)}s: ${msg}`)
+    return { name, extracted: 0, upserted: 0, ms: Date.now() - t0, error: msg }
+  }
+}
+
 const PENDING_PROMPT =
   `On the BookClicker dashboard, read ONLY the "Pending Sales Activity" section (inbound booking requests awaiting my confirmation). Return { rows: [...] }. For each request: partnerName = the requesting partner's name verbatim; bookTitle = my list/book named in the request or null; promoDate = the requested date as ISO YYYY-MM-DD (resolve "Thursday, July 23rd" to the nearest such date; assume the current year unless the month is clearly earlier in the year than now, then next year); promoStyle = "feature" or "mention"; statusLabel = "pending".`
 const PROMOS_FOR_ME_PROMPT =
@@ -648,9 +710,12 @@ export async function syncBookclickerForUser(userId: string): Promise<void> {
     // land even if a late 120s chunk is killed at the 300s route budget (init 90s
     // + two 120s long chunks can exceed 300s in the worst case; per-chunk upsert
     // means everything before the kill is already persisted). Order:
-    // pendingInbound → calendar → sendObligations → promosForMe → outboundRequests.
-    // sendObligations sits before the long LLM chunks because it is per-date JSON
-    // fetches (no LLM) — cheap, and it is the driver this sync exists for. ──
+    // pendingInbound → calendar → sendObligations → launchCenters → promosForMe
+    // → outboundRequests. sendObligations sits before the LLM chunks because it
+    // is per-date JSON fetches (no LLM) — cheap, and a driver this sync exists
+    // for. launchCenters (50s cap each) precede the two 120s dashboard chunks:
+    // they are the forward-looking "who promotes my books" source, and they
+    // navigate away from the dashboard like the chunks before them. ──
     const chunks: ChunkResult[] = []
     const logElapsed = () => console.log(`[bc-sync] cumulative elapsed: ${((Date.now() - syncStart) / 1000).toFixed(1)}s`)
 
@@ -691,18 +756,34 @@ export async function syncBookclickerForUser(userId: string): Promise<void> {
       logElapsed()
     }
 
+    // 4. launchCenters — one chunk per book's Launch Center "Recent Requests"
+    // table, the forward-looking source for partners promoting MY books.
+    // Skipped (visibly, as an errored chunk) once the route budget is spent —
+    // upserts are idempotent, so the next sync picks the skipped books up.
+    for (const book of LAUNCH_CENTER_BOOKS) {
+      const elapsed = Date.now() - syncStart
+      if (elapsed > SYNC_BUDGET_MS) {
+        chunks.push({ name: `launchCenter:${book.title}`, extracted: 0, upserted: 0, ms: 0, error: `budget: skipped at ${(elapsed / 1000).toFixed(0)}s cumulative elapsed; next sync resumes` })
+        continue
+      }
+      await page.waitForTimeout(INTER_CHUNK_MS)
+      chunks.push(await runLaunchCenterChunk(stagehand, page, userId, myList, book))
+      leftDashboard = true
+      logElapsed()
+    }
+
     // Return to the dashboard for the two long list chunks.
     if (leftDashboard) {
       await page.goto(BOOKCLICKER_DASHBOARD_URL, { waitUntil: 'load', timeoutMs: 20_000 })
       await page.waitForTimeout(2000)
     }
 
-    // 4. promosForMe — long list; 120s cap, scoped to the newest 30 rows.
+    // 5. promosForMe — long list; 120s cap, scoped to the newest 30 rows.
     await page.waitForTimeout(INTER_CHUNK_MS)
     chunks.push(await runListChunk(stagehand, userId, myList, 'promosForMe', 'inbound', PROMOS_FOR_ME_PROMPT, LONG_CHUNK_TIMEOUT_MS))
     logElapsed()
 
-    // 5. outboundRequests — longest list; 120s cap, scoped to the newest 30 rows.
+    // 6. outboundRequests — longest list; 120s cap, scoped to the newest 30 rows.
     await page.waitForTimeout(INTER_CHUNK_MS)
     chunks.push(await runListChunk(stagehand, userId, myList, 'outboundRequests', 'outbound', OUTBOUND_PROMPT, LONG_CHUNK_TIMEOUT_MS))
     logElapsed()
