@@ -78,6 +78,79 @@ function normalizeStyle(raw: string | null): string | null {
   return null
 }
 
+// ── partnerName cleanup ───────────────────────────────────────────────────
+// Some BookClicker authors put their swap criteria (genre rules, "No Erotica",
+// "link 7 days in advance", etc.) directly INTO their pen-name field rather
+// than in a separate field — BookClicker has no dedicated place for it. Both
+// the dashboard list extraction (Stagehand/LLM, verbatim per PromoRow) and the
+// send-obligation JSON fetch (book.author / adopted_pen_name, raw) pass that
+// blob straight through as partnerName. This is real upstream data, not a
+// parsing bug on our end — splitPartnerName() heuristically isolates the pen
+// name (typically 1-3 words, Title Case or ALL CAPS, optionally with a
+// trailing "#N" list-slot marker) from the trailing preferences blob so it
+// can be moved into notes instead.
+//
+// Approach: cut the string at the earliest "blob starts here" delimiter
+// (paren/bracket/brace, pipe, colon, semicolon, comma, tilde, asterisk,
+// en/em dash, " -" space-dash, a dash glued to a known genre word, or a
+// sentence-ending period not part of an initial like "E.C."), then trim any
+// trailing genre/logistics keywords or stray punctuation left on the name
+// side of that cut (e.g. "Cora Kingsley Romance ," → cut after "Romance" on
+// the comma, then "Romance" itself gets trimmed as a stoplisted word).
+const PARTNER_NAME_STOPWORDS = new Set([
+  'romance', 'contemporary', 'steamy', 'cr', 'csr', 'romcom', 'contemp', 'rom',
+  'genres', 'genre', 'other', 'actual', 'fpa', 'sports', 'billionaire',
+  'billionaires', 'small', 'town', 'towns', 'erotica', 'paranormal', 'pnr',
+  'no', 'please', 'swap', 'swaps', 'paid', 'solo', 'solos', 'feature',
+  'features', 'mention', 'mentions', 'lm', 'lms', 'link', 'links', 'clean',
+  'dark', 'mafia', 'cowboy', 'cowboys', 'lgbtq', 'lgbt', 'lgtbq', 'rh', 'arc',
+  'arcs', 'boxset', 'boxsets', 'box', 'sets', 'set', 'only', 'welcome',
+  'same', 'once', 'month', 'months', 'list', 'lists', 'size', 'click', 'rate',
+  'weekly', 'free', 'freebies', 'friday', 'sunday', 'saturday', 'monday',
+  'tuesday', 'wednesday', 'thursday', 'bookfunnel', 'newsletter', 'main',
+  'lead', 'magnet', 'optin', 'notice', 'sci-fi', 'fantasy', 'cozy',
+  'historical', 'age', 'gap', 'and', '&', '-',
+])
+const PARTNER_NAME_NON_NAME_TOKEN = /^[&~*|:;,.\-–—/]+$/
+const PARTNER_NAME_LEADING_TAG_RE = /^\(?FPA\)?[\s-]*/i
+const PARTNER_NAME_DELIM_RE =
+  /\(|\[|\{|\||:|;|,|~|\*|[–—]|\s-|-(?=(?:Contemporary|Steamy|Romance|RomCom|CR|CSR)\b)|(?<!\b[A-Za-z])\.\s+/i
+
+export function splitPartnerName(raw: string): { name: string; extra: string | null } {
+  const original = (raw ?? '').trim()
+  if (!original) return { name: original, extra: null }
+
+  const destagged = original.replace(PARTNER_NAME_LEADING_TAG_RE, '')
+  const leadingTag = original.slice(0, original.length - destagged.length)
+
+  const m = PARTNER_NAME_DELIM_RE.exec(destagged)
+  const candidate = m ? destagged.slice(0, m.index) : destagged
+
+  const tokens = candidate.split(/\s+/).filter(Boolean)
+  while (tokens.length > 1) {
+    const last = tokens[tokens.length - 1]
+    const bare = last.replace(/[^a-zA-Z&-]/g, '').toLowerCase()
+    if (PARTNER_NAME_STOPWORDS.has(bare) || PARTNER_NAME_NON_NAME_TOKEN.test(last)) {
+      tokens.pop()
+    } else {
+      break
+    }
+  }
+  const name = tokens.join(' ').trim()
+
+  if (!name || (name === destagged && !leadingTag)) return { name: original, extra: null }
+
+  let extra = (leadingTag + destagged.slice(name.length)).trim()
+  extra = extra.replace(/^[\s,;:.\-–—()[\]{}|~*/]+/, '').replace(/[\s,;:.\-–—()[\]{}|~*/]+$/, '').trim()
+
+  return { name, extra: extra || null }
+}
+
+// Appends a partner-preferences blob to a base notes string, if present.
+export function withPartnerPreferences(baseNotes: string, extra: string | null): string {
+  return extra ? `${baseNotes} — Partner preferences: ${extra}` : baseNotes
+}
+
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
     p,
@@ -98,6 +171,7 @@ async function upsertSwapEntry(
   const promoDate = new Date(row.promoDate)
   if (isNaN(promoDate.getTime())) return 'skipped'
 
+  const { name: partnerName, extra } = splitPartnerName(row.partnerName)
   const { confirmation, paymentType } = mapStatus(row.statusLabel)
   const swapType = normalizeStyle(row.promoStyle)
   const data = {
@@ -105,14 +179,14 @@ async function upsertSwapEntry(
     promoType: paymentType === 'paid' ? 'paid_promo' : 'swap',
     role,
     platform: 'bookclicker',
-    partnerName: row.partnerName,
+    partnerName,
     myBook: row.bookTitle ?? null,
     myList,
     swapType,
     promoDate,
     confirmation,
     paymentType,
-    notes: 'Synced from BookClicker',
+    notes: withPartnerPreferences('Synced from BookClicker', extra),
   }
 
   const existing = await db.swapEntry.findFirst({
@@ -120,7 +194,7 @@ async function upsertSwapEntry(
       userId,
       platform: 'bookclicker',
       role,
-      partnerName: row.partnerName,
+      partnerName,
       promoDate,
       myBook: row.bookTitle ?? null,
     },
@@ -306,8 +380,9 @@ async function upsertSendObligation(
   promoDate: Date,
   b: SendBooking,
 ): Promise<'created' | 'updated' | 'skipped'> {
-  const partnerName = (b.author || b.penName || '').trim()
-  if (!partnerName) return 'skipped'
+  const rawPartnerName = (b.author || b.penName || '').trim()
+  if (!rawPartnerName) return 'skipped'
+  const { name: partnerName, extra } = splitPartnerName(rawPartnerName)
 
   const confirmation =
     b.cancelled ? 'cancelled' :
@@ -342,7 +417,7 @@ async function upsertSendObligation(
       myList: list.penName,
       swapType,
       promoDate,
-      notes: `Synced from BookClicker send calendar (list ${list.listId})`,
+      notes: withPartnerPreferences(`Synced from BookClicker send calendar (list ${list.listId})`, extra),
       ...shared,
     },
   })
