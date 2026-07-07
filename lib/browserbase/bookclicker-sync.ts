@@ -19,8 +19,8 @@ import { getBrowserbaseConfig, isBookclickerLoggedInUrl } from '@/lib/browserbas
 const BOOKCLICKER_DASHBOARD_URL = 'https://www.bookclicker.com/dashboard'
 
 const INIT_TIMEOUT_MS  = 90_000        // hard cap on attach/init (catches a locked Context)
-const CHUNK_TIMEOUT_MS = 50_000        // per-list extraction cap
-const OUTBOUND_TIMEOUT_MS = 120_000    // Recent Requests is the longest list; give it more room
+const CHUNK_TIMEOUT_MS = 50_000        // default per-list extraction cap
+const LONG_CHUNK_TIMEOUT_MS = 120_000  // "Promos Sent for You" + "Recent Requests" are the long lists
 const INTER_CHUNK_MS   = 1_000         // small breather between chunks (avoids LLM rate spikes)
 export const STALE_LOCK_MS = 10 * 60_000 // a 'syncing' lock older than this is stale
 
@@ -150,10 +150,38 @@ async function runListChunk(
   }
 }
 
+// Calendar chunk: confirms the forward schedule. BookClicker's calendar is
+// color-coded by date with no partner/book detail (verified in recon), so this
+// chunk is informational — it extracts booked dates + state and logs them, but
+// produces no SwapEntry rows (the three lists are the row source). It navigates
+// AWAY from the dashboard, so callers must return to the dashboard afterward.
+async function runCalendarChunk(stagehand: Stagehand, page: any, calendarUrl: string): Promise<ChunkResult> {
+  const t0 = Date.now()
+  try {
+    await page.waitForTimeout(INTER_CHUNK_MS)
+    await page.goto(calendarUrl, { waitUntil: 'load', timeoutMs: 20_000 })
+    await page.waitForTimeout(2000)
+    const cal = await withTimeout(
+      stagehand.extract(
+        `This BookClicker calendar month grid color-codes each day by promo state. Return { bookedDates: [...] } listing every day cell that is NOT empty/grey: date = the day's ISO date (YYYY-MM-DD), state = a short label for its colour/state (e.g. "booked", "available", "today").`,
+        CalendarSchema,
+      ),
+      CHUNK_TIMEOUT_MS, 'calendar extraction',
+    )
+    const n = cal.bookedDates?.length ?? 0
+    console.log(`[bc-sync] chunk calendar: ${n} dated cells extracted (informational; 0 upserted) in ${((Date.now() - t0) / 1000).toFixed(1)}s`)
+    return { name: 'calendar', extracted: n, upserted: 0, ms: Date.now() - t0 }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.warn(`[bc-sync] chunk calendar FAILED: ${msg}`)
+    return { name: 'calendar', extracted: 0, upserted: 0, ms: Date.now() - t0, error: msg }
+  }
+}
+
 const PENDING_PROMPT =
   `On the BookClicker dashboard, read ONLY the "Pending Sales Activity" section (inbound booking requests awaiting my confirmation). Return { rows: [...] }. For each request: partnerName = the requesting partner's name verbatim; bookTitle = my list/book named in the request or null; promoDate = the requested date as ISO YYYY-MM-DD (resolve "Thursday, July 23rd" to the nearest such date; assume the current year unless the month is clearly earlier in the year than now, then next year); promoStyle = "feature" or "mention"; statusLabel = "pending".`
 const PROMOS_FOR_ME_PROMPT =
-  `On the BookClicker dashboard, read ONLY the "Promos Sent for You" section (promos other authors send FOR my books). Return { rows: [...] }. For each: partnerName = the sending author's name verbatim; bookTitle = my book being sent; promoDate = the send date as ISO YYYY-MM-DD (resolve relative to the current year as above); promoStyle = null; statusLabel = the SENT / NOT SENT label shown for that row.`
+  `On the BookClicker dashboard, read ONLY the "Promos Sent for You" section (promos other authors send FOR my books). This list can be very long — capture ONLY the 30 most recent entries (the newest 30 rows, i.e. those at the top / with the most recent dates); ignore everything older. Return { rows: [...] } with at most 30 items. For each: partnerName = the sending author's name verbatim; bookTitle = my book being sent; promoDate = the send date as ISO YYYY-MM-DD (resolve relative to the current year as above); promoStyle = null; statusLabel = the SENT / NOT SENT label shown for that row.`
 const OUTBOUND_PROMPT =
   `On the BookClicker dashboard, read ONLY the "Recent Requests" section (requests I sent to others for my books). This list can be very long — capture ONLY the 30 most recent entries (the newest 30 rows, i.e. those at the top / with the most recent dates); ignore everything older. Return { rows: [...] } with at most 30 items. For each: partnerName = the recipient partner's name verbatim; bookTitle = my book named; promoDate = the date as ISO YYYY-MM-DD (resolve relative to the current year as above); promoStyle = null; statusLabel = the status word (sent / swapped / paid / cancelled / declined).`
 
@@ -274,40 +302,36 @@ export async function syncBookclickerForUser(userId: string): Promise<void> {
 
     const { myList, calendarUrl } = await resolveDashboardMeta(page)
 
-    // ── Chunked extraction: one Stagehand call per list, upsert after each. ──
+    // ── Chunked extraction, ordered CHEAPEST-FIRST so the light chunks always
+    // land even if a late 120s chunk is killed at the 300s route budget (init 90s
+    // + two 120s long chunks can exceed 300s in the worst case; per-chunk upsert
+    // means everything before the kill is already persisted). Order:
+    // pendingInbound → calendar → promosForMe → outboundRequests. ──
     const chunks: ChunkResult[] = []
-    chunks.push(await runListChunk(stagehand, userId, myList, 'pendingInbound', 'inbound', PENDING_PROMPT))
-    await page.waitForTimeout(INTER_CHUNK_MS)
-    chunks.push(await runListChunk(stagehand, userId, myList, 'promosForMe', 'inbound', PROMOS_FOR_ME_PROMPT))
-    await page.waitForTimeout(INTER_CHUNK_MS)
-    chunks.push(await runListChunk(stagehand, userId, myList, 'outboundRequests', 'outbound', OUTBOUND_PROMPT, OUTBOUND_TIMEOUT_MS))
 
-    // ── Calendar chunk: confirms the forward schedule. BookClicker's calendar is
-    // color-coded by date with no partner/book detail (verified in recon), so this
-    // chunk is informational — it extracts booked dates + state and logs them, but
-    // produces no SwapEntry rows (the three lists above are the row source). ──
+    // 1. pendingInbound — small (~4 rows), reads the dashboard.
+    chunks.push(await runListChunk(stagehand, userId, myList, 'pendingInbound', 'inbound', PENDING_PROMPT))
+
+    // 2. calendar — cheap/informational; navigates away from the dashboard.
+    let calendarRan = false
     if (calendarUrl) {
-      const t0 = Date.now()
-      try {
-        await page.waitForTimeout(INTER_CHUNK_MS)
-        await page.goto(calendarUrl, { waitUntil: 'load', timeoutMs: 20_000 })
-        await page.waitForTimeout(2000)
-        const cal = await withTimeout(
-          stagehand.extract(
-            `This BookClicker calendar month grid color-codes each day by promo state. Return { bookedDates: [...] } listing every day cell that is NOT empty/grey: date = the day's ISO date (YYYY-MM-DD), state = a short label for its colour/state (e.g. "booked", "available", "today").`,
-            CalendarSchema,
-          ),
-          CHUNK_TIMEOUT_MS, 'calendar extraction',
-        )
-        const n = cal.bookedDates?.length ?? 0
-        chunks.push({ name: 'calendar', extracted: n, upserted: 0, ms: Date.now() - t0 })
-        console.log(`[bc-sync] chunk calendar: ${n} dated cells extracted (informational; 0 upserted) in ${((Date.now() - t0) / 1000).toFixed(1)}s`)
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
-        chunks.push({ name: 'calendar', extracted: 0, upserted: 0, ms: Date.now() - t0, error: msg })
-        console.warn(`[bc-sync] chunk calendar FAILED: ${msg}`)
-      }
+      chunks.push(await runCalendarChunk(stagehand, page, calendarUrl))
+      calendarRan = true
     }
+
+    // Return to the dashboard for the two long list chunks (the calendar left it).
+    if (calendarRan) {
+      await page.goto(BOOKCLICKER_DASHBOARD_URL, { waitUntil: 'load', timeoutMs: 20_000 })
+      await page.waitForTimeout(2000)
+    }
+
+    // 3. promosForMe — long list; 120s cap, scoped to the newest 30 rows.
+    await page.waitForTimeout(INTER_CHUNK_MS)
+    chunks.push(await runListChunk(stagehand, userId, myList, 'promosForMe', 'inbound', PROMOS_FOR_ME_PROMPT, LONG_CHUNK_TIMEOUT_MS))
+
+    // 4. outboundRequests — longest list; 120s cap, scoped to the newest 30 rows.
+    await page.waitForTimeout(INTER_CHUNK_MS)
+    chunks.push(await runListChunk(stagehand, userId, myList, 'outboundRequests', 'outbound', OUTBOUND_PROMPT, LONG_CHUNK_TIMEOUT_MS))
 
     // ── Roll up per-chunk outcomes into the sync log. ──
     const totalUpserted = chunks.reduce((s, c) => s + c.upserted, 0)
