@@ -647,6 +647,7 @@ export default function SettingsPage() {
   const [bcPanelOpen,     setBcPanelOpen]     = useState(false)
   const [bcJustConnected, setBcJustConnected] = useState(false)
   const [bcError,         setBcError]         = useState<string | null>(null)
+  const [bcSyncing,       setBcSyncing]       = useState(false)         // manual Sync Now in progress
 
   // ── Profile ───────────────────────────────────────────────────────────────
   const [penName,               setPenName]               = useState('')
@@ -1002,6 +1003,27 @@ export default function SettingsPage() {
     setBcSyncStatus(null)
     setBcLastSyncAt(null)
     setBcJustConnected(false)
+  }
+
+  // Manual re-sync between nightly cron runs.
+  async function syncBookclickerNow() {
+    if (bcSyncing) return
+    setBcSyncing(true)
+    setBcError(null)
+    try {
+      const res = await fetch('/api/browserbase/bookclicker-sync-now', { method: 'POST' })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        setBcLastSyncAt(new Date().toISOString())
+        showToast('BookClicker swaps synced.')
+      } else {
+        setBcError(json?.error || 'Sync failed. Please try again.')
+      }
+    } catch {
+      setBcError('Sync failed. Please try again.')
+    } finally {
+      setBcSyncing(false)
+    }
   }
 
   // Auto-detect BookClicker login: poll every 5s while the connect window is open;
@@ -1456,13 +1478,18 @@ export default function SettingsPage() {
                 </div>
                 <div className="shrink-0 flex items-center gap-3">
                   {bcSyncStatus === 'connected' ? (
-                    <button
-                      onClick={disconnectBookclicker}
-                      className="text-[11px] bg-transparent border-none cursor-pointer hover:underline"
-                      style={{ color: '#F97B6B' }}
-                    >
-                      Disconnect
-                    </button>
+                    <>
+                      <AmberBtn onClick={syncBookclickerNow} disabled={bcSyncing}>
+                        {bcSyncing ? <Spinner /> : 'Sync Now'}
+                      </AmberBtn>
+                      <button
+                        onClick={disconnectBookclicker}
+                        className="text-[11px] bg-transparent border-none cursor-pointer hover:underline"
+                        style={{ color: '#F97B6B' }}
+                      >
+                        Disconnect
+                      </button>
+                    </>
                   ) : (
                     <AmberBtn onClick={connectBookclicker} disabled={bcConnecting && bcPanelOpen}>
                       {bcConnecting && bcPanelOpen
