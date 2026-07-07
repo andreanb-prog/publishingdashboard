@@ -20,6 +20,7 @@ const BOOKCLICKER_DASHBOARD_URL = 'https://www.bookclicker.com/dashboard'
 
 const INIT_TIMEOUT_MS  = 90_000        // hard cap on attach/init (catches a locked Context)
 const CHUNK_TIMEOUT_MS = 50_000        // per-list extraction cap
+const OUTBOUND_TIMEOUT_MS = 120_000    // Recent Requests is the longest list; give it more room
 const INTER_CHUNK_MS   = 1_000         // small breather between chunks (avoids LLM rate spikes)
 export const STALE_LOCK_MS = 10 * 60_000 // a 'syncing' lock older than this is stale
 
@@ -128,10 +129,11 @@ async function runListChunk(
   name: string,
   role: Role,
   instruction: string,
+  timeoutMs: number = CHUNK_TIMEOUT_MS,
 ): Promise<ChunkResult> {
   const t0 = Date.now()
   try {
-    const out = await withTimeout(stagehand.extract(instruction, ListSchema), CHUNK_TIMEOUT_MS, `${name} extraction`)
+    const out = await withTimeout(stagehand.extract(instruction, ListSchema), timeoutMs, `${name} extraction`)
     const rows = out.rows ?? []
     let upserted = 0
     for (const row of rows) {
@@ -153,7 +155,7 @@ const PENDING_PROMPT =
 const PROMOS_FOR_ME_PROMPT =
   `On the BookClicker dashboard, read ONLY the "Promos Sent for You" section (promos other authors send FOR my books). Return { rows: [...] }. For each: partnerName = the sending author's name verbatim; bookTitle = my book being sent; promoDate = the send date as ISO YYYY-MM-DD (resolve relative to the current year as above); promoStyle = null; statusLabel = the SENT / NOT SENT label shown for that row.`
 const OUTBOUND_PROMPT =
-  `On the BookClicker dashboard, read ONLY the "Recent Requests" section (requests I sent to others for my books). Return { rows: [...] }. For each: partnerName = the recipient partner's name verbatim; bookTitle = my book named; promoDate = the date as ISO YYYY-MM-DD (resolve relative to the current year as above); promoStyle = null; statusLabel = the status word (sent / swapped / paid / cancelled / declined).`
+  `On the BookClicker dashboard, read ONLY the "Recent Requests" section (requests I sent to others for my books). This list can be very long — capture ONLY the 30 most recent entries (the newest 30 rows, i.e. those at the top / with the most recent dates); ignore everything older. Return { rows: [...] } with at most 30 items. For each: partnerName = the recipient partner's name verbatim; bookTitle = my book named; promoDate = the date as ISO YYYY-MM-DD (resolve relative to the current year as above); promoStyle = null; statusLabel = the status word (sent / swapped / paid / cancelled / declined).`
 
 // Resolve the list label and calendar URL from the dashboard DOM (no LLM cost).
 async function resolveDashboardMeta(page: any): Promise<{ myList: string; calendarUrl: string | null }> {
@@ -278,7 +280,7 @@ export async function syncBookclickerForUser(userId: string): Promise<void> {
     await page.waitForTimeout(INTER_CHUNK_MS)
     chunks.push(await runListChunk(stagehand, userId, myList, 'promosForMe', 'inbound', PROMOS_FOR_ME_PROMPT))
     await page.waitForTimeout(INTER_CHUNK_MS)
-    chunks.push(await runListChunk(stagehand, userId, myList, 'outboundRequests', 'outbound', OUTBOUND_PROMPT))
+    chunks.push(await runListChunk(stagehand, userId, myList, 'outboundRequests', 'outbound', OUTBOUND_PROMPT, OUTBOUND_TIMEOUT_MS))
 
     // ── Calendar chunk: confirms the forward schedule. BookClicker's calendar is
     // color-coded by date with no partner/book detail (verified in recon), so this
