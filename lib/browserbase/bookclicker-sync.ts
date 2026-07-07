@@ -526,10 +526,16 @@ async function runSendObligationsChunk(
 // partner booked to send that book: List (partner name, often with their
 // genre-rules blob), List Size, Date ("February 6th", no year), Type
 // (solo/feature/mention), Status (sent/swapped/paid/pending/declined/
-// cancelled/refunded). Rows share upsertSwapEntry's natural key with
-// promosForMe rows (role 'inbound' + partner + date + book), so overlapping
-// entries update in place — and enrich them with the promo type, which the
-// dashboard list doesn't show.
+// cancelled/refunded). The table is server-rendered Rails HTML, so it is read
+// with a plain in-page DOM walk — NOT Stagehand. (An LLM extraction was tried
+// first and failed both ways it can fail: asked for the LAST 30 rows of the
+// ~130-row table it returned the first 30, and it hallucinated years onto the
+// year-less dates, writing 2023 rows. Deterministic DOM read + code-side date
+// parsing has neither failure mode, and is ~free vs a 50s LLM call.)
+//
+// Rows share upsertSwapEntry's natural key with promosForMe rows (role
+// 'inbound' + partner + date + book), so overlapping entries update in place —
+// and enrich them with the promo type, which the dashboard list doesn't show.
 //
 // Book ids belong to the connected BookClicker account (not yet enumerated
 // from /my_books — do that before other beta users connect). Titles must
@@ -543,15 +549,47 @@ const LAUNCH_CENTER_BOOKS: LaunchCenterBook[] = [
   { bookId: 49474, title: "My Ex's Secret Baby" },
 ]
 
-const launchCenterPrompt = (title: string) =>
-  `This is a BookClicker Launch Center page for my book "${title}". Read ONLY the "Recent Requests" table (columns: List, List Size, Date, Type, Status) — the partner lists booked to send this book. The table is ordered oldest to newest and can be very long — capture ONLY the LAST 30 rows (the bottom rows, holding the most recent and future dates); ignore everything above them. Return { rows: [...] } with at most 30 items. For each row: partnerName = the List column's text verbatim (it often includes the partner's genre rules); bookTitle = null; promoDate = the Date as ISO YYYY-MM-DD — dates show no year (e.g. "February 6th") and all rows belong to the current launch cycle, so always assume the current year; promoStyle = the Type word (solo / feature / mention); statusLabel = the Status word (sent / swapped / paid / pending / declined / cancelled / refunded).`
+// Rows older than this are skipped: the forward schedule plus enough recent
+// history to overlap-and-enrich the promosForMe rows, without upserting a
+// launch's whole ~130-row lifetime on every sync.
+const LAUNCH_LOOKBACK_DAYS = 60
 
-// Extracts one book's Launch Center "Recent Requests" table and upserts the
-// rows as role 'inbound' with the book's canonical title (never the LLM's —
-// guarantees the natural-key match against promosForMe rows). Navigates away
-// from the dashboard, so callers must return to it afterward.
+// In-page DOM read of the "Recent Requests" table, identified by its header
+// row (List / List Size / Date / Type / Status) — the page's other table (the
+// marketplace list below it) has no such headers. Returns raw cell text;
+// date parsing stays in Node where the year rule lives.
+const LAUNCH_TABLE_SCRIPT = `(() => {
+  for (const t of Array.from(document.querySelectorAll('table'))) {
+    const heads = Array.from(t.querySelectorAll('th')).map(th => (th.textContent || '').trim().toLowerCase())
+    if (!(heads.includes('list') && heads.includes('date') && heads.includes('status'))) continue
+    return Array.from(t.querySelectorAll('tbody tr')).map(tr => {
+      const c = Array.from(tr.querySelectorAll('td')).map(td => (td.textContent || '').trim())
+      return { partner: c[0] ?? '', date: c[2] ?? '', type: c[3] ?? '', status: c[4] ?? '' }
+    })
+  }
+  return null
+})()`
+
+const LAUNCH_MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
+
+// "February 6th" → "YYYY-02-06", assuming the current year: a Launch Center
+// table spans one launch cycle, all within the year the sync runs in. (A
+// launch cycle straddling Dec/Jan would need a smarter rule — none does yet.)
+export function parseLaunchDate(raw: string, now: Date = new Date()): string | null {
+  const m = /^([A-Za-z]+)\s+(\d{1,2})/.exec(raw.trim())
+  if (!m) return null
+  const month = LAUNCH_MONTHS.indexOf(m[1].toLowerCase())
+  const day = Number(m[2])
+  if (month === -1 || day < 1 || day > 31) return null
+  return `${now.getFullYear()}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+// Reads one book's Launch Center "Recent Requests" table via the DOM script
+// and upserts rows inside the lookback window as role 'inbound' with the
+// book's canonical title (guaranteeing the natural-key match against
+// promosForMe rows). Navigates away from the dashboard, so callers must
+// return to it afterward.
 async function runLaunchCenterChunk(
-  stagehand: Stagehand,
   page: any,
   userId: string,
   myList: string,
@@ -561,16 +599,32 @@ async function runLaunchCenterChunk(
   const t0 = Date.now()
   try {
     await page.goto(`https://www.bookclicker.com/my_books/${book.bookId}/launch`, { waitUntil: 'load', timeoutMs: 20_000 })
-    await page.waitForTimeout(2000)
-    const out = await withTimeout(stagehand.extract(launchCenterPrompt(book.title), ListSchema), CHUNK_TIMEOUT_MS, `${name} extraction`)
-    const rows = out.rows ?? []
+    await page.waitForTimeout(1500)
+    const raw = await withTimeout(
+      page.evaluate(LAUNCH_TABLE_SCRIPT) as Promise<Array<{ partner: string; date: string; type: string; status: string }> | null>,
+      15_000, `${name} table read`,
+    )
+    if (!raw) throw new Error('Recent Requests table not found on the launch page')
+
+    const cutoff = new Date(Date.now() - LAUNCH_LOOKBACK_DAYS * 86_400_000).toISOString().slice(0, 10)
+    const rows = raw
+      .map(r => ({
+        partnerName: r.partner,
+        bookTitle: book.title,
+        promoDate: parseLaunchDate(r.date),
+        promoStyle: r.type || null,
+        statusLabel: r.status || null,
+      }))
+      .filter(r => r.promoDate && r.promoDate >= cutoff)
+
     let upserted = 0
     for (const row of rows) {
-      const outcome = await upsertSwapEntry(userId, myList, 'inbound', { ...row, bookTitle: book.title })
+      const outcome = await upsertSwapEntry(userId, myList, 'inbound', row)
       if (outcome !== 'skipped') upserted++
     }
-    const res: ChunkResult = { name, extracted: rows.length, upserted, ms: Date.now() - t0 }
-    console.log(`[bc-sync] chunk ${name}: ${res.extracted} extracted / ${res.upserted} upserted in ${(res.ms / 1000).toFixed(1)}s`)
+    const detail = `[table: ${raw.length} rows, ${rows.length} within ${LAUNCH_LOOKBACK_DAYS}d lookback]`
+    const res: ChunkResult = { name, extracted: rows.length, upserted, ms: Date.now() - t0, detail }
+    console.log(`[bc-sync] chunk ${name}: ${res.extracted} extracted / ${res.upserted} upserted in ${(res.ms / 1000).toFixed(1)}s ${detail}`)
     return res
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -711,11 +765,10 @@ export async function syncBookclickerForUser(userId: string): Promise<void> {
     // + two 120s long chunks can exceed 300s in the worst case; per-chunk upsert
     // means everything before the kill is already persisted). Order:
     // pendingInbound → calendar → sendObligations → launchCenters → promosForMe
-    // → outboundRequests. sendObligations sits before the LLM chunks because it
-    // is per-date JSON fetches (no LLM) — cheap, and a driver this sync exists
-    // for. launchCenters (50s cap each) precede the two 120s dashboard chunks:
-    // they are the forward-looking "who promotes my books" source, and they
-    // navigate away from the dashboard like the chunks before them. ──
+    // → outboundRequests. sendObligations and launchCenters sit before the two
+    // 120s dashboard LLM chunks because they are LLM-free (JSON fetches / DOM
+    // reads) — cheap, and the forward-looking sources this sync exists for —
+    // and they navigate away from the dashboard like the chunks before them. ──
     const chunks: ChunkResult[] = []
     const logElapsed = () => console.log(`[bc-sync] cumulative elapsed: ${((Date.now() - syncStart) / 1000).toFixed(1)}s`)
 
@@ -766,8 +819,7 @@ export async function syncBookclickerForUser(userId: string): Promise<void> {
         chunks.push({ name: `launchCenter:${book.title}`, extracted: 0, upserted: 0, ms: 0, error: `budget: skipped at ${(elapsed / 1000).toFixed(0)}s cumulative elapsed; next sync resumes` })
         continue
       }
-      await page.waitForTimeout(INTER_CHUNK_MS)
-      chunks.push(await runLaunchCenterChunk(stagehand, page, userId, myList, book))
+      chunks.push(await runLaunchCenterChunk(page, userId, myList, book))
       leftDashboard = true
       logElapsed()
     }
