@@ -1,148 +1,27 @@
 'use client'
 
-// Month calendar over SwapEntry rows. Extracted from the retired SwapsPage when
-// the main Swaps page was rebuilt around the send queue — the calendar lives on
-// as a secondary view at /dashboard/swaps/calendar.
+// Secondary month-grid view of the send queue, linked from the Swaps page footer.
+// Reads the same SwapEntry data with the same semantics as the main page:
+// amber marks dates with outbound-send obligations, sage marks dates where
+// partners promote Andrea's books, both on mixed days. Clicking a day opens that
+// date's manifest — the same row component as the hero.
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChevronRight, ChevronLeft } from 'lucide-react'
-import { BOOK_COLORS } from '@/lib/bookColors'
 import type { SerializedSwap } from '@/lib/swaps'
+import {
+  NAVY, AMBER, SAGE, SERIF, Dot, SectionLabel,
+  ManifestList, patchSwapStatus, dstr, fmtShort,
+} from '@/components/swaps/manifest'
 
-// A pending inbound request targets my LIST, not a specific book — the sync stores
-// the list label (e.g. "Elle Wilder (Contemporary Romance, Slow Burn, Small Town)")
-// in bookTitle. Detect it by the parenthetical genre tag: real book titles/codes
-// never contain "(". Show the list name muted italic rather than as a book title.
-function isListTarget(s: SerializedSwap): boolean {
-  return s.role === 'inbound' && s.bookTitle.includes('(')
-}
-const LIST_TARGET_COLOR = '#9CA3AF'
-
-function promoDateStr(iso: string) {
-  return iso.split('T')[0]
-}
-
-function fmtDateGroupHeader(dateStr: string): string {
+function fmtDayHeader(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00')
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
-function fmtListSize(n: number | null): string {
-  if (!n) return ''
-  return n >= 1000 ? `${(n / 1000).toFixed(1)}K subs` : `${n} subs`
-}
-
-function getBookColor(title: string, catalog: { title: string }[]): string {
-  const t = title.toLowerCase()
-  const idx = catalog.findIndex(b => b.title.toLowerCase() === t)
-  if (idx !== -1) return BOOK_COLORS[idx % BOOK_COLORS.length]
-  return BOOK_COLORS[0]
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { bg: string; color: string; label: string }> = {
-    booked:    { bg: '#FEF3C7', color: '#92400E', label: 'Booked' },
-    confirmed: { bg: '#D1FAE5', color: '#065F46', label: 'Confirmed' },
-    complete:  { bg: '#D1FAE5', color: '#065F46', label: 'Complete ✓' },
-    cancelled: { bg: '#F3F4F6', color: '#6B7280', label: 'Cancelled' },
-  }
-  const s = map[status] ?? map.booked
-  return (
-    <span style={{
-      fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 99,
-      background: s.bg, color: s.color, whiteSpace: 'nowrap',
-    }}>
-      {s.label}
-    </span>
-  )
-}
-
-function DaySwapCard({ swap, catalog }: { swap: SerializedSwap; catalog: { title: string }[] }) {
-  const listTarget = isListTarget(swap)
-  const color = listTarget ? LIST_TARGET_COLOR : getBookColor(swap.bookTitle, catalog)
-  const isSend = swap.direction === 'you_promote'
-  const kind = swap.promoFormat
-
-  return (
-    <div style={{
-      background: 'white', border: '0.5px solid rgba(30,45,61,0.1)', borderRadius: 10,
-      padding: '12px 14px',
-    }}>
-      {/* Row 1: partner name + direction pill + kind badge */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 8, marginBottom: 4, flexWrap: 'wrap',
-      }}>
-        <span style={{
-          fontSize: 14, fontWeight: 700, color: '#1E2D3D',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {swap.partnerName}
-        </span>
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
-          <span style={{
-            fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 99,
-            letterSpacing: '0.05em', whiteSpace: 'nowrap',
-            background: isSend ? 'rgba(233,160,32,0.15)' : 'rgba(110,191,139,0.15)',
-            color: isSend ? '#E9A020' : '#6EBF8B',
-          }}>
-            {isSend ? 'YOU SEND' : 'INCOMING'}
-          </span>
-          {kind && (
-            <span style={{
-              fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 99,
-              background: 'rgba(30,45,61,0.06)', color: 'rgba(30,45,61,0.55)',
-              whiteSpace: 'nowrap',
-            }}>
-              {kind}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Row 1b: book title in book color — or, for a pending list request, the
-          list name in muted italic (it targets my list, not a specific book) */}
-      <p style={{
-        fontSize: 12, fontWeight: listTarget ? 500 : 600, color, margin: '0 0 8px',
-        fontStyle: listTarget ? 'italic' : 'normal',
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-      }}>
-        {swap.bookTitle}
-      </p>
-
-      {/* Row 2: book dot + partner list label + subs + status pill */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-          <div style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: color, flexShrink: 0,
-          }} />
-          {swap.launchWindow && (
-            <span style={{
-              fontSize: 11, color: 'rgba(30,45,61,0.5)',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
-              List: {swap.launchWindow}
-            </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
-          {swap.partnerListSize != null && swap.partnerListSize > 0 && (
-            <span style={{ fontSize: 12, color: '#9CA3AF' }}>
-              {fmtListSize(swap.partnerListSize)}
-            </span>
-          )}
-          <StatusBadge status={swap.status} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export function SwapsCalendar({ swaps, today, catalog }: { swaps: SerializedSwap[]; today: string; catalog: { title: string }[] }) {
+export function SwapsCalendar({ swaps: initialSwaps, today }: { swaps: SerializedSwap[]; today: string }) {
   const now = new Date()
+  const [swaps,       setSwaps]       = useState<SerializedSwap[]>(initialSwaps)
   const [year,        setYear]        = useState(now.getFullYear())
   const [month,       setMonth]       = useState(now.getMonth())
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
@@ -156,13 +35,36 @@ export function SwapsCalendar({ swaps, today, catalog }: { swaps: SerializedSwap
     else setMonth(m => m + 1)
   }
 
-  // Build dateStr → swaps[]
-  const dateMap: Record<string, SerializedSwap[]> = {}
-  for (const s of swaps) {
-    const d = promoDateStr(s.promoDate)
-    if (!dateMap[d]) dateMap[d] = []
-    dateMap[d].push(s)
+  async function toggleSent(swap: SerializedSwap) {
+    // Same optimistic mark-sent as the main page; unchecking goes back to approved.
+    const status = swap.confirmation === 'complete' ? 'confirmed' : 'complete'
+    const optimistic = status === 'complete' ? 'complete' : 'approved'
+    const prev = swaps
+    setSwaps(p => p.map(s => s.id === swap.id ? { ...s, confirmation: optimistic } : s))
+    const confirmed = await patchSwapStatus(swap.id, status)
+    if (confirmed === null) setSwaps(prev)
+    else setSwaps(p => p.map(s => s.id === swap.id ? { ...s, confirmation: confirmed } : s))
   }
+
+  // Per-date buckets, same role mapping as the main page: outbound-send = your
+  // sends (amber) · inbound + approved = partners promoting your books (sage).
+  const { sendsByDate, promosByDate, multiList } = useMemo(() => {
+    const sendsByDate = new Map<string, SerializedSwap[]>()
+    const promosByDate = new Map<string, SerializedSwap[]>()
+    const active = swaps.filter(s => s.confirmation !== 'cancelled')
+    for (const s of active) {
+      const d = dstr(s.promoDate)
+      if (s.role === 'outbound-send') {
+        if (!sendsByDate.has(d)) sendsByDate.set(d, [])
+        sendsByDate.get(d)!.push(s)
+      } else if (s.role === 'inbound' && s.confirmation === 'approved') {
+        if (!promosByDate.has(d)) promosByDate.set(d, [])
+        promosByDate.get(d)!.push(s)
+      }
+    }
+    const multiList = new Set(active.filter(s => s.role === 'outbound-send').map(s => s.myList)).size > 1
+    return { sendsByDate, promosByDate, multiList }
+  }, [swaps])
 
   const firstDayOfWeek = new Date(year, month, 1).getDay()
   const daysInMonth    = new Date(year, month + 1, 0).getDate()
@@ -174,13 +76,17 @@ export function SwapsCalendar({ swaps, today, catalog }: { swaps: SerializedSwap
     cells.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`)
   }
 
+  function dayCount(dateStr: string): number {
+    return (sendsByDate.get(dateStr)?.length ?? 0) + (promosByDate.get(dateStr)?.length ?? 0)
+  }
+
   function handleDayClick(dateStr: string) {
-    const count = (dateMap[dateStr] ?? []).length
-    if (count === 0) return
+    if (dayCount(dateStr) === 0) return
     setSelectedDay(prev => prev === dateStr ? null : dateStr)
   }
 
-  const selectedSwaps = selectedDay ? (dateMap[selectedDay] ?? []) : []
+  const selectedSends  = selectedDay ? (sendsByDate.get(selectedDay) ?? []) : []
+  const selectedPromos = selectedDay ? (promosByDate.get(selectedDay) ?? []) : []
 
   return (
     <div style={{
@@ -195,7 +101,7 @@ export function SwapsCalendar({ swaps, today, catalog }: { swaps: SerializedSwap
         >
           <ChevronLeft size={16} strokeWidth={2} />
         </button>
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2D3D' }}>{monthLabel}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: NAVY }}>{monthLabel}</span>
         <button
           onClick={nextMonth}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', color: '#9CA3AF', display: 'flex', alignItems: 'center' }}
@@ -219,9 +125,10 @@ export function SwapsCalendar({ swaps, today, catalog }: { swaps: SerializedSwap
       {/* Day cells */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
         {cells.map((dateStr, i) => {
-          if (!dateStr) return <div key={`e-${i}`} style={{ minHeight: 54 }} />
-          const daySwaps  = dateMap[dateStr] ?? []
-          const count     = daySwaps.length
+          if (!dateStr) return <div key={`e-${i}`} style={{ minHeight: 58 }} />
+          const sends     = sendsByDate.get(dateStr) ?? []
+          const promos    = promosByDate.get(dateStr) ?? []
+          const count     = sends.length + promos.length
           const isToday   = dateStr === today
           const isSelected = dateStr === selectedDay
           const dayNum    = new Date(dateStr + 'T12:00:00').getDate()
@@ -231,11 +138,11 @@ export function SwapsCalendar({ swaps, today, catalog }: { swaps: SerializedSwap
               key={dateStr}
               onClick={() => handleDayClick(dateStr)}
               style={{
-                minHeight: 54,
+                minHeight: 58,
                 borderRadius: 6,
                 background: isSelected ? '#FFF8F0' : count > 0 ? '#FAFAFA' : 'transparent',
                 border: isToday
-                  ? '1.5px solid #1E2D3D'
+                  ? `1.5px solid ${NAVY}`
                   : isSelected
                     ? '1px solid rgba(233,160,32,0.45)'
                     : '0.5px solid transparent',
@@ -247,30 +154,33 @@ export function SwapsCalendar({ swaps, today, catalog }: { swaps: SerializedSwap
                 transition: 'background 0.1s',
               }}
             >
-              {/* Date number */}
-              <span style={{
-                fontSize: 11, lineHeight: 1,
-                fontWeight: isToday ? 700 : count > 0 ? 600 : 400,
-                color: isToday ? '#1E2D3D' : count > 0 ? '#1E2D3D' : '#C9C9C9',
-                marginBottom: 2,
-              }}>
-                {dayNum}
-              </span>
+              {/* Date number + send count */}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                <span style={{
+                  fontSize: 11, lineHeight: 1,
+                  fontWeight: isToday ? 700 : count > 0 ? 600 : 400,
+                  color: isToday ? NAVY : count > 0 ? NAVY : '#C9C9C9',
+                }}>
+                  {dayNum}
+                </span>
+                {sends.length > 0 && (
+                  <span style={{ fontSize: 9, fontWeight: 700, color: '#B57812', lineHeight: 1 }}>
+                    {sends.length} send{sends.length === 1 ? '' : 's'}
+                  </span>
+                )}
+              </div>
 
-              {/* Stacked book-color bars (one per swap, max 5 shown) */}
+              {/* Direction marks: amber = your sends, sage = promoting your books */}
               {count > 0 && (
                 <div style={{
                   display: 'flex', flexDirection: 'column', gap: 1.5,
                   flex: 1, justifyContent: 'flex-end', paddingBottom: 4,
                 }}>
-                  {daySwaps.slice(0, 5).map((s, j) => (
-                    <div key={j} title={s.bookTitle} style={{
-                      height: 3, borderRadius: 2,
-                      background: getBookColor(s.bookTitle, catalog),
-                    }} />
-                  ))}
-                  {count > 5 && (
-                    <div style={{ height: 3, borderRadius: 2, background: '#E5E7EB' }} />
+                  {sends.length > 0 && (
+                    <div style={{ height: 3, borderRadius: 2, background: AMBER }} />
+                  )}
+                  {promos.length > 0 && (
+                    <div style={{ height: 3, borderRadius: 2, background: SAGE }} />
                   )}
                 </div>
               )}
@@ -279,53 +189,51 @@ export function SwapsCalendar({ swaps, today, catalog }: { swaps: SerializedSwap
         })}
       </div>
 
-      {/* Inline day panel */}
-      {selectedDay && selectedSwaps.length > 0 && (
+      {/* Legend */}
+      <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(30,45,61,0.5)' }}>
+          <Dot color={AMBER} /> Your sends
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(30,45,61,0.5)' }}>
+          <Dot color={SAGE} /> Promoting your books
+        </span>
+      </div>
+
+      {/* Day manifest panel */}
+      {selectedDay && (selectedSends.length > 0 || selectedPromos.length > 0) && (
         <div style={{
           marginTop: 16, paddingTop: 16,
           borderTop: '0.5px solid rgba(30,45,61,0.08)',
         }}>
-          <p style={{
-            fontSize: 13, fontWeight: 700, color: '#1E2D3D', margin: '0 0 12px',
-          }}>
-            {fmtDateGroupHeader(selectedDay)}
+          <p style={{ fontSize: 14, fontWeight: 700, color: NAVY, margin: '0 0 4px' }}>
+            {fmtDayHeader(selectedDay)}
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {(() => {
-              const active    = selectedSwaps.filter(s => s.status !== 'cancelled')
-              const cancelled = selectedSwaps.filter(s => s.status === 'cancelled')
-              return (
-                <>
-                  {active.map(s => (
-                    <DaySwapCard key={s.id} swap={s} catalog={catalog} />
-                  ))}
-                  {cancelled.length > 0 && (
-                    <>
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        marginTop: active.length > 0 ? 4 : 0,
-                      }}>
-                        <div style={{ flex: 1, height: '0.5px', background: 'rgba(30,45,61,0.08)' }} />
-                        <span style={{
-                          fontSize: 11, fontWeight: 700,
-                          color: 'rgba(30,45,61,0.35)',
-                          letterSpacing: '0.07em', textTransform: 'uppercase',
-                        }}>
-                          Cancelled
-                        </span>
-                        <div style={{ flex: 1, height: '0.5px', background: 'rgba(30,45,61,0.08)' }} />
-                      </div>
-                      {cancelled.map(s => (
-                        <div key={s.id} style={{ opacity: 0.5 }}>
-                          <DaySwapCard swap={s} catalog={catalog} />
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </>
-              )
-            })()}
-          </div>
+
+          {selectedSends.length > 0 && (
+            <div style={{ marginBottom: selectedPromos.length > 0 ? 14 : 0 }}>
+              <ManifestList rows={selectedSends} multiList={multiList} onToggle={toggleSent} />
+            </div>
+          )}
+
+          {selectedPromos.length > 0 && (
+            <div>
+              <SectionLabel>Promoting Your Books</SectionLabel>
+              {selectedPromos.map((s, i) => (
+                <div key={s.id} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 0',
+                  borderTop: i > 0 ? '0.5px solid rgba(30,45,61,0.06)' : 'none',
+                }}>
+                  <div style={{ paddingTop: 5 }}><Dot color={SAGE} /></div>
+                  <p style={{ fontSize: 12.5, color: 'rgba(30,45,61,0.7)', margin: 0, lineHeight: 1.45, minWidth: 0 }}>
+                    <span style={{ fontWeight: 700, color: NAVY }}>{s.partnerName}</span>
+                    {' sends '}
+                    <span style={{ fontStyle: 'italic', fontFamily: SERIF }}>{s.bookTitle}</span>
+                    {' · '}{fmtShort(dstr(s.promoDate))}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -11,33 +11,18 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, ChevronRight, CalendarDays } from 'lucide-react'
 import type { SerializedSwap } from '@/lib/swaps'
-
-const NAVY  = '#1E2D3D'
-const AMBER = '#E9A020'
-const SAGE  = '#6EBF8B'
-const CORAL = '#F97B6B'
-const SERIF = "var(--font-playfair), 'Playfair Display', Georgia, serif"
-
-const card: React.CSSProperties = {
-  background: 'white', borderRadius: 12, border: '0.5px solid rgba(30,45,61,0.12)',
-}
+import {
+  NAVY, AMBER, SAGE, CORAL, SERIF, card,
+  todayDateStr, dstr, fmtShort,
+  SectionLabel, Dot, ManifestRow, ManifestList, patchSwapStatus,
+} from '@/components/swaps/manifest'
 
 // ─── Date helpers (all on 'YYYY-MM-DD' strings, local time) ──────────────────
 
-function todayDateStr() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-function dstr(iso: string) {
-  return iso.split('T')[0]
-}
 function addDays(dateStr: string, n: number): string {
   const d = new Date(dateStr + 'T12:00:00')
   d.setDate(d.getDate() + n)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-function fmtShort(dateStr: string): string {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 function weekday(dateStr: string): string {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' })
@@ -56,207 +41,6 @@ function relativeTime(iso: string): string {
   if (hours < 24) return `${hours}h ago`
   const days = Math.floor(hours / 24)
   return `${days}d ago`
-}
-
-// BookClicker send bookings often carry a placeholder instead of the real title
-// ("July Launch", "TBD", a bare month). Heuristic: no title, an obviously generic
-// word, or a short month-led phrase. Real titles can contain "May"/"June" as a
-// name, so the month test only fires on short (≤3 word) titles.
-function isPlaceholderTitle(t: string | null | undefined): boolean {
-  if (!t || !t.trim()) return true
-  const s = t.trim()
-  if (/\b(tbd|untitled|title pending|coming soon)\b/i.test(s)) return true
-  const short = s.split(/\s+/).length <= 3
-  if (short && /\b(launch|promo|newsletter|swap)\b/i.test(s)) return true
-  if (short && /^(january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(s)) return true
-  return false
-}
-
-function fmtListSize(n: number | null): string {
-  if (!n) return ''
-  return n >= 1000 ? `${(n / 1000).toFixed(1)}K subs` : `${n} subs`
-}
-
-// ─── Small shared pieces ──────────────────────────────────────────────────────
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p style={{
-      fontSize: 11, fontWeight: 700, color: 'rgba(30,45,61,0.4)',
-      letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 12px',
-    }}>
-      {children}
-    </p>
-  )
-}
-
-function TypeChip({ type }: { type: string | null }) {
-  if (!type) return null
-  return (
-    <span style={{
-      fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99,
-      background: 'rgba(30,45,61,0.06)', color: 'rgba(30,45,61,0.55)',
-      whiteSpace: 'nowrap', flexShrink: 0,
-    }}>
-      {type}
-    </span>
-  )
-}
-
-function ListChip({ name }: { name: string }) {
-  return (
-    <span style={{
-      fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99,
-      background: 'rgba(233,160,32,0.1)', color: '#B57812',
-      whiteSpace: 'nowrap', flexShrink: 0,
-      fontFamily: 'var(--font-jetbrains-mono), monospace',
-    }}>
-      {name}
-    </span>
-  )
-}
-
-function Dot({ color }: { color: string }) {
-  return <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
-}
-
-// ─── Manifest row (one outbound-send obligation) ─────────────────────────────
-
-function ManifestRow({ swap, multiList, onToggle, showDate }: {
-  swap: SerializedSwap
-  multiList: boolean
-  onToggle: (swap: SerializedSwap) => void
-  showDate?: boolean
-}) {
-  const [showNotes, setShowNotes] = useState(false)
-  const done = swap.confirmation === 'complete'
-  const placeholder = isPlaceholderTitle(swap.bookTitle)
-  const hasContext = Boolean(swap.notes || swap.launchWindow || swap.partnerListSize)
-
-  return (
-    <div style={{ padding: '10px 0' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        {/* Mark-sent checkbox */}
-        <button
-          onClick={() => onToggle(swap)}
-          aria-label={done ? 'Marked sent' : 'Mark sent'}
-          style={{
-            width: 18, height: 18, borderRadius: 5, flexShrink: 0, cursor: 'pointer',
-            border: done ? `1.5px solid ${AMBER}` : '1.5px solid rgba(30,45,61,0.25)',
-            background: done ? AMBER : 'white',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-          }}
-        >
-          {done && (
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          )}
-        </button>
-
-        <span style={{
-          fontSize: 14, fontWeight: 700, color: NAVY, flexShrink: 0,
-          textDecoration: done ? 'line-through' : 'none',
-          opacity: done ? 0.5 : 1,
-        }}>
-          {swap.partnerName}
-        </span>
-
-        <span style={{
-          fontSize: 13, fontStyle: 'italic', fontFamily: SERIF,
-          color: 'rgba(30,45,61,0.5)', minWidth: 48, flex: 1,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          opacity: done ? 0.5 : 1,
-        }}>
-          {placeholder
-            ? `Title pending — ${swap.bookTitle || 'no title yet'}`
-            : swap.bookTitle}
-        </span>
-
-        {showDate && (
-          <span style={{ fontSize: 11, color: 'rgba(30,45,61,0.45)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {fmtShort(dstr(swap.promoDate))}
-          </span>
-        )}
-        <TypeChip type={swap.promoFormat} />
-        {multiList && <ListChip name={swap.myList} />}
-        {hasContext && (
-          <button
-            onClick={() => setShowNotes(v => !v)}
-            style={{
-              fontSize: 11, fontWeight: 600, color: 'rgba(30,45,61,0.45)',
-              background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
-              display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0, fontFamily: 'inherit',
-            }}
-          >
-            Notes
-            <ChevronDown size={12} strokeWidth={2}
-              style={{ transform: showNotes ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-          </button>
-        )}
-      </div>
-
-      {showNotes && (
-        <div style={{
-          marginTop: 8, marginLeft: 28, padding: '10px 12px',
-          background: '#FFF8F0', borderRadius: 8, fontSize: 12,
-          color: 'rgba(30,45,61,0.65)', lineHeight: 1.5,
-        }}>
-          {swap.launchWindow && (
-            <p style={{ margin: 0 }}>
-              Their list: {swap.launchWindow}
-              {swap.partnerListSize ? ` · ${fmtListSize(swap.partnerListSize)}` : ''}
-            </p>
-          )}
-          {swap.notes && <p style={{ margin: swap.launchWindow ? '6px 0 0' : 0 }}>{swap.notes}</p>}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Rows for one send date. When the user has more than one list AND this date
-// spans lists, sub-group by list; otherwise render flat (Grandma Jo rule —
-// complexity appears only for users who have it).
-function ManifestList({ rows, multiList, onToggle }: {
-  rows: SerializedSwap[]
-  multiList: boolean
-  onToggle: (swap: SerializedSwap) => void
-}) {
-  const lists = Array.from(new Set(rows.map(r => r.myList)))
-  const grouped = multiList && lists.length > 1
-
-  if (!grouped) {
-    return (
-      <div>
-        {rows.map((s, i) => (
-          <div key={s.id} style={{ borderTop: i > 0 ? '0.5px solid rgba(30,45,61,0.06)' : 'none' }}>
-            <ManifestRow swap={s} multiList={multiList} onToggle={onToggle} />
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  return (
-    <div>
-      {lists.map(list => (
-        <div key={list} style={{ marginBottom: 4 }}>
-          <p style={{
-            fontSize: 10, fontWeight: 700, color: 'rgba(30,45,61,0.4)',
-            letterSpacing: '0.08em', textTransform: 'uppercase', margin: '8px 0 2px',
-          }}>
-            {list}
-          </p>
-          {rows.filter(r => r.myList === list).map((s, i) => (
-            <div key={s.id} style={{ borderTop: i > 0 ? '0.5px solid rgba(30,45,61,0.06)' : 'none' }}>
-              <ManifestRow swap={s} multiList={multiList} onToggle={onToggle} />
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  )
 }
 
 // ─── Hero: Up Next manifest card ──────────────────────────────────────────────
@@ -581,18 +365,9 @@ export function SendQueuePage({ swaps: initialSwaps, lastSyncAt }: {
     // Optimistic — the PATCH maps component status → confirmation server-side.
     const optimistic: Record<string, string> = { complete: 'complete', confirmed: 'approved', cancelled: 'cancelled' }
     setSwaps(p => p.map(s => s.id === swap.id ? { ...s, confirmation: optimistic[status] ?? s.confirmation } : s))
-    try {
-      const res = await fetch(`/api/swaps/${swap.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      })
-      const data = await res.json()
-      if (!data.success) setSwaps(prev)
-      else setSwaps(p => p.map(s => s.id === swap.id ? { ...s, confirmation: data.swap.confirmation } : s))
-    } catch {
-      setSwaps(prev)
-    }
+    const confirmed = await patchSwapStatus(swap.id, status)
+    if (confirmed === null) setSwaps(prev)
+    else setSwaps(p => p.map(s => s.id === swap.id ? { ...s, confirmation: confirmed } : s))
   }
 
   function toggleSent(swap: SerializedSwap) {

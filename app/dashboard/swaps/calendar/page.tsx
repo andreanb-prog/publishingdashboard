@@ -1,12 +1,21 @@
 // app/dashboard/swaps/calendar/page.tsx
-// Secondary calendar view of the swap schedule — the main Swaps page is the send
+// Secondary calendar view of the send queue — the main Swaps page is the send
 // queue; this month grid is linked from its footer ("Open Calendar View →").
+// Same SwapEntry data, same semantics: amber = your sends, sage = partners
+// promoting Andrea's books.
+import { Playfair_Display } from 'next/font/google'
 import Link from 'next/link'
 import { getAugmentedSession } from '@/lib/getSession'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { serializeSwapEntry } from '@/lib/swaps'
 import { SwapsCalendar } from '@/components/swaps/SwapsCalendar'
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  style: ['normal', 'italic'],
+  variable: '--font-playfair',
+})
 
 export const metadata = { title: 'Swap Calendar — AuthorDash' }
 
@@ -19,20 +28,13 @@ export default async function SwapsCalendarPage() {
   const session = await getAugmentedSession()
   if (!session?.user?.id) redirect('/login')
 
-  const [entries, books] = await Promise.all([
-    db.swapEntry.findMany({
-      where: { userId: session.user.id, promoDate: { not: null } },
-      orderBy: { promoDate: 'asc' },
-    }),
-    db.book.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: 'asc' },
-      select: { title: true },
-    }),
-  ])
+  const entries = await db.swapEntry.findMany({
+    where: { userId: session.user.id, promoDate: { not: null } },
+    orderBy: { promoDate: 'asc' },
+  })
 
   return (
-    <div style={{ background: '#FFF8F0', minHeight: '100vh', fontFamily: "var(--font-plus-jakarta), 'Plus Jakarta Sans', sans-serif" }}>
+    <div className={playfair.variable} style={{ background: '#FFF8F0', minHeight: '100vh', fontFamily: "var(--font-plus-jakarta), 'Plus Jakarta Sans', sans-serif" }}>
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 24px' }}>
         <div style={{ marginBottom: 20 }}>
           <Link href="/dashboard/swaps" style={{ fontSize: 13, fontWeight: 600, color: '#E9A020', textDecoration: 'none' }}>
@@ -48,7 +50,6 @@ export default async function SwapsCalendarPage() {
         <SwapsCalendar
           swaps={entries.map(serializeSwapEntry)}
           today={todayDateStr()}
-          catalog={books}
         />
       </div>
     </div>
