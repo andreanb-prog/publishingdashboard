@@ -541,6 +541,9 @@ model SwapEntry {
   // MailerLite list this promo promoted from
   mailerLiteListId String?
 
+  // Platform-side list id this row was synced from (e.g. BookClicker calendar id)
+  sourceListId    String?
+
   // Meta
   notes           String?
   createdAt       DateTime  @default(now())

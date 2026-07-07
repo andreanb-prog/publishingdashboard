@@ -298,8 +298,8 @@ async function enumerateBookclickerLists(page: any): Promise<BookclickerList[]> 
 // (+ inv type, which is fixed per booking) — the same partner can book sends on
 // two of the user's lists for the same date, so the list is part of the key.
 // Titles can be placeholders, so they are stored best-effort in theirBook but
-// never used to match. The BookClicker list id has no dedicated column yet, so
-// it rides in notes (schema gap — see sync log docs).
+// never used to match. The BookClicker list id is written to sourceListId (and
+// kept in notes for human readability).
 async function upsertSendObligation(
   userId: string,
   list: BookclickerList,
@@ -326,6 +326,7 @@ async function upsertSendObligation(
     theirBook: b.title ?? null,
     partnerListName: b.listName ?? null,
     partnerListSize: b.listSize ?? null,
+    sourceListId: String(list.listId),
   }
   if (existing) {
     await db.swapEntry.update({ where: { id: existing.id }, data: shared })
