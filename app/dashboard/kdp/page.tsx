@@ -62,7 +62,7 @@ function normalizeDate(d: string): string {
   return ''
 }
 
-type Preset = 'last7' | 'last30' | 'last90' | 'thisMonth' | 'lastMonth' | 'custom'
+type Preset = 'last7' | 'last30' | 'last90' | 'thisMonth' | 'lastMonth' | 'allTime' | 'custom'
 
 function getPresetRange(preset: Preset): { start: string; end: string } {
   const today = new Date()
@@ -80,6 +80,11 @@ function getPresetRange(preset: Preset): { start: string; end: string } {
       const last  = new Date(today.getFullYear(), today.getMonth(), 0)
       return { start: fmt(first), end: fmt(last) }
     }
+    case 'allTime':
+      // Wide window that covers every KDP row the user has ever had. aggregateKdp
+      // includes any browserbase/CSV row whose month/date overlaps, so this yields
+      // true lifetime totals (royalties, units, KENP).
+      return { start: '2015-01-01', end: fmt(today) }
     default:
       return { start: '', end: '' }
   }
@@ -194,6 +199,7 @@ const PRESETS: { key: Preset; label: string }[] = [
   { key: 'last90',    label: 'Last 90 days' },
   { key: 'thisMonth', label: 'This month' },
   { key: 'lastMonth', label: 'Last month' },
+  { key: 'allTime',   label: 'All time' },
   { key: 'custom',    label: 'Custom' },
 ]
 
