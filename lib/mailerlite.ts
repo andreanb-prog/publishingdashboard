@@ -50,7 +50,10 @@ export async function getMailerLiteStats(apiKey: string, groupId?: string) {
   const groupFilter = groupId ? `&filter[group_id]=${encodeURIComponent(groupId)}` : ''
 
   const [activeRes, unsubRes] = await Promise.all([
-    fetch(`https://connect.mailerlite.com/api/subscribers?limit=0${groupFilter}`, opts),
+    // Explicitly filter to ACTIVE — the default /subscribers response can include
+    // unconfirmed/junk/bounced, which inflated the list-size count (Gina saw 22k
+    // when her active list was ~15k).
+    fetch(`https://connect.mailerlite.com/api/subscribers?limit=0&filter[status]=active${groupFilter}`, opts),
     fetch(`https://connect.mailerlite.com/api/subscribers?limit=0&filter[status]=unsubscribed${groupFilter}`, opts),
   ])
 
