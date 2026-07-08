@@ -1,5 +1,6 @@
 // lib/cronReliability.ts
 // Shared reliability helpers for the Vercel Cron sync routes.
+import { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { ADMIN_EMAILS } from '@/lib/getSession'
 
@@ -29,6 +30,37 @@ export async function runInBatches(
     })
   }
   return results
+}
+
+// Neon scales to zero when idle; the first query after a cold start can fail with
+// PrismaClientInitializationError / P1001 ("Can't reach database server") while the
+// compute spins back up. Both past incidents show Neon was up within a minute.
+export function isColdStartError(err: unknown): boolean {
+  if (err instanceof Prisma.PrismaClientInitializationError) return true
+  const e = err as { code?: string; errorCode?: string; message?: string } | null
+  if (e?.code === 'P1001' || e?.errorCode === 'P1001') return true
+  if (typeof e?.message === 'string' && e.message.includes('P1001')) return true
+  return false
+}
+
+// ~20s of backoff across 3 retries (4 attempts total). Only cold-start errors are
+// retried; any other error rethrows immediately.
+const COLD_START_BACKOFF_MS = [5_000, 7_000, 8_000]
+
+export async function withColdStartRetry<T>(fn: () => Promise<T>, label = 'query'): Promise<T> {
+  let lastErr: unknown
+  for (let attempt = 0; attempt <= COLD_START_BACKOFF_MS.length; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastErr = err
+      if (!isColdStartError(err) || attempt === COLD_START_BACKOFF_MS.length) throw err
+      const wait = COLD_START_BACKOFF_MS[attempt]
+      console.warn(`[cron] ${label} hit cold-start DB error (attempt ${attempt + 1}/${COLD_START_BACKOFF_MS.length + 1}), retrying in ${wait}ms`)
+      await new Promise(resolve => setTimeout(resolve, wait))
+    }
+  }
+  throw lastErr
 }
 
 // SyncLog.userId is required (FK to User), so a route-level "global" abort has to be

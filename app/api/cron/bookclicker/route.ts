@@ -8,7 +8,7 @@ export const maxDuration = 300 // BookClicker drives a real browser across many 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { isCronAuthorized } from '@/lib/cronAuth'
-import { runInBatches, logCronAbort } from '@/lib/cronReliability'
+import { runInBatches, logCronAbort, withColdStartRetry } from '@/lib/cronReliability'
 import { syncBookclickerForUser } from '@/lib/browserbase/bookclicker-sync'
 
 export async function GET(req: NextRequest) {
@@ -17,10 +17,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-  const bcUsers = await db.user.findMany({
-    where: { bookclickerSyncStatus: 'connected' },
-    select: { id: true },
-  })
+  // First DB hit of the run — retry through a Neon cold start.
+  const bcUsers = await withColdStartRetry(
+    () => db.user.findMany({ where: { bookclickerSyncStatus: 'connected' }, select: { id: true } }),
+    'cron/bookclicker users',
+  )
   console.log(`[cron/bookclicker] ${bcUsers.length} connected users`)
 
   const bcResults = await runInBatches(

@@ -7,7 +7,7 @@ export const maxDuration = 300 // syncs drive a real browser and may backfill mo
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { isCronAuthorized } from '@/lib/cronAuth'
-import { runInBatches, logCronAbort } from '@/lib/cronReliability'
+import { runInBatches, logCronAbort, withColdStartRetry } from '@/lib/cronReliability'
 import { syncKdpForUser } from '@/lib/browserbase/kdp-sync'
 import { syncMetaForUser } from '@/lib/browserbase/meta-sync'
 import { fetchBsrForUser } from '@/lib/browserbase/bsr-fetch'
@@ -18,11 +18,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-  // 1. KDP sync — users who have actively connected KDP via Browserbase
-  const kdpUsers = await db.user.findMany({
-    where: { kdpSyncStatus: 'connected' },
-    select: { id: true },
-  })
+  // 1. KDP sync — users who have actively connected KDP via Browserbase.
+  //    This is the run's first DB hit, so retry it through a Neon cold start.
+  const kdpUsers = await withColdStartRetry(
+    () => db.user.findMany({ where: { kdpSyncStatus: 'connected' }, select: { id: true } }),
+    'cron/sync kdp users',
+  )
   console.log(`[cron/sync] KDP: ${kdpUsers.length} connected users`)
 
   const kdpResults = await runInBatches(
