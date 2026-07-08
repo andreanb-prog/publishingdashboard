@@ -6,7 +6,11 @@ import type { DashboardState } from './useDashboardData'
 
 function buildStorySentence(analysis: any, kdpTotals: { totalUnits: number; totalRoyalties: number; totalKENP: number; estRevenue?: number }): string | null {
   if (!analysis) return null
-  if (analysis.storySentence) return analysis.storySentence
+  // NOTE: we intentionally do NOT return analysis.storySentence here. That field
+  // is baked when the analysis is generated and freezes a specific month ("You
+  // sold 9 books in June…"), so it goes stale the moment the calendar rolls over.
+  // Rebuild from live kdpTotals every render so the hero always reflects the
+  // CURRENT period, never a past month.
   const meta = analysis.meta
   const units = kdpTotals.totalUnits || undefined
   const kenp  = kdpTotals.totalKENP  || undefined
@@ -217,8 +221,8 @@ export function HeroPanel({ dashboard, userName }: { dashboard: DashboardState; 
           Royalties · {formatRangeBadge(selectedRange ?? null)}
         </div>
         {selectedRange && hasMonthGranularData && (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#FEF3C7', border: '1px solid #E9A020', borderRadius: 20, padding: '2px 8px', fontSize: 10, color: '#92400E', marginBottom: 8, fontFamily: 'var(--font-mono, ui-monospace, monospace)', letterSpacing: '0.06em' }}>
-            ⚠ Month snapshot — can't split by day
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#F5F2EC', border: '1px solid #E5E0D6', borderRadius: 20, padding: '2px 8px', fontSize: 10, color: '#8a8076', marginBottom: 8, fontFamily: 'var(--font-mono, ui-monospace, monospace)', letterSpacing: '0.06em' }}>
+            Full-month total · synced monthly
           </div>
         )}
 
