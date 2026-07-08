@@ -36,6 +36,24 @@ function monthMeta(monthKey: string): { label: string; lastDay: number } {
 // no existing browserbase row, so steady-state nightly syncs skip it entirely.
 const BACKFILL_MONTHS = 2
 
+// Parse a KDP statement month label into a YYYY-MM key.
+// Handles "May 2026", "May, 2026", "2026-05", "05/2026", "5/2026".
+function parseMonthLabel(label: string): string | null {
+  if (!label) return null
+  const s = label.trim()
+  let m = s.match(/^(\d{4})-(\d{2})$/)
+  if (m) return `${m[1]}-${m[2]}`
+  m = s.match(/^(\d{1,2})\/(\d{4})$/)
+  if (m) return `${m[2]}-${String(Number(m[1])).padStart(2, '0')}`
+  m = s.match(/^([A-Za-z]{3,})\.?,?\s+(\d{4})$/)
+  if (m) {
+    const idx = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+      .indexOf(m[1].slice(0, 3).toLowerCase())
+    if (idx >= 0) return `${m[2]}-${String(idx + 1).padStart(2, '0')}`
+  }
+  return null
+}
+
 export async function syncKdpForUser(userId: string): Promise<void> {
   // 1. Look up kdpContextId
   const user = await db.user.findUnique({
@@ -322,6 +340,68 @@ If a value shows a dash or is missing, return 0.`,
       } catch (backfillErr) {
         console.warn(`[kdp-sync] backfill for ${monthKey} skipped:`, backfillErr instanceof Error ? backfillErr.message : String(backfillErr))
       }
+    }
+
+    // 7c. Prior Months' Royalties (lifetime history in ONE read).
+    // KDP's statements page lists EVERY past month at once, so we get lifetime
+    // royalty history in a single extraction instead of driving the date picker
+    // month-by-month (which times out past ~3 months). We only fill months that
+    // have no browserbase row yet — never clobbering the current/backfilled months
+    // that also carry units + KENP. Fully NON-FATAL: a failure here never fails
+    // the sync (the recent-months data above is already saved).
+    try {
+      const StatementsSchema = z.object({
+        months: z.array(z.object({
+          monthLabel: z.string(), // "May 2026", "2026-05", "05/2026"
+          royalties:  z.number(),
+        })),
+      })
+
+      await stagehand.act('Open the "Prior Months\' Royalties" statements page from the Reports navigation')
+      await page.waitForTimeout(3500)
+
+      const stmtPromise = stagehand.extract(
+        `On this KDP "Prior Months' Royalties" statements page, read the full list/table of past months.
+Return "months": an array where each item has:
+- monthLabel: the month text exactly as shown (e.g. "May 2026", "April 2026")
+- royalties: that month's total estimated royalties as a number, ignoring "$", commas and any trailing "*"
+Include EVERY month listed on the page. If no months are shown, return an empty array.`,
+        StatementsSchema,
+      )
+      const stmtTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Prior-months extraction timed out after 60s')), 60_000),
+      )
+      const stmt = await Promise.race([stmtPromise, stmtTimeout])
+
+      // Don't clobber months we already have a (richer) browserbase row for.
+      const existingBb = await db.kdpSale.findMany({
+        where: { userId, source: 'browserbase', asin: 'ALL_BOOKS' },
+        select: { monthKey: true },
+      })
+      const haveMonths = new Set(existingBb.map(r => r.monthKey))
+
+      let historyRows = 0
+      for (const item of stmt.months) {
+        const monthKey = parseMonthLabel(item.monthLabel)
+        if (!monthKey || haveMonths.has(monthKey)) continue
+        // Statement rows are royalty-only (the statements page has no per-month
+        // units/KENP), so units/kenp = 0 for these historical months.
+        await db.kdpSale.upsert({
+          where: { userId_asin_source_monthKey: { userId, asin: 'ALL_BOOKS', source: 'browserbase', monthKey } },
+          update: { royalties: item.royalties, title: 'All Books (Statement Total)' },
+          create: {
+            userId, asin: 'ALL_BOOKS', title: 'All Books (Statement Total)',
+            date: `${monthKey}-01`, units: 0, kenp: 0, royalties: item.royalties,
+            format: 'ebook', source: 'browserbase', monthKey,
+          },
+        })
+        haveMonths.add(monthKey)
+        historyRows++
+      }
+      rowsFetched += historyRows
+      console.log(`[kdp-sync] Prior Months' Royalties: added ${historyRows} historical month(s)`)
+    } catch (stmtErr) {
+      console.warn('[kdp-sync] Prior Months\' Royalties read skipped:', stmtErr instanceof Error ? stmtErr.message : String(stmtErr))
     }
 
     // 8. Update user sync metadata and mark success. Also restore 'connected':
