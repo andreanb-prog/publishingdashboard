@@ -40,4 +40,10 @@ export async function GET(req: NextRequest) {
       failed: bcResults.filter(r => r.status === 'rejected').length,
     },
   })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[cron/bookclicker] aborted:', msg)
+    await logCronAbort('cron', err)
+    return NextResponse.json({ error: 'BookClicker sync aborted', detail: msg.slice(0, 500) }, { status: 500 })
+  }
 }
