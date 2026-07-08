@@ -905,11 +905,29 @@ export default function SettingsPage() {
     }
   }
 
+  // Meta "Sync now" (connected state) — pulls via the Graph API (/api/meta/sync).
+  // Meta is OAuth-only; there is no Browserbase sync path in the UI. Visible
+  // success/error feedback, never a silent button.
   async function handleMetaSync() {
+    if (metaSyncing) return
     setMetaSyncing(true)
+    setMetaSuccess(false)
+    setMetaError(false)
     try {
-      await fetch('/api/meta/sync', { method: 'POST' })
-      await loadSettings()
+      const res = await fetch('/api/meta/sync', { method: 'POST' })
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json.success) {
+        setMetaSuccess(true)
+        setMbLastSyncAt(new Date().toISOString()) // optimistic; loadSettings reconciles
+        setTimeout(() => setMetaSuccess(false), 6000)
+        loadSettings()
+      } else {
+        setMetaError(true)
+        setTimeout(() => setMetaError(false), 6000)
+      }
+    } catch {
+      setMetaError(true)
+      setTimeout(() => setMetaError(false), 6000)
     } finally {
       setMetaSyncing(false)
     }
@@ -998,33 +1016,6 @@ export default function SettingsPage() {
     setKdpReady(false)
     setKdpSlow(false)
     setKdpConnectErr(null)
-  }
-
-  // Meta "Sync now" (connected state) — runs the nightly Meta pull on demand.
-  async function handleMetaBrowserSync() {
-    if (metaSyncing) return
-    setMetaSyncing(true)
-    setMetaSuccess(false)
-    setMetaError(false)
-    try {
-      const res = await fetch('/api/browserbase/meta/sync-now', { method: 'POST' })
-      const json = await res.json()
-      if (res.ok && json.success) {
-        setMetaSuccess(true)
-        if (json.metaLastSync) setMbLastSyncAt(json.metaLastSync)
-        if (json.metaSyncStatus) setMbSyncStatus(json.metaSyncStatus)
-        setTimeout(() => setMetaSuccess(false), 6000)
-      } else {
-        if (json.metaSyncStatus) setMbSyncStatus(json.metaSyncStatus)
-        setMetaError(true)
-        setTimeout(() => setMetaError(false), 6000)
-      }
-    } catch {
-      setMetaError(true)
-      setTimeout(() => setMetaError(false), 6000)
-    } finally {
-      setMetaSyncing(false)
-    }
   }
 
   async function disconnectKdp() {
@@ -1785,7 +1776,7 @@ export default function SettingsPage() {
             >
               {mbSyncStatus === 'connected' ? (
                 <div className="flex items-center gap-2">
-                  <AmberBtn onClick={handleMetaBrowserSync} disabled={metaSyncing}>
+                  <AmberBtn onClick={handleMetaSync} disabled={metaSyncing}>
                     {metaSyncing ? <Spinner /> : 'Sync now'}
                   </AmberBtn>
                   <button onClick={connectMeta} disabled={metaRedirecting}
