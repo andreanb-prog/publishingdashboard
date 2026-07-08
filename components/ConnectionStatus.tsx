@@ -74,7 +74,6 @@ export function ConnectionStatus() {
   const [mlSync, setMlSync] = useState<SyncState>('idle')
   const [metaSync, setMetaSync] = useState<SyncState>('idle')
   const [metaSyncError, setMetaSyncError] = useState<string | null>(null)
-  const [allSync, setAllSync] = useState<SyncState>('idle')
   const ref = useRef<HTMLDivElement>(null)
 
   async function refreshHealth() {
@@ -178,21 +177,6 @@ export function ConnectionStatus() {
 
   function connectMeta() {
     window.location.href = '/api/meta/connect'
-  }
-
-  async function syncAll() {
-    setAllSync('syncing')
-    try {
-      if (health?.meta.status === 'green') {
-        await fetch('/api/meta/sync', { method: 'POST' }).catch(() => {})
-      }
-      await refreshHealth()
-      setAllSync('ok')
-      setTimeout(() => setAllSync('idle'), 2500)
-    } catch {
-      setAllSync('error')
-      setTimeout(() => setAllSync('idle'), 2500)
-    }
   }
 
   const statuses = health ? INTEGRATIONS.map(i => (health[i.key] as IntegrationStatus).status) : []
@@ -335,22 +319,6 @@ export function ConnectionStatus() {
             })}
           </div>
 
-          {/* Sync all footer */}
-          {hasConnected && (
-            <div className="px-4 py-2.5 border-t" style={{ borderColor: '#EEEBE6' }}>
-              <button
-                onClick={syncAll}
-                disabled={allSync === 'syncing'}
-                className="text-[11px] font-semibold border-none bg-transparent cursor-pointer disabled:opacity-60 hover:underline p-0"
-                style={{ color: allSync === 'ok' ? '#6EBF8B' : allSync === 'error' ? '#F97B6B' : '#E9A020' }}
-              >
-                {allSync === 'syncing' ? '↻ Syncing all...'
-                  : allSync === 'ok' ? '✓ All synced'
-                  : allSync === 'error' ? 'Sync failed — try again'
-                  : '↻ Sync all connected accounts'}
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>

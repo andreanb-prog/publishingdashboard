@@ -160,8 +160,10 @@ export function ActionPlanPanel({ dashboard }: { dashboard: DashboardState }) {
                 </tr>
               </thead>
               <tbody>
-                {analyses.map((a: Analysis, i: number) => {
-                  const prev = analyses[i + 1]
+                {[...analyses]
+                  .sort((x: Analysis, y: Analysis) => (y.month || '').localeCompare(x.month || ''))
+                  .map((a: Analysis, i: number, sorted: Analysis[]) => {
+                  const prev = sorted[i + 1]
                   const label = new Date(a.month + '-02').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                   const isCurrent = i === 0
                   return (
