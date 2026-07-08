@@ -49,6 +49,19 @@ export async function GET() {
     } catch { /* key may be invalid or network error */ }
   }
 
+  // Empty-bookshelf flag: did the most recent KDP sync connect but find zero
+  // titles? (Usually the wrong Amazon account.) True only if the latest KDP sync
+  // log is the empty_bookshelf flag — a later successful sync clears it.
+  let kdpEmptyBookshelf = false
+  try {
+    const lastKdpLog = await db.syncLog.findFirst({
+      where: { userId: session.user.id, source: 'kdp' },
+      orderBy: { attemptedAt: 'desc' },
+      select: { errorType: true },
+    })
+    kdpEmptyBookshelf = lastKdpLog?.errorType === 'empty_bookshelf'
+  } catch { /* non-fatal */ }
+
   // KDP last upload — most recent analysis that has kdp data
   let kdpLastUpload: string | null = null
   try {
@@ -84,6 +97,7 @@ export async function GET() {
     kdpLastUpload,
     kdpSyncStatus:          user?.kdpSyncStatus ?? null,
     kdpLastSyncAt:          user?.kdpLastSyncAt?.toISOString() ?? null,
+    kdpEmptyBookshelf,
     metaSyncStatus:         user?.metaSyncStatus ?? null,
     metaBrowserLastSync:    user?.metaLastSync?.toISOString() ?? null,
     bookclickerSyncStatus:  user?.bookclickerSyncStatus ?? null,

@@ -55,6 +55,27 @@ export async function GET(req: NextRequest) {
       shortTitle: b.title.length > 35 ? b.title.substring(0, 35) + '…' : b.title,
     }))
 
+  // Per-format royalty splits (KU / eBook / Paperback / Hardcover / Audiobook)
+  // parsed from KDP's Prior-Month royalty report by the browserbase sync and
+  // stored as JSON on each month's ALL_BOOKS row. Read-only pass — same
+  // month-overlap rule aggregateKdp uses for browserbase rows, and no effect
+  // on the blended totals above.
+  const formatBreakdowns = allRows
+    .filter(r => {
+      if (r.asin !== 'ALL_BOOKS' || r.source !== 'browserbase') return false
+      if (!r.monthKey || r.formatBreakdown == null) return false
+      if (!start || !end) return true
+      const monthStart = `${r.monthKey}-01`
+      const monthEnd   = `${r.monthKey}-31` // intentional overshoot — always >= real last day
+      return start <= monthEnd && end >= monthStart
+    })
+    .sort((a, b) => (a.monthKey ?? '').localeCompare(b.monthKey ?? ''))
+    .map(r => ({
+      monthKey:  r.monthKey as string,
+      royalties: r.royalties, // blended month total the split reconciles to
+      breakdown: r.formatBreakdown,
+    }))
+
   return NextResponse.json({
     dailyUnits,
     dailyKENP,
@@ -64,5 +85,6 @@ export async function GET(req: NextRequest) {
     totalRoyalties:          agg.royalties,
     estRevenue:              agg.estRevenue,
     hasMonthGranularData:    agg.hasMonthGranularData,
+    formatBreakdowns,
   })
 }

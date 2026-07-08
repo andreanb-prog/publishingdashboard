@@ -723,6 +723,7 @@ export default function SettingsPage() {
 
   // ── KDP connection (Browserbase Live View) ─────────────────────────────────
   const [kdpSyncStatus,   setKdpSyncStatus]   = useState<string | null>(null)
+  const [kdpEmptyBookshelf, setKdpEmptyBookshelf] = useState(false)
   const [kdpLastSyncAt,   setKdpLastSyncAt]   = useState<string | null>(null)
   const [kdpConnecting,   setKdpConnecting]   = useState(false)        // creating context / loading panel
   const [kdpLiveUrl,      setKdpLiveUrl]      = useState<string | null>(null)
@@ -834,6 +835,7 @@ export default function SettingsPage() {
       setMlSubscribers(d.mlSubscribers ?? null)
       setKdpSyncStatus(d.kdpSyncStatus ?? null)
       setKdpLastSyncAt(d.kdpLastSyncAt ?? null)
+      setKdpEmptyBookshelf(!!d.kdpEmptyBookshelf)
       setMbSyncStatus(d.metaSyncStatus ?? null)
       setMbLastSyncAt(d.metaBrowserLastSync ?? null)
       setBcSyncStatus(d.bookclickerSyncStatus ?? null)
@@ -1473,6 +1475,20 @@ export default function SettingsPage() {
                 <div className="mx-4 mb-4 text-[11px] font-semibold px-3 py-2.5 rounded-md leading-relaxed"
                   style={{ background: 'rgba(110,191,139,0.1)', color: '#16a34a' }}>
                   KDP connected. Your first sync is running — data will appear within 2 minutes.
+                </div>
+              )}
+
+              {/* Empty-bookshelf warning: connected, but the sync found zero titles
+                  — almost always the wrong Amazon account. Turns silent zeros into
+                  a clear, actionable message (Gina's "connected the zero-titles state"). */}
+              {kdpEmptyBookshelf && kdpSyncStatus === 'connected' && (
+                <div className="mx-4 mb-4 text-[11px] px-3 py-2.5 rounded-md leading-relaxed"
+                  style={{ background: 'rgba(233,160,32,0.1)', border: '0.5px solid rgba(233,160,32,0.35)', color: '#92610a' }}>
+                  <span className="font-semibold">Connected — but we found no books on this KDP account.</span>{' '}
+                  You may be signed into the wrong Amazon account. Reconnect and sign in with the account that holds your titles.{' '}
+                  <button onClick={connectKdp} className="font-semibold underline bg-transparent border-none cursor-pointer p-0" style={{ color: '#B87A0E' }}>
+                    Reconnect KDP →
+                  </button>
                 </div>
               )}
 

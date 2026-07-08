@@ -4,10 +4,16 @@
 // and extracts aggregate Royalties / Orders / KENP totals.
 import { Stagehand } from '@browserbasehq/stagehand'
 import { z } from 'zod'
+import AdmZip from 'adm-zip'
+import { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { getBrowserbaseConfig } from '@/lib/browserbase'
+import { parseRoyaltyReport, deriveKuUsd } from '@/lib/browserbase/royalty-report'
 
 const KDP_DASHBOARD_URL = 'https://kdpreports.amazon.com/dashboard'
+// Left nav → STATEMENTS → "Prior Months' Royalties" — the downloadable per-format
+// royalty report list. One .xlsx per completed month (never the current month).
+const KDP_PMR_URL = 'https://kdpreports.amazon.com/reports/pmr'
 
 // Aggregate totals shown on the dashboard page for a given time period.
 const DashboardSchema = z.object({
@@ -31,28 +37,15 @@ function monthMeta(monthKey: string): { label: string; lastDay: number } {
   return { label, lastDay }
 }
 
-// How many prior months the sync backfills when they're missing (2 = ~90 days
-// of coverage including the current month). Backfill only runs for months with
-// no existing browserbase row, so steady-state nightly syncs skip it entirely.
-const BACKFILL_MONTHS = 2
-
-// Parse a KDP statement month label into a YYYY-MM key.
-// Handles "May 2026", "May, 2026", "2026-05", "05/2026", "5/2026".
-function parseMonthLabel(label: string): string | null {
-  if (!label) return null
-  const s = label.trim()
-  let m = s.match(/^(\d{4})-(\d{2})$/)
-  if (m) return `${m[1]}-${m[2]}`
-  m = s.match(/^(\d{1,2})\/(\d{4})$/)
-  if (m) return `${m[2]}-${String(Number(m[1])).padStart(2, '0')}`
-  m = s.match(/^([A-Za-z]{3,})\.?,?\s+(\d{4})$/)
-  if (m) {
-    const idx = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
-      .indexOf(m[1].slice(0, 3).toLowerCase())
-    if (idx >= 0) return `${m[2]}-${String(idx + 1).padStart(2, '0')}`
-  }
-  return null
-}
+// Lifetime history is seeded a few months at a time. A serverless function
+// can't drive dozens of verified month-switches in one request (that was the
+// timeout the old "Prior Months' Royalties" reader tried — and failed — to
+// dodge), so each sync backfills at most MAX_BACKFILL_PER_RUN of the NEWEST
+// still-missing months inside a LIFETIME_WINDOW_MONTHS window. Successive syncs
+// (including the nightly cron) walk backward until the whole window is covered.
+// Steady state there are 0–1 missing months, so this stays cheap.
+const LIFETIME_WINDOW_MONTHS = 36
+const MAX_BACKFILL_PER_RUN = 4
 
 export async function syncKdpForUser(userId: string): Promise<void> {
   // 1. Look up kdpContextId
@@ -294,19 +287,27 @@ If a value shows a dash or is missing, return 0.`,
       return false
     }
 
-    for (let ago = 1; ago <= BACKFILL_MONTHS; ago++) {
-      const monthKey = monthKeyAgo(ago)
-      try {
-        const existing = await db.kdpSale.findUnique({
-          where: {
-            userId_asin_source_monthKey: {
-              userId, asin: 'ALL_BOOKS', source: 'browserbase', monthKey,
-            },
-          },
-          select: { id: true },
-        })
-        if (existing) continue
+    // Which months inside the lifetime window still lack a browserbase row?
+    // Backfill the NEWEST missing ones first, capped per run so we never blow
+    // the function budget; later syncs pick up where this one left off.
+    const windowMonths: { monthKey: string; ago: number }[] = []
+    for (let ago = 1; ago <= LIFETIME_WINDOW_MONTHS; ago++) {
+      windowMonths.push({ monthKey: monthKeyAgo(ago), ago })
+    }
+    const existingBackfill = await db.kdpSale.findMany({
+      where: {
+        userId, asin: 'ALL_BOOKS', source: 'browserbase',
+        monthKey: { in: windowMonths.map(w => w.monthKey) },
+      },
+      select: { monthKey: true },
+    })
+    const haveBackfill = new Set(existingBackfill.map(r => r.monthKey))
+    const missingMonths = windowMonths
+      .filter(w => !haveBackfill.has(w.monthKey))
+      .slice(0, MAX_BACKFILL_PER_RUN)
 
+    for (const { monthKey, ago } of missingMonths) {
+      try {
         const { label, lastDay } = monthMeta(monthKey)
         const monthName = label.split(' ')[0]
         const year = monthKey.slice(0, 4)
@@ -342,67 +343,165 @@ If a value shows a dash or is missing, return 0.`,
       }
     }
 
-    // 7c. Prior Months' Royalties (lifetime history in ONE read).
-    // KDP's statements page lists EVERY past month at once, so we get lifetime
-    // royalty history in a single extraction instead of driving the date picker
-    // month-by-month (which times out past ~3 months). We only fill months that
-    // have no browserbase row yet — never clobbering the current/backfilled months
-    // that also carry units + KENP. Fully NON-FATAL: a failure here never fails
-    // the sync (the recent-months data above is already saved).
+    // 7c. Per-format royalty split — download KDP's "Prior Months' Royalties"
+    // .xlsx for months whose ALL_BOOKS row has no formatBreakdown yet, parse it
+    // into a per-format USD split (KU / eBook / Paperback / Hardcover / Audio),
+    // and stash it as JSON on that month's EXISTING row. This is additive-only:
+    // no new rows, no touched royalty/units/kenp fields, so aggregateKdp()'s
+    // money math is unchanged. Prior months only — KDP publishes the report
+    // after month end, so the current month never has one.
+    //
+    // ENTIRELY NON-FATAL: any failure logs a warning and the sync still
+    // succeeds with the blended totals it already wrote. Capped at
+    // MAX_BACKFILL_PER_RUN months per run (same chunking as the backfill loop)
+    // so we never blow the serverless time budget.
     try {
-      const StatementsSchema = z.object({
-        months: z.array(z.object({
-          monthLabel: z.string(), // "May 2026", "2026-05", "05/2026"
-          royalties:  z.number(),
-        })),
+      const splitCandidates = await db.kdpSale.findMany({
+        where: {
+          userId,
+          asin:     'ALL_BOOKS',
+          source:   'browserbase',
+          monthKey: { in: windowMonths.map(w => w.monthKey) },
+          formatBreakdown: { equals: Prisma.AnyNull },
+        },
+        select:  { monthKey: true, royalties: true },
+        orderBy: { monthKey: 'desc' },
+        take:    MAX_BACKFILL_PER_RUN,
       })
 
-      await stagehand.act('Open the "Prior Months\' Royalties" statements page from the Reports navigation')
-      await page.waitForTimeout(3500)
+      if (splitCandidates.length > 0 && bbSessionId) {
+        // Blended dashboard total per month — used to derive KU dollars so the
+        // per-format parts always reconcile to the headline the user sees.
+        const blendedByMonth = new Map<string, number>()
+        for (const c of splitCandidates) {
+          if (c.monthKey) blendedByMonth.set(c.monthKey, c.royalties)
+        }
 
-      const stmtPromise = stagehand.extract(
-        `On this KDP "Prior Months' Royalties" statements page, read the full list/table of past months.
-Return "months": an array where each item has:
-- monthLabel: the month text exactly as shown (e.g. "May 2026", "April 2026")
-- royalties: that month's total estimated royalties as a number, ignoring "$", commas and any trailing "*"
-Include EVERY month listed on the page. If no months are shown, return an empty array.`,
-        StatementsSchema,
-      )
-      const stmtTimeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Prior-months extraction timed out after 60s')), 60_000),
-      )
-      const stmt = await Promise.race([stmtPromise, stmtTimeout])
+        // Enable downloads in the remote browser via CDP. Browserbase does NOT
+        // stream downloads to the local filesystem — files land in the session's
+        // cloud storage and are fetched afterwards via the downloads API.
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const cdp = await (stagehand.context as any).newCDPSession(page)
+          try {
+            await cdp.send('Browser.setDownloadBehavior', {
+              behavior: 'allow', downloadPath: 'downloads', eventsEnabled: true,
+            })
+          } catch {
+            // Older CDP fallback
+            await cdp.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: 'downloads' })
+          }
+        } catch (cdpErr) {
+          console.warn('[kdp-sync] royalty report: could not set CDP download behavior (continuing):', cdpErr instanceof Error ? cdpErr.message : String(cdpErr))
+        }
 
-      // Don't clobber months we already have a (richer) browserbase row for.
-      const existingBb = await db.kdpSale.findMany({
-        where: { userId, source: 'browserbase', asin: 'ALL_BOOKS' },
-        select: { monthKey: true },
-      })
-      const haveMonths = new Set(existingBb.map(r => r.monthKey))
+        await page.goto(KDP_PMR_URL, { waitUntil: 'load', timeoutMs: 20_000 })
+        await page.waitForTimeout(3000)
 
-      let historyRows = 0
-      for (const item of stmt.months) {
-        const monthKey = parseMonthLabel(item.monthLabel)
-        if (!monthKey || haveMonths.has(monthKey)) continue
-        // Statement rows are royalty-only (the statements page has no per-month
-        // units/KENP), so units/kenp = 0 for these historical months.
-        await db.kdpSale.upsert({
-          where: { userId_asin_source_monthKey: { userId, asin: 'ALL_BOOKS', source: 'browserbase', monthKey } },
-          update: { royalties: item.royalties, title: 'All Books (Statement Total)' },
-          create: {
-            userId, asin: 'ALL_BOOKS', title: 'All Books (Statement Total)',
-            date: `${monthKey}-01`, units: 0, kenp: 0, royalties: item.royalties,
-            format: 'ebook', source: 'browserbase', monthKey,
-          },
-        })
-        haveMonths.add(monthKey)
-        historyRows++
+        // Trigger one download per candidate month. Month attribution does NOT
+        // depend on these clicks landing right — the downloaded filename encodes
+        // the month (KDP_Prior_Month_Royalties-YYYY-MM-01-<uuid>.xlsx) and we
+        // map by filename below, so a wrong dropdown pick can never write data
+        // under the wrong monthKey.
+        let triggered = 0
+        for (const cand of splitCandidates) {
+          if (!cand.monthKey) continue
+          try {
+            const { label } = monthMeta(cand.monthKey) // "June 2026"
+            await stagehand.act(`Click the "Choose a month" dropdown and select "${label}" from the list of months`)
+            await page.waitForTimeout(1500)
+            await stagehand.act('Click the "Download report" button')
+            await page.waitForTimeout(4000) // let the download land in session storage
+            triggered++
+          } catch (dlErr) {
+            console.warn(`[kdp-sync] royalty report download for ${cand.monthKey} skipped:`, dlErr instanceof Error ? dlErr.message : String(dlErr))
+          }
+        }
+
+        if (triggered > 0) {
+          // Fetch the session's downloads — the API returns a ZIP of every file
+          // downloaded in the session. Files can take a moment to appear, so
+          // poll briefly and stop early once all expected reports are present.
+          const FILE_RE = /KDP_Prior_Month_Royalties-(\d{4})-(\d{2})-01-.*\.xlsx$/i
+          let zip: AdmZip | null = null
+          for (let attempt = 0; attempt < 4; attempt++) {
+            if (attempt > 0) await new Promise(r => setTimeout(r, 3000))
+            try {
+              const res = await fetch(
+                `https://api.browserbase.com/v1/sessions/${bbSessionId}/downloads`,
+                { headers: { 'X-BB-API-Key': cfg.apiKey } },
+              )
+              if (!res.ok) continue
+              const buf = Buffer.from(await res.arrayBuffer())
+              if (buf.length === 0) continue
+              const candidateZip = new AdmZip(buf)
+              const xlsxCount = candidateZip.getEntries().filter(e => FILE_RE.test(e.entryName)).length
+              zip = candidateZip
+              if (xlsxCount >= triggered) break // everything we asked for is in
+            } catch { /* partial/invalid zip — retry */ }
+          }
+
+          if (!zip) {
+            console.warn('[kdp-sync] royalty report: downloads ZIP never became available — format split skipped this run')
+          } else {
+            for (const entry of zip.getEntries()) {
+              const m = entry.entryName.match(FILE_RE)
+              if (!m) continue
+              const monthKey = `${m[1]}-${m[2]}`
+              if (!blendedByMonth.has(monthKey)) continue // not a month we're filling
+              try {
+                const breakdown = parseRoyaltyReport(entry.getData())
+                // Belt-and-braces: the "Sales Period" cell inside the file must
+                // agree with the filename before we write anything.
+                if (breakdown.monthKey && breakdown.monthKey !== monthKey) {
+                  console.warn(`[kdp-sync] royalty report ${entry.entryName}: file says ${breakdown.monthKey}, filename says ${monthKey} — skipped`)
+                  continue
+                }
+                const { kuUsd, derived } = deriveKuUsd(breakdown, blendedByMonth.get(monthKey))
+                const formatBreakdown = {
+                  ebookUsd:       breakdown.ebookUsd,
+                  ebookUnits:     breakdown.ebookUnits,
+                  paperbackUsd:   breakdown.paperbackUsd,
+                  paperbackUnits: breakdown.paperbackUnits,
+                  hardcoverUsd:   breakdown.hardcoverUsd,
+                  hardcoverUnits: breakdown.hardcoverUnits,
+                  audiobookUsd:   breakdown.audiobookUsd,
+                  audiobookUnits: breakdown.audiobookUnits,
+                  kenpPages:      breakdown.kenpPages,
+                  kuUsd,
+                  kuDerived:      derived,
+                  currency:       'USD',
+                  fxApprox:       true,
+                }
+                await db.kdpSale.update({
+                  where: {
+                    userId_asin_source_monthKey: {
+                      userId, asin: 'ALL_BOOKS', source: 'browserbase', monthKey,
+                    },
+                  },
+                  data: { formatBreakdown },
+                })
+                console.log(`[kdp-sync] format split stored for ${monthKey}: KU $${kuUsd}${derived ? '' : ' (KENP-rate estimate)'} · eBook $${breakdown.ebookUsd} · PB $${breakdown.paperbackUsd} · HC $${breakdown.hardcoverUsd} · Audio $${breakdown.audiobookUsd} · ${breakdown.kenpPages} KENP pages`)
+              } catch (parseErr) {
+                console.warn(`[kdp-sync] royalty report parse for ${monthKey} skipped:`, parseErr instanceof Error ? parseErr.message : String(parseErr))
+              }
+            }
+          }
+        }
       }
-      rowsFetched += historyRows
-      console.log(`[kdp-sync] Prior Months' Royalties: added ${historyRows} historical month(s)`)
-    } catch (stmtErr) {
-      console.warn('[kdp-sync] Prior Months\' Royalties read skipped:', stmtErr instanceof Error ? stmtErr.message : String(stmtErr))
+    } catch (reportErr) {
+      console.warn('[kdp-sync] royalty report block skipped (non-fatal):', reportErr instanceof Error ? reportErr.message : String(reportErr))
     }
+
+    // NOTE: An earlier "Prior Months' Royalties" ON-SCREEN statements reader was
+    // removed after live validation (2026-07). That page can't be read in one
+    // shot — it shows ONE month at a time via a dropdown, split across
+    // marketplaces and currencies (USD/GBP/EUR/…) with "Total earnings: N/A" —
+    // so it's a worse source than the dashboard totals the backfill loop reads.
+    // Blended monthly totals therefore come from the chunked backfill window
+    // above. Block 7c is different: it uses the PMR page's DOWNLOADABLE .xlsx
+    // (which the on-screen reader never touched) purely for the per-format
+    // split, and reconciles KU dollars back to the blended dashboard total.
 
     // 7d. KDP Bookshelf → auto-populate the book catalog WITH FORMATS, and detect
     // an empty bookshelf (Gina's "connected the zero-titles state"). One read of a
@@ -415,7 +514,10 @@ Include EVERY month listed on the page. If no months are shown, return an empty 
           kindleAsin:    z.string().optional(),
           paperbackAsin: z.string().optional(),
           paperbackIsbn: z.string().optional(),
+          hardcoverAsin: z.string().optional(),
           hardcoverIsbn: z.string().optional(),
+          audiobookAsin: z.string().optional(),
+          hasAudiobook:  z.boolean().optional(),
           seriesName:    z.string().optional(),
         })),
       })
@@ -425,13 +527,17 @@ Include EVERY month listed on the page. If no months are shown, return an empty 
 
       const shelfPromise = stagehand.extract(
         `On this Amazon KDP Bookshelf page, read EVERY title the author has published.
-Each title groups its editions (Kindle eBook, Paperback, Hardcover) together. For each distinct book return:
+Each title groups its editions in labelled sections: "Kindle eBook", "Audible audiobook", "Paperback", and "Hardcover". Under each section, a published edition shows a line like "ASIN: B0XXXXXXXX". An un-published edition instead shows a call to action like "+ Add audiobook…", "+ Create hardcover", or "Not eligible" (and has NO ASIN).
+For each distinct book return:
 - title: the book title
-- kindleAsin: the Kindle eBook ASIN (starts with "B0…") if shown, else omit
-- paperbackAsin: the Paperback ASIN if shown, else omit
-- paperbackIsbn: the Paperback ISBN if shown, else omit
-- hardcoverIsbn: the Hardcover ISBN if shown, else omit
-- seriesName: the series name if shown, else omit
+- seriesName: the series name if the title shows "Book in <name> series", else omit
+- kindleAsin: the ASIN under the "Kindle eBook" section (starts with "B0"), else omit
+- paperbackAsin: the ASIN under the "Paperback" section (also starts with "B0"), else omit
+- paperbackIsbn: a Paperback ISBN ONLY if one is explicitly shown (usually it is not), else omit
+- hardcoverAsin: the ASIN under the "Hardcover" section if published, else omit
+- hardcoverIsbn: a Hardcover ISBN ONLY if explicitly shown, else omit
+- audiobookAsin: the ASIN under the "Audible audiobook" section if a real audiobook is published, else omit
+- hasAudiobook: true if the "Audible audiobook" section shows a PUBLISHED audiobook (not "+ Add…" and not "Not eligible"), otherwise false
 Return "books": the full array. If the bookshelf shows no titles at all, return an empty array.`,
         BookshelfSchema,
       )
@@ -469,6 +575,7 @@ Return "books": the full array. If the bookshelf shows no titles at all, return 
                 asinPaperback: existing.asinPaperback ?? b.paperbackAsin ?? null,
                 isbnPaperback: existing.isbnPaperback ?? b.paperbackIsbn ?? null,
                 isbnHardcover: existing.isbnHardcover ?? b.hardcoverIsbn ?? null,
+                asinAudiobook: existing.asinAudiobook ?? b.audiobookAsin ?? null,
                 seriesName:    existing.seriesName    ?? b.seriesName    ?? null,
               },
             })
@@ -481,6 +588,7 @@ Return "books": the full array. If the bookshelf shows no titles at all, return 
                 asinPaperback: b.paperbackAsin ?? null,
                 isbnPaperback: b.paperbackIsbn ?? null,
                 isbnHardcover: b.hardcoverIsbn ?? null,
+                asinAudiobook: b.audiobookAsin ?? null,
                 seriesName:    b.seriesName    ?? null,
               },
             })

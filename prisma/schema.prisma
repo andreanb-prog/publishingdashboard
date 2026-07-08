@@ -696,6 +696,12 @@ model KdpSale {
   format    String?  // 'ebook' | 'paperback'
   source    String?  @default("csv")  // 'csv' | 'extension'
   monthKey  String?  // YYYY-MM — used by extension rows for MTD month-level upsert
+  // Per-format royalty split parsed from KDP's "Prior Month's Royalties" report.
+  // Set ONLY on the ALL_BOOKS browserbase month row — stored as JSON (not rows)
+  // so aggregateKdp()'s money math is untouched. Shape: { ebookUsd, ebookUnits,
+  // paperbackUsd, paperbackUnits, hardcoverUsd, hardcoverUnits, audiobookUsd,
+  // audiobookUnits, kenpPages, kuUsd, kuDerived, currency, fxApprox }.
+  formatBreakdown Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

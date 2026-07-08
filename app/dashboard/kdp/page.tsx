@@ -998,6 +998,141 @@ function FormatBadge({ type, faded }: { type: FormatBadgeType; faded?: boolean }
   )
 }
 
+// ── Royalties by Format (KU / eBook / Paperback / Hardcover / Audiobook) ─────
+// Per-format split parsed from KDP's Prior-Month royalty report by the
+// Browserbase sync, stored as JSON on each month's ALL_BOOKS row. KU dollars
+// are derived (KDP never puts a KU dollar figure in the file), reconciled so
+// the five parts sum to the blended royalty total shown above.
+type FormatBreakdownJson = {
+  ebookUsd: number;     ebookUnits: number
+  paperbackUsd: number; paperbackUnits: number
+  hardcoverUsd: number; hardcoverUnits: number
+  audiobookUsd: number; audiobookUnits: number
+  kenpPages: number
+  kuUsd: number
+  kuDerived: boolean
+  currency: string
+  fxApprox: boolean
+}
+
+type MonthFormatBreakdown = {
+  monthKey:  string  // YYYY-MM
+  royalties: number  // blended month total the split reconciles to
+  breakdown: FormatBreakdownJson
+}
+
+function monthKeyLabel(mk: string): string {
+  const [y, m] = mk.split('-').map(Number)
+  return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+}
+
+const FORMAT_SPLIT_COLORS = {
+  ku:        '#E9A020', // amber
+  ebook:     '#1E2D3D', // navy
+  paperback: '#6EBF8B', // sage
+  hardcover: '#5BBFB5', // teal
+  audiobook: '#8B5CF6', // plum
+} as const
+
+function FormatSplitCard({ months }: { months: MonthFormatBreakdown[] }) {
+  const agg = months.reduce(
+    (acc, m) => {
+      const b = m.breakdown
+      acc.ku        += b.kuUsd
+      acc.ebook     += b.ebookUsd
+      acc.paperback += b.paperbackUsd
+      acc.hardcover += b.hardcoverUsd
+      acc.audiobook += b.audiobookUsd
+      acc.kenpPages      += b.kenpPages
+      acc.ebookUnits     += b.ebookUnits
+      acc.paperbackUnits += b.paperbackUnits
+      acc.hardcoverUnits += b.hardcoverUnits
+      acc.audiobookUnits += b.audiobookUnits
+      // Any month derived via the KENP-rate fallback (no blended total to
+      // reconcile against) makes the aggregate KU figure an estimate.
+      if (!b.kuDerived) acc.kuEstimated = true
+      return acc
+    },
+    {
+      ku: 0, ebook: 0, paperback: 0, hardcover: 0, audiobook: 0,
+      kenpPages: 0, ebookUnits: 0, paperbackUnits: 0, hardcoverUnits: 0, audiobookUnits: 0,
+      kuEstimated: false,
+    },
+  )
+
+  const total = agg.ku + agg.ebook + agg.paperback + agg.hardcover + agg.audiobook
+  if (total <= 0) return null
+
+  const rows: { key: keyof typeof FORMAT_SPLIT_COLORS; label: string; usd: number; detail: string }[] = [
+    { key: 'ku',        label: 'Kindle Unlimited', usd: agg.ku,        detail: `${agg.kenpPages.toLocaleString()} pages read` },
+    { key: 'ebook',     label: 'eBook',            usd: agg.ebook,     detail: `${agg.ebookUnits.toLocaleString()} units` },
+    { key: 'paperback', label: 'Paperback',        usd: agg.paperback, detail: `${agg.paperbackUnits.toLocaleString()} units` },
+    { key: 'hardcover', label: 'Hardcover',        usd: agg.hardcover, detail: `${agg.hardcoverUnits.toLocaleString()} units` },
+    { key: 'audiobook', label: 'Audiobook',        usd: agg.audiobook, detail: `${agg.audiobookUnits.toLocaleString()} units` },
+  ]
+
+  const rangeLabel = months.length === 1
+    ? monthKeyLabel(months[0].monthKey)
+    : `${monthKeyLabel(months[0].monthKey)} – ${monthKeyLabel(months[months.length - 1].monthKey)} · ${months.length} months`
+
+  return (
+    <div style={{ background: 'white', border: '1px solid #EEEBE6', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', borderRadius: 4, padding: '20px 22px' }}>
+      <div className="flex items-baseline justify-between flex-wrap gap-2 mb-4">
+        <h3 className="text-[14px] font-semibold m-0" style={{ color: '#1E2D3D' }}>Where your royalties come from</h3>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink3)' }}>
+          {rangeLabel}
+        </span>
+      </div>
+
+      {/* Stacked bar */}
+      <div className="flex overflow-hidden mb-4" style={{ height: 22, borderRadius: 999, background: '#FFF8F0' }}>
+        {rows.filter(r => r.usd > 0).map(r => (
+          <div
+            key={r.key}
+            title={`${r.label}: ${fmtCurrency(r.usd)} (${((r.usd / total) * 100).toFixed(0)}%)`}
+            style={{ width: `${(r.usd / total) * 100}%`, background: FORMAT_SPLIT_COLORS[r.key], minWidth: r.usd > 0 ? 3 : 0 }}
+          />
+        ))}
+      </div>
+
+      {/* 5-row mini table */}
+      <div>
+        {rows.map((r, i) => {
+          const share = (r.usd / total) * 100
+          return (
+            <div
+              key={r.key}
+              className="flex items-center gap-2 py-2"
+              style={{ borderTop: i === 0 ? 'none' : '1px solid #F3F0EB' }}
+            >
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: FORMAT_SPLIT_COLORS[r.key] }} />
+              <span className="text-[12.5px] font-medium" style={{ color: '#1E2D3D' }}>{r.label}</span>
+              {r.key === 'ku' && agg.kuEstimated && (
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink4)', border: '1px solid #EEEBE6', borderRadius: 2, padding: '1px 5px' }}>
+                  estimated
+                </span>
+              )}
+              <span className="text-[11px]" style={{ color: '#9CA3AF' }}>{r.detail}</span>
+              <span className="ml-auto flex items-baseline gap-2 flex-shrink-0">
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 600, color: '#1E2D3D' }}>
+                  {fmtCurrency(r.usd)}
+                </span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: '#9CA3AF', width: 34, textAlign: 'right' }}>
+                  {share >= 0.5 || r.usd === 0 ? `${share.toFixed(0)}%` : '<1%'}
+                </span>
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
+      <p className="text-[10.5px] mt-3 mb-0" style={{ color: '#9CA3AF' }}>
+        Kindle Unlimited dollars are derived from the month&apos;s totals — Amazon doesn&apos;t finalize the per-page rate until mid the following month. Non-USD royalties are converted at approximate rates.
+      </p>
+    </div>
+  )
+}
+
 // ── MailerLite async section (suspends until campaigns are fetched) ───────────
 let _mlPromise: Promise<MailerLiteCampaign[]> | null = null
 
@@ -1136,6 +1271,7 @@ export default function KDPPage() {
     totalKENP:      number
     totalRoyalties: number
     estRevenue?:    number
+    formatBreakdowns?: MonthFormatBreakdown[]
   } | null>(null)
 
   const fetchData = useCallback(() => {
@@ -1555,6 +1691,19 @@ export default function KDPPage() {
               </>
             )
           })()}
+
+          {/* Royalties by Format — KU vs eBook vs Paperback vs Hardcover vs Audiobook.
+              Only renders when the sync has stored a formatBreakdown for at least one
+              month in the selected range. Aggregates across months for multi-month
+              and lifetime views. */}
+          {(kdpSalesData?.formatBreakdowns?.length ?? 0) > 0 && (
+            <>
+              <BoutiqueSectionLabel label="Royalties by Format" />
+              <div style={{ marginBottom: 32 }}>
+                <FormatSplitCard months={kdpSalesData!.formatBreakdowns!} />
+              </div>
+            </>
+          )}
 
           {analysis && (
             <>
