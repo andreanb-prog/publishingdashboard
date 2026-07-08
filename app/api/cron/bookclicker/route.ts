@@ -8,7 +8,7 @@ export const maxDuration = 300 // BookClicker drives a real browser across many 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { isCronAuthorized } from '@/lib/cronAuth'
-import { runInBatches } from '@/lib/cronReliability'
+import { runInBatches, logCronAbort } from '@/lib/cronReliability'
 import { syncBookclickerForUser } from '@/lib/browserbase/bookclicker-sync'
 
 export async function GET(req: NextRequest) {
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  try {
   const bcUsers = await db.user.findMany({
     where: { bookclickerSyncStatus: 'connected' },
     select: { id: true },

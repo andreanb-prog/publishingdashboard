@@ -7,7 +7,7 @@ export const maxDuration = 300 // syncs drive a real browser and may backfill mo
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { isCronAuthorized } from '@/lib/cronAuth'
-import { runInBatches } from '@/lib/cronReliability'
+import { runInBatches, logCronAbort } from '@/lib/cronReliability'
 import { syncKdpForUser } from '@/lib/browserbase/kdp-sync'
 import { syncMetaForUser } from '@/lib/browserbase/meta-sync'
 import { fetchBsrForUser } from '@/lib/browserbase/bsr-fetch'
@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  try {
   // 1. KDP sync — users who have actively connected KDP via Browserbase
   const kdpUsers = await db.user.findMany({
     where: { kdpSyncStatus: 'connected' },
@@ -83,4 +84,12 @@ export async function GET(req: NextRequest) {
       failed: bsrResults.filter(r => r.status === 'rejected').length,
     },
   })
+  } catch (err) {
+    // Root visibility: a throw anywhere above would otherwise vanish into expired
+    // Vercel logs. Record it so /admin/sync-health shows the abort.
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[cron/sync] aborted:', msg)
+    await logCronAbort('cron', err)
+    return NextResponse.json({ error: 'Sync aborted', detail: msg.slice(0, 500) }, { status: 500 })
+  }
 }
