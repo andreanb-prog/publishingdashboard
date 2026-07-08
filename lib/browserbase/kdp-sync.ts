@@ -404,6 +404,95 @@ Include EVERY month listed on the page. If no months are shown, return an empty 
       console.warn('[kdp-sync] Prior Months\' Royalties read skipped:', stmtErr instanceof Error ? stmtErr.message : String(stmtErr))
     }
 
+    // 7d. KDP Bookshelf → auto-populate the book catalog WITH FORMATS, and detect
+    // an empty bookshelf (Gina's "connected the zero-titles state"). One read of a
+    // page we already reach. Fills in only MISSING fields on existing books, so it
+    // never clobbers a user's manual edits. NON-FATAL.
+    try {
+      const BookshelfSchema = z.object({
+        books: z.array(z.object({
+          title:         z.string(),
+          kindleAsin:    z.string().optional(),
+          paperbackAsin: z.string().optional(),
+          paperbackIsbn: z.string().optional(),
+          hardcoverIsbn: z.string().optional(),
+          seriesName:    z.string().optional(),
+        })),
+      })
+
+      await page.goto('https://kdp.amazon.com/en_US/bookshelf', { waitUntil: 'domcontentloaded', timeoutMs: 20_000 })
+      await page.waitForTimeout(5000)
+
+      const shelfPromise = stagehand.extract(
+        `On this Amazon KDP Bookshelf page, read EVERY title the author has published.
+Each title groups its editions (Kindle eBook, Paperback, Hardcover) together. For each distinct book return:
+- title: the book title
+- kindleAsin: the Kindle eBook ASIN (starts with "B0…") if shown, else omit
+- paperbackAsin: the Paperback ASIN if shown, else omit
+- paperbackIsbn: the Paperback ISBN if shown, else omit
+- hardcoverIsbn: the Hardcover ISBN if shown, else omit
+- seriesName: the series name if shown, else omit
+Return "books": the full array. If the bookshelf shows no titles at all, return an empty array.`,
+        BookshelfSchema,
+      )
+      const shelfTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Bookshelf extraction timed out after 60s')), 60_000),
+      )
+      const shelf = await Promise.race([shelfPromise, shelfTimeout])
+
+      if (shelf.books.length === 0) {
+        // Empty bookshelf → likely the wrong Amazon account (or a genuinely empty
+        // KDP). Flag it so the UI can warn instead of showing silent zeros.
+        await db.syncLog.create({
+          data: {
+            userId, source: 'kdp', status: 'needs_human',
+            errorType: 'empty_bookshelf',
+            errorDetail: 'Connected to KDP but the Bookshelf shows no titles — the user may be signed into the wrong Amazon account.',
+          },
+        }).catch(() => undefined)
+        console.warn('[kdp-sync] Bookshelf empty — flagged empty_bookshelf')
+      } else {
+        let catalogRows = 0
+        for (const b of shelf.books) {
+          if (!b.title) continue
+          // Match an existing catalog book by Kindle ASIN first, else by title.
+          const existing = b.kindleAsin
+            ? await db.book.findFirst({ where: { userId, asin: b.kindleAsin } })
+            : await db.book.findFirst({ where: { userId, title: { equals: b.title, mode: 'insensitive' } } })
+
+          if (existing) {
+            // Fill ONLY missing fields — never overwrite the user's own edits.
+            await db.book.update({
+              where: { id: existing.id },
+              data: {
+                asin:          existing.asin          ?? b.kindleAsin    ?? null,
+                asinPaperback: existing.asinPaperback ?? b.paperbackAsin ?? null,
+                isbnPaperback: existing.isbnPaperback ?? b.paperbackIsbn ?? null,
+                isbnHardcover: existing.isbnHardcover ?? b.hardcoverIsbn ?? null,
+                seriesName:    existing.seriesName    ?? b.seriesName    ?? null,
+              },
+            })
+          } else {
+            await db.book.create({
+              data: {
+                userId,
+                title:         b.title,
+                asin:          b.kindleAsin    ?? null,
+                asinPaperback: b.paperbackAsin ?? null,
+                isbnPaperback: b.paperbackIsbn ?? null,
+                isbnHardcover: b.hardcoverIsbn ?? null,
+                seriesName:    b.seriesName    ?? null,
+              },
+            })
+          }
+          catalogRows++
+        }
+        console.log(`[kdp-sync] Bookshelf: synced ${catalogRows} title(s) into catalog`)
+      }
+    } catch (shelfErr) {
+      console.warn('[kdp-sync] Bookshelf read skipped:', shelfErr instanceof Error ? shelfErr.message : String(shelfErr))
+    }
+
     // 8. Update user sync metadata and mark success. Also restore 'connected':
     // if the user had been flagged 'needs_reauth' (possibly by a transient blip),
     // a successful extraction proves the session is valid again — otherwise the
