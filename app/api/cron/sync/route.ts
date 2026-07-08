@@ -1,39 +1,16 @@
 // app/api/cron/sync/route.ts
-// Nightly sync: KDP for connected users, then BSR for all users with books.
+// Nightly sync: KDP, then Meta, then BSR for connected users.
+// BookClicker is intentionally NOT here — it is the heaviest source and runs in its
+// own 300s function (/api/cron/bookclicker) so this route can never hit 300s from it.
 // Triggered by Vercel Cron — protected by the Authorization: Bearer ${CRON_SECRET} header.
 export const maxDuration = 300 // syncs drive a real browser and may backfill months
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { isCronAuthorized } from '@/lib/cronAuth'
+import { runInBatches } from '@/lib/cronReliability'
 import { syncKdpForUser } from '@/lib/browserbase/kdp-sync'
 import { syncMetaForUser } from '@/lib/browserbase/meta-sync'
-import { syncBookclickerForUser } from '@/lib/browserbase/bookclicker-sync'
 import { fetchBsrForUser } from '@/lib/browserbase/bsr-fetch'
-
-const BATCH_SIZE = 10
-
-type UserResult = { userId: string; status: 'fulfilled' | 'rejected'; error?: string }
-
-async function runInBatches(
-  userIds: string[],
-  fn: (userId: string) => Promise<void>,
-): Promise<UserResult[]> {
-  const results: UserResult[] = []
-  for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
-    const batch = userIds.slice(i, i + BATCH_SIZE)
-    const settled = await Promise.allSettled(batch.map(fn))
-    settled.forEach((result, idx) => {
-      const userId = batch[idx]
-      if (result.status === 'rejected') {
-        const error = result.reason instanceof Error ? result.reason.message : String(result.reason)
-        results.push({ userId, status: 'rejected', error })
-      } else {
-        results.push({ userId, status: 'fulfilled' })
-      }
-    })
-  }
-  return results
-}
 
 export async function GET(req: NextRequest) {
   if (!isCronAuthorized(req)) {
@@ -72,23 +49,7 @@ export async function GET(req: NextRequest) {
     console.error(`[cron/sync] Meta failed for ${r.userId}:`, r.error)
   }
 
-  // 3. BookClicker sync — users who have connected BookClicker via Browserbase
-  const bcUsers = await db.user.findMany({
-    where: { bookclickerSyncStatus: 'connected' },
-    select: { id: true },
-  })
-  console.log(`[cron/sync] BookClicker: ${bcUsers.length} connected users`)
-
-  const bcResults = await runInBatches(
-    bcUsers.map(u => u.id),
-    syncBookclickerForUser,
-  )
-
-  for (const r of bcResults.filter(r => r.status === 'rejected')) {
-    console.error(`[cron/sync] BookClicker failed for ${r.userId}:`, r.error)
-  }
-
-  // 4. BSR fetch — all users who have at least one book with an ASIN
+  // 3. BSR fetch — all users who have at least one book with an ASIN
   const bsrUsers = await db.user.findMany({
     where: { bookCatalog: { some: { asin: { not: null } } } },
     select: { id: true },
@@ -115,11 +76,6 @@ export async function GET(req: NextRequest) {
       total: metaUsers.length,
       ok: metaResults.filter(r => r.status === 'fulfilled').length,
       failed: metaResults.filter(r => r.status === 'rejected').length,
-    },
-    bookclicker: {
-      total: bcUsers.length,
-      ok: bcResults.filter(r => r.status === 'fulfilled').length,
-      failed: bcResults.filter(r => r.status === 'rejected').length,
     },
     bsr: {
       total: bsrUsers.length,

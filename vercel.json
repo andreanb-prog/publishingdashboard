@@ -30,6 +30,10 @@
       "schedule": "20 12 * * *"
     },
     {
+      "path": "/api/cron/bookclicker",
+      "schedule": "35 12 * * *"
+    },
+    {
       "path": "/api/cron/bsr",
       "schedule": "0 * * * *"
     }
