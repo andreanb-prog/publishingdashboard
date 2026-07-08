@@ -37,7 +37,8 @@ Gina's actual morning workflow, in order: **KDP dollars first** → FB ads per-c
 
 1. **Prominent "Books" nav tab** (left sidebar) — she couldn't find the catalog. Wants publish date, daily sales, page reads per book on it.
 2. **Daily per-book royalties** — hover the royalty graph to see how much EACH book made that day. Her #1 morning thing.
-3. **Easier catalog import** — "Do I manually import books?" Catalog is clunky/stale ("only up thru March"). Andrea: load a scraper to auto-pull titles.
+3. **Easier catalog import + AUTO-import ALL titles** — "Do I manually import books?" Catalog is clunky and unclear. It did NOT auto-import or find all titles — only the last ~90 days. Users need: (a) a clear, simple way to add/manage books in Settings, and (b) auto-pull of the author's FULL catalog (all titles, not just recent). Andrea: load a scraper to auto-pull titles.
+6. **Lifetime KDP history** — users want to see their LIFETIME KDP data (all-time royalties/units/KENP), not just recent months. Current sync captures recent only. Valuable historical view.
 4. **Overall ROAS across ALL ad spend** — not just FB. Include BookClicker promos, written-word media promos, etc. (user keys in the non-FB spend).
 5. **Timeline / project tracking** — pre-order start, launch date, promos running alongside FB spend.
 
