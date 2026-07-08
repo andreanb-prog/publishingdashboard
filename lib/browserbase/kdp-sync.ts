@@ -5,7 +5,6 @@
 import { Stagehand } from '@browserbasehq/stagehand'
 import { z } from 'zod'
 import AdmZip from 'adm-zip'
-import { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { getBrowserbaseConfig } from '@/lib/browserbase'
 import { parseRoyaltyReport, deriveKuUsd } from '@/lib/browserbase/royalty-report'
@@ -242,141 +241,61 @@ If a value shows a dash or is missing, return 0.`,
     await upsertMonthRow(monthKeyAgo(0), result)
     let rowsFetched = 1
 
-    // 7. Backfill: pull prior months that have no browserbase row yet (~90 days
-    // of coverage). Runs on first sync / after gaps; steady-state nights skip it.
-    // Every step is NON-FATAL — a failed backfill month never fails the sync.
-    //
-    // CRITICAL SAFETY: the date-range switch is VERIFIED before any write. An
-    // earlier version trusted stagehand.act() blindly and wrote the current
-    // month's totals under prior monthKeys when the click silently failed.
-    // Backfill extraction therefore also reads the date range text the page is
-    // ACTUALLY showing, and the row is only written when that text matches the
-    // target month. No verification → no write.
-    const BackfillSchema = DashboardSchema.extend({
-      periodLabel: z.string(), // the date range text currently displayed by the selector
-    })
-
-    const extractWithPeriod = async (): Promise<z.infer<typeof BackfillSchema>> => {
-      const p = stagehand.extract(
-        `On this Amazon KDP reports dashboard, read the summary totals shown near the top
-for the CURRENTLY SELECTED date range — the row containing Estimated royalties, Orders, and KENP. Return:
-- royalties: the Estimated royalties amount as a number, ignoring "$", commas and any trailing "*" (e.g. 121.00)
-- orders: the Orders count as an integer, ignoring commas (e.g. 50)
-- kenp: the KENP (also labelled "KENP Read" or "Pages") count as an integer, ignoring commas (e.g. 19753)
-- periodLabel: the EXACT text currently displayed by the date range selector/dropdown (e.g. "Last month", "Jun 1, 2026 - Jun 30, 2026", "This month"). Copy it verbatim.
-If a value shows a dash or is missing, return 0.`,
-        BackfillSchema,
-      )
-      const t = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('KDP backfill extraction timed out after 60s')), 60_000),
-      )
-      return Promise.race([p, t])
-    }
-
-    // Does the selector text plausibly refer to the target month?
-    // Accepts "June", "Jun", "06/2026", "2026-06", or "Last month" for ago===1.
-    const labelMatchesMonth = (periodLabel: string, monthKey: string, ago: number): boolean => {
-      const lower = periodLabel.toLowerCase()
-      const { label } = monthMeta(monthKey)             // "June 2026"
-      const monthName = label.split(' ')[0].toLowerCase() // "june"
-      const [year, mm] = monthKey.split('-')
-      if (lower.includes(monthName.slice(0, 3))) return true
-      if (lower.includes(`${mm}/`) && lower.includes(year)) return true
-      if (lower.includes(monthKey)) return true
-      if (ago === 1 && lower.includes('last month')) return true
-      return false
-    }
-
-    // Which months inside the lifetime window still lack a browserbase row?
-    // Backfill the NEWEST missing ones first, capped per run so we never blow
-    // the function budget; later syncs pick up where this one left off.
+    // 7. Prior-month coverage. NOTE (2026-07): KDP migrated reports to a new
+    // dashboard (kdpreports.amazon.com) that only offers Today / Yesterday /
+    // This month — the arbitrary date-range picker the old backfill drove is
+    // gone, so prior months can no longer be read from the dashboard at all.
+    // Prior-month totals AND their per-format split now come from the
+    // downloadable monthly royalty report instead (block 7c below), which is a
+    // more complete and reliable source. The current month is still read from
+    // the dashboard above (step 6/7). This block just enumerates the window.
+    // Which months inside the lifetime window are candidates for prior-month
+    // data? (Newest first.) The actual acquisition now happens in 7c below,
+    // from the downloadable monthly royalty report — see the note there.
     const windowMonths: { monthKey: string; ago: number }[] = []
     for (let ago = 1; ago <= LIFETIME_WINDOW_MONTHS; ago++) {
       windowMonths.push({ monthKey: monthKeyAgo(ago), ago })
     }
-    const existingBackfill = await db.kdpSale.findMany({
-      where: {
-        userId, asin: 'ALL_BOOKS', source: 'browserbase',
-        monthKey: { in: windowMonths.map(w => w.monthKey) },
-      },
-      select: { monthKey: true },
-    })
-    const haveBackfill = new Set(existingBackfill.map(r => r.monthKey))
-    const missingMonths = windowMonths
-      .filter(w => !haveBackfill.has(w.monthKey))
-      .slice(0, MAX_BACKFILL_PER_RUN)
 
-    for (const { monthKey, ago } of missingMonths) {
-      try {
-        const { label, lastDay } = monthMeta(monthKey)
-        const monthName = label.split(' ')[0]
-        const year = monthKey.slice(0, 4)
-        const instructions = ago === 1
-          ? [
-              'Click the date range selector/dropdown near the top of the dashboard, then click the "Last month" option in the list that appears',
-              `Open the date range picker and select a custom range from ${monthName} 1, ${year} to ${monthName} ${lastDay}, ${year}, then apply it`,
-            ]
-          : [
-              `Click the date range selector/dropdown near the top of the dashboard and select a custom date range from ${monthName} 1, ${year} to ${monthName} ${lastDay}, ${year}, then apply it`,
-              `Open the date range picker, navigate to ${label}, select the full month (${monthName} 1 to ${monthName} ${lastDay}), and apply`,
-            ]
-
-        let written = false
-        for (const instruction of instructions) {
-          await stagehand.act(instruction)
-          await page.waitForTimeout(4000)
-          const totals = await extractWithPeriod()
-          if (labelMatchesMonth(totals.periodLabel, monthKey, ago)) {
-            await upsertMonthRow(monthKey, totals)
-            rowsFetched++
-            written = true
-            console.log(`[kdp-sync] backfilled ${monthKey} ("${totals.periodLabel}"): $${totals.royalties} / ${totals.orders} orders / ${totals.kenp} KENP`)
-            break
-          }
-          console.warn(`[kdp-sync] backfill ${monthKey}: range switch NOT verified (selector shows "${totals.periodLabel}") — not writing, retrying`)
-        }
-        if (!written) {
-          console.warn(`[kdp-sync] backfill ${monthKey}: could not verify the date range switch after ${instructions.length} attempts — month skipped, no data written`)
-        }
-      } catch (backfillErr) {
-        console.warn(`[kdp-sync] backfill for ${monthKey} skipped:`, backfillErr instanceof Error ? backfillErr.message : String(backfillErr))
-      }
-    }
-
-    // 7c. Per-format royalty split — download KDP's "Prior Months' Royalties"
-    // .xlsx for months whose ALL_BOOKS row has no formatBreakdown yet, parse it
-    // into a per-format USD split (KU / eBook / Paperback / Hardcover / Audio),
-    // and stash it as JSON on that month's EXISTING row. This is additive-only:
-    // no new rows, no touched royalty/units/kenp fields, so aggregateKdp()'s
-    // money math is unchanged. Prior months only — KDP publishes the report
-    // after month end, so the current month never has one.
+    // 7c. Prior-month acquisition + per-format split, BOTH from the downloadable
+    // monthly royalty report. Since KDP's new dashboard can't show prior months
+    // (see step 7 note), the report is now the sole prior-month source: one
+    // download yields the per-format dollars (KU / eBook / Paperback / Hardcover
+    // / Audio) AND — when no row exists for that month yet — the blended total to
+    // CREATE the month row itself. For months that already have a browserbase
+    // row, we keep that row's authoritative totals and only attach the split.
     //
-    // ENTIRELY NON-FATAL: any failure logs a warning and the sync still
-    // succeeds with the blended totals it already wrote. Capped at
-    // MAX_BACKFILL_PER_RUN months per run (same chunking as the backfill loop)
-    // so we never blow the serverless time budget.
+    // ENTIRELY NON-FATAL and capped at MAX_BACKFILL_PER_RUN months/run: any
+    // failure logs a warning and the sync still succeeds with the current month
+    // it already wrote. The only rows it creates are the same ALL_BOOKS month
+    // sentinels the old backfill made, so aggregateKdp()'s math is unaffected.
     try {
-      const splitCandidates = await db.kdpSale.findMany({
+      const currentMonthKey = monthKeyAgo(0)
+      // Existing browserbase ALL_BOOKS rows in the window + their split state.
+      const existingRows = await db.kdpSale.findMany({
         where: {
-          userId,
-          asin:     'ALL_BOOKS',
-          source:   'browserbase',
+          userId, asin: 'ALL_BOOKS', source: 'browserbase',
           monthKey: { in: windowMonths.map(w => w.monthKey) },
-          formatBreakdown: { equals: Prisma.AnyNull },
         },
-        select:  { monthKey: true, royalties: true },
-        orderBy: { monthKey: 'desc' },
-        take:    MAX_BACKFILL_PER_RUN,
+        select: { monthKey: true, royalties: true, formatBreakdown: true },
       })
+      const rowByMonth = new Map<string, { royalties: number; hasSplit: boolean }>()
+      for (const r of existingRows) {
+        if (r.monthKey) rowByMonth.set(r.monthKey, { royalties: r.royalties, hasSplit: r.formatBreakdown != null })
+      }
 
-      if (splitCandidates.length > 0 && bbSessionId) {
-        // Blended dashboard total per month — used to derive KU dollars so the
-        // per-format parts always reconcile to the headline the user sees.
-        const blendedByMonth = new Map<string, number>()
-        for (const c of splitCandidates) {
-          if (c.monthKey) blendedByMonth.set(c.monthKey, c.royalties)
-        }
+      // Newest prior months still needing data: no row at all, or a row without
+      // a split. Never the current month (KDP publishes a month's report only
+      // after the month closes).
+      const targetMonths = windowMonths
+        .filter(w => w.monthKey !== currentMonthKey)
+        .filter(w => {
+          const r = rowByMonth.get(w.monthKey)
+          return !r || !r.hasSplit
+        })
+        .slice(0, MAX_BACKFILL_PER_RUN)
 
+      if (targetMonths.length > 0 && bbSessionId) {
         // Enable downloads in the remote browser via CDP. Browserbase does NOT
         // stream downloads to the local filesystem — files land in the session's
         // cloud storage and are fetched afterwards via the downloads API.
@@ -398,23 +317,21 @@ If a value shows a dash or is missing, return 0.`,
         await page.goto(KDP_PMR_URL, { waitUntil: 'load', timeoutMs: 20_000 })
         await page.waitForTimeout(3000)
 
-        // Trigger one download per candidate month. Month attribution does NOT
-        // depend on these clicks landing right — the downloaded filename encodes
-        // the month (KDP_Prior_Month_Royalties-YYYY-MM-01-<uuid>.xlsx) and we
-        // map by filename below, so a wrong dropdown pick can never write data
-        // under the wrong monthKey.
+        // Trigger one download per target month. Month attribution does NOT
+        // depend on these clicks landing right — the filename encodes the month
+        // (KDP_Prior_Month_Royalties-YYYY-MM-01-<uuid>.xlsx) and we map by
+        // filename below, so a wrong dropdown pick can't write the wrong month.
         let triggered = 0
-        for (const cand of splitCandidates) {
-          if (!cand.monthKey) continue
+        for (const tm of targetMonths) {
           try {
-            const { label } = monthMeta(cand.monthKey) // "June 2026"
+            const { label } = monthMeta(tm.monthKey) // "June 2026"
             await stagehand.act(`Click the "Choose a month" dropdown and select "${label}" from the list of months`)
             await page.waitForTimeout(1500)
             await stagehand.act('Click the "Download report" button')
             await page.waitForTimeout(4000) // let the download land in session storage
             triggered++
           } catch (dlErr) {
-            console.warn(`[kdp-sync] royalty report download for ${cand.monthKey} skipped:`, dlErr instanceof Error ? dlErr.message : String(dlErr))
+            console.warn(`[kdp-sync] royalty report download for ${tm.monthKey} skipped:`, dlErr instanceof Error ? dlErr.message : String(dlErr))
           }
         }
 
@@ -442,22 +359,28 @@ If a value shows a dash or is missing, return 0.`,
           }
 
           if (!zip) {
-            console.warn('[kdp-sync] royalty report: downloads ZIP never became available — format split skipped this run')
+            console.warn('[kdp-sync] royalty report: downloads ZIP never became available — prior-month data skipped this run')
           } else {
+            const targetKeys = new Set(targetMonths.map(tm => tm.monthKey))
             for (const entry of zip.getEntries()) {
-              const m = entry.entryName.match(FILE_RE)
-              if (!m) continue
-              const monthKey = `${m[1]}-${m[2]}`
-              if (!blendedByMonth.has(monthKey)) continue // not a month we're filling
+              const fm = entry.entryName.match(FILE_RE)
+              if (!fm) continue
+              const monthKey = `${fm[1]}-${fm[2]}`
+              if (!targetKeys.has(monthKey)) continue // not a month we're filling
               try {
                 const breakdown = parseRoyaltyReport(entry.getData())
-                // Belt-and-braces: the "Sales Period" cell inside the file must
-                // agree with the filename before we write anything.
+                // Belt-and-braces: the file's own "Sales Period" must agree with
+                // the filename before we write anything under this monthKey.
                 if (breakdown.monthKey && breakdown.monthKey !== monthKey) {
                   console.warn(`[kdp-sync] royalty report ${entry.entryName}: file says ${breakdown.monthKey}, filename says ${monthKey} — skipped`)
                   continue
                 }
-                const { kuUsd, derived } = deriveKuUsd(breakdown, blendedByMonth.get(monthKey))
+
+                const existing = rowByMonth.get(monthKey)
+                // Reconcile KU against a real blended total when we have one;
+                // otherwise deriveKuUsd falls back to pages × the KENP rate.
+                const blended = existing && existing.royalties > 0 ? existing.royalties : null
+                const { kuUsd, derived } = deriveKuUsd(breakdown, blended)
                 const formatBreakdown = {
                   ebookUsd:       breakdown.ebookUsd,
                   ebookUnits:     breakdown.ebookUnits,
@@ -473,17 +396,37 @@ If a value shows a dash or is missing, return 0.`,
                   currency:       'USD',
                   fxApprox:       true,
                 }
-                await db.kdpSale.update({
-                  where: {
-                    userId_asin_source_monthKey: {
-                      userId, asin: 'ALL_BOOKS', source: 'browserbase', monthKey,
+
+                if (existing) {
+                  // Keep the row's authoritative totals; only attach the split.
+                  await db.kdpSale.update({
+                    where: { userId_asin_source_monthKey: { userId, asin: 'ALL_BOOKS', source: 'browserbase', monthKey } },
+                    data: { formatBreakdown },
+                  })
+                } else {
+                  // No row for this month yet — create it FROM the report.
+                  // Blended = the four format dollars + the KU estimate; units =
+                  // sum of paid format units; kenp = the report's page reads.
+                  const blendedTotal = +(
+                    breakdown.ebookUsd + breakdown.paperbackUsd +
+                    breakdown.hardcoverUsd + breakdown.audiobookUsd + kuUsd
+                  ).toFixed(2)
+                  const units =
+                    breakdown.ebookUnits + breakdown.paperbackUnits +
+                    breakdown.hardcoverUnits + breakdown.audiobookUnits
+                  await db.kdpSale.create({
+                    data: {
+                      userId, asin: 'ALL_BOOKS', title: 'All Books (Statement Total)',
+                      date: `${monthKey}-01`, units, kenp: breakdown.kenpPages,
+                      royalties: blendedTotal, format: 'ebook', source: 'browserbase',
+                      monthKey, formatBreakdown,
                     },
-                  },
-                  data: { formatBreakdown },
-                })
-                console.log(`[kdp-sync] format split stored for ${monthKey}: KU $${kuUsd}${derived ? '' : ' (KENP-rate estimate)'} · eBook $${breakdown.ebookUsd} · PB $${breakdown.paperbackUsd} · HC $${breakdown.hardcoverUsd} · Audio $${breakdown.audiobookUsd} · ${breakdown.kenpPages} KENP pages`)
+                  })
+                  rowsFetched++
+                }
+                console.log(`[kdp-sync] prior-month ${existing ? 'split' : 'row+split'} stored for ${monthKey}: KU $${kuUsd}${derived ? '' : ' (KENP-rate estimate)'} · eBook $${breakdown.ebookUsd} · PB $${breakdown.paperbackUsd} · HC $${breakdown.hardcoverUsd} · Audio $${breakdown.audiobookUsd} · ${breakdown.kenpPages} KENP pages`)
               } catch (parseErr) {
-                console.warn(`[kdp-sync] royalty report parse for ${monthKey} skipped:`, parseErr instanceof Error ? parseErr.message : String(parseErr))
+                console.warn(`[kdp-sync] royalty report handling for ${monthKey} skipped:`, parseErr instanceof Error ? parseErr.message : String(parseErr))
               }
             }
           }
