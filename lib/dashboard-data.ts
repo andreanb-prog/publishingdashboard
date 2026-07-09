@@ -14,6 +14,8 @@ export type DashboardData = {
   roasLogs: RoasLog[]
   mailerLiteData: MailerLiteData | null
   kdpLastUploadedAt: string | null
+  kdpLastSyncAt: string | null
+  kdpSyncStatus: string | null
   metaLastSync: string | null
   bookCount: number
   hasMailerLiteKey: boolean
@@ -39,7 +41,7 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
     // 2. User meta sync timestamp
     db.user.findUnique({
       where: { id: userId },
-      select: { metaLastSync: true, mailerLiteKey: true },
+      select: { metaLastSync: true, mailerLiteKey: true, kdpLastSyncAt: true, kdpSyncStatus: true },
     }),
 
     // 3. Rank logs (replaces /api/rank GET)
@@ -137,6 +139,8 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
     roasLogs: roasLogs as unknown as RoasLog[],
     mailerLiteData,
     kdpLastUploadedAt,
+    kdpLastSyncAt: userRow?.kdpLastSyncAt ? userRow.kdpLastSyncAt.toISOString() : null,
+    kdpSyncStatus: userRow?.kdpSyncStatus ?? null,
     metaLastSync,
     bookCount,
     hasMailerLiteKey: !!userRow?.mailerLiteKey,

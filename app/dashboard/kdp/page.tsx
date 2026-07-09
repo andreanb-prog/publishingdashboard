@@ -1262,6 +1262,8 @@ export default function KDPPage() {
   // My Books list sorted by sortOrder — used for stable ASIN-based color assignment
   const [myBooksList,  setMyBooksList]  = useState<any[]>([])
   const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(null)
+  const [kdpLastSyncAt, setKdpLastSyncAt] = useState<string | null>(null)
+  const [kdpSyncStatus, setKdpSyncStatus] = useState<string | null>(null)
   const [activeFormat, setActiveFormat] = useState<'units' | 'ku' | 'paperback'>('units')
   const [kdpSalesData, setKdpSalesData] = useState<{
     dailyUnits:     { date: string; value: number }[]
@@ -1296,6 +1298,8 @@ export default function KDPPage() {
       setAllAnalyses(analyses)
       if (salesData && !salesData.error) setKdpSalesData(salesData)
       if (analyzeData.kdpLastUploadedAt) setKdpLastUploadedAt(analyzeData.kdpLastUploadedAt)
+      if (analyzeData.kdpLastSyncAt) setKdpLastSyncAt(analyzeData.kdpLastSyncAt)
+      if (analyzeData.kdpSyncStatus) setKdpSyncStatus(analyzeData.kdpSyncStatus)
       setRoasLogs((roasData.logs ?? []).map((r: any) => ({
         ...r,
         date: (r.date as string).substring(0, 10),
@@ -1613,18 +1617,26 @@ export default function KDPPage() {
               customStart={customStart} customEnd={customEnd}
               onApply={(s, e) => { setCustomStart(s); setCustomEnd(e) }} />
             <p className="text-[11px] mt-1.5" style={{ color: 'var(--ink4)' }}>
-              {kdpLastUploadedAt
-                ? (() => {
-                    const uploadDate = new Date(kdpLastUploadedAt)
-                    const today = new Date()
-                    const isToday = uploadDate.toDateString() === today.toDateString()
-                    return isToday
-                      ? <>Showing data from today&apos;s upload</>
-
-                      : <>Showing data from your last upload — {uploadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. <button onClick={() => window.dispatchEvent(new CustomEvent('open-upload-modal'))} style={{ color: '#E9A020', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Upload a new report</button> to see the latest numbers.</>
-                  })()
-                : <>No data uploaded yet. <button onClick={() => window.dispatchEvent(new CustomEvent('open-upload-modal'))} style={{ color: '#E9A020', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Upload your KDP report</button> to get started.</>
-              }
+              {(() => {
+                // Sync-aware freshness: when KDP auto-sync is connected, the sync
+                // timestamp is the source of truth — never nag a synced user to upload.
+                const synced = kdpSyncStatus === 'connected' && kdpLastSyncAt
+                if (synced) {
+                  const syncDate = new Date(kdpLastSyncAt!)
+                  const isToday = syncDate.toDateString() === new Date().toDateString()
+                  return isToday
+                    ? <>KDP auto-sync connected — data synced today.</>
+                    : <>KDP auto-sync connected — last synced {syncDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.</>
+                }
+                if (kdpLastUploadedAt) {
+                  const uploadDate = new Date(kdpLastUploadedAt)
+                  const isToday = uploadDate.toDateString() === new Date().toDateString()
+                  return isToday
+                    ? <>Showing data from today&apos;s upload</>
+                    : <>Showing data from your last upload — {uploadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. <button onClick={() => window.dispatchEvent(new CustomEvent('open-upload-modal'))} style={{ color: '#E9A020', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Upload a new report</button> to see the latest numbers.</>
+                }
+                return <>No data uploaded yet. <button onClick={() => window.dispatchEvent(new CustomEvent('open-upload-modal'))} style={{ color: '#E9A020', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Upload your KDP report</button> to get started.</>
+              })()}
             </p>
             <p className="text-[11px] mt-0.5" style={{ color: 'var(--ink4)' }}>
               KDP data typically lags 48–72 hours. Recent days may show incomplete numbers.

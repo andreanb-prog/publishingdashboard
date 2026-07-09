@@ -111,6 +111,8 @@ export function useDashboardData({
   const [loading,   setLoading]   = useState(!hasInitial)
   const [generating, setGenerating] = useState(false)
   const [kdpLastUploadedAt, setKdpLastUploadedAt] = useState<string | null>(initialData?.kdpLastUploadedAt ?? null)
+  const [kdpLastSyncAt, setKdpLastSyncAt] = useState<string | null>(initialData?.kdpLastSyncAt ?? null)
+  const [kdpSyncStatus, setKdpSyncStatus] = useState<string | null>(initialData?.kdpSyncStatus ?? null)
   const [copied,      setCopied]      = useState(false)
   const [copying,     setCopying]     = useState(false)
   const [coachTitle, setCoachTitle] = useState('Your marketing coach says')
@@ -255,6 +257,8 @@ export function useDashboardData({
       const a = analyzeData.analysis ?? null
       setAnalysis(a)
       setKdpLastUploadedAt(analyzeData.kdpLastUploadedAt ?? null)
+      setKdpLastSyncAt(analyzeData.kdpLastSyncAt ?? null)
+      setKdpSyncStatus(analyzeData.kdpSyncStatus ?? null)
       setMetaLastSync(analyzeData.metaLastSync ?? null)
       const rows: Analysis[] = (analyzeData.analyses ?? [])
         .map((r: { data?: Analysis }) => r.data)
@@ -417,8 +421,14 @@ export function useDashboardData({
     }
   }, [analysis, rankLogs, roasLogs, swapCalendar])
 
-  const isKdpStale = !!kdpLastUploadedAt &&
-    (Date.now() - new Date(kdpLastUploadedAt).getTime()) > 35 * 24 * 60 * 60 * 1000
+  // Sync-aware staleness: freshness = most recent of manual upload OR auto-sync.
+  // A user with KDP sync connected should never see the "upload your report" nag.
+  const kdpFreshAt = [kdpLastUploadedAt, kdpLastSyncAt]
+    .filter(Boolean)
+    .map(d => new Date(d as string).getTime())
+    .sort((a, b) => b - a)[0] ?? null
+  const isKdpStale = kdpSyncStatus !== 'connected' && !!kdpFreshAt &&
+    (Date.now() - kdpFreshAt) > 35 * 24 * 60 * 60 * 1000
 
   const channelScoresArr: ChannelScore[] = Array.isArray(analysis?.channelScores) ? analysis.channelScores : []
   const getChannelScore = useCallback((key: string): ChannelScore | undefined =>

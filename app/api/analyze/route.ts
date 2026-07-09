@@ -400,7 +400,7 @@ export async function GET(req: NextRequest) {
     }),
     db.user.findUnique({
       where: { id: session.user.id },
-      select: { metaLastSync: true },
+      select: { metaLastSync: true, kdpLastSyncAt: true, kdpSyncStatus: true },
     }),
   ])
 
@@ -479,5 +479,8 @@ export async function GET(req: NextRequest) {
     hasMonthGranularData: kdpAgg.hasMonthGranularData,
   }
 
-  return NextResponse.json({ analyses, analysis: analysis || null, kdpLastUploadedAt, metaLastSync, kdpTotals })
+  const kdpLastSyncAt = userRow?.kdpLastSyncAt ? userRow.kdpLastSyncAt.toISOString() : null
+  const kdpSyncStatus = userRow?.kdpSyncStatus ?? null
+
+  return NextResponse.json({ analyses, analysis: analysis || null, kdpLastUploadedAt, kdpLastSyncAt, kdpSyncStatus, metaLastSync, kdpTotals })
 }
