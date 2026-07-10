@@ -118,18 +118,31 @@ export function parseProductPage(html: string): {
   if (isBlocked(html)) return null
   const $ = cheerio.load(html)
 
-  // KU: the "Read for Free" / Kindle Unlimited block or the KU logo image.
-  const kuText = $('#tmm-grid-swatch-KINDLE, #kindle-price-block, .a-icon-kindle-unlimited').length > 0
-    || /kindle\s*unlimited/i.test($('#rightCol, #buybox, #tmmSwatches').text())
-    || $('img[src*="kindle-unlimited"], i.a-icon-kindle-unlimited').length > 0
-  const readForFree = /read for free|\$0\.00.*kindle unlimited/i.test($('#rightCol, #buybox').text())
-  const isKu = kuText && (readForFree || /kindle\s*unlimited/i.test($('body').text().slice(0, 60000)))
+  // KU: STRICT — only the buy-box signals count. Matching "Kindle Unlimited"
+  // anywhere on the page flagged trad-pub books as KU (Amazon shows KU upsell
+  // banners everywhere). Real signals: the "Read for free" offer line or the
+  // KU logo INSIDE the buybox/format swatches.
+  const buyRegion = $('#rightCol, #buybox, #tmmSwatches, #tmm-grid-swatch-KINDLE').text()
+  const readForFree = /read for free|read with kindle unlimited/i.test(buyRegion)
+  const kuIcon = $('#rightCol i.a-icon-kindle-unlimited, #buybox i.a-icon-kindle-unlimited, #tmmSwatches img[src*="kindle-unlimited" i], #rightCol img[src*="kindle-unlimited" i]').length > 0
+  const isKu = readForFree || kuIcon
 
-  const blurb = $('#bookDescription_feature_div').text().replace(/\s+/g, ' ').trim().slice(0, 1200) || null
+  // Blurb: Amazon renders the description in several containers depending on
+  // layout; try them all before giving up.
+  const blurb = (
+    $('#bookDescription_feature_div .a-expander-content').text()
+    || $('#bookDescription_feature_div').text()
+    || $('[data-a-expander-name="book_description_expander"] .a-expander-content').text()
+    || $('#drengr_DesktopTabbedDescriptionOverviewContent').text()
+    || $('#productDescription').text()
+  ).replace(/\s+/g, ' ').trim().slice(0, 1200) || null
+
   const author = $('#bylineInfo .author a, #bylineInfo a.contributorNameID').first().text().trim() || null
 
-  const priceText = $('#kindle-price, .kindle-price, #price').first().text().trim()
-    || $('span:contains("Kindle Price")').parent().text()
+  // Price: the KINDLE format swatch specifically — the generic '#price'
+  // selector grabbed whichever format swatch came first (hardcover, audio CD).
+  const priceText = $('#tmm-grid-swatch-KINDLE .slot-price, #tmm-grid-swatch-KINDLE').first().text()
+    || $('#kindle-price').first().text()
   const priceMatch = priceText.match(/\$([\d.,]+)/)
   const price = priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : null
 
@@ -166,6 +179,14 @@ async function tagTropesFromMeta(
 ): Promise<Map<string, string[]>> {
   const out = new Map<string, string[]>()
   if (!process.env.ANTHROPIC_API_KEY || items.length === 0) return out
+  // Chunk to keep each call well inside token limits.
+  if (items.length > 25) {
+    for (let i = 0; i < items.length; i += 25) {
+      const part = await tagTropesFromMeta(items.slice(i, i + 25))
+      for (const [k, v] of Array.from(part.entries())) out.set(k, v)
+    }
+    return out
+  }
   const list = items.map((it, i) =>
     `${i + 1}. [${it.asin}] ${it.title}${it.blurb ? ` — ${it.blurb.slice(0, 350)}` : ''}`
   ).join('\n')
@@ -187,12 +208,13 @@ Reply with ONLY a JSON object mapping ASIN to an array of tropes, e.g. {"B0ABC12
     })
     const text = res.content[0]?.type === 'text' ? res.content[0].text : ''
     const m = text.match(/\{[\s\S]*\}/)
-    if (!m) return out
+    if (!m) { console.warn('[market-pulse] trope tagging: no JSON in response'); return out }
     const tagged = JSON.parse(m[0]) as Record<string, string[]>
     const valid = new Set<string>(PULSE_TROPES)
     for (const [asin, tropes] of Object.entries(tagged)) {
       if (Array.isArray(tropes)) out.set(asin, tropes.filter(t => valid.has(t)))
     }
+    console.log(`[market-pulse] trope tagging: ${out.size}/${items.length} books tagged`)
   } catch (err) {
     console.warn('[market-pulse] blurb trope tagging failed:', err instanceof Error ? err.message : err)
   }
