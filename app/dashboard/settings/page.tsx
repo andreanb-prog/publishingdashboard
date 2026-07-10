@@ -1792,7 +1792,7 @@ export default function SettingsPage() {
                   : 'Connect to sync email stats'
               }
               statusPill={
-                <StatusPill active={hasSavedML} label={hasSavedML ? '● Active' : 'Not connected'} />
+                <StatusPill active={hasSavedML} label={hasSavedML ? 'Active' : 'Not connected'} />
               }
             >
               {/* API key row */}
@@ -1858,7 +1858,7 @@ export default function SettingsPage() {
               }
               statusPill={
                 mbSyncStatus === 'connected' ? (
-                  <StatusPill active label="● Active" />
+                  <StatusPill active label="Active" />
                 ) : mbSyncStatus === 'needs_reauth' ? (
                   <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
                     style={{ background: 'rgba(249,123,107,0.12)', color: '#F97B6B' }}>
@@ -1950,7 +1950,7 @@ export default function SettingsPage() {
                 name="Claude AI"
                 subtitle="Powers your coaching session"
                 statusPill={
-                  <StatusPill active={hasSavedClaude} label={hasSavedClaude ? '● Active' : 'Not connected'} />
+                  <StatusPill active={hasSavedClaude} label={hasSavedClaude ? 'Active' : 'Not connected'} />
                 }
               >
                 {hasSavedClaude && !showClaudeKey ? (
@@ -1987,7 +1987,7 @@ export default function SettingsPage() {
               subtitle="Tracks book downloads automatically"
               statusPill={
                 bfDownloadCount > 0
-                  ? <StatusPill active={true} label={`● Active · ${bfDownloadCount} downloads`} />
+                  ? <StatusPill active={true} label={`Active · ${bfDownloadCount} downloads`} />
                   : <StatusPill active={false} label="Not connected" />
               }
             >
