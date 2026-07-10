@@ -1018,3 +1018,24 @@ model MarketPulseSnapshot {
 
   @@index([genreSlug, capturedAt])
 }
+
+// ── Market Pulse: per-ASIN metadata cache (global, shared across users) ───────
+// One product-page fetch per ASIN, refreshed every ~14 days. Source of truth
+// for KU status, blurb (trope tagging), category ladder, and the book's own
+// overall BSR (real per-title sales/day estimates).
+model AsinMeta {
+  asin        String   @id
+  title       String
+  author      String?
+  blurb       String?  @db.Text
+  isKu        Boolean  @default(false)
+  price       Float?
+  reviews     Int?
+  overallBsr  Int?
+  categories  Json?    // [{rank, name}] from the product page Best Sellers Rank block
+  tropes      Json?    // string[] tagged from title+blurb against PULSE_TROPES
+  fetchedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([fetchedAt])
+}

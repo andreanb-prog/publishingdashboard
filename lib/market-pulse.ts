@@ -103,6 +103,170 @@ export function parseBestsellerPage(html: string): PulseRow[] {
   return rows.sort((a, b) => a.rank - b.rank)
 }
 
+// ── Product-page metadata (KU status, blurb, categories, BSR) ────────────────
+// One fetch per ASIN, cached in AsinMeta. KU status does NOT appear on the
+// best-seller list faceouts — this page is the only reliable source.
+export function parseProductPage(html: string): {
+  isKu: boolean
+  blurb: string | null
+  author: string | null
+  price: number | null
+  reviews: number | null
+  overallBsr: number | null
+  categories: { rank: number; name: string }[]
+} | null {
+  if (isBlocked(html)) return null
+  const $ = cheerio.load(html)
+
+  // KU: the "Read for Free" / Kindle Unlimited block or the KU logo image.
+  const kuText = $('#tmm-grid-swatch-KINDLE, #kindle-price-block, .a-icon-kindle-unlimited').length > 0
+    || /kindle\s*unlimited/i.test($('#rightCol, #buybox, #tmmSwatches').text())
+    || $('img[src*="kindle-unlimited"], i.a-icon-kindle-unlimited').length > 0
+  const readForFree = /read for free|\$0\.00.*kindle unlimited/i.test($('#rightCol, #buybox').text())
+  const isKu = kuText && (readForFree || /kindle\s*unlimited/i.test($('body').text().slice(0, 60000)))
+
+  const blurb = $('#bookDescription_feature_div').text().replace(/\s+/g, ' ').trim().slice(0, 1200) || null
+  const author = $('#bylineInfo .author a, #bylineInfo a.contributorNameID').first().text().trim() || null
+
+  const priceText = $('#kindle-price, .kindle-price, #price').first().text().trim()
+    || $('span:contains("Kindle Price")').parent().text()
+  const priceMatch = priceText.match(/\$([\d.,]+)/)
+  const price = priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : null
+
+  const reviewsText = $('#acrCustomerReviewText').first().text()
+  const reviews = reviewsText ? parseInt(reviewsText.replace(/[^\d]/g, ''), 10) || null : null
+
+  // BSR + category ladder from the detail bullets.
+  let bsrText = ''
+  for (const sel of [
+    '#detailBullets_feature_div li',
+    '#productDetails_detailBullets_sections1 tr',
+    '#detailBulletsWrapper_feature_div li',
+  ]) {
+    $(sel).each((_, el) => {
+      const t = $(el).text().replace(/\s+/g, ' ').trim()
+      if (t.includes('Best Sellers Rank')) bsrText = t
+    })
+    if (bsrText) break
+  }
+  const catMatches = Array.from(bsrText.matchAll(/#([\d,]+)\s+in\s+([^#(]+?)(?:\s*\(|\s*#|$)/g))
+  const categories = catMatches.map(m => ({
+    rank: parseInt(m[1].replace(/,/g, ''), 10),
+    name: m[2].trim(),
+  })).filter(c => Number.isFinite(c.rank) && c.name)
+  const kindleStore = categories.find(c => /kindle store/i.test(c.name))
+  const overallBsr = kindleStore?.rank ?? categories[0]?.rank ?? null
+
+  return { isKu, blurb, author, price, reviews, overallBsr, categories }
+}
+
+// Tag tropes from title + blurb (much more accurate than title-only).
+async function tagTropesFromMeta(
+  items: { asin: string; title: string; blurb: string | null }[],
+): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>()
+  if (!process.env.ANTHROPIC_API_KEY || items.length === 0) return out
+  const list = items.map((it, i) =>
+    `${i + 1}. [${it.asin}] ${it.title}${it.blurb ? ` — ${it.blurb.slice(0, 350)}` : ''}`
+  ).join('\n')
+  try {
+    const res = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 3000,
+      messages: [{
+        role: 'user',
+        content:
+`Tag each book with 0-4 tropes from this fixed taxonomy (exact strings only):
+${PULSE_TROPES.join(', ')}
+
+Books (ASIN in brackets, then title — blurb):
+${list}
+
+Reply with ONLY a JSON object mapping ASIN to an array of tropes, e.g. {"B0ABC12345":["small town","second chance"]}. No other text.`,
+      }],
+    })
+    const text = res.content[0]?.type === 'text' ? res.content[0].text : ''
+    const m = text.match(/\{[\s\S]*\}/)
+    if (!m) return out
+    const tagged = JSON.parse(m[0]) as Record<string, string[]>
+    const valid = new Set<string>(PULSE_TROPES)
+    for (const [asin, tropes] of Object.entries(tagged)) {
+      if (Array.isArray(tropes)) out.set(asin, tropes.filter(t => valid.has(t)))
+    }
+  } catch (err) {
+    console.warn('[market-pulse] blurb trope tagging failed:', err instanceof Error ? err.message : err)
+  }
+  return out
+}
+
+// Enrich up to `cap` ASINs from a scraped list that are missing or stale
+// (>14 days) in AsinMeta. First full coverage converges over a few nightly
+// runs; steady state is a handful of new ASINs per genre per day.
+const META_STALE_DAYS = 14
+export async function enrichAsins(
+  client: Browserbase,
+  rows: PulseRow[],
+  cap = 40,
+): Promise<number> {
+  const asins = rows.map(r => r.asin).filter((a): a is string => !!a)
+  if (asins.length === 0) return 0
+  const existing = await db.asinMeta.findMany({
+    where: { asin: { in: asins } },
+    select: { asin: true, fetchedAt: true },
+  })
+  const fresh = new Set(
+    existing
+      .filter(e => Date.now() - e.fetchedAt.getTime() < META_STALE_DAYS * 24 * 3600 * 1000)
+      .map(e => e.asin),
+  )
+  const todo = asins.filter(a => !fresh.has(a)).slice(0, cap)
+  if (todo.length === 0) return 0
+
+  const fetched: { asin: string; title: string; blurb: string | null; meta: NonNullable<ReturnType<typeof parseProductPage>> }[] = []
+  for (const asin of todo) {
+    try {
+      const res = await client.fetchAPI.create({ url: `https://www.amazon.com/dp/${asin}`, format: 'raw' })
+      const meta = parseProductPage(typeof res.content === 'string' ? res.content : '')
+      if (!meta) continue
+      const row = rows.find(r => r.asin === asin)
+      fetched.push({ asin, title: row?.title ?? '', blurb: meta.blurb, meta })
+    } catch { /* skip — retried next run */ }
+  }
+
+  const tropesByAsin = await tagTropesFromMeta(fetched.map(f => ({ asin: f.asin, title: f.title, blurb: f.blurb })))
+
+  for (const f of fetched) {
+    await db.asinMeta.upsert({
+      where: { asin: f.asin },
+      update: {
+        title: f.title || undefined,
+        author: f.meta.author,
+        blurb: f.meta.blurb,
+        isKu: f.meta.isKu,
+        price: f.meta.price,
+        reviews: f.meta.reviews,
+        overallBsr: f.meta.overallBsr,
+        categories: f.meta.categories as object[],
+        tropes: (tropesByAsin.get(f.asin) ?? []) as string[],
+        fetchedAt: new Date(),
+      },
+      create: {
+        asin: f.asin,
+        title: f.title || f.asin,
+        author: f.meta.author,
+        blurb: f.meta.blurb,
+        isKu: f.meta.isKu,
+        price: f.meta.price,
+        reviews: f.meta.reviews,
+        overallBsr: f.meta.overallBsr,
+        categories: f.meta.categories as object[],
+        tropes: (tropesByAsin.get(f.asin) ?? []) as string[],
+      },
+    }).catch(() => undefined)
+  }
+  return fetched.length
+}
+
 // Overall Kindle Store BSR from a product page (reuses bsr-fetch's selector set).
 function parseOverallBsr(html: string): number | null {
   if (isBlocked(html)) return null
@@ -243,6 +407,17 @@ export async function runPulseForGenre(genre: PulseGenre): Promise<{ ok: boolean
       data: { genreSlug: genre.slug, rows: rows as object[], stats: stats as object },
     })
 
+    // 5. Enrich new/stale ASINs with product-page metadata (KU status, blurb
+    //    tropes, real BSR). Capped per run — full coverage converges over a few
+    //    nightly crons. Non-fatal.
+    try {
+      const enriched = await enrichAsins(client, rows, 40)
+      if (enriched) console.log(`[market-pulse] ${genre.slug}: enriched ${enriched} ASINs`)
+    } catch (err) {
+      console.warn(`[market-pulse] ${genre.slug}: enrichment failed (non-fatal):`,
+        err instanceof Error ? err.message : String(err))
+    }
+
     return { ok: true, rows: rows.length }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -259,7 +434,21 @@ export async function runPulseAll(): Promise<Record<string, { ok: boolean; rows:
   return out
 }
 
-// Latest snapshot per genre, plus the previous one for trend deltas.
+// A list row joined with its cached product-page metadata.
+export type EnrichedRow = PulseRow & {
+  meta: null | {
+    author: string | null
+    isKu: boolean
+    price: number | null
+    reviews: number | null
+    overallBsr: number | null
+    estSalesPerDay: number | null
+    tropes: string[]
+  }
+}
+
+// Latest snapshot per genre, plus the previous one for trend deltas, with rows
+// joined against the AsinMeta cache (KU status, blurb tropes, real BSR).
 export async function getLatestPulse() {
   const results = await Promise.all(PULSE_GENRES.map(async genre => {
     const [latest, prev] = await db.marketPulseSnapshot.findMany({
@@ -267,12 +456,50 @@ export async function getLatestPulse() {
       orderBy: { capturedAt: 'desc' },
       take: 2,
     })
+
+    let enrichedRows: EnrichedRow[] = []
+    let kuTropeCounts: Record<string, number> = {}
+    let kuCount = 0
+    let metaCoverage = 0
+    if (latest) {
+      const rows = latest.rows as unknown as PulseRow[]
+      const asins = rows.map(r => r.asin).filter((a): a is string => !!a)
+      const metas = asins.length
+        ? await db.asinMeta.findMany({ where: { asin: { in: asins } } }).catch(() => [])
+        : []
+      const byAsin = new Map(metas.map(m => [m.asin, m]))
+      enrichedRows = rows.map(r => {
+        const m = r.asin ? byAsin.get(r.asin) : undefined
+        return {
+          ...r,
+          meta: m ? {
+            author: m.author,
+            isKu: m.isKu,
+            price: m.price,
+            reviews: m.reviews,
+            overallBsr: m.overallBsr,
+            estSalesPerDay: m.overallBsr ? bsrToSalesPerDay(m.overallBsr) : null,
+            tropes: Array.isArray(m.tropes) ? (m.tropes as string[]) : [],
+          } : null,
+        }
+      })
+      metaCoverage = enrichedRows.filter(r => r.meta).length
+      const kuRows = enrichedRows.filter(r => r.meta?.isKu)
+      kuCount = kuRows.length
+      for (const r of kuRows) {
+        for (const t of r.meta!.tropes) kuTropeCounts[t] = (kuTropeCounts[t] ?? 0) + 1
+      }
+    }
+
     return {
       genre: { slug: genre.slug, label: genre.label, group: genre.group, focusTropes: genre.focusTropes ?? [] },
       latest: latest ? {
         capturedAt: latest.capturedAt.toISOString(),
-        rows: latest.rows as unknown as PulseRow[],
+        rows: enrichedRows,
         stats: latest.stats as unknown as PulseStats | null,
+        kuTropeCounts,
+        kuCount,
+        metaCoverage,
       } : null,
       prevStats: prev ? (prev.stats as unknown as PulseStats | null) : null,
     }

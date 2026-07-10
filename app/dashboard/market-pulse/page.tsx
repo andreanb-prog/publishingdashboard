@@ -1,32 +1,37 @@
 'use client'
 
-// Market Pulse — Category Intelligence v2.
-// Replaces the old Category Research anchor (which mirrored KDP data — dead
-// weight). Answers: "what is this market doing, and what's my next move?"
-// Data: daily Browserbase scrape of genre best-seller lists (lib/market-pulse).
+// Market Pulse v1.1 — Andrea's spec: pick a big category, see the KU titles in
+// its top-100 as a clean linear table, with a sidebar of the top tropes across
+// those KU titles (tagged from product-page blurbs, not title guessing).
+// KU status + tropes come from the AsinMeta product-page cache, which fills in
+// over the first few nightly scans (metaCoverage shows progress).
 
 import { useEffect, useMemo, useState } from 'react'
-import { RefreshCw, TrendingUp, TrendingDown, ExternalLink } from 'lucide-react'
+import { RefreshCw, ExternalLink } from 'lucide-react'
 
 const NAVY = '#1E2D3D'
 const AMBER = '#E9A020'
 const SERIF = "var(--font-playfair), 'Playfair Display', Georgia, serif"
 
-type PulseRow = {
+type EnrichedRow = {
   rank: number; asin: string | null; title: string; author: string | null
   price: number | null; reviews: number | null; ku: boolean
-}
-type PulseStats = {
-  thresholds: Record<'rank1' | 'rank10' | 'rank50', { bsr: number | null; salesPerDay: number | null }>
-  modalPrice: number | null
-  kuShare: number | null
-  tropeCounts: Record<string, number>
-  rowCount: number
+  meta: null | {
+    author: string | null; isKu: boolean; price: number | null; reviews: number | null
+    overallBsr: number | null; estSalesPerDay: number | null; tropes: string[]
+  }
 }
 type GenrePulse = {
   genre: { slug: string; label: string; group: string; focusTropes: string[] }
-  latest: { capturedAt: string; rows: PulseRow[]; stats: PulseStats | null } | null
-  prevStats: PulseStats | null
+  latest: {
+    capturedAt: string
+    rows: EnrichedRow[]
+    stats: { modalPrice: number | null } | null
+    kuTropeCounts: Record<string, number>
+    kuCount: number
+    metaCoverage: number
+  } | null
+  prevStats: unknown
 }
 
 const card: React.CSSProperties = {
@@ -42,80 +47,78 @@ export default function MarketPulsePage() {
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
   const [runError, setRunError] = useState<string | null>(null)
-  const [myPace, setMyPace] = useState<number | null>(null)
-  const [openGenre, setOpenGenre] = useState<string | null>(null)
+  const [activeSlug, setActiveSlug] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/market-pulse')
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => setPulse(d.pulse ?? []))
+      .then(d => {
+        const p: GenrePulse[] = d.pulse ?? []
+        setPulse(p)
+        setActiveSlug(prev => prev ?? p.find(g => g.latest)?.genre.slug ?? p[0]?.genre.slug ?? null)
+      })
       .catch(() => setPulse([]))
       .finally(() => setLoading(false))
-    // User's current sales pace THIS MONTH → the "gap to threshold" line.
-    // Must be range-scoped: unscoped /api/kdp/sales returns lifetime totals,
-    // which inflated the pace (57.7/day on a 6-unit month).
-    const now = new Date()
-    const y = now.getUTCFullYear()
-    const m = String(now.getUTCMonth() + 1).padStart(2, '0')
-    const start = `${y}-${m}-01`
-    const end = now.toISOString().slice(0, 10)
-    fetch(`/api/kdp/sales?start=${start}&end=${end}`)
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => {
-        const units = d?.totalUnits ?? 0
-        const day = now.getUTCDate()
-        if (day > 0) setMyPace(Math.round((units / day) * 10) / 10)
-      })
-      .catch(() => {})
   }, [])
 
-  async function runScrape() {
+  async function runScan() {
     setRunning(true)
     setRunError(null)
     try {
       const res = await fetch('/api/market-pulse', { method: 'POST' })
-      if (!res.ok) throw new Error('Scrape failed')
+      if (!res.ok) throw new Error('scan failed')
       const refreshed = await fetch('/api/market-pulse').then(r => r.json())
       setPulse(refreshed.pulse ?? [])
     } catch {
-      setRunError('Scrape failed — check Browserbase configuration and try again.')
+      setRunError('Scan failed — try again in a minute.')
     } finally {
       setRunning(false)
     }
   }
 
-  const hasAnyData = useMemo(() => (pulse ?? []).some(p => p.latest), [pulse])
+  const active = useMemo(
+    () => (pulse ?? []).find(g => g.genre.slug === activeSlug) ?? null,
+    [pulse, activeSlug],
+  )
 
   return (
     <div style={{ maxWidth: 1180, margin: '0 auto', padding: '28px 24px 60px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
         <div>
           <h1 style={{ fontFamily: SERIF, fontSize: 34, color: NAVY, margin: 0 }}>Market Pulse</h1>
-          <p style={{ fontSize: 13.5, color: 'rgba(30,45,61,0.55)', margin: '6px 0 0', maxWidth: 640, lineHeight: 1.5 }}>
-            What each genre&apos;s best-seller list is doing right now — entry thresholds, price points,
-            and the tropes that are rising — so you know where your next promo push lands hardest.
+          <p style={{ fontSize: 13.5, color: 'rgba(30,45,61,0.55)', margin: '6px 0 0', maxWidth: 620, lineHeight: 1.5 }}>
+            The Kindle Unlimited titles ranking in each big category&apos;s top 100 — and the
+            tropes carrying them there.
           </p>
         </div>
-        <button
-          onClick={runScrape}
-          disabled={running}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-            background: AMBER, color: NAVY, fontWeight: 700, fontSize: 13,
-            border: 'none', borderRadius: 8, padding: '10px 16px', cursor: 'pointer',
-            opacity: running ? 0.7 : 1,
-          }}
-        >
+        <button onClick={runScan} disabled={running} style={{
+          display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+          background: AMBER, color: NAVY, fontWeight: 700, fontSize: 13,
+          border: 'none', borderRadius: 8, padding: '10px 16px', cursor: 'pointer',
+          opacity: running ? 0.7 : 1,
+        }}>
           <RefreshCw size={14} className={running ? 'animate-spin' : ''} />
-          {running ? 'Scanning the market…' : hasAnyData ? 'Refresh now' : 'Run first scan'}
+          {running ? 'Scanning…' : 'Refresh scan'}
         </button>
       </div>
 
-      {myPace != null && (
-        <p style={{ fontSize: 12, color: 'rgba(30,45,61,0.5)', margin: '2px 0 24px' }}>
-          Your current pace this month: <strong style={{ color: NAVY }}>{myPace} units/day</strong> — gap lines below compare against this.
-        </p>
-      )}
+      {/* Genre picker */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '20px 0 24px' }}>
+        {(pulse ?? []).map(g => {
+          const isActive = g.genre.slug === activeSlug
+          return (
+            <button key={g.genre.slug} onClick={() => setActiveSlug(g.genre.slug)} style={{
+              fontSize: 12.5, fontWeight: 700, padding: '7px 14px', borderRadius: 99,
+              cursor: 'pointer',
+              border: isActive ? 'none' : '0.5px solid rgba(30,45,61,0.2)',
+              background: isActive ? NAVY : 'white',
+              color: isActive ? 'white' : 'rgba(30,45,61,0.65)',
+            }}>
+              {g.genre.label}
+            </button>
+          )
+        })}
+      </div>
 
       {runError && (
         <div style={{ ...card, borderLeft: '3px solid #F97B6B', padding: '12px 16px', marginBottom: 16, fontSize: 12.5, color: '#92400E' }}>
@@ -125,178 +128,132 @@ export default function MarketPulsePage() {
 
       {loading ? (
         <div style={{ ...card, padding: 40, textAlign: 'center', color: '#9CA3AF', fontSize: 13 }}>Loading…</div>
-      ) : !hasAnyData ? (
+      ) : !active?.latest ? (
         <div style={{ ...card, padding: 40, textAlign: 'center' }}>
-          <p style={{ fontFamily: SERIF, fontSize: 18, color: NAVY, margin: '0 0 6px' }}>No market data yet</p>
+          <p style={{ fontFamily: SERIF, fontSize: 18, color: NAVY, margin: '0 0 6px' }}>No scan yet</p>
           <p style={{ fontSize: 13, color: 'rgba(30,45,61,0.55)', margin: 0 }}>
-            Run the first scan to pull today&apos;s best-seller lists for every tracked genre. The nightly refresh takes over from there.
+            Run a scan to pull this category&apos;s best-seller list. KU detection and trope
+            tagging fill in over the first few nightly scans.
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' }}>
-          {(pulse ?? []).map(g => (
-            <GenreCard
-              key={g.genre.slug}
-              data={g}
-              myPace={myPace}
-              open={openGenre === g.genre.slug}
-              onToggle={() => setOpenGenre(v => v === g.genre.slug ? null : g.genre.slug)}
-            />
-          ))}
-        </div>
+        <GenreView data={active} />
       )}
     </div>
   )
 }
 
-function GapLine({ label, salesPerDay, myPace }: { label: string; salesPerDay: number | null; myPace: number | null }) {
-  if (salesPerDay == null) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '5px 0' }}>
-        <span style={{ color: 'rgba(30,45,61,0.55)' }}>{label}</span>
-        <span style={{ color: '#9CA3AF' }}>—</span>
-      </div>
-    )
-  }
-  const gap = myPace != null ? Math.round((salesPerDay - myPace) * 10) / 10 : null
-  const within = gap != null && gap <= 0
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, padding: '5px 0' }}>
-      <span style={{ color: 'rgba(30,45,61,0.55)' }}>{label}</span>
-      <span style={{ color: NAVY, fontWeight: 700 }}>
-        ~{salesPerDay}/day
-        {gap != null && (
-          <span style={{ fontWeight: 600, marginLeft: 6, color: within ? '#16a34a' : '#B57812' }}>
-            {within ? 'within reach' : `+${gap} needed`}
-          </span>
-        )}
-      </span>
-    </div>
-  )
-}
+function GenreView({ data }: { data: GenrePulse }) {
+  const latest = data.latest!
+  const enriched = latest.metaCoverage
+  const total = latest.rows.length
+  const kuRows = latest.rows.filter(r => r.meta?.isKu)
+  const unknownRows = total - enriched
+  const wideCount = enriched - kuRows.length
 
-function GenreCard({ data, myPace, open, onToggle }: {
-  data: GenrePulse; myPace: number | null; open: boolean; onToggle: () => void
-}) {
-  const { genre, latest, prevStats } = data
-  const stats = latest?.stats ?? null
-
-  // Trope ordering: focus tropes first, then by count.
   const tropes = useMemo(() => {
-    if (!stats) return [] as { name: string; count: number; delta: number | null }[]
-    const entries = Object.entries(stats.tropeCounts)
-      .map(([name, count]) => ({
-        name, count,
-        delta: prevStats?.tropeCounts ? count - (prevStats.tropeCounts[name] ?? 0) : null,
-      }))
-      .sort((a, b) => {
-        const af = genre.focusTropes.includes(a.name) ? 1 : 0
-        const bf = genre.focusTropes.includes(b.name) ? 1 : 0
-        if (af !== bf) return bf - af
-        return b.count - a.count
-      })
-    return entries.slice(0, 6)
-  }, [stats, prevStats, genre.focusTropes])
+    return Object.entries(latest.kuTropeCounts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 12)
+  }, [latest.kuTropeCounts])
 
   return (
-    <div style={{ ...card, padding: '18px 20px', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-        <h2 style={{ fontFamily: SERIF, fontSize: 19, color: NAVY, margin: 0 }}>{genre.label}</h2>
-        {latest && (
-          <span style={{ fontSize: 10.5, color: '#9CA3AF', whiteSpace: 'nowrap' }}>
-            scanned {fmtDate(latest.capturedAt)}
-          </span>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: 20, alignItems: 'start' }}>
+      {/* Main: KU top-100 table */}
+      <div style={{ ...card, padding: '18px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+          <h2 style={{ fontFamily: SERIF, fontSize: 20, color: NAVY, margin: 0 }}>
+            KU titles in the top 100
+          </h2>
+          <span style={{ fontSize: 10.5, color: '#9CA3AF' }}>scanned {fmtDate(latest.capturedAt)}</span>
+        </div>
+        <p style={{ fontSize: 11.5, color: 'rgba(30,45,61,0.5)', margin: '0 0 14px' }}>
+          {kuRows.length} KU · {wideCount} wide/trad
+          {unknownRows > 0 && <> · {unknownRows} not yet verified (fills in over the next nightly scans)</>}
+        </p>
+
+        {kuRows.length === 0 ? (
+          <p style={{ fontSize: 12.5, color: '#9CA3AF' }}>
+            No verified KU titles yet — KU status comes from each book&apos;s product page and
+            builds up across the first few scans.
+          </p>
+        ) : (
+          <div>
+            {/* Header row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '34px minmax(0,1fr) 70px 70px 84px', gap: 8, padding: '4px 0 8px', borderBottom: '1px solid rgba(30,45,61,0.1)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(30,45,61,0.4)' }}>
+              <span>#</span><span>Title</span><span>Price</span><span>Reviews</span><span>Est/day</span>
+            </div>
+            {kuRows.map(r => (
+              <div key={r.rank} style={{ display: 'grid', gridTemplateColumns: '34px minmax(0,1fr) 70px 70px 84px', gap: 8, alignItems: 'baseline', padding: '8px 0', borderBottom: '0.5px solid rgba(30,45,61,0.05)', fontSize: 12.5 }}>
+                <span style={{ fontWeight: 700, color: 'rgba(30,45,61,0.4)' }}>#{r.rank}</span>
+                <div style={{ minWidth: 0 }}>
+                  {r.asin ? (
+                    <a href={`https://www.amazon.com/dp/${r.asin}`} target="_blank" rel="noopener noreferrer"
+                      style={{ color: NAVY, fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: '100%' }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
+                      <ExternalLink size={10} color="#9CA3AF" style={{ flexShrink: 0 }} />
+                    </a>
+                  ) : (
+                    <span style={{ color: NAVY, fontWeight: 600 }}>{r.title}</span>
+                  )}
+                  {(r.meta?.author ?? r.author) && (
+                    <div style={{ fontSize: 11, color: 'rgba(30,45,61,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {r.meta?.author ?? r.author}
+                      {r.meta?.tropes?.length ? <> · <span style={{ fontStyle: 'italic' }}>{r.meta.tropes.slice(0, 3).join(', ')}</span></> : null}
+                    </div>
+                  )}
+                </div>
+                <span style={{ color: 'rgba(30,45,61,0.65)' }}>
+                  {(r.meta?.price ?? r.price) != null ? `$${(r.meta?.price ?? r.price)!.toFixed(2)}` : '—'}
+                </span>
+                <span style={{ color: 'rgba(30,45,61,0.65)' }}>
+                  {(r.meta?.reviews ?? r.reviews)?.toLocaleString() ?? '—'}
+                </span>
+                <span style={{ color: NAVY, fontWeight: 600 }}>
+                  {r.meta?.estSalesPerDay != null ? `~${r.meta.estSalesPerDay}` : '—'}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
-      {!latest || !stats ? (
-        <p style={{ fontSize: 12.5, color: '#9CA3AF', margin: '12px 0 0' }}>
-          No scan yet for this genre.
+      {/* Sidebar: top tropes across the KU titles */}
+      <div style={{ ...card, padding: '18px 20px', position: 'sticky', top: 20 }}>
+        <p style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(30,45,61,0.4)', margin: '0 0 12px' }}>
+          Top tropes — KU top 100
         </p>
-      ) : (
-        <>
-          {/* Entry thresholds */}
-          <p style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(30,45,61,0.4)', margin: '14px 0 2px' }}>
-            What it takes here
+        {tropes.length === 0 ? (
+          <p style={{ fontSize: 12, color: '#9CA3AF', margin: 0 }}>
+            Trope data builds as titles get verified.
           </p>
-          <GapLine label="#1 in category"   salesPerDay={stats.thresholds.rank1.salesPerDay}  myPace={myPace} />
-          <GapLine label="Top 10"           salesPerDay={stats.thresholds.rank10.salesPerDay} myPace={myPace} />
-          <GapLine label="Top 50"           salesPerDay={stats.thresholds.rank50.salesPerDay} myPace={myPace} />
-
-          {/* Market shape */}
-          <div style={{ display: 'flex', gap: 14, margin: '10px 0 0', fontSize: 12 }}>
-            {stats.modalPrice != null && (
-              <span style={{ color: 'rgba(30,45,61,0.7)' }}>
-                Modal price <strong style={{ color: NAVY }}>${stats.modalPrice.toFixed(2)}</strong>
-              </span>
-            )}
-            {stats.kuShare != null && stats.kuShare > 0 && (
-              <span style={{ color: 'rgba(30,45,61,0.7)' }}>
-                KU-visible <strong style={{ color: NAVY }}>{Math.round(stats.kuShare * 100)}%</strong>
-              </span>
-            )}
-          </div>
-
-          {/* Trope pulse */}
-          {tropes.length > 0 && (
-            <>
-              <p style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(30,45,61,0.4)', margin: '14px 0 6px' }}>
-                Trope pulse (top 100)
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {tropes.map(t => (
-                  <span key={t.name} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 99,
-                    background: genre.focusTropes.includes(t.name) ? 'rgba(233,160,32,0.12)' : 'rgba(30,45,61,0.05)',
-                    color: genre.focusTropes.includes(t.name) ? '#B57812' : 'rgba(30,45,61,0.65)',
-                  }}>
-                    {t.name} · {t.count}
-                    {t.delta != null && t.delta !== 0 && (
-                      t.delta > 0
-                        ? <TrendingUp size={11} color="#16a34a" />
-                        : <TrendingDown size={11} color="#F97B6B" />
-                    )}
-                  </span>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Top 10 expandable */}
-          <button
-            onClick={onToggle}
-            style={{
-              marginTop: 14, alignSelf: 'flex-start', fontSize: 12, fontWeight: 700,
-              color: AMBER, background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-            }}
-          >
-            {open ? 'Hide top 10' : 'See top 10 →'}
-          </button>
-          {open && (
-            <div style={{ marginTop: 8, borderTop: '0.5px solid rgba(30,45,61,0.08)' }}>
-              {latest.rows.slice(0, 10).map(r => (
-                <div key={r.rank} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '6px 0', borderBottom: '0.5px solid rgba(30,45,61,0.05)', fontSize: 12 }}>
-                  <span style={{ fontWeight: 700, color: 'rgba(30,45,61,0.4)', width: 22, flexShrink: 0 }}>#{r.rank}</span>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    {r.asin ? (
-                      <a href={`https://www.amazon.com/dp/${r.asin}`} target="_blank" rel="noopener noreferrer"
-                        style={{ color: NAVY, fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: 220, verticalAlign: 'bottom' }}>{r.title}</span>
-                        <ExternalLink size={10} color="#9CA3AF" style={{ flexShrink: 0 }} />
-                      </a>
-                    ) : (
-                      <span style={{ color: NAVY, fontWeight: 600 }}>{r.title}</span>
-                    )}
-                    {r.author && <span style={{ color: 'rgba(30,45,61,0.45)' }}> · {r.author}</span>}
-                  </div>
-                  {r.price != null && <span style={{ color: 'rgba(30,45,61,0.55)', flexShrink: 0 }}>${r.price.toFixed(2)}</span>}
+        ) : (
+          tropes.map((t, i) => {
+            const max = tropes[0].count
+            const isFocus = data.genre.focusTropes.includes(t.name)
+            return (
+              <div key={t.name} style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                  <span style={{ fontWeight: i < 3 ? 700 : 500, color: isFocus ? '#B57812' : NAVY }}>{t.name}</span>
+                  <span style={{ color: 'rgba(30,45,61,0.45)' }}>{t.count}</span>
                 </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
+                <div style={{ height: 4, borderRadius: 2, background: 'rgba(30,45,61,0.06)' }}>
+                  <div style={{
+                    height: 4, borderRadius: 2, width: `${Math.max(6, (t.count / max) * 100)}%`,
+                    background: isFocus ? AMBER : 'rgba(30,45,61,0.35)',
+                  }} />
+                </div>
+              </div>
+            )
+          })
+        )}
+        {data.latest && data.latest.kuCount > 0 && (
+          <p style={{ fontSize: 10.5, color: '#9CA3AF', margin: '12px 0 0', lineHeight: 1.5 }}>
+            Tagged from {data.latest.kuCount} verified KU titles&apos; blurbs.
+          </p>
+        )}
+      </div>
     </div>
   )
 }
