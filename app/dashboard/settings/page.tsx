@@ -992,13 +992,23 @@ export default function SettingsPage() {
     setKdpSessionId(null)
     kdpConnectStart.current = Date.now()
     try {
-      const res = await fetch('/api/browserbase/create-context', { method: 'POST' })
-      const json = await res.json()
-      // A 200 with no liveViewUrl/sessionId used to leave a silent infinite
-      // spinner — treat it as a hard failure so the retry state shows instead.
-      if (!res.ok || !json.liveViewUrl || !json.sessionId) {
-        throw new Error(json?.error || 'Could not start the KDP connection.')
+      // Session creation fails transiently (Browserbase startup race — beta
+      // users saw "Could not start… try again" twice before the 3rd attempt
+      // worked). Retry up to 2 extra times automatically before surfacing.
+      let json: any = null
+      let lastErr = 'Could not start the KDP connection.'
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 2500))
+        try {
+          const res = await fetch('/api/browserbase/create-context', { method: 'POST' })
+          const body = await res.json()
+          // A 200 with no liveViewUrl/sessionId used to leave a silent infinite
+          // spinner — treat it as a failed attempt so we retry instead.
+          if (res.ok && body.liveViewUrl && body.sessionId) { json = body; break }
+          lastErr = body?.error || lastErr
+        } catch { /* network hiccup — retry */ }
       }
+      if (!json) throw new Error(lastErr)
       setKdpLiveUrl(json.liveViewUrl)
       setKdpSessionId(json.sessionId)
       setKdpSyncStatus('never_connected')
@@ -1071,13 +1081,20 @@ export default function SettingsPage() {
     setBcSessionId(null)
     bcConnectStart.current = Date.now()
     try {
-      const res = await fetch('/api/browserbase/bookclicker-context', { method: 'POST' })
-      const json = await res.json()
-      // A 200 with no liveViewUrl/sessionId used to leave a silent infinite
-      // spinner — treat it as a hard failure so the retry state shows instead.
-      if (!res.ok || !json.liveViewUrl || !json.sessionId) {
-        throw new Error(json?.error || 'Could not start the BookClicker connection.')
+      // Auto-retry transient session-creation failures (same Browserbase
+      // startup race as KDP — Gina needed 3 manual attempts).
+      let json: any = null
+      let lastErr = 'Could not start the BookClicker connection.'
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 2500))
+        try {
+          const res = await fetch('/api/browserbase/bookclicker-context', { method: 'POST' })
+          const body = await res.json()
+          if (res.ok && body.liveViewUrl && body.sessionId) { json = body; break }
+          lastErr = body?.error || lastErr
+        } catch { /* network hiccup — retry */ }
       }
+      if (!json) throw new Error(lastErr)
       setBcLiveUrl(json.liveViewUrl)
       setBcSessionId(json.sessionId)
       setBcSyncStatus('never_connected')
@@ -1204,6 +1221,37 @@ export default function SettingsPage() {
       fetch('/api/browserbase/sync-now', { method: 'POST' }).catch(() => {})
     }, 10_000)
   }
+
+  // First-sync watcher: after connecting, the auto-sync runs in the background
+  // and its outcome used to be invisible until the next page load — a user on
+  // the wrong Amazon account just saw "data will appear in 2 minutes" and then
+  // nothing. Poll the cheap status endpoint for up to 5 minutes and surface
+  // empty-bookshelf (or success) the moment the first sync finishes.
+  useEffect(() => {
+    if (!kdpJustConnected) return
+    const startedAt = Date.now()
+    const iv = setInterval(async () => {
+      if (Date.now() - startedAt > 5 * 60_000) { clearInterval(iv); return }
+      try {
+        const res = await fetch('/api/browserbase/kdp-sync-status')
+        if (!res.ok) return
+        const json = await res.json()
+        const log = json.lastSync
+        // Only react to a sync attempted AFTER this connect.
+        if (!log || new Date(log.attemptedAt).getTime() < startedAt) return
+        if (log.errorType === 'empty_bookshelf') {
+          setKdpEmptyBookshelf(true)
+          clearInterval(iv)
+        } else if (log.status === 'success') {
+          setKdpEmptyBookshelf(false)
+          if (json.kdpLastSyncAt) setKdpLastSyncAt(json.kdpLastSyncAt)
+          clearInterval(iv)
+        }
+      } catch { /* keep polling */ }
+    }, 10_000)
+    return () => clearInterval(iv)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kdpJustConnected])
 
   async function confirmKdpLogin() {
     if (!kdpSessionId) return
