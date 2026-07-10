@@ -348,7 +348,10 @@ function modalPrice(rows: PulseRow[]): number | null {
 }
 
 // ── Main pipeline ─────────────────────────────────────────────────────────────
-export async function runPulseForGenre(genre: PulseGenre): Promise<{ ok: boolean; rows: number; error?: string }> {
+export async function runPulseForGenre(
+  genre: PulseGenre,
+  deadline?: number, // ms epoch — skip enrichment when close, so ALL genres get their list scan
+): Promise<{ ok: boolean; rows: number; error?: string }> {
   const client = bb()
   if (!client) return { ok: false, rows: 0, error: 'browserbase_not_configured' }
 
@@ -411,7 +414,13 @@ export async function runPulseForGenre(genre: PulseGenre): Promise<{ ok: boolean
     //    tropes, real BSR). Capped per run — full coverage converges over a few
     //    nightly crons. Non-fatal.
     try {
-      const enriched = await enrichAsins(client, rows, 40)
+      // With 14 genres, full 40-ASIN enrichment per genre would blow the 300s
+      // function budget and kill later genres' scans. List scans come first;
+      // enrichment gets whatever time remains (min 45s needed to bother) and a
+      // smaller per-genre cap. Coverage converges across nightly runs.
+      const msLeft = deadline ? deadline - Date.now() : Infinity
+      const cap = msLeft < 45_000 ? 0 : Math.min(15, Math.floor(msLeft / 3_000))
+      const enriched = cap > 0 ? await enrichAsins(client, rows, cap) : 0
       if (enriched) console.log(`[market-pulse] ${genre.slug}: enriched ${enriched} ASINs`)
     } catch (err) {
       console.warn(`[market-pulse] ${genre.slug}: enrichment failed (non-fatal):`,
@@ -428,8 +437,11 @@ export async function runPulseForGenre(genre: PulseGenre): Promise<{ ok: boolean
 export async function runPulseAll(): Promise<Record<string, { ok: boolean; rows: number; error?: string }>> {
   const out: Record<string, { ok: boolean; rows: number; error?: string }> = {}
   // Sequential on purpose: keeps Browserbase + Amazon request rates polite.
+  // Global deadline keeps the whole run inside the 300s function budget —
+  // list scans are guaranteed for every genre; enrichment uses the slack.
+  const deadline = Date.now() + 240_000
   for (const genre of PULSE_GENRES) {
-    out[genre.slug] = await runPulseForGenre(genre)
+    out[genre.slug] = await runPulseForGenre(genre, deadline)
   }
   return out
 }
