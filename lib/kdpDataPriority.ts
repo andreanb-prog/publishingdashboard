@@ -119,7 +119,12 @@ export function resolveKdpRows<T extends KdpSaleRow>(rows: T[]): ResolvedRow<T>[
       // row becomes shapeOnly (daily chart shape only, not counted in totals).
       const isBb = row.source === 'browserbase'
       let shapeOnly: boolean
-      if (hasBb) {
+      if (row.source === 'browserbase-daily') {
+        // Sync-captured daily histogram rows are ALWAYS chart shape only —
+        // the browserbase month row (written by the same sync) is the money
+        // truth; counting both would double totals.
+        shapeOnly = true
+      } else if (hasBb) {
         shapeOnly = !isBb
       } else {
         shapeOnly = hasExtension && row.source !== 'extension'
@@ -154,6 +159,16 @@ export function aggregateKdp<T extends KdpSaleRow>(
   let hasMonthGranularData = false
   const byBook:      AggregateResult['byBook']      = {}
   const dailySeries: AggregateResult['dailySeries'] = []
+
+  // Dates already covered by per-book CSV/manual daily rows. When a date has
+  // real CSV rows, skip the sync's account-level 'browserbase-daily' row for
+  // that date — including both would double the chart's daily shape.
+  const csvDates = new Set<string>()
+  for (const row of rows) {
+    if (row.source !== 'extension' && row.source !== 'browserbase' && row.source !== 'browserbase-daily') {
+      csvDates.add(row.date)
+    }
+  }
 
   for (const row of rows) {
     const isExtension = row.source === 'extension'
@@ -206,7 +221,12 @@ export function aggregateKdp<T extends KdpSaleRow>(
     // Exclude BOTH extension and browserbase: their rows are month-aggregate MTD
     // snapshots dated to the 1st (browserbase uses the ALL_BOOKS sentinel), so
     // charting them would render a whole month's totals as a single-day spike.
-    if (row.source !== 'extension' && row.source !== 'browserbase') {
+    // 'browserbase-daily' rows (sync-captured dashboard histogram) DO chart —
+    // but only on dates with no CSV rows, so the two sources never double up.
+    const chartable = row.source === 'browserbase-daily'
+      ? !csvDates.has(row.date)
+      : (row.source !== 'extension' && row.source !== 'browserbase')
+    if (chartable) {
       const inRange = !range || (row.date >= range.start && row.date <= range.end)
       if (inRange) {
         dailySeries.push({

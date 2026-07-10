@@ -241,6 +241,83 @@ If a value shows a dash or is missing, return 0.`,
     await upsertMonthRow(monthKeyAgo(0), result)
     let rowsFetched = 1
 
+    // 6b. DAILY units + KENP from the dashboard's own JSON endpoints — the same
+    // data behind its daily graph (discovered via network inspection 2026-07-09):
+    //   GET /reports/dashboard/histogramOverview/ORDERS?date=<ISO>     → daily units
+    //   GET /reports/dashboard/histogramOverview/KENP_READ?date=<ISO>  → daily pages
+    // ~30-day rolling window, account-level (not per-book). Called in-session via
+    // page.evaluate so Amazon sees a normal same-origin XHR with session cookies.
+    //
+    // Rows are written as source 'browserbase-daily' + format 'daily' + NULL
+    // monthKey: format 'daily' gives a clean per-day upsert key on the
+    // (userId, asin, date, format) unique; NULL monthKey dodges the
+    // (userId, asin, source, monthKey) unique. aggregateKdp() treats these rows
+    // as chart shape ONLY — the browserbase month row stays the money truth.
+    // Fixes: Daily Units Sold "not enough data", Email Sends vs Sales empty,
+    // dashboard daily graph for sync-only users. NON-FATAL.
+    try {
+      const isoDate = `${new Date().toISOString().slice(0, 10)}T00:00:00Z`
+      const histograms = await (page as unknown as {
+        evaluate: <R>(fn: (arg: string) => Promise<R>, arg: string) => Promise<R>
+      }).evaluate(async (dateIso: string) => {
+        const grab = async (metric: string) => {
+          const res = await fetch(
+            `/reports/dashboard/histogramOverview/${metric}?date=${encodeURIComponent(dateIso)}`,
+            { credentials: 'include' },
+          )
+          if (!res.ok) return null
+          return res.json()
+        }
+        return { orders: await grab('ORDERS'), kenp: await grab('KENP_READ') }
+      }, isoDate)
+
+      type Bin = { bin: string; values: Record<string, number> }
+      const days = new Map<string, { units: number; kenp: number }>()
+      const fold = (payload: unknown, key: 'units' | 'kenp') => {
+        const bins: Bin[] = (payload as { histogram?: { data?: Bin[] } })?.histogram?.data ?? []
+        for (const b of bins) {
+          const date = (b.bin ?? '').slice(0, 10)
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
+          const v = Object.values(b.values ?? {})[0] ?? 0
+          const cur = days.get(date) ?? { units: 0, kenp: 0 }
+          cur[key] = Math.round(Number(v) || 0)
+          days.set(date, cur)
+        }
+      }
+      fold(histograms.orders, 'units')
+      fold(histograms.kenp, 'kenp')
+
+      let dailyUpserts = 0
+      for (const [date, vals] of Array.from(days.entries())) {
+        await db.kdpSale.upsert({
+          where: {
+            userId_asin_date_format: {
+              userId, asin: 'ALL_BOOKS', date, format: 'daily',
+            },
+          },
+          update: { units: vals.units, kenp: vals.kenp },
+          create: {
+            userId,
+            asin:      'ALL_BOOKS',
+            title:     'All Books (Daily)',
+            date,
+            units:     vals.units,
+            kenp:      vals.kenp,
+            royalties: 0,
+            format:    'daily',
+            source:    'browserbase-daily',
+            monthKey:  null,
+          },
+        })
+        dailyUpserts++
+      }
+      rowsFetched += dailyUpserts
+      console.log(`[kdp-sync] daily histograms: ${dailyUpserts} day rows upserted`)
+    } catch (dailyErr) {
+      console.warn('[kdp-sync] daily histogram capture failed (non-fatal):',
+        dailyErr instanceof Error ? dailyErr.message : String(dailyErr))
+    }
+
     // 7. Prior-month coverage. NOTE (2026-07): KDP migrated reports to a new
     // dashboard (kdpreports.amazon.com) that only offers Today / Yesterday /
     // This month — the arbitrary date-range picker the old backfill drove is
