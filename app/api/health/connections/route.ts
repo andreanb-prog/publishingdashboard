@@ -26,6 +26,8 @@ export async function GET() {
       metaLastSync: true,
       metaAdAccountId: true,
       subscriptionStatus: true,
+      kdpSyncStatus: true,
+      kdpLastSyncAt: true,
       analyses: {
         orderBy: { createdAt: 'desc' },
         take: 1,
@@ -123,10 +125,18 @@ export async function GET() {
   }
 
   // ── KDP ─────────────────────────────────────────────────────────
+  // Sync-connected users are healthy regardless of manual uploads — this
+  // endpoint predates the Browserbase sync and showed "No data this month /
+  // Upload →" to users whose auto-sync ran fine (Andrea + Gina both hit it).
   let kdp: IntegrationStatus
   const latestAnalysis = user?.analyses?.[0]
 
-  if (!latestAnalysis || !(latestAnalysis.data as any)?.kdp) {
+  if (user?.kdpSyncStatus === 'connected') {
+    const d = user.kdpLastSyncAt
+      ? user.kdpLastSyncAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : null
+    kdp = { status: 'green', text: d ? `Auto-sync · last synced ${d}` : 'Auto-sync connected' }
+  } else if (!latestAnalysis || !(latestAnalysis.data as any)?.kdp) {
     kdp = {
       status: 'red',
       text: 'No data yet',

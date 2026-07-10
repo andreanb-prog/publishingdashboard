@@ -94,14 +94,21 @@ export function TypeChip({ type }: { type: string | null }) {
 }
 
 export function ListChip({ name }: { name: string }) {
+  // BookClicker list labels carry the full swap criteria in parentheses
+  // ("Elle Wilder (Contemporary Romance, Slow Burn, Small Town…)"). Rendered
+  // un-truncated it steamrolled the row and crushed the book title to 2-3
+  // letters. Show just the list name, cap the width, keep the full label on
+  // hover.
+  const display = name.includes('(') ? name.slice(0, name.indexOf('(')).trim() : name
   return (
-    <span style={{
+    <span title={name} style={{
       fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99,
       background: 'rgba(233,160,32,0.1)', color: '#B57812',
-      whiteSpace: 'nowrap', flexShrink: 0,
+      whiteSpace: 'nowrap', flexShrink: 0, maxWidth: 140,
+      overflow: 'hidden', textOverflow: 'ellipsis',
       fontFamily: 'var(--font-jetbrains-mono), monospace',
     }}>
-      {name}
+      {display}
     </span>
   )
 }
@@ -152,16 +159,35 @@ export function ManifestRow({ swap, multiList, onToggle, showDate }: {
           {swap.partnerName}
         </span>
 
-        <span style={{
-          fontSize: 13, fontStyle: 'italic', fontFamily: SERIF,
-          color: 'rgba(30,45,61,0.5)', minWidth: 48, flex: 1,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          opacity: done ? 0.5 : 1,
-        }}>
-          {placeholder
-            ? `Title pending — ${swap.bookTitle || 'no title yet'}`
-            : swap.bookTitle}
-        </span>
+        {placeholder ? (
+          <span title={swap.bookTitle ?? undefined} style={{
+            fontSize: 13, fontStyle: 'italic', fontFamily: SERIF,
+            color: 'rgba(30,45,61,0.5)', minWidth: 120, flex: 1,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            opacity: done ? 0.5 : 1,
+          }}>
+            {`Title pending — ${swap.bookTitle || 'no title yet'}`}
+          </span>
+        ) : (
+          // Live link: BookClicker doesn't expose the partner's book URL, so
+          // search Amazon Kindle for the title — one click to the real book.
+          <a
+            href={`https://www.amazon.com/s?k=${encodeURIComponent(`${swap.bookTitle} kindle`)}`}
+            target="_blank" rel="noopener noreferrer"
+            title={`${swap.bookTitle} — find on Amazon`}
+            style={{
+              fontSize: 13, fontStyle: 'italic', fontFamily: SERIF,
+              color: 'rgba(30,45,61,0.6)', minWidth: 120, flex: 1,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              opacity: done ? 0.5 : 1,
+              textDecoration: 'underline',
+              textDecorationColor: 'rgba(30,45,61,0.2)',
+              textUnderlineOffset: 3,
+            }}
+          >
+            {swap.bookTitle}
+          </a>
+        )}
 
         {showDate && (
           <span style={{ fontSize: 11, color: 'rgba(30,45,61,0.45)', whiteSpace: 'nowrap', flexShrink: 0 }}>
