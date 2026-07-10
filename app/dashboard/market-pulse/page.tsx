@@ -103,7 +103,7 @@ export default function MarketPulsePage() {
       </div>
 
       {/* Genre picker */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '20px 0 24px' }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', margin: '20px 0 24px' }}>
         {(pulse ?? []).map(g => {
           const isActive = g.genre.slug === activeSlug
           return (
@@ -118,6 +118,7 @@ export default function MarketPulsePage() {
             </button>
           )
         })}
+        <RequestCategory />
       </div>
 
       {runError && (
@@ -140,6 +141,67 @@ export default function MarketPulsePage() {
         <GenreView data={active} />
       )}
     </div>
+  )
+}
+
+// "Request a category" — posts to the existing feedback pipeline (lands in the
+// Notion Feedback DB) so category demand is tracked where ideas already live.
+function RequestCategory() {
+  const [open, setOpen] = useState(false)
+  const [value, setValue] = useState('')
+  const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle')
+
+  async function submit() {
+    if (!value.trim() || state === 'sending') return
+    setState('sending')
+    try {
+      await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'idea',
+          message: `Market Pulse category request: ${value.trim()}`,
+          page: '/dashboard/market-pulse',
+        }),
+      })
+      setState('sent')
+      setValue('')
+      setTimeout(() => { setState('idle'); setOpen(false) }, 2500)
+    } catch {
+      setState('idle')
+    }
+  }
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} style={{
+        fontSize: 12, fontWeight: 700, padding: '7px 14px', borderRadius: 99, cursor: 'pointer',
+        border: '1px dashed rgba(233,160,32,0.6)', background: 'transparent', color: '#B57812',
+      }}>
+        + Request a category
+      </button>
+    )
+  }
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <input
+        autoFocus
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setOpen(false) }}
+        placeholder="e.g. Reverse Harem"
+        style={{
+          fontSize: 12, padding: '6px 12px', borderRadius: 99, outline: 'none', width: 170,
+          border: '1px solid rgba(233,160,32,0.6)', background: 'white', color: NAVY,
+        }}
+      />
+      <button onClick={submit} disabled={state === 'sending'} style={{
+        fontSize: 12, fontWeight: 700, padding: '6px 12px', borderRadius: 99, cursor: 'pointer',
+        border: 'none', background: AMBER, color: NAVY, opacity: state === 'sending' ? 0.6 : 1,
+      }}>
+        {state === 'sent' ? 'Sent ✓' : state === 'sending' ? '…' : 'Send'}
+      </button>
+    </span>
   )
 }
 

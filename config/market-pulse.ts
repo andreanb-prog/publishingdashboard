@@ -70,6 +70,56 @@ export const PULSE_GENRES: PulseGenre[] = [
     bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/6190476011',
     focusTropes: ['amateur sleuth', 'small town', 'culinary', 'animal companion'],
   },
+  // ── Added July 9 2026 (all node IDs verified from Amazon's live nav) ────────
+  {
+    slug: 'enemies-to-lovers',
+    label: 'Enemies to Lovers',
+    group: 'romance',
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/120220977011',
+    focusTropes: ['enemies to lovers', 'forbidden', 'workplace'],
+  },
+  {
+    slug: 'friends-to-lovers',
+    label: 'Friends to Lovers',
+    group: 'romance',
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/214873904011',
+    focusTropes: ['friends to lovers', 'brothers best friend', 'second chance'],
+  },
+  {
+    slug: 'medical-romance',
+    label: 'Medical Romance',
+    group: 'romance',
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/17744545011',
+    focusTropes: ['doctor', 'workplace', 'protective'],
+  },
+  {
+    slug: 'romantic-suspense',
+    label: 'Romantic Suspense',
+    group: 'romance',
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/6487839011',
+    focusTropes: ['protective', 'bodyguard', 'military'],
+  },
+  {
+    slug: 'paranormal-romance',
+    label: 'Paranormal & Shifter Romance',
+    group: 'romance',
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/6190484011',
+    focusTropes: ['paranormal shifter', 'why choose', 'forbidden'],
+  },
+  {
+    slug: 'historical-romance',
+    label: 'Historical Romance',
+    group: 'romance',
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/158571011',
+    focusTropes: ['forbidden', 'marriage of convenience', 'age gap'],
+  },
+  {
+    slug: 'cowboy-western-romance',
+    label: 'Cowboy & Western Romance',
+    group: 'romance',
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/6190489011',
+    focusTropes: ['cowboy', 'small town', 'single dad'],
+  },
 ]
 
 // Trope taxonomy for the pulse tagger. Superset of the Ad Naming System list
