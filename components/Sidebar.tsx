@@ -46,7 +46,7 @@ const ALL_CHANNELS: NavItem[] = [
 ]
 
 const ALL_TOOLS: NavItem[] = [
-  { label: 'Category Research', desc: 'Research categories', href: '/dashboard/kdp#category-intelligence', Icon: Search },
+  { label: 'Market Pulse',      desc: 'Genre intel & thresholds', href: '/dashboard/market-pulse', Icon: Search },
   { label: 'Advanced Metrics',  desc: 'Deep analytics',      href: '/dashboard/metrics',    Icon: BarChart2 },
   { label: 'My Data',           desc: 'Raw data vault',      href: '/dashboard/data-vault', Icon: Database },
   { label: 'Settings',          desc: 'Account · connections', href: '/dashboard/settings', Icon: Settings2 },

@@ -1003,3 +1003,18 @@ model StoryPostPost {
   @@index([projectId, dayNumber])
 }
 
+
+// ── Market Pulse (Category Intelligence v2) ───────────────────────────────────
+// One row per genre per scrape day. Market-level data shared by all users —
+// intentionally NOT per-user (cost scales with genres, not users).
+model MarketPulseSnapshot {
+  id         String   @id @default(cuid())
+  genreSlug  String   // matches config/market-pulse.ts PULSE_GENRES slug
+  capturedAt DateTime @default(now())
+  // Top-100 rows: [{rank,asin,title,author,price,reviews,ku}]
+  rows       Json
+  // Computed: {thresholds:{rank1,rank10,rank50}, modalPrice, kuShare, tropeCounts, sampleBsr}
+  stats      Json?
+
+  @@index([genreSlug, capturedAt])
+}
