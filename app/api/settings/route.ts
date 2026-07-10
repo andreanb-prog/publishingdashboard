@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
-import { fetchMailerLiteStats, getMailerLiteStats } from '@/lib/mailerlite'
+import { fetchMailerLiteStats, getMailerLiteStats, getMlPrimaryGroupId } from '@/lib/mailerlite'
 
 function mask(key: string | null | undefined): string {
   if (!key || key.length < 8) return ''
@@ -44,7 +44,8 @@ export async function GET() {
   let mlSubscribers: number | null = null
   if (user?.mailerLiteKey) {
     try {
-      const stats = await getMailerLiteStats(user.mailerLiteKey)
+      const primaryGroupId = await getMlPrimaryGroupId(session.user.id)
+      const stats = await getMailerLiteStats(user.mailerLiteKey, primaryGroupId)
       mlSubscribers = stats.listSize
     } catch { /* key may be invalid or network error */ }
   }

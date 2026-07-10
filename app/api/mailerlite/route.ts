@@ -5,7 +5,7 @@ export const revalidate = 0
 import { NextRequest, NextResponse } from 'next/server'
 import { getAugmentedSession } from '@/lib/getSession'
 import { db } from '@/lib/db'
-import { fetchMailerLiteStats } from '@/lib/mailerlite'
+import { fetchMailerLiteStats, getMlPrimaryGroupId } from '@/lib/mailerlite'
 
 export async function GET(req: NextRequest) {
   const session = await getAugmentedSession()
@@ -23,7 +23,9 @@ export async function GET(req: NextRequest) {
 
   if (!apiKey) return NextResponse.json({ error: 'not_connected' }, { status: 400 })
 
-  const groupId = req.nextUrl.searchParams.get('groupId') || undefined
+  const groupId = req.nextUrl.searchParams.get('groupId')
+    || (await getMlPrimaryGroupId(session.user.id))
+    || undefined
 
   try {
     const data = await fetchMailerLiteStats(apiKey, groupId)

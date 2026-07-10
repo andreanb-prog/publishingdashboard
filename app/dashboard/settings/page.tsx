@@ -449,6 +449,9 @@ function MailerLiteListManager() {
   const [saveError,     setSaveError]     = useState('')
   const [syncingId,     setSyncingId]     = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  // MailerLite group id whose count is used as THE headline list size across
+  // the app (dashboard + settings subtitle). Null = whole-account total.
+  const [primaryGroupId, setPrimaryGroupId] = useState<string | null>(null)
 
   // Load saved lists from DB
   useEffect(() => {
@@ -457,7 +460,23 @@ function MailerLiteListManager() {
       .then(d => setLists(d.lists ?? []))
       .catch(() => {})
       .finally(() => setLoading(false))
+    fetch('/api/prefs')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => setPrimaryGroupId(d.mlPrimaryGroupId ?? null))
+      .catch(() => {})
   }, [])
+
+  async function handleSetPrimary(mailerliteId: string) {
+    const next = primaryGroupId === mailerliteId ? null : mailerliteId
+    setPrimaryGroupId(next) // optimistic
+    try {
+      await fetch('/api/prefs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set-ml-primary-group', groupId: next }),
+      })
+    } catch { /* leave optimistic state; next page load re-syncs */ }
+  }
 
   async function openAdd() {
     setShowAdd(true)
@@ -650,6 +669,18 @@ function MailerLiteListManager() {
               </div>
               {/* Actions */}
               <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => handleSetPrimary(list.mailerliteId)}
+                  title={primaryGroupId === list.mailerliteId
+                    ? 'This list is your headline list size. Click to use your whole-account total instead.'
+                    : 'Use this list as your headline list size'}
+                  className="text-[10px] font-semibold px-2 py-1 rounded-[4px]"
+                  style={primaryGroupId === list.mailerliteId
+                    ? { border: '0.5px solid rgba(233,160,32,0.6)', background: 'rgba(233,160,32,0.12)', color: '#B07E1A', cursor: 'pointer' }
+                    : { border: '0.5px solid rgba(30,45,61,0.2)', background: 'transparent', color: '#9CA3AF', cursor: 'pointer' }}
+                >
+                  {primaryGroupId === list.mailerliteId ? '★ Primary' : '☆ Set primary'}
+                </button>
                 <button
                   onClick={() => handleSync(list.id)}
                   disabled={syncingId === list.id}

@@ -12,8 +12,10 @@ export async function GET() {
     select: { columnPrefs: true, onboardingDismissed: true, goals: true, layoutPrefs: true, mailerLiteKey: true, metaAccessToken: true },
   })
 
+  const colPrefs = (user?.columnPrefs as Record<string, string[]>) ?? {}
   return NextResponse.json({
-    columnPrefs:         (user?.columnPrefs as Record<string, string[]>) ?? {},
+    columnPrefs:         colPrefs,
+    mlPrimaryGroupId:    Array.isArray(colPrefs['__mlPrimaryGroup']) ? (colPrefs['__mlPrimaryGroup'][0] ?? null) : null,
     onboardingDismissed: user?.onboardingDismissed ?? false,
     goals:               (user?.goals as Record<string, number>) ?? {},
     layoutPrefs:         (user?.layoutPrefs as Record<string, string[]>) ?? {},
@@ -65,6 +67,22 @@ export async function POST(req: NextRequest) {
       digestDays: Array.isArray(body.digestDays) ? body.digestDays : ['monday'],
     }
     await db.user.update({ where: { id: session.user.id }, data: { goals: updated } })
+    return NextResponse.json({ success: true })
+  }
+
+  // Set (or clear) the primary MailerLite group used for the headline list-size
+  // count. Stored in columnPrefs under a reserved key — see lib/mailerlite.ts.
+  if (body.action === 'set-ml-primary-group') {
+    const groupId = typeof body.groupId === 'string' && body.groupId ? body.groupId : null
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { columnPrefs: true },
+    })
+    const current = (user?.columnPrefs as Record<string, string[]>) ?? {}
+    const updated = { ...current }
+    if (groupId) updated['__mlPrimaryGroup'] = [groupId]
+    else delete updated['__mlPrimaryGroup']
+    await db.user.update({ where: { id: session.user.id }, data: { columnPrefs: updated } })
     return NextResponse.json({ success: true })
   }
 

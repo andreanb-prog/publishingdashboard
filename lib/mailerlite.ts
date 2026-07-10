@@ -37,6 +37,30 @@ async function mlFetch(path: string, apiKey: string): Promise<{ ok: boolean; dat
   }
 }
 
+// ── Primary group preference ────────────────────────────────────────────────
+// Authors run multiple MailerLite groups (main list, BookSweeps cold subs, ARC
+// team…). The account-level /subscribers total sums ALL of them, which inflates
+// the headline "list size" (Gina: 22,438 shown vs ~13.5k real main list).
+// The user's chosen primary group is stored in User.columnPrefs under a
+// reserved key — no schema migration needed. Null = account-level (old behavior).
+const ML_PRIMARY_GROUP_PREF = '__mlPrimaryGroup'
+
+export async function getMlPrimaryGroupId(userId: string): Promise<string | undefined> {
+  try {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { columnPrefs: true },
+    })
+    const prefs = (user?.columnPrefs as Record<string, string[]> | null) ?? {}
+    const v = prefs[ML_PRIMARY_GROUP_PREF]
+    return Array.isArray(v) && v[0] ? v[0] : undefined
+  } catch {
+    return undefined
+  }
+}
+
+export { ML_PRIMARY_GROUP_PREF }
+
 // ── Subscriber counts (simple, bulletproof) ─────────────────────────────────
 // /subscribers/stats does NOT have counts — it has rates/engagement.
 // /subscribers?limit=0 returns { total } for active subs (default filter).

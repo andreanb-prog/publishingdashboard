@@ -2,7 +2,7 @@
 // Server-side data fetching for the main dashboard.
 // Runs all queries in parallel to eliminate sequential waterfalls.
 import { db } from '@/lib/db'
-import { fetchMailerLiteStats } from '@/lib/mailerlite'
+import { fetchMailerLiteStats, getMlPrimaryGroupId } from '@/lib/mailerlite'
 import { resolveKdpRows, aggregateKdp } from '@/lib/kdpDataPriority'
 import { cache } from 'react'
 import type { Analysis, RankLog, RoasLog, MailerLiteData } from '@/types'
@@ -66,7 +66,8 @@ export const fetchDashboardData = cache(async (userId: string): Promise<Dashboar
           select: { mailerLiteKey: true },
         })
         if (!user?.mailerLiteKey) return null
-        return await fetchMailerLiteStats(user.mailerLiteKey)
+        const primaryGroupId = await getMlPrimaryGroupId(userId)
+        return await fetchMailerLiteStats(user.mailerLiteKey, primaryGroupId)
       } catch {
         return null
       }
