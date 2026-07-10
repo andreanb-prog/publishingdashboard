@@ -1717,15 +1717,53 @@ export default function KDPPage() {
             </>
           )}
 
-          {analysis && (
-            <>
-              <BoutiqueSectionLabel label="Insights" />
-              <div style={{ marginBottom: 24 }}>
-                <InsightCallouts analysis={{ ...analysis, meta: undefined, mailerLite: undefined, pinterest: undefined }} page="kdp" />
-              </div>
-            </>
-          )}
-          {coach && <BoutiqueCoachBox>{coach}</BoutiqueCoachBox>}
+          {analysis && (() => {
+            // Truth-in-labeling for AI insights: they're generated from the last
+            // UPLOAD, so a July reader can be shown June-upload narration ("your
+            // June performance shows 9 units") long after the sync has fresher,
+            // different numbers. Stamp the source month, and warn when the
+            // insight month is behind the current month for a sync-connected
+            // user. (Real fix — regenerating from synced data — tracked separately.)
+            const currentMonth = new Date().toISOString().slice(0, 7)
+            const insightMonth: string | null = typeof analysis.month === 'string' ? analysis.month : null
+            const monthLabel = insightMonth
+              ? new Date(`${insightMonth}-15T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+              : null
+            const insightsStale = !!insightMonth && insightMonth < currentMonth && kdpSyncStatus === 'connected'
+            return (
+              <>
+                <BoutiqueSectionLabel label="Insights" />
+                {monthLabel && (
+                  <p style={{ fontSize: 11, color: 'rgba(30,45,61,0.45)', margin: '0 0 8px' }}>
+                    Generated from your {monthLabel} report upload.
+                  </p>
+                )}
+                {insightsStale && (
+                  <div style={{
+                    background: 'rgba(217,119,6,0.06)', borderLeft: '3px solid #D97706',
+                    padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#92610a', lineHeight: 1.5,
+                  }}>
+                    Heads up — your synced data is newer than these insights. The numbers
+                    below describe {monthLabel}, not this month. Upload a fresh KDP report
+                    to regenerate them.
+                  </div>
+                )}
+                <div style={{ marginBottom: 24 }}>
+                  <InsightCallouts analysis={{ ...analysis, meta: undefined, mailerLite: undefined, pinterest: undefined }} page="kdp" />
+                </div>
+                {coach && !insightsStale && <BoutiqueCoachBox>{coach}</BoutiqueCoachBox>}
+                {coach && insightsStale && (
+                  <details style={{ marginBottom: 24 }}>
+                    <summary style={{ fontSize: 12, color: 'rgba(30,45,61,0.5)', cursor: 'pointer' }}>
+                      Show {monthLabel} coaching notes (outdated)
+                    </summary>
+                    <div style={{ marginTop: 10 }}><BoutiqueCoachBox>{coach}</BoutiqueCoachBox></div>
+                  </details>
+                )}
+              </>
+            )
+          })()}
+          {!analysis && coach && <BoutiqueCoachBox>{coach}</BoutiqueCoachBox>}
 
           {/* Filter Bar — Book selector + Format toggle */}
           {dedupedVisibleBooks.length > 0 && (() => {
