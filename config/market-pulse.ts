@@ -19,55 +19,55 @@ export const PULSE_GENRES: PulseGenre[] = [
     slug: 'contemporary-romance',
     label: 'Contemporary Romance',
     group: 'romance',
-    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/158566011',
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/158568011',
   },
   {
     slug: 'small-town-romance',
     label: 'Small Town & Rural Romance',
     group: 'romance',
-    // TODO(Andrea): verify node — Kindle eBooks > Romance > Small Town & Rural
-    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/9059886011',
+    // Verified from Amazon nav July 9 2026: Romance > Small Town Romance
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/120220981011',
     focusTropes: ['small town', 'second chance', 'protective'],
   },
   {
     slug: 'romantic-comedy',
     label: 'Romantic Comedy',
     group: 'romance',
-    // TODO(Andrea): verify node — Kindle eBooks > Romance > Romantic Comedy
-    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/9059887011',
+    // Verified from Amazon nav July 9 2026: Romance > Romantic Comedy
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/6487841011',
   },
   {
     slug: 'mafia-romance',
     label: 'Mafia / Dark Romance',
     group: 'romance',
-    // No dedicated Amazon node — closest parent is Romantic Heroes > Criminals
-    // & Outlaws. TODO(Andrea): verify node. Trope tagger isolates mafia titles.
-    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/24357607011',
+    // Verified from Amazon nav July 9 2026: Romance > Dark Romance (no mafia
+    // node exists — the trope tagger isolates mafia titles inside this list).
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/214873907011',
     focusTropes: ['mafia', 'dark romance', 'forbidden', 'billionaire'],
   },
   {
     slug: 'sports-romance',
     label: 'Sports Romance (incl. Hockey)',
     group: 'romance',
-    // TODO(Andrea): verify node — Kindle eBooks > Romance > Sports. Hockey has
-    // no dedicated node; the trope tagger tracks 'hockey' inside this list.
-    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/6487844011',
+    // Verified from Amazon nav July 9 2026: Romance > Sports. Hockey has no
+    // dedicated node; the trope tagger tracks 'hockey' inside this list.
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/6487842011',
     focusTropes: ['hockey', 'sports', 'grumpy sunshine'],
   },
   {
     slug: 'billionaire-romance',
     label: 'Billionaire Romance',
     group: 'romance',
-    // TODO(Andrea): verify node — Romantic Heroes > Wealthy Men / Billionaires
-    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/11650048011',
+    // Verified from Amazon nav July 9 2026: Romance > Billionaires & Millionaires
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/120220974011',
     focusTropes: ['billionaire', 'fake dating', 'protective'],
   },
   {
     slug: 'cozy-mystery',
     label: 'Cozy Mystery',
     group: 'mystery',
-    // TODO(Andrea): verify node — Kindle eBooks > Mystery > Cozy
-    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/7588851011',
+    // Verified from Amazon nav July 9 2026: Mystery, Thriller & Suspense > Mysteries > Cozy
+    bestsellerUrl: 'https://www.amazon.com/gp/bestsellers/digital-text/6190476011',
     focusTropes: ['amateur sleuth', 'small town', 'culinary', 'animal companion'],
   },
 ]
