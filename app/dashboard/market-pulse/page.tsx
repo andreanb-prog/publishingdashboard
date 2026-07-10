@@ -51,12 +51,19 @@ export default function MarketPulsePage() {
       .then(d => setPulse(d.pulse ?? []))
       .catch(() => setPulse([]))
       .finally(() => setLoading(false))
-    // User's current sales pace this month → the "gap to threshold" line.
-    fetch('/api/kdp/sales')
+    // User's current sales pace THIS MONTH → the "gap to threshold" line.
+    // Must be range-scoped: unscoped /api/kdp/sales returns lifetime totals,
+    // which inflated the pace (57.7/day on a 6-unit month).
+    const now = new Date()
+    const y = now.getUTCFullYear()
+    const m = String(now.getUTCMonth() + 1).padStart(2, '0')
+    const start = `${y}-${m}-01`
+    const end = now.toISOString().slice(0, 10)
+    fetch(`/api/kdp/sales?start=${start}&end=${end}`)
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
         const units = d?.totalUnits ?? 0
-        const day = new Date().getUTCDate()
+        const day = now.getUTCDate()
         if (day > 0) setMyPace(Math.round((units / day) * 10) / 10)
       })
       .catch(() => {})
