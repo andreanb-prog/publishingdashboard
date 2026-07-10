@@ -147,33 +147,55 @@ function GenreView({ data }: { data: GenrePulse }) {
   const latest = data.latest!
   const enriched = latest.metaCoverage
   const total = latest.rows.length
-  const kuRows = latest.rows.filter(r => r.meta?.isKu)
+  const allKuRows = latest.rows.filter(r => r.meta?.isKu)
   const unknownRows = total - enriched
-  const wideCount = enriched - kuRows.length
+  const wideCount = enriched - allKuRows.length
 
+  // Default: top 10 of the full list (KU badge where verified). "KU only"
+  // narrows to verified-KU titles; "Show all" expands to the full 100.
+  const [kuOnly, setKuOnly] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const shownRows = kuOnly ? allKuRows : latest.rows
+
+  // Trope sidebar: counts across ALL verified titles in the top 100 (not just
+  // KU) so it reflects the whole list she's looking at.
   const tropes = useMemo(() => {
-    return Object.entries(latest.kuTropeCounts)
+    const counts: Record<string, number> = {}
+    for (const r of latest.rows) {
+      for (const t of r.meta?.tropes ?? []) counts[t] = (counts[t] ?? 0) + 1
+    }
+    return Object.entries(counts)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 12)
-  }, [latest.kuTropeCounts])
+  }, [latest.rows])
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: 20, alignItems: 'start' }}>
       {/* Main: KU top-100 table */}
       <div style={{ ...card, padding: '18px 20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4, gap: 10, flexWrap: 'wrap' }}>
           <h2 style={{ fontFamily: SERIF, fontSize: 20, color: NAVY, margin: 0 }}>
-            KU titles in the top 100
+            Top {expanded ? 100 : 10}{kuOnly ? ' — KU only' : ''}
           </h2>
-          <span style={{ fontSize: 10.5, color: '#9CA3AF' }}>scanned {fmtDate(latest.capturedAt)}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button onClick={() => setKuOnly(v => !v)} style={{
+              fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, cursor: 'pointer',
+              border: kuOnly ? 'none' : '0.5px solid rgba(30,45,61,0.2)',
+              background: kuOnly ? AMBER : 'white',
+              color: kuOnly ? NAVY : 'rgba(30,45,61,0.55)',
+            }}>
+              KU only
+            </button>
+            <span style={{ fontSize: 10.5, color: '#9CA3AF' }}>scanned {fmtDate(latest.capturedAt)}</span>
+          </div>
         </div>
         <p style={{ fontSize: 11.5, color: 'rgba(30,45,61,0.5)', margin: '0 0 14px' }}>
-          {kuRows.length} KU · {wideCount} wide/trad
+          {allKuRows.length} KU · {wideCount} wide/trad
           {unknownRows > 0 && <> · {unknownRows} not yet verified (fills in over the next nightly scans)</>}
         </p>
 
-        {kuRows.length === 0 ? (
+        {shownRows.length === 0 ? (
           <p style={{ fontSize: 12.5, color: '#9CA3AF' }}>
             No verified KU titles yet — KU status comes from each book&apos;s product page and
             builds up across the first few scans.
@@ -184,7 +206,7 @@ function GenreView({ data }: { data: GenrePulse }) {
             <div style={{ display: 'grid', gridTemplateColumns: '34px minmax(0,1fr) 70px 70px 84px', gap: 8, padding: '4px 0 8px', borderBottom: '1px solid rgba(30,45,61,0.1)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(30,45,61,0.4)' }}>
               <span>#</span><span>Title</span><span>Price</span><span>Reviews</span><span>Est/day</span>
             </div>
-            {kuRows.map(r => (
+            {shownRows.slice(0, expanded ? 100 : 10).map(r => (
               <div key={r.rank} style={{ display: 'grid', gridTemplateColumns: '34px minmax(0,1fr) 70px 70px 84px', gap: 8, alignItems: 'baseline', padding: '8px 0', borderBottom: '0.5px solid rgba(30,45,61,0.05)', fontSize: 12.5 }}>
                 <span style={{ fontWeight: 700, color: 'rgba(30,45,61,0.4)' }}>#{r.rank}</span>
                 <div style={{ minWidth: 0 }}>
@@ -197,12 +219,15 @@ function GenreView({ data }: { data: GenrePulse }) {
                   ) : (
                     <span style={{ color: NAVY, fontWeight: 600 }}>{r.title}</span>
                   )}
-                  {(r.meta?.author ?? r.author) && (
-                    <div style={{ fontSize: 11, color: 'rgba(30,45,61,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 11, color: 'rgba(30,45,61,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {r.meta?.isKu && (
+                      <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 6px', borderRadius: 3, background: 'rgba(233,160,32,0.15)', color: '#B57812', flexShrink: 0 }}>KU</span>
+                    )}
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {r.meta?.author ?? r.author}
                       {r.meta?.tropes?.length ? <> · <span style={{ fontStyle: 'italic' }}>{r.meta.tropes.slice(0, 3).join(', ')}</span></> : null}
-                    </div>
-                  )}
+                    </span>
+                  </div>
                 </div>
                 <span style={{ color: 'rgba(30,45,61,0.65)' }}>
                   {(r.meta?.price ?? r.price) != null ? `$${(r.meta?.price ?? r.price)!.toFixed(2)}` : '—'}
@@ -215,14 +240,22 @@ function GenreView({ data }: { data: GenrePulse }) {
                 </span>
               </div>
             ))}
+            {shownRows.length > 10 && (
+              <button onClick={() => setExpanded(v => !v)} style={{
+                marginTop: 12, fontSize: 12, fontWeight: 700, color: AMBER,
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              }}>
+                {expanded ? 'Show top 10 only' : `Show all ${shownRows.length} →`}
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Sidebar: top tropes across the KU titles */}
+      {/* Sidebar: top tropes across the verified titles in the top 100 */}
       <div style={{ ...card, padding: '18px 20px', position: 'sticky', top: 20 }}>
         <p style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(30,45,61,0.4)', margin: '0 0 12px' }}>
-          Top tropes — KU top 100
+          Top tropes — this top 100
         </p>
         {tropes.length === 0 ? (
           <p style={{ fontSize: 12, color: '#9CA3AF', margin: 0 }}>
@@ -250,7 +283,7 @@ function GenreView({ data }: { data: GenrePulse }) {
         )}
         {data.latest && data.latest.kuCount > 0 && (
           <p style={{ fontSize: 10.5, color: '#9CA3AF', margin: '12px 0 0', lineHeight: 1.5 }}>
-            Tagged from {data.latest.kuCount} verified KU titles&apos; blurbs.
+            Tagged from {enriched} verified titles&apos; blurbs ({data.latest.kuCount} KU).
           </p>
         )}
       </div>
