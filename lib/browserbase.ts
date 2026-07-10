@@ -480,9 +480,19 @@ export function isKdpLoggedInUrl(rawUrl: string | undefined | null): boolean {
     return false
   }
   const host = url.hostname.toLowerCase()
-  // Only consider kdpreports.amazon.com as "logged in" — the marketing page
-  // (kdp.amazon.com) and any sign-in pages must not trigger a false positive.
-  return host === 'kdpreports.amazon.com'
+  // kdpreports.amazon.com only renders signed-in — always counts.
+  if (host === 'kdpreports.amazon.com') return true
+  // kdp.amazon.com: Amazon drops users on /<locale>/bookshelf after login, and
+  // that path redirects to sign-in when logged out — so a bookshelf/reports
+  // path here is proof of login. The bare marketing root and /ap/signin pages
+  // must NOT count (they render logged-out). Fixes the red "Please complete
+  // login first" users saw while sitting, signed in, on their Bookshelf.
+  if (host === 'kdp.amazon.com') {
+    const path = url.pathname.toLowerCase()
+    if (path.includes('/ap/')) return false // signin/mfa flows
+    return path.includes('bookshelf') || path.includes('report')
+  }
+  return false
 }
 
 // Polls the live session's open pages and reports whether the user has reached a
