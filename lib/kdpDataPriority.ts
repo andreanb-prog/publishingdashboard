@@ -170,6 +170,23 @@ export function aggregateKdp<T extends KdpSaleRow>(
     }
   }
 
+  // Sync-captured daily rows grouped by month — used to DAY-SLICE browserbase
+  // month rows when the selected range only partially covers a month. Without
+  // this, "last 2 days" returned the whole month's totals (the month row is
+  // "never day-sliced"), which is exactly the inflated-range bug beta users hit.
+  const dailyByMonth = new Map<string, Array<{ date: string; units: number; kenp: number }>>()
+  for (const row of rows) {
+    if (row.source === 'browserbase-daily') {
+      const mk = row.date.substring(0, 7)
+      if (!dailyByMonth.has(mk)) dailyByMonth.set(mk, [])
+      dailyByMonth.get(mk)!.push({ date: row.date, units: row.units, kenp: row.kenp })
+    }
+  }
+  const lastDayOfMonth = (mk: string) => {
+    const [y, m] = mk.split('-').map(Number)
+    return `${mk}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`
+  }
+
   for (const row of rows) {
     const isExtension = row.source === 'extension'
 
@@ -185,6 +202,37 @@ export function aggregateKdp<T extends KdpSaleRow>(
           const monthStart = `${row.monthKey}-01`
           const monthEnd   = `${row.monthKey}-31` // intentional overshoot — always >= real last day
           include = range.start <= monthEnd && range.end >= monthStart
+
+          // ── Partial-month day-slicing (browserbase month rows only) ────────
+          // When the range covers only PART of this month and sync-captured
+          // daily rows exist for it, slice: units/KENP are exact daily sums;
+          // royalties are split KU-vs-paid — KU dollars scale with KENP
+          // (KENP × $0.0045 is the KU payout model), paid dollars scale with
+          // units. Previously the WHOLE month was counted for any overlap.
+          if (include && row.source === 'browserbase') {
+            const realMonthEnd = lastDayOfMonth(row.monthKey)
+            const sliceStart = range.start > monthStart ? range.start : monthStart
+            const sliceEnd   = range.end < realMonthEnd ? range.end : realMonthEnd
+            const isPartial  = sliceStart > monthStart || sliceEnd < realMonthEnd
+            const daily = dailyByMonth.get(row.monthKey)
+            if (isPartial && daily && daily.length > 0) {
+              let rUnits = 0, rKenp = 0
+              for (const d of daily) {
+                if (d.date >= sliceStart && d.date <= sliceEnd) { rUnits += d.units; rKenp += d.kenp }
+              }
+              const kuPart   = Math.min(row.royalties, row.kenp * 0.0045)
+              const paidPart = Math.max(0, row.royalties - kuPart)
+              const rRoyalties =
+                (row.kenp > 0 ? kuPart * (rKenp / row.kenp) : 0) +
+                (row.units > 0 ? paidPart * (rUnits / row.units) : 0)
+              units     += rUnits
+              kenp      += rKenp
+              royalties += rRoyalties
+              extensionRoyalties += rRoyalties
+              // Sliced values are day-granular — do NOT set hasMonthGranularData.
+              continue
+            }
+          }
         }
         if (include) hasMonthGranularData = true
       } else {
