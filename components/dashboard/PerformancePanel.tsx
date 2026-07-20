@@ -109,7 +109,8 @@ export function PerformancePanel({ dashboard }: { dashboard: DashboardState }) {
       {analysis?.executiveSummary && (
         <div className="mb-7">
           <BoutiqueSectionLabel label="Performance Summary" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+          {/* Working Well / Watch This stack on phones, sit side by side from md. */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             <div>
               <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--green-text, #245c3f)', marginBottom: 12 }}>Working Well</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>

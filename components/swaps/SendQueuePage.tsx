@@ -493,7 +493,9 @@ export function SendQueuePage({ swaps: initialSwaps, lastSyncAt }: {
           <>
             <StatStrip stats={stats} />
 
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr),320px]">
+            {/* Underscore, not comma: a top-level comma in the arbitrary value is
+                invalid CSS, so the whole grid-cols rule was being dropped. */}
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
               {/* Main column: hero + coming up */}
               <div style={{ minWidth: 0 }}>
                 {heroDate ? (

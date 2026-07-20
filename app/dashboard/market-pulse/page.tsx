@@ -83,7 +83,7 @@ export default function MarketPulsePage() {
 
   return (
     <div style={{ maxWidth: 1180, margin: '0 auto', padding: '28px 24px 60px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontFamily: SERIF, fontSize: 34, color: NAVY, margin: 0 }}>Market Pulse</h1>
           <p style={{ fontSize: 13.5, color: 'rgba(30,45,61,0.55)', margin: '6px 0 0', maxWidth: 620, lineHeight: 1.5 }}>
@@ -233,7 +233,10 @@ function GenreView({ data }: { data: GenrePulse }) {
   }, [latest.rows])
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: 20, alignItems: 'start' }}>
+    // Single column on phones (table first, tropes below); table + 280px trope
+    // sidebar from lg up. The old fixed 'minmax(0,1fr) 280px' grid left the
+    // table ~75px wide on a phone.
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-5 items-start">
       {/* Main: KU top-100 table */}
       <div style={{ ...card, padding: '18px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4, gap: 10, flexWrap: 'wrap' }}>
@@ -263,7 +266,10 @@ function GenreView({ data }: { data: GenrePulse }) {
             builds up across the first few scans.
           </p>
         ) : (
-          <div>
+          <div className="overflow-x-auto">
+            {/* minWidth keeps the 5 columns readable on phones — the wrapper
+                scrolls sideways instead of crushing the title column. */}
+            <div style={{ minWidth: 480 }}>
             {/* Header row */}
             <div style={{ display: 'grid', gridTemplateColumns: '34px minmax(0,1fr) 70px 70px 84px', gap: 8, padding: '4px 0 8px', borderBottom: '1px solid rgba(30,45,61,0.1)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(30,45,61,0.4)' }}>
               <span>#</span><span>Title</span><span>Price</span><span>Reviews</span><span>Est/day</span>
@@ -302,6 +308,7 @@ function GenreView({ data }: { data: GenrePulse }) {
                 </span>
               </div>
             ))}
+            </div>
             {shownRows.length > 10 && (
               <button onClick={() => setExpanded(v => !v)} style={{
                 marginTop: 12, fontSize: 12, fontWeight: 700, color: AMBER,

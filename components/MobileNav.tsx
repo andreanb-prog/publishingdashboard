@@ -3,13 +3,13 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { List, X, House, UploadSimple, GraduationCap, Gear } from '@phosphor-icons/react'
+import { signOut } from 'next-auth/react'
+import { List, X, House, UploadSimple, GraduationCap, Gear, SignOut } from '@phosphor-icons/react'
 
 function openUploadModal() {
   try { window.dispatchEvent(new CustomEvent('open-upload-modal')) } catch {}
 }
-import { Rocket } from 'lucide-react'
+import { Rocket, ArrowLeftRight, Search, PenTool } from 'lucide-react'
 import {
   IconKDP, IconMeta, IconMailerLite, IconPinterest,
   IconMetrics, IconRank, IconMyData,
@@ -30,16 +30,20 @@ function ic(Icon: (props: { size?: number; color?: string }) => React.ReactNode,
   return () => <Icon size={20} color={color} />
 }
 
-const ADMIN_EMAILS = ['andreanbonilla@gmail.com', 'info@ellewilderbooks.com']
-
+// Keep in sync with Sidebar.tsx (ALL_MAIN / ALL_CHANNELS / ALL_TOOLS): the
+// sidebar is hidden below md, so this drawer is the ONLY navigation on mobile —
+// a page missing here is invisible to phone users.
 const ALL_NAV: NavEntry[] = [
-  { section: 'Overview', label: 'My Dashboard',   href: '/dashboard',              render: ph(House) },
-  { section: 'Channels', label: 'KDP',            href: '/dashboard/kdp',          render: ic(IconKDP, '#E9A020') },
-  { label: 'Meta / Facebook',                     href: '/dashboard/meta',         render: ic(IconMeta, '#60A5FA') },
-  { label: 'MailerLite',                           href: '/dashboard/mailerlite',   render: ic(IconMailerLite, '#34d399') },
-  { section: 'Tools', label: 'Advanced Metrics',  href: '/dashboard/metrics',      render: ic(IconMetrics, '#E9A020') },
-  { label: 'Settings',                             href: '/dashboard/settings',     render: ph(Gear) },
-  { label: 'My Data',                              href: '/dashboard/data-vault',   render: ic(IconMyData, '#fb7185') },
+  { section: 'Overview', label: 'My Dashboard',   href: '/dashboard',                  render: ph(House) },
+  { section: 'Channels', label: 'KDP',            href: '/dashboard/kdp',              render: ic(IconKDP, '#E9A020') },
+  { label: 'Meta / Facebook',                     href: '/dashboard/meta',             render: ic(IconMeta, '#60A5FA') },
+  { label: 'MailerLite',                           href: '/dashboard/mailerlite',       render: ic(IconMailerLite, '#34d399') },
+  { label: 'Book Swaps',                           href: '/dashboard/swaps',            render: () => <ArrowLeftRight size={20} color="#5BBFB5" /> },
+  { section: 'Tools', label: 'Market Pulse',      href: '/dashboard/market-pulse',     render: () => <Search size={20} color="#E9A020" /> },
+  { label: 'Write',                                href: '/dashboard/writing-notebook', render: () => <PenTool size={20} color="#6EBF8B" /> },
+  { label: 'Advanced Metrics',                     href: '/dashboard/metrics',          render: ic(IconMetrics, '#E9A020') },
+  { label: 'Settings',                             href: '/dashboard/settings',         render: ph(Gear) },
+  { label: 'My Data',                              href: '/dashboard/data-vault',       render: ic(IconMyData, '#fb7185') },
 ]
 
 const DEV_NAV: NavEntry[] = [
@@ -53,9 +57,7 @@ const DEV_NAV: NavEntry[] = [
 export function MobileNav() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
-  const { data: session } = useSession()
-  const isAdmin = ADMIN_EMAILS.includes(session?.user?.email ?? '')
-  const navItems = ALL_NAV.filter(item => item.href !== '/dashboard/list-building' || isAdmin)
+  const navItems = ALL_NAV
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard'
@@ -178,6 +180,19 @@ export function MobileNav() {
                     </Link>
                   )
                 })}
+              </div>
+
+              {/* Sign out — the sidebar (with its sign-out) is hidden on mobile,
+                  so without this phone users have no way to log out. */}
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #EEEBE6' }}>
+                <button
+                  onClick={() => signOut({ callbackUrl: '/login' })}
+                  className="flex items-center gap-3 px-3 py-3 rounded-lg text-[14px] w-full bg-transparent border-none cursor-pointer"
+                  style={{ color: '#6B7280', minHeight: 44, fontWeight: 400 }}
+                >
+                  <SignOut size={20} />
+                  Sign out
+                </button>
               </div>
             </div>
           </nav>

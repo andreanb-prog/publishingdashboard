@@ -116,14 +116,16 @@ export function ActionPlanPanel({ dashboard }: { dashboard: DashboardState }) {
           label="Cross-Channel Action Plan"
           action={<span style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink4, #8a8076)' }}>AI-generated from your data</span>}
         />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', border: '1px solid var(--line, #d8cfbd)', background: 'var(--paper, #f7f1e5)' }}>
+        {/* Stacks on phones, 2-up on small tablets, 4-up from lg — four forced
+            columns left ~80px of text width on a phone. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" style={{ border: '1px solid var(--line, #d8cfbd)', background: 'var(--paper, #f7f1e5)' }}>
           {[
             { key: 'scale', label: 'Scale',     color: 'var(--green-text, #245c3f)',  borderColor: 'var(--sage, #6EBF8B)', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.scale },
             { key: 'fix',   label: 'Fix',       color: 'var(--amber-text, #a56b13)', borderColor: 'var(--amber, #D97706)', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.fix },
             { key: 'cut',   label: 'Cut',       color: '#dc2626',                     borderColor: '#dc2626', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.cut },
             { key: 'test',  label: 'Test Next', color: 'var(--ink3, #564e46)',        borderColor: 'var(--ink3, #564e46)', items: (analysis?.crossChannelPlan as CrossChannelPlan | undefined)?.test },
           ].map((col, colIdx) => (
-            <div key={col.key} style={{ borderLeft: colIdx > 0 ? '1px solid var(--line, #d8cfbd)' : 'none', borderTop: `2px solid ${col.borderColor}` }}>
+            <div key={col.key} className={colIdx > 0 ? 'lg:border-l' : ''} style={{ borderTop: `2px solid ${col.borderColor}`, borderLeftColor: 'var(--line, #d8cfbd)' }}>
               <div style={{ padding: '12px 16px 10px', fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: col.color, borderBottom: '1px solid var(--line, #d8cfbd)' }}>
                 {col.label}
               </div>
