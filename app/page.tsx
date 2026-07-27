@@ -21,6 +21,15 @@ export default function LandingPage() {
         minHeight: '100vh',
       }}
     >
+      {/* Coming Soon banner */}
+      <div className="w-full bg-[#E9A020] text-[#1E2D3D]">
+        <div className="mx-auto max-w-7xl px-6 py-4 text-center">
+          <p className="text-2xl md:text-4xl font-bold tracking-tight">
+            AuthorDash — Coming Soon
+          </p>
+        </div>
+      </div>
+
       {/* ── NAV ── */}
       <nav
         style={{
