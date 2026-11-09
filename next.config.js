@@ -1,30 +1,5 @@
-const originalEmitWarning = process.emitWarning.bind(process)
-process.emitWarning = (warning, ...args) => {
-  if (typeof warning === 'string' && warning.includes('DEP0169')) return
-  originalEmitWarning(warning, ...args)
-}
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['xlsx', 'pdfjs-dist', 'pdf-parse', 'mammoth', 'playwright-core', '@browserbasehq/sdk'],
-    serverActions: {
-      bodySizeLimit: '50mb',
-    },
-  },
-  // PostHog needs its API paths to keep their trailing slashes when proxied.
-  skipTrailingSlashRedirect: true,
-  // Reverse proxy for PostHog: route analytics/session-replay through our OWN
-  // domain (/ingest) instead of posthog.com. This defeats ad blockers (first-party
-  // requests aren't blocked) AND satisfies our Content-Security-Policy (everything
-  // is same-origin 'self'). Without this, both the CSP and common blockers eat the data.
-  async rewrites() {
-    return [
-      { source: '/ingest/static/:path*', destination: 'https://us-assets.i.posthog.com/static/:path*' },
-      { source: '/ingest/:path*',        destination: 'https://us.i.posthog.com/:path*' },
-      { source: '/ingest/flags',         destination: 'https://us.i.posthog.com/flags' },
-    ]
-  },
   async headers() {
     return [
       {
@@ -33,24 +8,15 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://connect.facebook.net",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https: http:",
-              "connect-src 'self' https://api.anthropic.com https://connect.mailerlite.com https://api.freepik.com https://vitals.vercel-insights.com https://*.upstash.io wss:",
-              "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.browserbase.com",
-              "object-src 'none'",
-              "base-uri 'self'",
-            ].join('; '),
-          },
         ],
       },
     ]
+  },
+  // Old dashboard URLs land on the new homepage instead of a 404.
+  async redirects() {
+    return ['/dashboard/:path*', '/pricing', '/waitlist', '/freeresources', '/demo', '/login', '/content/:path*'].map(
+      (source) => ({ source, destination: '/', permanent: false }),
+    )
   },
 }
 

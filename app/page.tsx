@@ -1,1026 +1,302 @@
-import type { Metadata } from 'next'
-import Link from 'next/link'
+// app/page.tsx
+import { site, sessions, systems, steps, faqs } from '@/lib/site'
 
-export const metadata: Metadata = {
-  title: 'AuthorDash — Am I making money?',
-  description:
-    'AuthorDash answers that question every morning. Net royalties after ad spend, after returns, after everything. Built for indie authors who treat their books like a business.',
+const bookHref = site.bookingUrl || '#sessions'
+const bookTarget = site.bookingUrl ? { target: '_blank', rel: 'noopener noreferrer' } : {}
+
+function BookButton({
+  label = 'Book a free discovery call',
+  ghost = false,
+  href,
+}: {
+  label?: string
+  ghost?: boolean
+  href?: string
+}) {
+  const external = href ? { target: '_blank', rel: 'noopener noreferrer' } : bookTarget
+  return (
+    <a href={href || bookHref} {...external} className={`btn ${ghost ? 'btn-ghost' : 'btn-primary'}`}>
+      {label}
+      <span aria-hidden="true">&rarr;</span>
+    </a>
+  )
 }
 
-// TODO: wire to DB count of founding member conversions
-const SPOTS_REMAINING = 32
-const SPOTS_TOTAL = 100
-
-export default function LandingPage() {
+function SectionHead({ eyebrow, title, intro }: { eyebrow: string; title: string; intro?: string }) {
   return (
-    <div
-      style={{
-        fontFamily: 'var(--font-plus-jakarta), sans-serif',
-        background: 'var(--paper)',
-        color: 'var(--ink)',
-        minHeight: '100vh',
-      }}
-    >
-      {/* Coming Soon banner */}
-      <div className="w-full bg-[#E9A020] text-[#1E2D3D]">
-        <div className="mx-auto max-w-7xl px-6 py-4 text-center">
-          <p className="text-2xl md:text-4xl font-bold tracking-tight">
-            AuthorDash — Coming Soon
-          </p>
-        </div>
-      </div>
+    <div className="max-w-2xl">
+      <p className="eyebrow">{eyebrow}</p>
+      <h2 className="mt-3 font-[family-name:var(--font-fraunces)] text-3xl leading-tight text-[var(--ink)] sm:text-4xl">
+        {title}
+      </h2>
+      {intro && <p className="mt-4 text-lg leading-relaxed text-[var(--ink3)]">{intro}</p>}
+    </div>
+  )
+}
 
-      {/* ── NAV ── */}
-      <nav
-        style={{
-          borderBottom: '1px solid var(--line)',
-          background: 'var(--card-boutique)',
-          padding: '0 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          height: 60,
-          position: 'sticky',
-          top: 0,
-          zIndex: 50,
-        }}
-      >
-        {/* Wordmark */}
-        <span
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 22,
-            letterSpacing: '-0.02em',
-            color: 'var(--ink)',
-          }}
-        >
-          Author
-          <em style={{ color: 'var(--amber-boutique)', fontStyle: 'italic' }}>Dash</em>
-        </span>
+const wrap = 'mx-auto w-full max-w-6xl px-4 sm:px-8'
 
-        {/* Nav links */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <a
-            href="#how-it-works"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 11,
-              color: 'var(--ink3)',
-              textDecoration: 'none',
-              letterSpacing: '0.04em',
-            }}
-          >
-            How it works
+export default function Home() {
+  return (
+    <>
+      {/* Nav */}
+      <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--paper)]/90 backdrop-blur">
+        <nav className={`${wrap} flex h-16 items-center justify-between`}>
+          <a href="#" className="font-[family-name:var(--font-fraunces)] text-xl font-semibold tracking-tight">
+            {site.brand}
           </a>
-          <a
-            href="#pricing"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 11,
-              color: 'var(--ink3)',
-              textDecoration: 'none',
-              letterSpacing: '0.04em',
-            }}
-          >
-            Pricing
-          </a>
-          <Link
-            href="/demo"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 11,
-              color: 'var(--amber-boutique)',
-              textDecoration: 'none',
-              letterSpacing: '0.04em',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            View Demo →
-          </Link>
-          <Link
-            href="/login"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 11,
-              background: 'var(--ink)',
-              color: 'var(--paper)',
-              padding: '8px 16px',
-              borderRadius: 6,
-              textDecoration: 'none',
-              letterSpacing: '0.04em',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Join beta free →
-          </Link>
-        </div>
-      </nav>
+          <div className="flex items-center gap-6 text-sm">
+            <a href="#systems" className="hidden text-[var(--ink3)] hover:text-[var(--ink)] sm:inline">
+              What I build
+            </a>
+            <a href="#sessions" className="hidden text-[var(--ink3)] hover:text-[var(--ink)] sm:inline">
+              Sessions
+            </a>
+            <a href="#faq" className="hidden text-[var(--ink3)] hover:text-[var(--ink)] md:inline">
+              FAQ
+            </a>
+            <a href={bookHref} {...bookTarget} className="btn btn-primary !px-4 !py-2 text-sm">
+              Book a call
+            </a>
+          </div>
+        </nav>
+      </header>
 
-      {/* ── HERO ── */}
-      <section
-        style={{
-          maxWidth: 720,
-          margin: '0 auto',
-          padding: '80px 24px 64px',
-        }}
-      >
-        {/* Mirror copy */}
-        <p
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontStyle: 'italic',
-            fontSize: 17,
-            color: 'var(--ink3)',
-            borderLeft: '3px solid var(--line)',
-            paddingLeft: 20,
-            marginBottom: 40,
-            lineHeight: 1.65,
-          }}
-        >
-          You downloaded the KDP report. You copied numbers into a spreadsheet. You checked your rank on
-          one site, your ads on another, your email stats somewhere else. All to answer one question.
-        </p>
+      <main>
+        {/* Hero */}
+        <section className={`${wrap} grid gap-12 pb-20 pt-16 sm:pt-24 lg:grid-cols-[1.15fr_1fr] lg:items-center`}>
+          <div>
+            <p className="eyebrow">{site.tagline}</p>
+            <h1 className="mt-4 font-[family-name:var(--font-fraunces)] text-[2.6rem] leading-[1.05] tracking-tight text-[var(--ink)] sm:text-6xl">
+              Let AI run the busywork. <em className="text-[var(--amber-text)]">You</em> get back to the books.
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--ink3)]">
+              I help indie authors set up Claude, ChatGPT and the tools they already use as systems that work for
+              them and with them: launch plans, ad reviews, newsletter swaps, weekly numbers. Built one-on-one, in
+              your voice, in your accounts.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <BookButton />
+              <a href="#systems" className="btn btn-ghost">
+                See what we could build
+              </a>
+            </div>
+          </div>
 
-        {/* Headline */}
-        <h1
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 'clamp(48px, 8vw, 72px)',
-            lineHeight: 1.05,
-            letterSpacing: '-0.03em',
-            marginBottom: 28,
-          }}
-        >
-          <em style={{ color: 'var(--amber-boutique)', fontStyle: 'italic', display: 'block' }}>
-            Am I making
-          </em>
-          <span style={{ color: 'var(--ink)', fontStyle: 'normal', display: 'block' }}>money?</span>
-        </h1>
+          {/* Example output card */}
+          <figure className="rounded-[2px] border border-[var(--line)] bg-[var(--card)] p-6 sm:p-8">
+            <div className="flex items-center justify-between">
+              <span className="eyebrow">Monday summary</span>
+              <span className="font-mono text-xs text-[var(--ink4)]">example output</span>
+            </div>
+            <div className="rule my-5" />
+            <p className="font-[family-name:var(--font-fraunces)] text-lg italic leading-relaxed text-[var(--ink2)]">
+              &ldquo;Book 2 page reads are up 18% since the newsletter swap on Thursday. Ads on Book 1 spent more than
+              they earned for the third week, so pause the broad audience and keep the trope ad running.&rdquo;
+            </p>
+            <ul className="mt-6 space-y-3 text-sm text-[var(--ink3)]">
+              {['Pause one ad set (2 min)', 'Confirm Saturday swap with partner', 'Draft Friday newsletter from chapter 4'].map(
+                (t) => (
+                  <li key={t} className="flex items-start gap-3">
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--amber)]" aria-hidden="true" />
+                    {t}
+                  </li>
+                ),
+              )}
+            </ul>
+            <figcaption className="mt-6 border-t border-[var(--line)] pt-4 text-xs text-[var(--ink4)]">
+              The kind of thing your system hands you each week, without you opening a spreadsheet.
+            </figcaption>
+          </figure>
+        </section>
 
-        {/* Subhead */}
-        <p
-          style={{
-            fontSize: 17,
-            color: 'var(--ink2)',
-            lineHeight: 1.65,
-            marginBottom: 36,
-            maxWidth: 560,
-          }}
-        >
-          AuthorDash answers that question every morning. Net royalties after ad spend, after returns,
-          after everything. One number. One clear action. No spreadsheets. No tab switching. No guessing.
-        </p>
+        {/* Problem */}
+        <section className="border-y border-[var(--line)] bg-[var(--paper2)]">
+          <div className={`${wrap} grid gap-10 py-16 md:grid-cols-[1fr_1.4fr] md:py-20`}>
+            <SectionHead eyebrow="Sound familiar?" title="You signed up for the AI tool. Now it just sits there." />
+            <ul className="grid gap-px overflow-hidden rounded-[2px] border border-[var(--line)] bg-[var(--line)] sm:grid-cols-2">
+              {[
+                'Every chat starts from scratch, so you re-explain your series each time.',
+                'The output sounds generic, nothing like your voice or your readers.',
+                'Marketing tasks pile up between drafts and eat your writing days.',
+                'You know AI could help. You just do not have hours to figure out how.',
+              ].map((t) => (
+                <li key={t} className="bg-[var(--card)] p-6 text-[var(--ink2)] leading-relaxed">
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
 
-        {/* CTA */}
-        <Link
-          href="/login"
-          style={{
-            display: 'block',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 13,
-            background: 'var(--ink)',
-            color: 'var(--paper)',
-            padding: '16px 28px',
-            borderRadius: 8,
-            textDecoration: 'none',
-            letterSpacing: '0.03em',
-            textAlign: 'center',
-            maxWidth: 400,
-          }}
-        >
-          Join beta free → Lock in $7 forever
-        </Link>
-
-        <p
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 10,
-            color: 'var(--ink4)',
-            marginTop: 12,
-            letterSpacing: '0.06em',
-          }}
-        >
-          No credit card · cancel anytime · founding member spots limited
-        </p>
-      </section>
-
-      {/* ── DASHBOARD PREVIEW ── */}
-      <section
-        style={{
-          background: '#14110f',
-          padding: '24px 28px',
-          maxWidth: 720,
-          margin: '0 auto 0',
-          borderRadius: 12,
-          marginLeft: 'auto',
-          marginRight: 'auto',
-        }}
-      >
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          {/* Live label */}
-          <p
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              color: 'var(--ink4)',
-              letterSpacing: '0.1em',
-              marginBottom: 12,
-            }}
-          >
-            TODAY&apos;S NET ROYALTIES ·{' '}
-            <span style={{ color: 'var(--amber-boutique)' }}>●</span> LIVE
-          </p>
-
-          {/* Big number */}
-          <p
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 'clamp(40px, 8vw, 56px)',
-              color: 'var(--paper)',
-              letterSpacing: '-0.03em',
-              lineHeight: 1,
-              marginBottom: 8,
-            }}
-          >
-            <span style={{ fontSize: '0.55em', color: 'var(--ink4)', verticalAlign: 'super' }}>$</span>
-            1,762
-            <span style={{ fontSize: '0.55em', color: 'var(--ink4)' }}>.40</span>
-          </p>
-
-          {/* Trend */}
-          <p
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 11,
-              color: 'var(--green)',
-              marginBottom: 16,
-              letterSpacing: '0.03em',
-            }}
-          >
-            ↑ 7.6% vs your 7-day average
-          </p>
-
-          {/* Breakdown */}
-          <p
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              color: 'var(--ink4)',
-              borderTop: '1px dashed rgba(138,128,118,0.35)',
-              paddingTop: 12,
-              marginBottom: 20,
-              lineHeight: 1.6,
-              letterSpacing: '0.02em',
-            }}
-          >
-            $1,842 gross · minus{' '}
-            <span style={{ color: 'var(--red)' }}>$79.60 Meta spend</span> · minus $0 returns = $1,762.40
-            net
-          </p>
-
-          {/* Metric cards */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 12,
-            }}
-          >
-            {[
-              { label: 'Meta ROAS', value: '2.14×' },
-              { label: 'Email list', value: '8,412' },
-              { label: 'Units sold', value: '104' },
-            ].map((m) => (
-              <div
-                key={m.label}
-                style={{
-                  background: 'rgba(247,241,229,0.06)',
-                  border: '1px solid rgba(138,128,118,0.2)',
-                  borderRadius: 8,
-                  padding: '12px 14px',
-                }}
-              >
-                <p
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 9,
-                    color: 'var(--ink4)',
-                    letterSpacing: '0.08em',
-                    marginBottom: 4,
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {m.label}
-                </p>
-                <p
-                  style={{
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: 22,
-                    color: 'var(--paper)',
-                    letterSpacing: '-0.02em',
-                  }}
-                >
-                  {m.value}
-                </p>
-              </div>
+        {/* Systems */}
+        <section id="systems" className={`${wrap} scroll-mt-20 py-20 sm:py-24`}>
+          <SectionHead
+            eyebrow="What we can build"
+            title="Systems shaped around how you actually publish"
+            intro="Not prompts you copy and forget. Each system remembers your books, your readers and your voice, and is set up to run again next week."
+          />
+          <div className="mt-12 grid gap-px overflow-hidden rounded-[2px] border border-[var(--line)] bg-[var(--line)] sm:grid-cols-2 lg:grid-cols-3">
+            {systems.map((s, i) => (
+              <article key={s.title} className="bg-[var(--card)] p-7">
+                <span className="font-mono text-xs text-[var(--ink4)]">{String(i + 1).padStart(2, '0')}</span>
+                <h3 className="mt-3 font-[family-name:var(--font-fraunces)] text-xl text-[var(--ink)]">{s.title}</h3>
+                <p className="mt-3 leading-relaxed text-[var(--ink3)]">{s.body}</p>
+              </article>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── PROOF STRIP ── */}
-      <section
-        style={{
-          maxWidth: 720,
-          margin: '0 auto',
-          borderTop: '1px solid var(--line)',
-          borderBottom: '1px solid var(--line)',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-        }}
-      >
-        {[
-          { stat: '5 min', label: 'To first insight' },
-          { stat: '$0', label: 'Beta is free' },
-          { stat: '1', label: 'Clear action every morning' },
-        ].map((item, i) => (
-          <div
-            key={item.stat}
-            style={{
-              padding: '28px 24px',
-              borderRight: i < 2 ? '1px solid var(--line)' : undefined,
-              textAlign: 'center',
-            }}
-          >
-            <p
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 32,
-                color: 'var(--amber-boutique)',
-                letterSpacing: '-0.03em',
-                marginBottom: 4,
-              }}
-            >
-              {item.stat}
-            </p>
-            <p
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                color: 'var(--ink4)',
-                letterSpacing: '0.06em',
-              }}
-            >
-              {item.label}
-            </p>
+        {/* How it works */}
+        <section className="bg-[var(--navy)] text-[var(--paper)]">
+          <div className={`${wrap} py-20 sm:py-24`}>
+            <p className="eyebrow !text-[var(--amber-soft)]">How it works</p>
+            <h2 className="mt-3 max-w-2xl font-[family-name:var(--font-fraunces)] text-3xl leading-tight sm:text-4xl">
+              We build it together, and you keep it
+            </h2>
+            <ol className="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+              {steps.map((s, i) => (
+                <li key={s.title} className="border-t border-white/20 pt-5">
+                  <span className="font-[family-name:var(--font-fraunces)] text-3xl italic text-[var(--amber-soft)]">
+                    {i + 1}
+                  </span>
+                  <h3 className="mt-2 text-lg font-semibold">{s.title}</h3>
+                  <p className="mt-2 leading-relaxed text-white/70">{s.body}</p>
+                </li>
+              ))}
+            </ol>
           </div>
-        ))}
-      </section>
+        </section>
 
-      {/* ── HOW IT WORKS ── */}
-      <section
-        id="how-it-works"
-        style={{
-          maxWidth: 720,
-          margin: '0 auto',
-          padding: '72px 24px',
-        }}
-      >
-        <p
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 10,
-            color: 'var(--amber-text)',
-            letterSpacing: '0.1em',
-            marginBottom: 32,
-            textTransform: 'uppercase',
-          }}
-        >
-          How it works
-        </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
-          {[
-            {
-              n: '1',
-              title: 'You bring the data',
-              body: 'Upload KDP report, connect Meta ads, link MailerLite. 5 minutes the first time.',
-            },
-            {
-              n: '2',
-              title: 'AuthorDash makes sense of it',
-              body: 'Every morning: net royalties after every expense, ad performance, email health. No tab switching.',
-            },
-            {
-              n: '3',
-              title: 'You make the call',
-              body: 'AI is only as good as the human mind behind it. We keep you in the process — you drive, AuthorDash navigates. You\'re still the one running your business. Now you\'re just not doing it alone.',
-            },
-          ].map((step) => (
-            <div
-              key={step.n}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '32px 1fr',
-                gap: 20,
-                alignItems: 'start',
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 11,
-                  color: 'var(--ink4)',
-                  paddingTop: 2,
-                }}
+        {/* Sessions */}
+        <section id="sessions" className={`${wrap} scroll-mt-20 py-20 sm:py-24`}>
+          <SectionHead
+            eyebrow="Work with me"
+            title="Pick the session that fits"
+            intro="Every engagement starts with a free call so we can make sure it is worth your time and money."
+          />
+          <div className="mt-12 grid gap-6 lg:grid-cols-3">
+            {sessions.map((s) => (
+              <article
+                key={s.name}
+                className={`flex flex-col rounded-[2px] border bg-[var(--card)] p-7 ${
+                  s.featured ? 'border-[var(--amber)] ring-1 ring-[var(--amber)]' : 'border-[var(--line)]'
+                }`}
               >
-                {step.n}.
-              </span>
-              <div>
-                <p
-                  style={{
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: 20,
-                    color: 'var(--ink)',
-                    marginBottom: 6,
-                    letterSpacing: '-0.01em',
-                  }}
-                >
-                  {step.title}
+                {s.featured && <p className="eyebrow mb-3">Most popular</p>}
+                <h3 className="font-[family-name:var(--font-fraunces)] text-2xl text-[var(--ink)]">{s.name}</h3>
+                <p className="mt-1 text-sm text-[var(--ink4)]">{s.length}</p>
+                <p className="mt-5 font-[family-name:var(--font-fraunces)] text-3xl text-[var(--ink)]">
+                  {s.price ?? <span className="text-lg italic text-[var(--ink3)]">Pricing on the call</span>}
                 </p>
-                <p
-                  style={{
-                    fontSize: 15,
-                    color: 'var(--ink3)',
-                    lineHeight: 1.65,
-                  }}
-                >
-                  {step.body}
-                </p>
+                {s.priceNote && <p className="mt-1 text-sm text-[var(--ink4)]">{s.priceNote}</p>}
+                <p className="mt-5 leading-relaxed text-[var(--ink3)]">{s.summary}</p>
+                <ul className="mt-6 flex-1 space-y-3 border-t border-[var(--line)] pt-6 text-sm text-[var(--ink2)]">
+                  {s.includes.map((item) => (
+                    <li key={item} className="flex gap-3">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--amber)]" aria-hidden="true" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-8">
+                  <BookButton
+                    href={s.bookingUrl}
+                    label={s.bookingUrl ? 'Book this session' : s.price === 'Free' ? 'Book the free call' : 'Start with a free call'}
+                    ghost={!s.featured}
+                  />
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* About */}
+        <section className="border-y border-[var(--line)] bg-[var(--paper2)]">
+          <div className={`${wrap} grid gap-10 py-20 md:grid-cols-[1fr_1.5fr] md:items-start`}>
+            <div>
+              <p className="eyebrow">Who you&rsquo;ll work with</p>
+              <div className="mt-4 flex items-center gap-5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/andrea.webp"
+                  alt={`${site.consultant}, AI systems consultant for indie authors`}
+                  width={1254}
+                  height={1254}
+                  loading="lazy"
+                  className="h-20 w-20 shrink-0 rounded-full object-cover object-[50%_30%] ring-1 ring-[var(--amber)] ring-offset-4 ring-offset-[var(--paper2)] sm:h-24 sm:w-24"
+                />
+                <h2 className="font-[family-name:var(--font-fraunces)] text-3xl leading-tight text-[var(--ink)] sm:text-4xl">
+                  Hi, I&rsquo;m {site.consultant}.
+                </h2>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── BETA AUTHOR QUOTE ── */}
-      <section
-        style={{
-          background: 'var(--card-boutique)',
-          borderTop: '1px solid var(--line)',
-          borderBottom: '1px solid var(--line)',
-          padding: '48px 24px',
-        }}
-      >
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <blockquote
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontStyle: 'italic',
-              fontSize: 22,
-              color: 'var(--ink)',
-              lineHeight: 1.5,
-              marginBottom: 16,
-            }}
-          >
-            &ldquo;I finally know if my ads are actually making me money. I used to just hope they
-            were.&rdquo;
-          </blockquote>
-          <p
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              color: 'var(--ink4)',
-              letterSpacing: '0.06em',
-            }}
-          >
-            — Beta author · 4 titles in KU
-          </p>
-        </div>
-      </section>
-
-      {/* ── WHAT WE BELIEVE ── */}
-      <section
-        style={{
-          maxWidth: 720,
-          margin: '0 auto',
-          padding: '72px 24px',
-        }}
-      >
-        <p
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 10,
-            color: 'var(--amber-text)',
-            letterSpacing: '0.1em',
-            marginBottom: 32,
-            textTransform: 'uppercase',
-          }}
-        >
-          What we believe
-        </p>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: 1,
-            background: 'var(--line)',
-            border: '1px solid var(--line)',
-            borderRadius: 10,
-            overflow: 'hidden',
-          }}
-        >
-          {[
-            {
-              title: 'Done with you, not for you',
-              body: "We surface what matters. You decide what to do with it. This isn't a black box — it's a co-pilot.",
-            },
-            {
-              title: 'Your data stays yours',
-              body: "We never store your KDP password. Upload a report, we read it, we don't keep it. Full data export anytime.",
-            },
-            {
-              title: 'Built for working authors',
-              body: "Not a tool for marketers who write. A tool for authors who also have to run a business.",
-            },
-            {
-              title: 'Every genre, every platform',
-              body: "Romance, thriller, fantasy, cozy mystery — if you're publishing indie and running ads, AuthorDash works for you.",
-            },
-          ].map((belief) => (
-            <div
-              key={belief.title}
-              style={{
-                background: 'var(--card-boutique)',
-                padding: '28px 28px',
-              }}
-            >
-              <p
-                style={{
-                  fontFamily: 'var(--font-serif)',
-                  fontSize: 17,
-                  color: 'var(--ink)',
-                  marginBottom: 8,
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                {belief.title}
+            <div className="space-y-5 text-lg leading-relaxed text-[var(--ink2)]">
+              <p>
+                I&rsquo;m an indie author too, but I bring more than 20 years of marketing and teaching expertise to
+                your new venture. I&rsquo;ve served as Communications Director in the California State Senate and led
+                audience development and acquisition for a major Hollywood studio. I also hold a master&rsquo;s degree
+                in leadership.
               </p>
-              <p
-                style={{
-                  fontSize: 14,
-                  color: 'var(--ink3)',
-                  lineHeight: 1.65,
-                }}
-              >
-                {belief.body}
+              <p>
+                When marketing started eating my own writing days, I built AI systems to handle it, and that work
+                became {site.brand}.
               </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── LIVING PRODUCT ── */}
-      <section
-        style={{
-          maxWidth: 720,
-          margin: '0 auto',
-          padding: '0 24px 72px',
-        }}
-      >
-        <p
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontStyle: 'italic',
-            fontSize: 18,
-            color: 'var(--ink2)',
-            lineHeight: 1.65,
-            marginBottom: 16,
-          }}
-        >
-          New features ship every week. We&apos;re always testing, always improving — and we&apos;re
-          building based on what authors actually need, not what we think they need.
-        </p>
-        <p
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontStyle: 'italic',
-            fontSize: 18,
-            color: 'var(--ink2)',
-            lineHeight: 1.65,
-            marginBottom: 16,
-          }}
-        >
-          If there&apos;s something you want to see, tell me directly. I read every message.
-        </p>
-        <p
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontStyle: 'italic',
-            fontSize: 18,
-            color: 'var(--amber-boutique)',
-            marginBottom: 20,
-          }}
-        >
-          — Andrea, founder
-        </p>
-        <a
-          href="mailto:andreanbonilla@gmail.com?subject=Feature request"
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 10,
-            color: 'var(--amber-text)',
-            textDecoration: 'none',
-            borderBottom: '1px solid var(--amber-text)',
-            paddingBottom: 1,
-            letterSpacing: '0.06em',
-          }}
-        >
-          Request a feature →
-        </a>
-      </section>
-
-      {/* ── PRICING ── */}
-      <section
-        id="pricing"
-        style={{
-          background: 'var(--card-boutique)',
-          borderTop: '1px solid var(--line)',
-          borderBottom: '1px solid var(--line)',
-          padding: '72px 24px',
-        }}
-      >
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <p
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              color: 'var(--amber-text)',
-              letterSpacing: '0.1em',
-              marginBottom: 24,
-              textTransform: 'uppercase',
-            }}
-          >
-            Pricing
-          </p>
-
-          <p
-            style={{
-              fontSize: 16,
-              color: 'var(--ink2)',
-              lineHeight: 1.65,
-              marginBottom: 40,
-              maxWidth: 560,
-            }}
-          >
-            AuthorDash will be $37/month at public launch. Right now, beta is free. The first 100
-            members who stay through launch lock in $7/month forever.
-          </p>
-
-          {/* Tier grid */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-              gap: 1,
-              background: 'var(--line)',
-              border: '1px solid var(--line)',
-              borderRadius: 10,
-              overflow: 'hidden',
-              marginBottom: 32,
-            }}
-          >
-            {/* Beta tier */}
-            <div
-              style={{
-                background: 'var(--paper)',
-                padding: '32px 28px',
-              }}
-            >
-              <p
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
-                  color: 'var(--ink4)',
-                  letterSpacing: '0.08em',
-                  marginBottom: 12,
-                  textTransform: 'uppercase',
-                }}
-              >
-                Beta
-              </p>
-              <p
-                style={{
-                  fontFamily: 'var(--font-serif)',
-                  fontSize: 40,
-                  color: 'var(--ink)',
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1,
-                  marginBottom: 4,
-                }}
-              >
-                $0
-              </p>
-              <p
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
-                  color: 'var(--ink4)',
-                  letterSpacing: '0.04em',
-                  marginBottom: 20,
-                }}
-              >
-                during beta
-              </p>
-              <p
-                style={{
-                  fontSize: 14,
-                  color: 'var(--ink3)',
-                  lineHeight: 1.65,
-                }}
-              >
-                Full access. No credit card. When we launch publicly, you&apos;ll be notified and given
-                the choice to stay or go. No auto-charges — ever.
-              </p>
-            </div>
-
-            {/* Founding member tier */}
-            <div
-              style={{
-                background: '#14110f',
-                padding: '32px 28px',
-                position: 'relative',
-              }}
-            >
-              {/* Tag */}
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 20,
-                  right: 20,
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 9,
-                  background: 'var(--amber-boutique)',
-                  color: 'var(--ink)',
-                  padding: '3px 8px',
-                  borderRadius: 4,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                First 100 only
-              </span>
-
-              <p
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
-                  color: 'rgba(138,128,118,0.7)',
-                  letterSpacing: '0.08em',
-                  marginBottom: 12,
-                  textTransform: 'uppercase',
-                }}
-              >
-                Founding member
-              </p>
-              <p
-                style={{
-                  fontFamily: 'var(--font-serif)',
-                  fontSize: 40,
-                  color: 'var(--paper)',
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1,
-                  marginBottom: 4,
-                }}
-              >
-                $7
-              </p>
-              <p
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
-                  color: 'rgba(138,128,118,0.7)',
-                  letterSpacing: '0.04em',
-                  marginBottom: 20,
-                }}
-              >
-                per month · locked forever
-              </p>
-              <p
-                style={{
-                  fontSize: 14,
-                  color: 'rgba(247,241,229,0.6)',
-                  lineHeight: 1.65,
-                }}
-              >
-                Stay through launch and this is your price permanently. No matter what we charge everyone
-                else. If you leave and come back, this rate is gone.
+              <p>
+                Now I pair that marketing experience with something just as important: teaching you to master these
+                tools yourself. You won&rsquo;t just leave with a system. You&rsquo;ll understand it
+                well enough to change it, fix it and build the next one on your own.
               </p>
             </div>
           </div>
+        </section>
 
-          {/* Spots counter */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'baseline',
-              borderTop: '1px solid var(--line)',
-              paddingTop: 20,
-              marginBottom: 32,
-            }}
-          >
-            <p
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 11,
-                color: 'var(--ink3)',
-                letterSpacing: '0.04em',
-              }}
-            >
-              Founding member spots remaining
-            </p>
-            <p
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 28,
-                color: 'var(--amber-boutique)',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              {SPOTS_REMAINING}{' '}
-              <span style={{ fontSize: 14, color: 'var(--ink4)', fontFamily: 'var(--font-mono)' }}>
-                of {SPOTS_TOTAL}
-              </span>
-            </p>
+        {/* FAQ */}
+        <section id="faq" className={`${wrap} scroll-mt-20 py-20 sm:py-24`}>
+          <SectionHead eyebrow="Questions" title="Before you book" />
+          <div className="mt-10 max-w-3xl divide-y divide-[var(--line)] border-y border-[var(--line)]">
+            {faqs.map((f) => (
+              <details key={f.q} className="group py-5">
+                <summary className="flex items-center justify-between gap-6 text-lg font-semibold text-[var(--ink)]">
+                  {f.q}
+                  <span className="faq-plus text-2xl font-light text-[var(--amber-text)] transition-transform" aria-hidden="true">
+                    +
+                  </span>
+                </summary>
+                <p className="mt-3 leading-relaxed text-[var(--ink3)]">{f.a}</p>
+              </details>
+            ))}
           </div>
+        </section>
 
-          {/* Main CTA */}
-          <Link
-            href="/login"
-            style={{
-              display: 'block',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 13,
-              background: 'var(--ink)',
-              color: 'var(--paper)',
-              padding: '16px 28px',
-              borderRadius: 8,
-              textDecoration: 'none',
-              letterSpacing: '0.03em',
-              textAlign: 'center',
-              marginBottom: 12,
-            }}
-          >
-            Join beta free → Lock in $7 forever
-          </Link>
+        {/* Final CTA */}
+        <section className={`${wrap} pb-24`}>
+          <div className="rounded-[2px] border border-[var(--line)] bg-[var(--card)] px-6 py-14 text-center sm:px-12">
+            <h2 className="mx-auto max-w-2xl font-[family-name:var(--font-fraunces)] text-3xl leading-tight sm:text-4xl">
+              Bring the task you dread most. We&rsquo;ll start there.
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-lg text-[var(--ink3)]">
+              Twenty minutes, free, no pitch deck. Just a clear next step.
+            </p>
+            <div className="mt-8 flex justify-center">
+              <BookButton />
+            </div>
+          </div>
+        </section>
+      </main>
 
-          <p
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              color: 'var(--ink4)',
-              textAlign: 'center',
-              letterSpacing: '0.06em',
-              marginBottom: 24,
-            }}
-          >
-            No credit card · cancel anytime · you choose at launch
+      <footer className="border-t border-[var(--line)]">
+        <div className={`${wrap} flex flex-col gap-3 py-8 text-sm text-[var(--ink4)] sm:flex-row sm:items-center sm:justify-between`}>
+          <p>
+            &copy; {new Date().getFullYear()} {site.brand}
           </p>
-
-          <p
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontStyle: 'italic',
-              fontSize: 16,
-              color: 'var(--ink3)',
-              textAlign: 'center',
-              lineHeight: 1.6,
-            }}
-          >
-            If AuthorDash helps you catch one underperforming ad this month, it pays for itself —
-            twice.
-          </p>
-        </div>
-      </section>
-
-      {/* ── CONCIERGE CALLOUT ── */}
-      <section
-        style={{
-          maxWidth: 720,
-          margin: '0 auto',
-          padding: '72px 24px',
-        }}
-      >
-        <div
-          style={{
-            border: '1px solid var(--line)',
-            borderLeft: '3px solid var(--amber-boutique)',
-            background: 'var(--card-boutique)',
-            padding: '28px 32px',
-            borderRadius: 10,
-          }}
-        >
-          <p
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              color: 'var(--amber-text)',
-              letterSpacing: '0.1em',
-              marginBottom: 12,
-              textTransform: 'uppercase',
-            }}
-          >
-            Concierge
-          </p>
-          <p
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 22,
-              color: 'var(--ink)',
-              letterSpacing: '-0.01em',
-              marginBottom: 12,
-            }}
-          >
-            Want a custom setup?
-          </p>
-          <p
-            style={{
-              fontSize: 15,
-              color: 'var(--ink3)',
-              lineHeight: 1.65,
-              marginBottom: 20,
-              maxWidth: 480,
-            }}
-          >
-            If you want someone to sit with you, configure your dashboard, and make sure it&apos;s
-            actually working for your specific publishing situation — that&apos;s available. Concierge
-            onboarding is a one-time session with me directly.
-          </p>
-          <a
-            href="mailto:andreanbonilla@gmail.com?subject=Concierge onboarding"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              color: 'var(--amber-text)',
-              textDecoration: 'none',
-              borderBottom: '1px solid var(--amber-text)',
-              paddingBottom: 1,
-              letterSpacing: '0.06em',
-            }}
-          >
-            Apply for concierge →
-          </a>
-        </div>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer
-        style={{
-          borderTop: '1px solid var(--line)',
-          padding: '28px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          maxWidth: 720,
-          margin: '0 auto',
-        }}
-      >
-        <span
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 18,
-            letterSpacing: '-0.02em',
-            color: 'var(--ink)',
-          }}
-        >
-          Author
-          <em style={{ color: 'var(--amber-boutique)', fontStyle: 'italic' }}>Dash</em>
-        </span>
-
-        <div style={{ display: 'flex', gap: 20 }}>
-          {[
-            { label: 'Privacy', href: '/privacy' },
-            { label: 'Terms', href: '/terms' },
-            { label: 'Data', href: '/data' },
-          ].map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                color: 'var(--ink4)',
-                textDecoration: 'none',
-                letterSpacing: '0.04em',
-              }}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {site.contactEmail && (
+            <a href={`mailto:${site.contactEmail}`} className="hover:text-[var(--ink)]">
+              {site.contactEmail}
+            </a>
+          )}
         </div>
       </footer>
-    </div>
+    </>
   )
 }
