@@ -224,7 +224,7 @@ export default function Home() {
                   width={1254}
                   height={1254}
                   loading="lazy"
-                  className="h-20 w-20 shrink-0 rounded-full object-cover object-[50%_30%] ring-1 ring-[var(--amber)] ring-offset-4 ring-offset-[var(--paper2)] sm:h-24 sm:w-24"
+                  className="h-24 w-24 shrink-0 rounded-full object-cover object-[50%_30%] ring-1 ring-[var(--amber)] ring-offset-4 ring-offset-[var(--paper2)] sm:h-[7.25rem] sm:w-[7.25rem]"
                 />
                 <h2 className="font-[family-name:var(--font-fraunces)] text-3xl leading-tight text-[var(--ink)] sm:text-4xl">
                   Hi, I&rsquo;m {site.consultant}.
